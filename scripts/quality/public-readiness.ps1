@@ -48,6 +48,10 @@ try {
         $result = rg -n --pcre2 --glob '!frontend/node_modules/**' --glob '!backend/target/**' --glob '!frontend/dist/**' --glob '!reports/**' -- $pattern . 2>$null
         if ($LASTEXITCODE -eq 0) {
             $matches += $result
+        } elseif ($LASTEXITCODE -eq 1) {
+            $global:LASTEXITCODE = 0
+        } else {
+            throw "Secret-pattern scan failed while checking pattern: $pattern"
         }
     }
     if ($matches.Count -gt 0) {
@@ -62,6 +66,10 @@ try {
     if ($LASTEXITCODE -eq 0) {
         $docMatches
         throw "Public docs contain stale private/proof wording."
+    } elseif ($LASTEXITCODE -eq 1) {
+        $global:LASTEXITCODE = 0
+    } else {
+        throw "Public doc residue scan failed."
     }
     Write-Host "Public doc residue scan passed."
 
@@ -71,3 +79,5 @@ try {
 } finally {
     Pop-Location
 }
+
+exit 0
