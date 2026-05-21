@@ -131,6 +131,7 @@ These standing rules apply to every future phase, roadmap revision, and VInfinit
 - Any prototype touching authentication, authorization, password reset, access requests, notification delivery, tenant boundaries, data isolation, operational automation, payments, or production deployment must be labeled as prototype-local until Pre-V16 and V16 certify it as production-ready.
 - Every phase must close documentation gaps against the actual code before being marked complete.
 - Every phase must include proof matching its risk: backend tests, frontend tests, Playwright evidence, migration proof, script validation, stress/load proof, backup/restore proof, dependency/container review, or public-readiness checks as appropriate.
+- Public CI must be treated as production-shaped proof. The GitHub Actions workflow is named `MerHouse Quality Gate`; it must use generated masked credentials, keep password-reset token echo disabled, redact auth material from generated reports, avoid publishing raw proof artifacts, and expose only non-sensitive job flow, status, and proof identifiers in logs.
 - Pre-V16 is the hard gate for full-system professionalization, stress testing, safety review, dependency/container review, backup/restore proof, public-source leakage review, and release-blocker closure.
 - VInfinite may collect future ideas, but backlog items do not override QC rules and do not imply production readiness.
 

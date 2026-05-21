@@ -25,17 +25,17 @@ try {
     Invoke-Checked "Checking diff whitespace..." { git diff --check }
 
     Write-Host ""
-    Write-Host "Checking ignored publication boundaries..."
-    $ignoreOutput = git check-ignore -v .github/workflows/ci-proof-reports/ci-api-smoke.json frontend/tests/e2e/full-tour.spec.ts frontend/playwright.config.ts 2>$null
-    $proofReportsIgnored = $ignoreOutput | Where-Object { $_ -match "\.github/workflows/ci-proof-reports/" }
-    $frontendIgnored = $ignoreOutput | Where-Object { $_ -match "frontend/(tests/e2e|playwright\.config\.ts)" }
-    if (-not $proofReportsIgnored) {
-        throw "Downloaded CI proof reports must remain ignored."
+    Write-Host "Checking publication boundaries..."
+    if (Test-Path (Join-Path $projectRoot ".github/workflows/ci-proof-reports")) {
+        throw "Downloaded CI proof reports must not exist in the repository workspace."
     }
+
+    $ignoreOutput = git check-ignore -v frontend/tests/e2e/full-tour.spec.ts frontend/playwright.config.ts 2>$null
+    $frontendIgnored = $ignoreOutput | Where-Object { $_ -match "frontend/(tests/e2e|playwright\.config\.ts)" }
     if ($frontendIgnored) {
         throw "Frontend Playwright tests or config are still ignored."
     }
-    Write-Host "Ignored boundary check passed."
+    Write-Host "Publication boundary check passed."
 
     Write-Host ""
     Write-Host "Scanning public source for high-confidence secret patterns..."

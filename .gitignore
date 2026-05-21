@@ -10,7 +10,6 @@ backend/.mvn/wrapper/maven-wrapper.jar
 !.env.example
 *.log
 reports/
-.github/workflows/ci-proof-reports/
 
 frontend/dist/
 frontend/test-results/
