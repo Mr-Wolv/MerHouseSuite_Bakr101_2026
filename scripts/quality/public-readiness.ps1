@@ -26,8 +26,12 @@ try {
 
     Write-Host ""
     Write-Host "Checking ignored publication boundaries..."
-    $ignoreOutput = git check-ignore -v frontend/tests/e2e/full-tour.spec.ts frontend/playwright.config.ts 2>$null
+    $ignoreOutput = git check-ignore -v .github/workflows/ci-proof-reports/ci-api-smoke.json frontend/tests/e2e/full-tour.spec.ts frontend/playwright.config.ts 2>$null
+    $proofReportsIgnored = $ignoreOutput | Where-Object { $_ -match "\.github/workflows/ci-proof-reports/" }
     $frontendIgnored = $ignoreOutput | Where-Object { $_ -match "frontend/(tests/e2e|playwright\.config\.ts)" }
+    if (-not $proofReportsIgnored) {
+        throw "Downloaded CI proof reports must remain ignored."
+    }
     if ($frontendIgnored) {
         throw "Frontend Playwright tests or config are still ignored."
     }
@@ -45,7 +49,7 @@ try {
     )
     $matches = @()
     foreach ($pattern in $patterns) {
-        $result = rg -n --pcre2 --glob '!frontend/node_modules/**' --glob '!backend/target/**' --glob '!frontend/dist/**' --glob '!reports/**' -- $pattern . 2>$null
+        $result = rg -n --pcre2 --glob '!frontend/node_modules/**' --glob '!backend/target/**' --glob '!frontend/dist/**' --glob '!reports/**' --glob '!.github/workflows/ci-proof-reports/**' -- $pattern . 2>$null
         if ($LASTEXITCODE -eq 0) {
             $matches += $result
         } elseif ($LASTEXITCODE -eq 1) {
