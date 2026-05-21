@@ -1,6 +1,9 @@
 param(
     [string]$BaseUrl = "http://localhost:8080",
-    [string]$OutputPath = ""
+    [string]$OutputPath = "",
+    [string]$AdminEmail = "admin@merhouse.local",
+    [string]$AdminPassword = "local-owner-password",
+    [switch]$ExpectRecoveryToken
 )
 
 $ErrorActionPreference = "Stop"
@@ -26,6 +29,9 @@ $context = @{
     BaseUrl = $BaseUrl
     OutputPath = $OutputPath
     Suffix = [Guid]::NewGuid().ToString("N").Substring(0, 8)
+    AdminEmail = $AdminEmail
+    AdminPassword = $AdminPassword
+    ExpectRecoveryToken = [bool]$ExpectRecoveryToken
 }
 
 Write-Host "Running MerHouse API smoke test against $BaseUrl"

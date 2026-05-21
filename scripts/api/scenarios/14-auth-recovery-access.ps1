@@ -8,7 +8,11 @@ $resetResponse = Invoke-Json -Context $Context -Method Post -Path "/api/v1/auth/
     email = $resetEmail
 }
 Assert-NotBlank -Value $resetResponse.message -Message "Password reset response message was blank."
-Assert-NotBlank -Value $resetResponse.resetToken -Message "Enabled user reset token was blank in local dev response."
+if ($Context.ExpectRecoveryToken) {
+    Assert-NotBlank -Value $resetResponse.resetToken -Message "Enabled user reset token was blank in local dev response."
+} elseif ($null -ne $resetResponse.resetToken) {
+    throw "Enabled-user reset leaked a token while recovery token echo was disabled."
+}
 
 $missingResetResponse = Invoke-Json -Context $Context -Method Post -Path "/api/v1/auth/password-reset/request" -Body @{
     email = "missing-$($Context.Suffix)@merhouse.local"
@@ -18,21 +22,28 @@ if ($null -ne $missingResetResponse.resetToken) {
     throw "Missing-account reset leaked a token."
 }
 
-Invoke-Json -Context $Context -Method Post -Path "/api/v1/auth/password-reset/confirm" -Body @{
-    token = $resetResponse.resetToken
-    newPassword = $resetPassword
-} | Out-Null
+if ($Context.ExpectRecoveryToken) {
+    Invoke-Json -Context $Context -Method Post -Path "/api/v1/auth/password-reset/confirm" -Body @{
+        token = $resetResponse.resetToken
+        newPassword = $resetPassword
+    } | Out-Null
 
-Invoke-ExpectedHttpFailure -Method Post -Path "/api/v1/auth/password-reset/confirm" -ExpectedStatus 409 -Body @{
-    token = $resetResponse.resetToken
-    newPassword = "another-password"
-}
+    Invoke-ExpectedHttpFailure -Method Post -Path "/api/v1/auth/password-reset/confirm" -ExpectedStatus 409 -Body @{
+        token = $resetResponse.resetToken
+        newPassword = "another-password"
+    }
 
-$Context.MerchantLoginAfterReset = Invoke-Json -Context $Context -Method Post -Path "/api/v1/auth/login" -Body @{
-    email = $resetEmail
-    password = $resetPassword
+    $Context.MerchantLoginAfterReset = Invoke-Json -Context $Context -Method Post -Path "/api/v1/auth/login" -Body @{
+        email = $resetEmail
+        password = $resetPassword
+    }
+    Assert-Equal -Actual $Context.MerchantLoginAfterReset.user.email -Expected $resetEmail -Message "Merchant login after reset returned the wrong user."
+} else {
+    Invoke-ExpectedHttpFailure -Method Post -Path "/api/v1/auth/password-reset/confirm" -ExpectedStatus 409 -Body @{
+        token = "invalid-smoke-token-$($Context.Suffix)"
+        newPassword = $resetPassword
+    }
 }
-Assert-Equal -Actual $Context.MerchantLoginAfterReset.user.email -Expected $resetEmail -Message "Merchant login after reset returned the wrong user."
 
 $Context.AccessRequest = Invoke-Json -Context $Context -Method Post -Path "/api/v1/access-requests" -Body @{
     organizationName = "Smoke Merchant $($Context.Suffix)"

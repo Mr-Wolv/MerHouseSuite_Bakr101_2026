@@ -1,3 +1,17 @@
+function Redact-AuthResponse {
+    param($Response)
+
+    if ($null -eq $Response) {
+        return $null
+    }
+
+    [ordered]@{
+        user = $Response.user
+        tokenType = $Response.tokenType
+        accessToken = "[redacted]"
+    }
+}
+
 function New-SmokeReport {
     param(
         [Parameter(Mandatory = $true)] [hashtable] $Context
@@ -256,7 +270,7 @@ ORDER BY created_at
             v4IdempotentReplay = $Context.V4IdempotentReplay
             v4PartialOrder = $Context.V4PartialOrder
             v4PartialAllocatedOrder = $Context.V4PartialAllocatedOrder
-            adminLogin = $Context.AdminLogin
+            adminLogin = Redact-AuthResponse -Response $Context.AdminLogin
             merchantUser = $Context.MerchantUser
             operatorUser = $Context.OperatorUser
             disabledUser = $Context.DisabledUser
@@ -268,7 +282,7 @@ ORDER BY created_at
             backorderOnlyItem = $Context.BackorderOnlyItem
             fulfilledBackorderOrder = $Context.FulfilledBackorderOrder
             cancelledBackorderOrder = $Context.CancelledBackorderOrder
-            merchantLoginAfterReset = $Context.MerchantLoginAfterReset
+            merchantLoginAfterReset = Redact-AuthResponse -Response $Context.MerchantLoginAfterReset
             approvedAccessRequest = $Context.ApprovedAccessRequest
             rejectedAccessRequest = $Context.RejectedAccessRequest
             boundaryAccessRequest = $Context.BoundaryAccessRequest
@@ -318,6 +332,10 @@ function New-SmokeSummary {
     $v12TenantStatus = if ($Context.V12GovernedTenant -and $Context.V12GovernedTenant.active) { "ACTIVE" } else { "UNKNOWN" }
     $v12RelationshipStatus = if ($Context.V12Relationship) { $Context.V12Relationship.status } else { "" }
     $v12DeadLetterStatus = if ($Context.V12DeadLetterEvent) { $Context.V12DeadLetterEvent.status } else { "" }
+    $passwordRecoveryProof = "Enabled-user reset stayed generic; missing account stayed generic; invalid reset tokens failed safely"
+    if ($Context.ExpectRecoveryToken) {
+        $passwordRecoveryProof = "Enabled-user reset produced a local dev token, missing account stayed generic, reset token was single-use, and login worked with the new password"
+    }
 
     $lines = @(
         "# API Smoke Test Summary",
@@ -427,7 +445,7 @@ function New-SmokeSummary {
         "| Operator access | Warehouse operator read its warehouse inventory |",
         "| Merchant console operations | Merchant created an item, created an order, allocated it to backorder, and cancelled it |",
         "| User disable | Admin self-disable was blocked, another admin could be disabled while one remained, disabled tokens were rejected, and disabled users could not log in |",
-        "| Password recovery | Enabled-user reset produced a local dev token, missing account stayed generic, reset token was single-use, and login worked with the new password |",
+        "| Password recovery | $passwordRecoveryProof |",
         "| Access requests | Public merchant/warehouse requests were submitted and admin review moved them to approved/rejected states |",
         "",
         "## V6 Outbox Processing Proof",

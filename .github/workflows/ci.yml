@@ -108,27 +108,35 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Mask local CI fixture credentials
-        run: |
-          echo "::add-mask::ci-postgres-password"
-          echo "::add-mask::ci-jwt-secret-at-least-32-characters"
-          echo "::add-mask::local-owner-password"
-          echo "::add-mask::review-password"
-          echo "::add-mask::demo-password"
-          echo "::add-mask::tour-password"
-
-      - name: Create CI environment
+      - name: Create masked CI environment
         shell: bash
         run: |
-          cat > .env <<'EOF'
+          ci_postgres_password="$(openssl rand -hex 32)"
+          ci_jwt_secret="$(openssl rand -hex 48)"
+          ci_admin_email="admin@merhouse.local"
+          ci_admin_password="$(openssl rand -hex 32)"
+          ci_review_password="$(openssl rand -hex 32)"
+
+          echo "::add-mask::$ci_postgres_password"
+          echo "::add-mask::$ci_jwt_secret"
+          echo "::add-mask::$ci_admin_password"
+          echo "::add-mask::$ci_review_password"
+
+          {
+            echo "CI_ADMIN_EMAIL=$ci_admin_email"
+            echo "CI_ADMIN_PASSWORD=$ci_admin_password"
+            echo "CI_REVIEW_PASSWORD=$ci_review_password"
+          } >> "$GITHUB_ENV"
+
+          cat > .env <<EOF
           MERHOUSE_POSTGRES_DB=merhouse
           MERHOUSE_POSTGRES_USER=merhouse_local
-          MERHOUSE_POSTGRES_PASSWORD=ci-postgres-password
-          MERHOUSE_AUTH_JWT_SECRET=ci-jwt-secret-at-least-32-characters
-          MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=true
+          MERHOUSE_POSTGRES_PASSWORD=$ci_postgres_password
+          MERHOUSE_AUTH_JWT_SECRET=$ci_jwt_secret
+          MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=false
           MERHOUSE_AUTH_SEED_ADMIN_ENABLED=true
-          MERHOUSE_AUTH_SEED_ADMIN_EMAIL=admin@merhouse.local
-          MERHOUSE_AUTH_SEED_ADMIN_PASSWORD=local-owner-password
+          MERHOUSE_AUTH_SEED_ADMIN_EMAIL=$ci_admin_email
+          MERHOUSE_AUTH_SEED_ADMIN_PASSWORD=$ci_admin_password
           MERHOUSE_SWAGGER_ENABLED=true
           MERHOUSE_DEPLOYMENT_PUBLIC=false
           EOF
@@ -140,8 +148,8 @@ jobs:
         shell: pwsh
         run: |
           $body = @{
-            email = "admin@merhouse.local"
-            password = "local-owner-password"
+            email = $env:CI_ADMIN_EMAIL
+            password = $env:CI_ADMIN_PASSWORD
           } | ConvertTo-Json
 
           for ($attempt = 1; $attempt -le 60; $attempt++) {
@@ -161,15 +169,15 @@ jobs:
 
       - name: Run API smoke
         shell: pwsh
-        run: ./scripts/quality/api-smoke.ps1 -BaseUrl "http://localhost:8080" -OutputPath "reports/ci-api-smoke.json"
+        run: ./scripts/quality/api-smoke.ps1 -BaseUrl "http://localhost:8080" -OutputPath "reports/ci-api-smoke.json" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD
 
       - name: Seed frontend tour data
         shell: pwsh
-        run: ./scripts/local/seed-demo.ps1 -BaseUrl "http://localhost:8080" -CreateReviewAccounts -Suffix "ci" -SuppressCredentialOutput
+        run: ./scripts/local/seed-demo.ps1 -BaseUrl "http://localhost:8080" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD -CreateReviewAccounts -ReviewPassword $env:CI_REVIEW_PASSWORD -Suffix "ci" -SuppressCredentialOutput
 
       - name: Run frontend full tour
         shell: pwsh
-        run: ./scripts/quality/frontend-full-tour.ps1 -BaseUrl "http://localhost:3000" -ApiUrl "http://localhost:3000" -OutputPath "reports/ci-frontend-full-tour.json"
+        run: ./scripts/quality/frontend-full-tour.ps1 -BaseUrl "http://localhost:3000" -ApiUrl "http://localhost:3000" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD -MerchantPassword $env:CI_REVIEW_PASSWORD -WarehousePassword $env:CI_REVIEW_PASSWORD -OutputPath "reports/ci-frontend-full-tour.json"
 
       - name: Print Docker Compose logs
         if: failure()
