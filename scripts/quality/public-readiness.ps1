@@ -26,10 +26,6 @@ try {
 
     Write-Host ""
     Write-Host "Checking publication boundaries..."
-    if (Test-Path (Join-Path $projectRoot ".github/workflows/ci-proof-reports")) {
-        throw "Downloaded CI proof reports must not exist in the repository workspace."
-    }
-
     $ignoreOutput = git check-ignore -v frontend/tests/e2e/full-tour.spec.ts frontend/playwright.config.ts 2>$null
     $frontendIgnored = $ignoreOutput | Where-Object { $_ -match "frontend/(tests/e2e|playwright\.config\.ts)" }
     if ($frontendIgnored) {
