@@ -6,7 +6,8 @@ param(
     [switch]$CreateReviewAccounts,
     [string]$ReviewMerchantEmail = "review.merchant@merhouse.local",
     [string]$ReviewWarehouseEmail = "review.operator@merhouse.local",
-    [string]$ReviewPassword = "review-password"
+    [string]$ReviewPassword = "review-password",
+    [switch]$SuppressCredentialOutput
 )
 
 $ErrorActionPreference = "Stop"
@@ -719,19 +720,30 @@ $summary = [ordered]@{
         enabled = [bool]$CreateReviewAccounts
         merchant = if ($reviewMerchantUser) { $reviewMerchantUser.email } else { $null }
         warehouse = if ($reviewWarehouseUser) { $reviewWarehouseUser.email } else { $null }
-        password = if ($CreateReviewAccounts) { $ReviewPassword } else { $null }
+        password = if ($CreateReviewAccounts -and -not $SuppressCredentialOutput) { $ReviewPassword } else { $null }
     }
 }
 
 Write-Host ""
 Write-Host "Demo seed complete."
 Write-Host "Suffix: $suffix"
-Write-Host "Merchant user: $($merchantUser.email) / demo-password"
-Write-Host "Warehouse operator: $($operatorUser.email) / demo-password"
-Write-Host "Disabled user: $($disabledUser.email) / demo-password"
+if ($SuppressCredentialOutput) {
+    Write-Host "Merchant user: $($merchantUser.email)"
+    Write-Host "Warehouse operator: $($operatorUser.email)"
+    Write-Host "Disabled user: $($disabledUser.email)"
+} else {
+    Write-Host "Merchant user: $($merchantUser.email) / demo-password"
+    Write-Host "Warehouse operator: $($operatorUser.email) / demo-password"
+    Write-Host "Disabled user: $($disabledUser.email) / demo-password"
+}
 if ($CreateReviewAccounts) {
-    Write-Host "Review merchant: $($reviewMerchantUser.email) / $ReviewPassword"
-    Write-Host "Review warehouse: $($reviewWarehouseUser.email) / $ReviewPassword"
+    if ($SuppressCredentialOutput) {
+        Write-Host "Review merchant: $($reviewMerchantUser.email)"
+        Write-Host "Review warehouse: $($reviewWarehouseUser.email)"
+    } else {
+        Write-Host "Review merchant: $($reviewMerchantUser.email) / $ReviewPassword"
+        Write-Host "Review warehouse: $($reviewWarehouseUser.email) / $ReviewPassword"
+    }
 }
 Write-Host ""
 $summary | ConvertTo-Json -Depth 8
