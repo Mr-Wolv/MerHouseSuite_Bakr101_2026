@@ -1,0 +1,92 @@
+package com.merhouse.config;
+
+import com.merhouse.security.JwtService;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class ProductionSafetyConfig {
+    @Bean
+    ApplicationRunner publicDeploymentSafetyCheck(
+        @Value("${merhouse.deployment.public:false}") boolean publicDeployment,
+        @Value("${merhouse.auth.jwt-secret:}") String jwtSecret,
+        @Value("${merhouse.auth.recovery.expose-reset-token:false}") boolean exposeResetToken,
+        @Value("${merhouse.auth.seed-admin.enabled:false}") boolean seedAdminEnabled,
+        @Value("${merhouse.auth.seed-admin.password:}") String seedAdminPassword,
+        @Value("${spring.datasource.password:}") String databasePassword,
+        @Value("${springdoc.api-docs.enabled:true}") boolean apiDocsEnabled,
+        @Value("${springdoc.swagger-ui.enabled:true}") boolean swaggerUiEnabled
+    ) {
+        return arguments -> validate(
+            publicDeployment,
+            jwtSecret,
+            exposeResetToken,
+            seedAdminEnabled,
+            seedAdminPassword,
+            databasePassword,
+            apiDocsEnabled,
+            swaggerUiEnabled
+        );
+    }
+
+    static void validate(
+        boolean publicDeployment,
+        String jwtSecret,
+        boolean exposeResetToken,
+        boolean seedAdminEnabled,
+        String seedAdminPassword,
+        String databasePassword,
+        boolean apiDocsEnabled,
+        boolean swaggerUiEnabled
+    ) {
+        if (!publicDeployment) {
+            return;
+        }
+
+        List<String> failures = new ArrayList<>();
+        if (isBlank(jwtSecret) || looksLikePlaceholder(jwtSecret)) {
+            failures.add("MERHOUSE_AUTH_JWT_SECRET must be set to a private production value.");
+        }
+        if (!isBlank(jwtSecret) && jwtSecret.getBytes(StandardCharsets.UTF_8).length < JwtService.MIN_SECRET_BYTES) {
+            failures.add("MERHOUSE_AUTH_JWT_SECRET must be at least 32 bytes.");
+        }
+        if (isBlank(databasePassword) || looksLikePlaceholder(databasePassword)) {
+            failures.add("MERHOUSE_POSTGRES_PASSWORD/SPRING_DATASOURCE_PASSWORD must be set to a private production value.");
+        }
+        if (seedAdminEnabled) {
+            failures.add("MERHOUSE_AUTH_SEED_ADMIN_ENABLED must be false for public deployments.");
+            if (isBlank(seedAdminPassword) || looksLikePlaceholder(seedAdminPassword)) {
+                failures.add("MERHOUSE_AUTH_SEED_ADMIN_PASSWORD must not be a placeholder when local seeding is used.");
+            }
+        }
+        if (exposeResetToken) {
+            failures.add("MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN must be false for public deployments.");
+        }
+        if (apiDocsEnabled || swaggerUiEnabled) {
+            failures.add("MERHOUSE_SWAGGER_ENABLED/springdoc API docs and Swagger UI must be disabled for public deployments.");
+        }
+
+        if (!failures.isEmpty()) {
+            throw new IllegalStateException("Public deployment refused: " + String.join(" ", failures));
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static boolean looksLikePlaceholder(String value) {
+        String normalized = value.toLowerCase();
+        return normalized.contains("change")
+            || normalized.contains("replace")
+            || normalized.contains("example")
+            || normalized.contains("local")
+            || normalized.contains("dev")
+            || normalized.contains("password");
+    }
+}
