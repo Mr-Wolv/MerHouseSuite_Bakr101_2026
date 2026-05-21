@@ -114,8 +114,9 @@ The backend reads configuration from environment variables. `.env.example` conta
 ## Documentation
 
 - [Documentation index](docs/index.md)
-- [System overview](docs/public/system-overview.html)
+- [Roadmap](docs/architecture/roadmap.md)
 - [Backend guide](docs/development/backend.md)
 - [Frontend guide](docs/development/frontend.md)
 - [Scripts guide](docs/development/scripts.md)
 - [Architecture notes](docs/architecture/merchant-warehouse-operating-loop.md)
+- [System diagrams](docs/architecture/system-diagrams.html)

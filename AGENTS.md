@@ -4,9 +4,9 @@ MerHouse was built with agent-assisted engineering workflows. This file gives co
 
 ## Roadmap Guidance
 
-When `docs/private/roadmap.md` exists in the working copy, treat it as the local source of guidance before changing code, documentation, scripts, deployment configuration, database migrations, or repository publication state.
+Read `docs/architecture/roadmap.md` before changing code, documentation, scripts, deployment configuration, database migrations, or repository publication state. Treat it as the project roadmap and quality source of truth.
 
-When the private roadmap is absent, work from the tracked public source only:
+If the roadmap is absent, work from the tracked public source only:
 
 - [README.md](README.md) for product scope, setup, and common commands.
 - [docs/index.md](docs/index.md) for architecture and development documentation.

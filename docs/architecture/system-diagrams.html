@@ -7,35 +7,242 @@
   <style>
     :root {
       color-scheme: light;
-      --ink: #162033;
-      --muted: #5b6472;
-      --line: #d9dee8;
+      --ink: #172033;
+      --muted: #5a6475;
+      --line: #d7deea;
       --paper: #ffffff;
       --wash: #f6f8fb;
+      --soft: #fbfcfe;
+      --table-head: #263244;
+      --table-head-2: #344256;
+      --row: #f8fafc;
+      --pk: #7c2d12;
+      --fk: #1d4ed8;
+      --uk: #6d28d9;
+      --platform: #334155;
       --merchant: #0f766e;
       --warehouse: #4f46e5;
-      --platform: #334155;
       --service: #b45309;
+      --ops: #b91c1c;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     * { box-sizing: border-box; }
     body { margin: 0; color: var(--ink); background: var(--wash); line-height: 1.5; }
-    main { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 56px; }
-    section, header { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 24px; margin-bottom: 20px; }
-    h1, h2, h3, p { margin-top: 0; }
+    main { width: min(1360px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 56px; }
+    header, section { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 20px; padding: 24px; box-shadow: 0 14px 36px rgba(15, 23, 42, 0.05); }
+    h1, h2, h3, h4, p { margin-top: 0; }
     h1 { margin-bottom: 10px; font-size: 2rem; }
-    h2 { margin-bottom: 16px; font-size: 1.35rem; }
-    .lede { max-width: 820px; margin-bottom: 0; color: var(--muted); }
-    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-    .card { border: 1px solid var(--line); border-top: 5px solid var(--accent); border-radius: 8px; padding: 16px; background: #fff; }
-    .card h3 { margin-bottom: 10px; font-size: 1rem; }
-    ul { margin: 0; padding-left: 18px; color: var(--muted); }
-    .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
-    .step { border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fff; }
-    .step strong { display: block; margin-bottom: 6px; }
-    @media (max-width: 900px) {
-      main { width: min(100% - 20px, 1120px); padding-top: 20px; }
-      .grid, .flow { grid-template-columns: 1fr; }
+    h2 { margin-bottom: 14px; font-size: 1.35rem; }
+    h3 { margin-bottom: 8px; font-size: 1rem; }
+    h4 { margin: 0 0 8px; font-size: 0.95rem; }
+    .lede { max-width: 900px; margin-bottom: 0; color: var(--muted); }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .pill, .rel {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--muted);
+      padding: 6px 10px;
+      font-size: 0.9rem;
+    }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .step {
+      border: 1px solid var(--line);
+      border-top: 5px solid var(--accent);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+      padding: 14px;
+      min-height: 190px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    }
+    .step p { color: var(--muted); margin-bottom: 12px; }
+    .step ul, .entity ul { margin: 0; padding-left: 18px; color: var(--muted); }
+    .scenario {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .scenario-row {
+      border: 1px solid #e2e8f0;
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 8px;
+    }
+    .scenario-row b {
+      display: block;
+      color: var(--ink);
+      font-size: 0.78rem;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+    .scenario-row span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+    .arrow {
+      margin-top: 12px;
+      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .domain-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .domain {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(#ffffff, #ffffff) padding-box,
+        repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.14) 0 1px, transparent 1px 28px),
+        repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.10) 0 1px, transparent 1px 28px);
+      overflow: hidden;
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+    }
+    .domain > h3 {
+      border-left: 7px solid var(--accent);
+      background: linear-gradient(90deg, rgba(248, 250, 252, 0.98), rgba(255, 255, 255, 0.92));
+      border-bottom: 1px solid var(--line);
+      padding: 14px 16px;
+      margin: 0;
+    }
+    .domain-body { padding: 14px; }
+    .entity-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .entity {
+      border: 1px solid #b9c3d2;
+      border-radius: 7px;
+      padding: 0;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+    }
+    .entity h4 {
+      margin: 0;
+      padding: 10px 12px;
+      background: linear-gradient(180deg, var(--table-head-2), var(--table-head));
+      color: #fff;
+      border-bottom: 1px solid #172033;
+      font-size: 0.93rem;
+      letter-spacing: 0;
+    }
+    .entity h4 code {
+      color: #fff;
+      background: transparent;
+      padding: 0;
+      font-weight: 700;
+    }
+    .keys {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      margin: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .key {
+      display: flex;
+      align-items: center;
+      min-height: 30px;
+      border-radius: 0;
+      border-top: 1px solid #edf1f7;
+      background: var(--row);
+      color: #334155;
+      padding: 5px 10px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 0.78rem;
+      white-space: normal;
+    }
+    .key::before {
+      content: "COL";
+      min-width: 34px;
+      margin-right: 8px;
+      border-radius: 4px;
+      padding: 2px 4px;
+      background: #e2e8f0;
+      color: #475569;
+      text-align: center;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .key.pk::before {
+      content: "PK";
+      background: #ffedd5;
+      color: var(--pk);
+    }
+    .key.fk::before {
+      content: "FK";
+      background: #dbeafe;
+      color: var(--fk);
+    }
+    .key.uk::before {
+      content: "UK";
+      background: #ede9fe;
+      color: var(--uk);
+    }
+    .entity ul {
+      padding: 10px 12px 12px 28px;
+      margin: 0;
+      color: var(--muted);
+      background: #fff;
+      flex: 1;
+    }
+    .relations {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px dashed #cbd5e1;
+    }
+    .rel {
+      justify-content: flex-start;
+      border-radius: 7px;
+      border-color: #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      line-height: 1.35;
+    }
+    .rel::before {
+      content: "assoc";
+      margin-right: 8px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      color: #475569;
+      padding: 2px 5px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    code {
+      background: #f1f5f9;
+      border-radius: 4px;
+      padding: 2px 5px;
+    }
+    @media (max-width: 1040px) {
+      .flow, .domain-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      main { width: min(100% - 20px, 1280px); padding-top: 20px; }
+      .entity-grid { grid-template-columns: 1fr; }
+      .relations { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -43,104 +250,320 @@
   <main>
     <header>
       <h1>MerHouse System Diagrams</h1>
-      <p class="lede">A public engineering view of the current MerHouse application: platform governance, merchant operations, warehouse execution, fulfillment, and service accountability.</p>
+      <p class="lede">
+        A public engineering diagram set for the current local-development MerHouse codebase. It keeps the system workflow and ERD in readable card notation instead of dense graph lines.
+      </p>
+      <div class="meta" aria-label="diagram scope">
+        <span class="pill">Local-development baseline</span>
+        <span class="pill">V1-V12 product surface</span>
+        <span class="pill">34 database tables</span>
+        <span class="pill">SaaS readiness reserved for V16</span>
+      </div>
     </header>
 
     <section>
-      <h2>Bounded Contexts</h2>
-      <div class="grid">
-        <article class="card" style="--accent: var(--platform)">
-          <h3>Platform</h3>
-          <ul>
-            <li>Tenants</li>
-            <li>Users</li>
-            <li>Access requests</li>
-            <li>Audit events</li>
-            <li>Outbox visibility</li>
-          </ul>
-        </article>
-        <article class="card" style="--accent: var(--merchant)">
-          <h3>Merchant</h3>
-          <ul>
-            <li>Products</li>
-            <li>Orders</li>
-            <li>Contacts</li>
-            <li>Imports</li>
-            <li>Service records</li>
-          </ul>
-        </article>
-        <article class="card" style="--accent: var(--warehouse)">
-          <h3>Warehouse Provider</h3>
-          <ul>
-            <li>Warehouses</li>
-            <li>Inventory</li>
-            <li>Receiving</li>
-            <li>Fulfillment</li>
-            <li>Shipments</li>
-          </ul>
-        </article>
-        <article class="card" style="--accent: var(--service)">
-          <h3>Service Accountability</h3>
-          <ul>
-            <li>Agreements</li>
-            <li>SLA status</li>
-            <li>Statements</li>
-            <li>Disputes</li>
-            <li>Reviews</li>
-          </ul>
-        </article>
-      </div>
-    </section>
-
-    <section>
-      <h2>Fulfillment Flow</h2>
+      <h2>Workflow Cards: Use Cases, Scenarios, And Stories</h2>
       <div class="flow">
-        <div class="step"><strong>Relationship</strong><p>Merchant and warehouse provider are connected.</p></div>
-        <div class="step"><strong>Inbound</strong><p>Merchant sends stock into a provider warehouse.</p></div>
-        <div class="step"><strong>Allocation</strong><p>Orders reserve authorized warehouse stock.</p></div>
-        <div class="step"><strong>Execution</strong><p>Warehouse picks, packs, ships, and reports exceptions.</p></div>
-        <div class="step"><strong>Review</strong><p>Service records preserve accountability.</p></div>
+        <article class="step" style="--accent: var(--platform)">
+          <h3>1. Platform Onboards A Merchant</h3>
+          <p>A public request becomes a governed tenant and login, with review state kept visible to platform users.</p>
+          <div class="scenario">
+            <div class="scenario-row"><b>Trigger</b><span>A company submits an access request with organization, email, requested role, and notes.</span></div>
+            <div class="scenario-row"><b>Flow</b><span>The request is reviewed, accepted, and converted into an organization account with an initial user.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>The requester can log in, and conversion links remain on the access request record.</span></div>
+          </div>
+          <div class="arrow">Request -> approval -> tenant + user</div>
+        </article>
+
+        <article class="step" style="--accent: var(--merchant)">
+          <h3>2. Merchant Sends Stock To A Provider</h3>
+          <p>The merchant establishes the service lane before provider inventory can become usable for demand.</p>
+          <div class="scenario">
+            <div class="scenario-row"><b>Trigger</b><span>A merchant creates an item, connects to a warehouse provider, and submits an inbound stock request.</span></div>
+            <div class="scenario-row"><b>Flow</b><span>The provider relationship is activated, inbound stock is submitted, approved, received, and reconciled.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>Received quantity becomes warehouse inventory; damaged and short quantities stay visible on the inbound record.</span></div>
+          </div>
+          <div class="arrow">Relationship -> inbound -> authorized stock</div>
+        </article>
+
+        <article class="step" style="--accent: var(--warehouse)">
+          <h3>3. Warehouse Fulfills Customer Demand</h3>
+          <p>Orders turn authorized stock into warehouse work, shipment evidence, and customer-visible progress.</p>
+          <div class="scenario">
+            <div class="scenario-row"><b>Trigger</b><span>A merchant creates or imports orders for stocked items.</span></div>
+            <div class="scenario-row"><b>Flow</b><span>The order is allocated to authorized stock, assigned as warehouse work, picked, packed, and shipped.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>Allocated stock is reserved, packages are recorded, and exceptions can be reported or resolved.</span></div>
+          </div>
+          <div class="arrow">Order -> allocation -> package evidence</div>
+        </article>
+
+        <article class="step" style="--accent: var(--service)">
+          <h3>4. Partners Reconcile Service Work</h3>
+          <p>The system records service accountability without collecting payments or pretending to be accounting software.</p>
+          <div class="scenario">
+            <div class="scenario-row"><b>Trigger</b><span>A merchant and provider need shared evidence for receiving, storage, pick-pack, shipment handoff, or exceptions.</span></div>
+            <div class="scenario-row"><b>Flow</b><span>The agreement is drafted, proposed, accepted, and later used to produce service statements from operational evidence.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>Statements, SLA rows, disputes, claims, and review requests preserve the service record.</span></div>
+          </div>
+          <div class="arrow">Agreement -> statement -> dispute/claim/review</div>
+        </article>
+
+        <article class="step" style="--accent: var(--ops)">
+          <h3>5. Platform Governs And Recovers</h3>
+          <p>Owner, admin, support-admin, and auditor roles observe or act according to their operational responsibility.</p>
+          <div class="scenario">
+            <div class="scenario-row"><b>Trigger</b><span>A tenant, relationship, user, outbox event, or access request needs inspection or intervention.</span></div>
+            <div class="scenario-row"><b>Flow</b><span>The platform reviews health, governs tenants and relationships, supports users, and monitors background work.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>Governance actions are visible in audit events, and lower-privilege roles stay constrained.</span></div>
+          </div>
+          <div class="arrow">Governance action -> audit + recovery trail</div>
+        </article>
       </div>
     </section>
 
     <section>
-      <h2>Core Tables</h2>
-      <div class="grid">
-        <article class="card" style="--accent: var(--platform)">
-          <h3>Governance</h3>
-          <ul>
-            <li>tenants</li>
-            <li>app_users</li>
-            <li>access_requests</li>
-            <li>admin_audit_events</li>
-          </ul>
+      <h2>ERD Cards: UML From Current Database Schema</h2>
+      <p class="lede">
+        These cards summarize the Flyway schema through migration 15. Each entity card lists the relationship-defining columns and the important connections without drawing every line across the page.
+      </p>
+
+      <div class="domain-grid">
+        <article class="domain" style="--accent: var(--platform)">
+          <h3>Platform, Identity, And Governance</h3>
+          <div class="domain-body">
+            <div class="entity-grid">
+              <div class="entity">
+                <h4><code>tenants</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key">type</span><span class="key">active</span></div>
+                <ul><li>Owns users, warehouses, merchant records, and provider records.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>app_users</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK tenant_id</span><span class="key uk">UK email</span><span class="key">role</span></div>
+                <ul><li>Authenticates platform, merchant, and warehouse users.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>password_reset_tokens</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK user_id</span><span class="key uk">UK token_hash</span></div>
+                <ul><li>Stores one-time recovery token hashes.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>access_requests</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK reviewed_by_user_id</span><span class="key fk">FK converted_tenant_id</span><span class="key fk">FK converted_user_id</span></div>
+                <ul><li>Captures onboarding requests and conversion results.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>admin_audit_events</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK actor_user_id</span><span class="key">aggregate_type</span><span class="key">aggregate_id</span></div>
+                <ul><li>Records platform governance actions.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>idempotency_records</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key uk">UK idempotency_key</span><span class="key">request_hash</span></div>
+                <ul><li>Preserves retry-safe write responses.</li></ul>
+              </div>
+            </div>
+            <div class="relations">
+              <span class="rel">tenants 1:n app_users</span>
+              <span class="rel">app_users 1:n password_reset_tokens</span>
+              <span class="rel">app_users 1:n admin_audit_events</span>
+              <span class="rel">access_requests -> tenants/app_users after conversion</span>
+            </div>
+          </div>
         </article>
-        <article class="card" style="--accent: var(--merchant)">
-          <h3>Demand</h3>
-          <ul>
-            <li>inventory_items</li>
-            <li>customer_orders</li>
-            <li>order_items</li>
-            <li>order_import_batches</li>
-          </ul>
+
+        <article class="domain" style="--accent: var(--merchant)">
+          <h3>Merchant Inventory, Demand, And Imports</h3>
+          <div class="domain-body">
+            <div class="entity-grid">
+              <div class="entity">
+                <h4><code>inventory_items</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK merchant_id</span><span class="key uk">UK merchant_id + sku</span><span class="key">archived</span></div>
+                <ul><li>Merchant-owned product catalog records.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>customer_contacts</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK merchant_id</span></div>
+                <ul><li>Reusable customer delivery contact records.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>customer_orders</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK merchant_id</span><span class="key">status</span><span class="key">idempotency_key</span></div>
+                <ul><li>Demand source for allocation and fulfillment.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>order_items</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK order_id</span><span class="key fk">FK inventory_item_id</span></div>
+                <ul><li>Line items for customer orders.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>order_import_batches</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK merchant_id</span><span class="key">mode</span><span class="key">status</span></div>
+                <ul><li>Bulk order import summary.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>order_import_rows</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK batch_id</span><span class="key fk">FK created_order_id</span></div>
+                <ul><li>Per-row import result and failure detail.</li></ul>
+              </div>
+            </div>
+            <div class="relations">
+              <span class="rel">tenants 1:n inventory_items</span>
+              <span class="rel">tenants 1:n customer_orders</span>
+              <span class="rel">customer_orders 1:n order_items</span>
+              <span class="rel">order_import_batches 1:n order_import_rows</span>
+            </div>
+          </div>
         </article>
-        <article class="card" style="--accent: var(--warehouse)">
-          <h3>Execution</h3>
-          <ul>
-            <li>warehouses</li>
-            <li>warehouse_inventory</li>
-            <li>fulfillment_allocations</li>
-            <li>shipments</li>
-          </ul>
+
+        <article class="domain" style="--accent: var(--warehouse)">
+          <h3>Warehouse Stock And Fulfillment Execution</h3>
+          <div class="domain-body">
+            <div class="entity-grid">
+              <div class="entity">
+                <h4><code>warehouses</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK tenant_id</span><span class="key">capacity</span></div>
+                <ul><li>Provider-owned physical fulfillment locations.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>warehouse_inventory</code></h4>
+                <div class="keys"><span class="key pk">PK warehouse_id + inventory_item_id</span><span class="key">quantity</span><span class="key">reserved_quantity</span><span class="key">version</span></div>
+                <ul><li>Stock ledger by warehouse and merchant item.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>inventory_audit_logs</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK warehouse_id</span><span class="key fk">FK inventory_item_id</span><span class="key fk">FK actor_user_id</span></div>
+                <ul><li>Stock movement and adjustment evidence.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>fulfillment_allocations</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK order_id</span><span class="key fk">FK warehouse_id</span><span class="key fk">FK assigned_user_id</span><span class="key uk">UK scan_code</span></div>
+                <ul><li>Warehouse work created from order allocation.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>fulfillment_allocation_items</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK allocation_id</span><span class="key fk">FK inventory_item_id</span></div>
+                <ul><li>Reserved line quantities inside an allocation.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>backorder_items</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK order_id</span><span class="key fk">FK inventory_item_id</span><span class="key">status</span></div>
+                <ul><li>Demand that could not be allocated immediately.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>shipments</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key uk">UK/FK allocation_id</span><span class="key">status</span></div>
+                <ul><li>Shipment record for packed fulfillment work.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>shipment_packages</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK shipment_id</span><span class="key uk">UK shipment_id + package_number</span></div>
+                <ul><li>Package-level shipment evidence.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>shipment_package_events</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK package_id</span><span class="key">event_type</span></div>
+                <ul><li>Package history events.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>fulfillment_exceptions</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK allocation_id</span><span class="key fk">FK shipment_id</span><span class="key fk">FK merchant_id</span><span class="key fk">FK warehouse_provider_id</span></div>
+                <ul><li>Operational issue records tied to allocation or shipment work.</li></ul>
+              </div>
+            </div>
+            <div class="relations">
+              <span class="rel">warehouses + inventory_items -> warehouse_inventory</span>
+              <span class="rel">customer_orders 1:n fulfillment_allocations</span>
+              <span class="rel">fulfillment_allocations 1:1 shipments</span>
+              <span class="rel">shipments 1:n shipment_packages 1:n events</span>
+            </div>
+          </div>
         </article>
-        <article class="card" style="--accent: var(--service)">
-          <h3>Accountability</h3>
-          <ul>
-            <li>service_agreements</li>
-            <li>service_statements</li>
-            <li>service_disputes</li>
-            <li>service_claims</li>
-          </ul>
+
+        <article class="domain" style="--accent: var(--service)">
+          <h3>Merchant-Warehouse Relationship And Service Accountability</h3>
+          <div class="domain-body">
+            <div class="entity-grid">
+              <div class="entity">
+                <h4><code>merchant_warehouse_relationships</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK merchant_id</span><span class="key fk">FK warehouse_provider_id</span><span class="key uk">UK merchant + provider</span></div>
+                <ul><li>Commercial operating relationship between merchant and provider.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>inbound_stock_requests</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK relationship_id</span><span class="key fk">FK warehouse_id</span><span class="key fk">FK inventory_item_id</span></div>
+                <ul><li>Merchant stock moving into a provider warehouse.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>service_agreements</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK relationship_id</span><span class="key fk">FK supersedes_agreement_id</span><span class="key uk">UK relationship + version</span></div>
+                <ul><li>Versioned terms for the service relationship.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>reference_rate_cards</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key uk">UK/FK agreement_id</span></div>
+                <ul><li>Reference fee values used for service records.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>sla_policies</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key uk">UK/FK agreement_id</span></div>
+                <ul><li>Receiving, pick-pack, handoff, and exception response clocks.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>service_statements</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK agreement_id</span><span class="key fk">FK merchant_id</span><span class="key fk">FK warehouse_provider_id</span><span class="key uk">UK idempotency_key</span></div>
+                <ul><li>Period record summarizing service work.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>service_statement_lines</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK statement_id</span><span class="key">source_type</span><span class="key">source_id</span></div>
+                <ul><li>Statement line item tied to inbound, fulfillment, shipment, exception, or manual source.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>service_disputes</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK agreement_id</span><span class="key fk">FK statement_id</span><span class="key fk">FK statement_line_id</span></div>
+                <ul><li>Statement or line dispute between partners.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>service_claims</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK agreement_id</span><span class="key">source_type</span><span class="key">source_id</span></div>
+                <ul><li>Evidence-backed service claim.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>service_review_requests</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK agreement_id</span><span class="key">review_type</span><span class="key">status</span></div>
+                <ul><li>Manual review request for agreement or service-accountability work.</li></ul>
+              </div>
+            </div>
+            <div class="relations">
+              <span class="rel">relationship 1:n inbound_stock_requests</span>
+              <span class="rel">relationship 1:n service_agreements</span>
+              <span class="rel">service_agreements 1:1 rate_card + SLA</span>
+              <span class="rel">service_statements 1:n lines, disputes, claims, reviews</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="domain" style="--accent: var(--ops)">
+          <h3>Outbox And External Work Records</h3>
+          <div class="domain-body">
+            <div class="entity-grid">
+              <div class="entity">
+                <h4><code>outbox_events</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key">aggregate_type</span><span class="key">aggregate_id</span><span class="key">status</span></div>
+                <ul><li>Reliable side-effect queue for domain events.</li></ul>
+              </div>
+              <div class="entity">
+                <h4><code>carrier_dispatches</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key uk">UK/FK outbox_event_id</span><span class="key fk">FK shipment_id</span></div>
+                <ul><li>Carrier dispatch record generated from shipment events.</li></ul>
+              </div>
+            </div>
+            <div class="relations">
+              <span class="rel">outbox_events 1:1 carrier_dispatches</span>
+              <span class="rel">shipments 1:n carrier_dispatches</span>
+            </div>
+          </div>
         </article>
       </div>
     </section>

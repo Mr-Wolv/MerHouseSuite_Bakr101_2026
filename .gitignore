@@ -11,8 +11,6 @@ backend/.mvn/wrapper/maven-wrapper.jar
 *.log
 reports/
 
-docs/private/
-
 frontend/dist/
 frontend/test-results/
 frontend/playwright-report/

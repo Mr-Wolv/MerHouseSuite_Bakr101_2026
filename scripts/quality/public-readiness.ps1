@@ -26,12 +26,8 @@ try {
 
     Write-Host ""
     Write-Host "Checking ignored publication boundaries..."
-    $ignoreOutput = git check-ignore -v docs/private/roadmap.md frontend/tests/e2e/full-tour.spec.ts frontend/playwright.config.ts 2>$null
-    $privateIgnored = $ignoreOutput | Where-Object { $_ -match "docs/private/roadmap\.md" }
+    $ignoreOutput = git check-ignore -v frontend/tests/e2e/full-tour.spec.ts frontend/playwright.config.ts 2>$null
     $frontendIgnored = $ignoreOutput | Where-Object { $_ -match "frontend/(tests/e2e|playwright\.config\.ts)" }
-    if (-not $privateIgnored) {
-        throw "docs/private/roadmap.md must remain ignored."
-    }
     if ($frontendIgnored) {
         throw "Frontend Playwright tests or config are still ignored."
     }
@@ -49,7 +45,7 @@ try {
     )
     $matches = @()
     foreach ($pattern in $patterns) {
-        $result = rg -n --pcre2 --glob '!frontend/node_modules/**' --glob '!backend/target/**' --glob '!frontend/dist/**' --glob '!reports/**' --glob '!docs/private/**' -- $pattern . 2>$null
+        $result = rg -n --pcre2 --glob '!frontend/node_modules/**' --glob '!backend/target/**' --glob '!frontend/dist/**' --glob '!reports/**' -- $pattern . 2>$null
         if ($LASTEXITCODE -eq 0) {
             $matches += $result
         }
@@ -62,7 +58,7 @@ try {
 
     Write-Host ""
     Write-Host "Checking public docs for private/proof residue..."
-    $docMatches = rg -n "(?i)(SECURITY\.md|CONTRIBUTING\.md|pre-v13|public-exposure-checkup|repository-publication-hardening|security-assurance|vulnerability report|do not publish)" README.md AGENTS.md docs .github --glob '!docs/private/**' 2>$null
+    $docMatches = rg -n "(?i)(SECURITY\.md|CONTRIBUTING\.md|pre-v13|public-exposure-checkup|repository-publication-hardening|security-assurance|vulnerability report|do not publish)" README.md AGENTS.md docs .github 2>$null
     if ($LASTEXITCODE -eq 0) {
         $docMatches
         throw "Public docs contain stale private/proof wording."
