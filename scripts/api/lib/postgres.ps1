@@ -18,14 +18,17 @@ function Invoke-PostgresTableQuery {
     )
 
     $docker = Get-DockerCommand
+    $postgresUser = if ([string]::IsNullOrWhiteSpace($env:MERHOUSE_POSTGRES_USER)) { "merhouse_local" } else { $env:MERHOUSE_POSTGRES_USER }
+    $postgresDatabase = if ([string]::IsNullOrWhiteSpace($env:MERHOUSE_POSTGRES_DB)) { "merhouse" } else { $env:MERHOUSE_POSTGRES_DB }
     $normalizedSql = (($Sql -split "\r?\n") | ForEach-Object { $_.Trim() } | Where-Object { $_ }) -join " "
     $result = & $docker exec merhouse-postgres psql `
-        -U warehouse `
-        -d merhouse `
+        -U $postgresUser `
+        -d $postgresDatabase `
         --csv `
-        -c $normalizedSql
+        -c $normalizedSql 2>&1
 
     if ($LASTEXITCODE -ne 0) {
+        $result
         throw "PostgreSQL query failed: $Sql"
     }
 
