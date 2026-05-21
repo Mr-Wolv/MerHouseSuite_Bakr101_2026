@@ -43,6 +43,10 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+
       - name: Run frontend tests
         working-directory: frontend
         run: npm test -- --run
@@ -60,3 +64,111 @@ jobs:
 
       - name: Validate Docker Compose
         run: docker compose --env-file .env.example config --quiet
+
+  public-readiness:
+    name: Public Readiness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run public readiness checks
+        shell: pwsh
+        run: ./scripts/quality/public-readiness.ps1 -SkipCompose
+
+  integration-proof:
+    name: Integration Proof
+    runs-on: ubuntu-latest
+    needs:
+      - backend
+      - frontend
+      - compose
+      - public-readiness
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Create CI environment
+        shell: bash
+        run: |
+          cat > .env <<'EOF'
+          MERHOUSE_POSTGRES_DB=merhouse
+          MERHOUSE_POSTGRES_USER=merhouse_local
+          MERHOUSE_POSTGRES_PASSWORD=ci-postgres-password
+          MERHOUSE_AUTH_JWT_SECRET=ci-jwt-secret-at-least-32-characters
+          MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=false
+          MERHOUSE_AUTH_SEED_ADMIN_ENABLED=true
+          MERHOUSE_AUTH_SEED_ADMIN_EMAIL=admin@merhouse.local
+          MERHOUSE_AUTH_SEED_ADMIN_PASSWORD=local-owner-password
+          MERHOUSE_SWAGGER_ENABLED=true
+          MERHOUSE_DEPLOYMENT_PUBLIC=false
+          EOF
+
+      - name: Start Docker Compose stack
+        run: docker compose --env-file .env up --build -d
+
+      - name: Wait for backend login
+        shell: pwsh
+        run: |
+          $body = @{
+            email = "admin@merhouse.local"
+            password = "local-owner-password"
+          } | ConvertTo-Json
+
+          for ($attempt = 1; $attempt -le 60; $attempt++) {
+            try {
+              $response = Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/v1/auth/login" -ContentType "application/json" -Body $body
+              if ($response.accessToken) {
+                Write-Host "Backend accepted seeded owner login."
+                exit 0
+              }
+            } catch {
+              Write-Host "Waiting for backend login readiness ($attempt/60)..."
+              Start-Sleep -Seconds 5
+            }
+          }
+
+          throw "Backend did not accept seeded owner login before timeout."
+
+      - name: Run API smoke
+        shell: pwsh
+        run: ./scripts/quality/api-smoke.ps1 -BaseUrl "http://localhost:8080" -OutputPath "reports/ci-api-smoke.json"
+
+      - name: Seed frontend tour data
+        shell: pwsh
+        run: ./scripts/local/seed-demo.ps1 -BaseUrl "http://localhost:8080" -CreateReviewAccounts -Suffix "ci"
+
+      - name: Run frontend full tour
+        shell: pwsh
+        run: ./scripts/quality/frontend-full-tour.ps1 -BaseUrl "http://localhost:3000" -ApiUrl "http://localhost:3000" -OutputPath "reports/ci-frontend-full-tour.json"
+
+      - name: Upload proof reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-proof-reports
+          path: reports/
+          if-no-files-found: ignore
+
+      - name: Print Docker Compose logs
+        if: failure()
+        run: docker compose --env-file .env logs --no-color
+
+      - name: Stop Docker Compose stack
+        if: always()
+        run: docker compose --env-file .env down -v

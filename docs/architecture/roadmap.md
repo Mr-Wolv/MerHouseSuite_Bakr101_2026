@@ -98,6 +98,14 @@ Planned scope:
 
 Pre-V16 is a hard gate. V16 cannot honestly begin until this phase has closed known documentation gaps, proof gaps, safety gaps, and release blockers.
 
+Pre-V16 CI todo:
+
+- Add release-gate automation for maximum practical load and stress testing.
+- Add backup and restore proof automation.
+- Add dependency and container review automation.
+- Add final public-source and deployment-leakage certification.
+- Keep this release gate separate from the normal CI route until the project is ready to make it a blocking productionization requirement.
+
 ### V16: SaaS Productionization
 
 Planned scope:
