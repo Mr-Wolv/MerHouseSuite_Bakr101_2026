@@ -162,14 +162,6 @@ jobs:
         shell: pwsh
         run: ./scripts/quality/frontend-full-tour.ps1 -BaseUrl "http://localhost:3000" -ApiUrl "http://localhost:3000" -OutputPath "reports/ci-frontend-full-tour.json"
 
-      - name: Upload proof reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ci-proof-reports
-          path: reports/
-          if-no-files-found: ignore
-
       - name: Print Docker Compose logs
         if: failure()
         run: docker compose --env-file .env logs --no-color
