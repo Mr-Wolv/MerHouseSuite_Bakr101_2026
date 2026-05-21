@@ -116,7 +116,7 @@ jobs:
           MERHOUSE_POSTGRES_USER=merhouse_local
           MERHOUSE_POSTGRES_PASSWORD=ci-postgres-password
           MERHOUSE_AUTH_JWT_SECRET=ci-jwt-secret-at-least-32-characters
-          MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=false
+          MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=true
           MERHOUSE_AUTH_SEED_ADMIN_ENABLED=true
           MERHOUSE_AUTH_SEED_ADMIN_EMAIL=admin@merhouse.local
           MERHOUSE_AUTH_SEED_ADMIN_PASSWORD=local-owner-password
