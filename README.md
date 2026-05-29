@@ -2,6 +2,8 @@
 
 MerHouse is a B2B fulfillment coordination system for merchants and warehouse providers.
 
+This workspace is private. The intended future public release boundary is a separate repository containing only the `backend/` and `frontend/` application folders. Private operational material and sensitive information may live in this private repo, but they should stay outside `backend/` and `frontend/` and be referenced by path, environment variable, or template. That includes API keys, tokens, credentials, private prompts, customer data, vendor account details, internal endpoints, generated sensitive reports, and environment-specific values.
+
 It models the operating relationship between a brand or merchant and a warehouse partner: products, inventory expectations, inbound stock, customer orders, allocation, fulfillment progress, exceptions, shipment evidence, and service accountability all move through one role-aware workflow.
 
 ## Product Surface
@@ -56,7 +58,7 @@ Local URLs:
 - Backend: `http://localhost:8080`
 
 The compose stack builds and runs PostgreSQL, the Spring Boot API, and the nginx-served frontend.
-This repository is prepared for public source review and local development. SaaS deployment work is intentionally reserved for the V16 productionization phase.
+This repository is prepared for private local development. SaaS deployment work is intentionally reserved for the V16 productionization phase, and any later public release should be assembled from the publishable `backend/` and `frontend/` boundary after a publication review.
 
 ## Development Commands
 
@@ -118,5 +120,6 @@ The backend reads configuration from environment variables. `.env.example` conta
 - [Backend guide](docs/development/backend.md)
 - [Frontend guide](docs/development/frontend.md)
 - [Scripts guide](docs/development/scripts.md)
+- [Knowledge system](docs/development/knowledge-system.md)
 - [Architecture notes](docs/architecture/merchant-warehouse-operating-loop.md)
 - [System diagrams](docs/architecture/system-diagrams.html)

@@ -11,6 +11,9 @@ backend/.mvn/wrapper/maven-wrapper.jar
 *.log
 reports/
 
+# Private local workspace state
+.obsidian/
+
 frontend/dist/
 frontend/test-results/
 frontend/playwright-report/

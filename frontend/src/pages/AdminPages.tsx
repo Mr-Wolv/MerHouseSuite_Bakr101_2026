@@ -112,7 +112,7 @@ export function AdminUsersPage() {
   const [tenantId, setTenantId] = useState('')
   const [role, setRole] = useState<UserRole>('MERCHANT')
   const [reason, setReason] = useState('Administrative account update')
-  const [temporaryPassword, setTemporaryPassword] = useState('temporary-password')
+  const [temporaryPassword, setTemporaryPassword] = useState('')
   const [actionError, setActionError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -204,9 +204,14 @@ export function AdminUsersPage() {
   async function handleResetPassword(userId: string) {
     if (!token) return
     setActionError('')
+    if (temporaryPassword.length < 8) {
+      setActionError('Temporary reset password must be at least 8 characters.')
+      return
+    }
     try {
       const changed = await api.adminResetUserPassword(token, userId, { newPassword: temporaryPassword, reason })
       setUsers((current) => current.map((user) => (user.id === changed.id ? changed : user)))
+      setTemporaryPassword('')
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to reset password.')
     }
@@ -273,7 +278,7 @@ export function AdminUsersPage() {
           </label>
           <label htmlFor="admin-user-temporary-password">
             <span>Temporary reset password</span>
-            <input id="admin-user-temporary-password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} minLength={8} />
+            <input id="admin-user-temporary-password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} minLength={8} type="password" />
           </label>
         </div>
       </form>
@@ -411,7 +416,7 @@ export function AdminUsersPage() {
                         <button
                           className="table-button"
                           type="button"
-                          disabled={!canSupportUsers || protectedAdmin}
+                          disabled={!canSupportUsers || protectedAdmin || temporaryPassword.length < 8}
                           onClick={() => void handleResetPassword(user.id)}
                         >
                           Reset
@@ -543,7 +548,7 @@ export function AdminAccessRequestsPage() {
   const { token, user: currentUser } = useAuth()
   const [requests, setRequests] = useState<AccessRequest[]>([])
   const [reviewNote, setReviewNote] = useState('')
-  const [temporaryPassword, setTemporaryPassword] = useState('temporary-password')
+  const [temporaryPassword, setTemporaryPassword] = useState('')
   const [conversionReason, setConversionReason] = useState('Approved onboarding conversion')
   const [loading, setLoading] = useState(true)
   const [actionId, setActionId] = useState<string | null>(null)
@@ -580,6 +585,10 @@ export function AdminAccessRequestsPage() {
   async function convertAccessRequest(request: AccessRequest) {
     if (!token) return
     setError('')
+    if (temporaryPassword.length < 8) {
+      setError('Temporary setup password must be at least 8 characters.')
+      return
+    }
     setActionId(request.id)
     try {
       const next = await api.convertAccessRequest(token, request.id, {
@@ -588,6 +597,7 @@ export function AdminAccessRequestsPage() {
         reason: conversionReason,
       })
       setRequests((current) => current.map((row) => (row.id === next.id ? next : row)))
+      setTemporaryPassword('')
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to convert access request.')
     } finally {
@@ -613,7 +623,7 @@ export function AdminAccessRequestsPage() {
           </label>
           <label htmlFor="admin-access-temporary-password">
             <span>Temporary setup password</span>
-            <input id="admin-access-temporary-password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} minLength={8} />
+            <input id="admin-access-temporary-password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} minLength={8} type="password" />
           </label>
         </div>
       </form>
@@ -668,7 +678,7 @@ export function AdminAccessRequestsPage() {
                           <button
                             className="table-button"
                             type="button"
-                            disabled={!canMutatePlatform || request.status !== 'APPROVED' || Boolean(request.convertedAt) || actionId === request.id}
+                            disabled={!canMutatePlatform || request.status !== 'APPROVED' || Boolean(request.convertedAt) || actionId === request.id || temporaryPassword.length < 8}
                             onClick={() => void convertAccessRequest(request)}
                           >
                             {request.convertedAt ? 'Converted' : 'Convert'}

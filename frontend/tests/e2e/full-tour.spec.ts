@@ -560,6 +560,7 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   const ordinaryUserRow = supportPage.locator('tr').filter({ hasText: hierarchy.ordinaryMerchant.email }).first()
   await expect(ordinaryUserRow).toBeVisible()
   await expect(ordinaryUserRow.getByRole('button', { name: 'Disable' })).toBeDisabled()
+  await supportPage.getByLabel('Temporary reset password').fill('support-reset-password')
   await ordinaryUserRow.getByRole('button', { name: 'Reset' }).click()
   await expect(supportPage.locator('.inline-error')).toHaveCount(0)
   records.push({ role: 'supportAdmin', action: 'reset ordinary user while account mutation stayed disabled' })

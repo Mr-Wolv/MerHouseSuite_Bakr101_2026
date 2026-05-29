@@ -72,13 +72,13 @@ test.describe('admin console', () => {
 
     const createUserForm = page.getByRole('form', { name: 'Create user form' })
     await createUserForm.getByLabel('Tenant').selectOption({ label: `${tenantName} (MERCHANT)` })
-    await createUserForm.getByLabel('Role').selectOption('WAREHOUSE_OPERATOR')
+    await createUserForm.locator('#admin-user-role').selectOption('WAREHOUSE_OPERATOR')
     await createUserForm.getByLabel('Email').fill(invalidEmail)
     await createUserForm.getByLabel('Password').fill('operator-password')
     await page.getByRole('button', { name: 'Create user' }).click()
     await expect(page.getByText('WAREHOUSE_OPERATOR users must belong to a warehouse provider tenant.')).toBeVisible()
 
-    await createUserForm.getByLabel('Role').selectOption('MERCHANT')
+    await createUserForm.locator('#admin-user-role').selectOption('MERCHANT')
     await createUserForm.getByLabel('Email').fill(userEmail)
     await createUserForm.getByLabel('Password').fill('merchant-password')
     await page.getByRole('button', { name: 'Create user' }).click()

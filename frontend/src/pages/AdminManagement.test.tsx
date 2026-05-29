@@ -342,10 +342,11 @@ describe('Admin user management', () => {
 
     const row = screen.getByRole('row', { name: /merchant@merhouse.local/i })
     expect(within(row).getByRole('button', { name: 'Disable' })).toBeDisabled()
+    await user.type(screen.getByLabelText('Temporary reset password'), 'support-reset-password')
     await user.click(within(row).getByRole('button', { name: 'Reset' }))
 
     expect(apiMock.adminResetUserPassword).toHaveBeenCalledWith('admin-token', 'merchant-user', {
-      newPassword: 'temporary-password',
+      newPassword: 'support-reset-password',
       reason: 'Administrative account update',
     })
   })
