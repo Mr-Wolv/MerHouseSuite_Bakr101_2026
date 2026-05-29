@@ -155,6 +155,7 @@ Planned scope:
 - degraded-dependency behavior
 - backup and restore proof
 - dependency and container review
+- backend test-tooling review for the Mockito dynamic Java-agent warning on newer JDKs, including an explicit build configuration decision before release-gate hardening
 - publication-boundary and deployment-leakage review
 - verification that prototype account lifecycle behavior from V13 is either production-ready or still blocked from production claims
 - software-engineering review for maintainability, testability, observability, data integrity, role boundaries, tenant isolation, error handling, and operational proof
@@ -171,6 +172,7 @@ Pre-V16 exit criteria:
 - load/stress limits are measured for the current local architecture and documented without overstating production capacity
 - backup and restore proof exists for the supported local data model
 - dependency and container risks are reviewed and documented
+- Mockito/JDK dynamic-agent warning from backend tests is resolved or documented with an explicit release-gate decision
 - prototype-local account lifecycle behavior from V13 is either production-ready or explicitly blocked from production claims
 - release blockers are tracked with owner, risk, and required proof
 
@@ -179,6 +181,7 @@ Pre-V16 CI todo:
 - Add release-gate automation for maximum practical load and stress testing.
 - Add backup and restore proof automation.
 - Add dependency and container review automation.
+- Add backend test-tooling automation or build configuration for Mockito Java-agent compatibility on newer JDKs.
 - Add final publication-boundary and deployment-leakage certification for the future `backend/` and `frontend/` public repository.
 - Keep this release gate separate from the normal CI route until the project is ready to make it a blocking productionization requirement.
 
