@@ -46,6 +46,10 @@ import type {
   MerchantAuthorizedStock,
   MerchantWarehouseRelationship,
   MerchantWarehouseRelationshipDetail,
+  NotificationDelivery,
+  NotificationPreference,
+  NotificationPreferencePayload,
+  NotificationSummary,
   Order,
   OrderDetail,
   OutboxEvent,
@@ -137,6 +141,28 @@ export const api = {
   },
   me(token: string) {
     return request<CurrentUserResponse>('/api/v1/auth/me', { token })
+  },
+  notificationPreferences(token: string) {
+    return request<NotificationPreference[]>('/api/v1/notifications/preferences', { token })
+  },
+  notificationSummary(token: string) {
+    return request<NotificationSummary>('/api/v1/notifications/summary', { token })
+  },
+  updateNotificationPreference(token: string, body: NotificationPreferencePayload) {
+    return request<NotificationPreference>('/api/v1/notifications/preferences', {
+      method: 'PATCH',
+      token,
+      body,
+    })
+  },
+  notificationDeliveries(token: string, limit = 50) {
+    return request<NotificationDelivery[]>(`/api/v1/notifications/deliveries?limit=${limit}`, { token })
+  },
+  markNotificationRead(token: string, deliveryId: string) {
+    return request<NotificationDelivery>(`/api/v1/notifications/deliveries/${deliveryId}/read`, {
+      method: 'PATCH',
+      token,
+    })
   },
   requestPasswordReset(email: string) {
     return request<PasswordResetRequestResponse>('/api/v1/auth/password-reset/request', {

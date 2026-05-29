@@ -62,6 +62,7 @@ Routes are defined in `frontend/src/App.tsx`.
 | `/merchant/orders` | Order creation, allocation, cancellation, contacts, imports, and shipment-facing work |
 | `/warehouse` | Warehouse inventory, receiving, fulfillment, shipments, and exceptions |
 | `/service-accountability` | Agreements, SLA status, statements, disputes, claims, reviews, and import history |
+| `/notifications` | Authenticated notification preferences and prototype-local delivery history |
 | `/orders/:orderId` | Order detail |
 | `/inventory/items/:inventoryItemId` | Inventory item detail |
 | `/inbound-stock-requests/:inboundStockRequestId` | Inbound stock detail |

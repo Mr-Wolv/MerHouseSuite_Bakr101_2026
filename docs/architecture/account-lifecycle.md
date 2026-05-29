@@ -31,8 +31,12 @@ Password recovery uses a request and confirmation flow:
 
 Expired, used, missing, disabled-user, and invalid tokens produce the same invalid-or-expired result.
 
+For V13, enabled-user reset requests also create a prototype-local notification delivery record for the requesting account. This record is local history only; it is not an email or provider delivery.
+
 ## Access Requests
 
 Public access requests let prospective merchant or warehouse users ask for onboarding without creating an active account.
 
 Access requests start as `PENDING`. Platform users can approve, reject, and convert approved requests into tenant and user records. Reviewed requests record reviewer, note, and review time.
+
+For V13, converting an approved access request also creates a prototype-local notification delivery record for the new user. Production account invitation delivery remains blocked until Pre-V16 and V16 certification.

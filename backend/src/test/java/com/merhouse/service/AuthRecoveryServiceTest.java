@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -13,6 +16,7 @@ import static org.mockito.Mockito.when;
 import com.merhouse.dto.PasswordResetConfirmRequest;
 import com.merhouse.dto.PasswordResetRequest;
 import com.merhouse.entity.AppUser;
+import com.merhouse.entity.NotificationTopic;
 import com.merhouse.entity.PasswordResetToken;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.repository.AppUserRepository;
@@ -29,11 +33,13 @@ class AuthRecoveryServiceTest {
     private final AppUserRepository userRepository = mock(AppUserRepository.class);
     private final PasswordResetTokenRepository tokenRepository = mock(PasswordResetTokenRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+    private final NotificationService notificationService = mock(NotificationService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-18T00:00:00Z"), ZoneOffset.UTC);
     private final AuthRecoveryService service = new AuthRecoveryService(
         userRepository,
         tokenRepository,
         passwordEncoder,
+        notificationService,
         clock,
         false
     );
@@ -78,6 +84,14 @@ class AuthRecoveryServiceTest {
         verify(tokenRepository).save(captor.capture());
         assertEquals(user, captor.getValue().getUser());
         assertEquals(Instant.parse("2026-05-18T00:30:00Z"), captor.getValue().getExpiresAt());
+        verify(notificationService).recordForUser(
+            eq(user),
+            eq(NotificationTopic.ACCOUNT_LIFECYCLE),
+            eq("Password reset prepared"),
+            contains("prototype-local"),
+            eq("PasswordResetToken"),
+            isNull()
+        );
     }
 
     @Test
@@ -86,6 +100,7 @@ class AuthRecoveryServiceTest {
             userRepository,
             tokenRepository,
             passwordEncoder,
+            notificationService,
             clock,
             true
         );

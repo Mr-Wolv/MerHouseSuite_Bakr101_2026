@@ -25,6 +25,7 @@ MerHouse is prepared here as a private local development stack. Production SaaS 
 - [Idempotency](architecture/idempotency.md)
 - [Inventory locking](architecture/inventory-locking.md)
 - [Merchant-warehouse operating loop](architecture/merchant-warehouse-operating-loop.md)
+- [Notifications](architecture/notifications.md)
 - [Operational details and timelines](architecture/operational-details-timelines.md)
 - [Partial allocation and backorders](architecture/partial-allocation.md)
 - [Roadmap](architecture/roadmap.md)

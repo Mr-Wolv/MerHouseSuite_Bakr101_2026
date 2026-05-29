@@ -33,6 +33,55 @@ describe('api client', () => {
     expect(firstHeaders.get('Accept')).toBe('application/json')
   })
 
+  it('sends authenticated notification preference and delivery requests', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ id: 'notification-id' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await api.notificationPreferences('token')
+    await api.notificationSummary('token')
+    await api.updateNotificationPreference('token', {
+      topic: 'ACCOUNT_LIFECYCLE',
+      channel: 'IN_APP',
+      enabled: false,
+    })
+    await api.notificationDeliveries('token', 25)
+    await api.markNotificationRead('token', 'delivery-1')
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/notifications/preferences', {
+      method: 'GET',
+      headers: expect.any(Headers),
+      body: undefined,
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/notifications/summary', {
+      method: 'GET',
+      headers: expect.any(Headers),
+      body: undefined,
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/v1/notifications/preferences', {
+      method: 'PATCH',
+      headers: expect.any(Headers),
+      body: JSON.stringify({
+        topic: 'ACCOUNT_LIFECYCLE',
+        channel: 'IN_APP',
+        enabled: false,
+      }),
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/v1/notifications/deliveries?limit=25', {
+      method: 'GET',
+      headers: expect.any(Headers),
+      body: undefined,
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/v1/notifications/deliveries/delivery-1/read', {
+      method: 'PATCH',
+      headers: expect.any(Headers),
+      body: undefined,
+    })
+  })
+
   it('omits request bodies for bodyless patch actions', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

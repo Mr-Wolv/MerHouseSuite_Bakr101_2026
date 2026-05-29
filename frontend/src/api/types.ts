@@ -2,6 +2,12 @@ export type UserRole = 'OWNER' | 'ADMIN' | 'SUPPORT_ADMIN' | 'AUDITOR' | 'MERCHA
 
 export type TenantType = 'MERCHANT' | 'WAREHOUSE_PROVIDER'
 
+export type NotificationTopic = 'ACCOUNT_LIFECYCLE' | 'OPERATIONS' | 'SERVICE_ACCOUNTABILITY' | 'OUTBOX_HEALTH'
+export type NotificationChannel = 'IN_APP' | 'EMAIL_PROTOTYPE'
+export type NotificationDeliveryStatus = 'RECORDED' | 'READ' | 'SKIPPED_BY_PREFERENCE'
+export type NotificationDeliveryStage = 'PREPARED' | 'LOCAL_RECORDED' | 'SKIPPED_BY_PREFERENCE'
+export type NotificationProviderStatus = 'NOT_CONFIGURED' | 'READY_FOR_PROVIDER'
+
 export type User = {
   id: string
   tenantId: string
@@ -30,6 +36,43 @@ export type AuthResponse = {
 
 export type CurrentUserResponse = {
   user: User
+}
+
+export type NotificationPreference = {
+  id: string
+  topic: NotificationTopic
+  channel: NotificationChannel
+  enabled: boolean
+  updatedAt: string
+}
+
+export type NotificationPreferencePayload = {
+  topic: NotificationTopic
+  channel: NotificationChannel
+  enabled: boolean
+}
+
+export type NotificationDelivery = {
+  id: string
+  recipientUserId: string
+  tenantId: string
+  topic: NotificationTopic
+  channel: NotificationChannel
+  status: NotificationDeliveryStatus
+  deliveryStage: NotificationDeliveryStage
+  providerStatus: NotificationProviderStatus
+  title: string
+  body: string
+  sourceType: string | null
+  sourceId: string | null
+  prototypeLocal: boolean
+  createdAt: string
+  readAt: string | null
+}
+
+export type NotificationSummary = {
+  unreadCount: number
+  latestDeliveryAt: string | null
 }
 
 export type InventoryItem = {

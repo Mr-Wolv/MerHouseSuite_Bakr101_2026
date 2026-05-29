@@ -5,6 +5,7 @@ import com.merhouse.dto.PasswordResetConfirmRequest;
 import com.merhouse.dto.PasswordResetRequest;
 import com.merhouse.dto.PasswordResetRequestResponse;
 import com.merhouse.entity.AppUser;
+import com.merhouse.entity.NotificationTopic;
 import com.merhouse.entity.PasswordResetToken;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.repository.AppUserRepository;
@@ -31,6 +32,7 @@ public class AuthRecoveryService {
     private final AppUserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
     private final Clock clock;
     private final boolean exposeResetToken;
     private final SecureRandom secureRandom = new SecureRandom();
@@ -39,12 +41,14 @@ public class AuthRecoveryService {
         AppUserRepository userRepository,
         PasswordResetTokenRepository tokenRepository,
         PasswordEncoder passwordEncoder,
+        NotificationService notificationService,
         Clock clock,
         @Value("${merhouse.auth.recovery.expose-reset-token:false}") boolean exposeResetToken
     ) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
+        this.notificationService = notificationService;
         this.clock = clock;
         this.exposeResetToken = exposeResetToken;
     }
@@ -80,6 +84,14 @@ public class AuthRecoveryService {
         token.setTokenHash(hashToken(rawToken));
         token.setExpiresAt(clock.instant().plus(RESET_TOKEN_TTL));
         tokenRepository.save(token);
+        notificationService.recordForUser(
+            user,
+            NotificationTopic.ACCOUNT_LIFECYCLE,
+            "Password reset prepared",
+            "A password reset was prepared for your account. This is a prototype-local delivery record.",
+            "PasswordResetToken",
+            token.getId()
+        );
         if (!exposeResetToken) {
             return new PasswordResetRequestResponse(GENERIC_RESET_MESSAGE, null, null);
         }

@@ -2,6 +2,8 @@ package com.merhouse.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -13,6 +15,7 @@ import com.merhouse.dto.AccessRequestReviewRequest;
 import com.merhouse.entity.AccessRequest;
 import com.merhouse.entity.AccessRequestStatus;
 import com.merhouse.entity.AppUser;
+import com.merhouse.entity.NotificationTopic;
 import com.merhouse.entity.Tenant;
 import com.merhouse.entity.TenantType;
 import com.merhouse.entity.UserRole;
@@ -24,13 +27,21 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class AccessRequestServiceTest {
     private final AccessRequestRepository requestRepository = mock(AccessRequestRepository.class);
     private final UserService userService = mock(UserService.class);
     private final TenantService tenantService = mock(TenantService.class);
+    private final NotificationService notificationService = mock(NotificationService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-18T00:00:00Z"), ZoneOffset.UTC);
-    private final AccessRequestService service = new AccessRequestService(requestRepository, userService, tenantService, clock);
+    private final AccessRequestService service = new AccessRequestService(
+        requestRepository,
+        userService,
+        tenantService,
+        notificationService,
+        clock
+    );
 
     @Test
     void publicRequestCannotAskForAdminRole() {
@@ -119,6 +130,7 @@ class AccessRequestServiceTest {
         UUID requestId = UUID.randomUUID();
         UUID actorId = UUID.randomUUID();
         AccessRequest accessRequest = new AccessRequest();
+        ReflectionTestUtils.setField(accessRequest, "id", requestId);
         accessRequest.setOrganizationName("Original Org");
         accessRequest.setRequesterEmail("requester@merhouse.local");
         accessRequest.setRequestedRole(UserRole.MERCHANT);
@@ -143,6 +155,14 @@ class AccessRequestServiceTest {
         assertEquals(tenant, accessRequest.getConvertedTenant());
         assertEquals(user, accessRequest.getConvertedUser());
         assertEquals(Instant.parse("2026-05-18T00:00:00Z"), accessRequest.getConvertedAt());
+        verify(notificationService).recordForUser(
+            eq(user),
+            eq(NotificationTopic.ACCOUNT_LIFECYCLE),
+            eq("Account ready"),
+            contains("prototype-local"),
+            eq("AccessRequest"),
+            eq(requestId)
+        );
         verify(requestRepository).save(accessRequest);
     }
 

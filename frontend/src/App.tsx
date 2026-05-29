@@ -15,6 +15,7 @@ import { ForgotPasswordPage, RequestAccessPage, ResetPasswordPage } from './page
 import { HomeRedirect } from './pages/HomeRedirect'
 import { LoginPage } from './pages/LoginPage'
 import { MerchantInventoryPage, MerchantOrdersPage, MerchantOverviewPage } from './pages/MerchantPages'
+import { NotificationCenterPage } from './pages/NotificationCenterPage'
 import { ServiceAccountabilityPage } from './pages/ServiceAccountabilityPage'
 import {
   FulfillmentAllocationDetailPage,
@@ -76,6 +77,7 @@ const router = createBrowserRouter([
             element: <RequireAuth roles={['OWNER', 'ADMIN', 'SUPPORT_ADMIN', 'AUDITOR', 'MERCHANT', 'WAREHOUSE_OPERATOR']} />,
             children: [
               { path: '/service-accountability', element: <ServiceAccountabilityPage /> },
+              { path: '/notifications', element: <NotificationCenterPage /> },
               { path: '/orders/:orderId', element: <OrderDetailPage /> },
               { path: '/inbound-stock-requests/:inboundStockRequestId', element: <InboundStockRequestDetailPage /> },
               { path: '/shipments/:shipmentId', element: <ShipmentDetailPage /> },

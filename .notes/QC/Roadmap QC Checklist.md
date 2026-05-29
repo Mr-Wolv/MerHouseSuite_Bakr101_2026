@@ -26,6 +26,7 @@ Use this before calling meaningful work done.
 - [ ] Normal markdown links resolve.
 - [ ] Obsidian wiki links resolve.
 - [ ] Durable decisions from notes were promoted into tracked docs when needed.
+- [ ] Any "later", future, Pre-V16, V16, or VInfinite decision from the conversation is recorded in the proper durable doc or roadmap section.
 
 ## Proof Selector
 
@@ -34,6 +35,7 @@ Use this before calling meaningful work done.
 - [ ] Database changed: prove Flyway migrations from an empty database.
 - [ ] Scripts changed: parse scripts and update script documentation.
 - [ ] Documentation changed: keep `README.md`, `docs/index.md`, and affected docs aligned.
+- [ ] Deferred decision made: record it in the affected architecture doc, roadmap phase, or VInfinite backlog.
 - [ ] Markdown or notes changed: run `.\scripts\quality\markdown-check.ps1`.
 - [ ] Publication-facing boundaries changed: run public-readiness and review the `backend/` and `frontend/` boundary.
 

@@ -75,6 +75,16 @@ V7-V12 completed the current local product surface:
 
 ### V13: Notifications, Live Updates, And Account Lifecycle Delivery
 
+Current progress:
+
+- local notification preference model and API added
+- local delivery-history model and API added
+- account lifecycle hooks now record prototype-local password-reset and access-request delivery history
+- `/notifications` route added for authenticated roles
+- lightweight polling added for notification summary, app-shell unread count, and notification page delivery refresh
+- production-shaped delivery fields added for local delivery stage and provider status
+- provider-backed delivery remains intentionally out of scope until Pre-V16 and V16
+
 Planned scope:
 
 - notification preferences
@@ -206,6 +216,7 @@ These standing rules apply to every future phase, roadmap revision, and VInfinit
 - Keep Obsidian notes useful but subordinate: `.notes/` can hold active thinking, but lasting architecture, roadmap, setup, and QC truth must be promoted into tracked docs.
 - Keep markdown connected: new or changed markdown should have a clear purpose, useful links, and passing local link proof unless it is intentionally isolated and the reason is documented.
 - Close gaps before expanding scope: when work reveals stale docs, weak proof, boundary risk, inconsistent terminology, or conflicting behavior, fix it in the same change when practical. Otherwise record the blocker with owner, risk, and required proof before moving on.
+- Write down deferred decisions: when a task says something is for "later", "future", "Pre-V16", "V16", "VInfinite", or a deliberate follow-up, record it in the proper durable place before closing the conversation. Use the active architecture doc for design choices, this roadmap for phase/version ownership, and an active `.notes/` page for working context that links back to the durable source. Do not leave future work only in chat.
 - Any prototype touching authentication, authorization, password reset, access requests, notification delivery, tenant boundaries, data isolation, operational automation, payments, or production deployment must be labeled as prototype-local until Pre-V16 and V16 certify it as production-ready.
 - Every phase must close documentation gaps against the actual code before being marked complete.
 - Every phase must include proof matching its risk: backend tests, frontend tests, Playwright evidence, migration proof, script validation, stress/load proof, backup/restore proof, dependency/container review, or public-readiness checks as appropriate.
@@ -222,6 +233,7 @@ Every meaningful change needs matching proof:
 - database changes: prove Flyway migrations from an empty database
 - script changes: parse scripts and update script documentation
 - documentation changes: keep `README.md`, `docs/index.md`, affected docs, and active Obsidian notes aligned; run markdown link proof
+- deferred or future work decisions: record the decision in the affected architecture doc, roadmap phase, or VInfinite backlog before closing
 - publication-facing changes: run the public-readiness script and review the `backend/` and `frontend/` boundary
 - guidance changes: update `AGENTS.md`, this roadmap, and any matching QC checklist together
 - gap-closure changes: document what contradiction or proof gap was closed and what evidence now prevents it from reopening

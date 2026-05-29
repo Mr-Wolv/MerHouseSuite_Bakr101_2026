@@ -68,6 +68,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
+    '/notifications',
   ],
   admin: [
     '/admin',
@@ -78,6 +79,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
+    '/notifications',
   ],
   supportAdmin: [
     '/admin',
@@ -87,6 +89,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
+    '/notifications',
   ],
   auditor: [
     '/admin',
@@ -94,9 +97,10 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
+    '/notifications',
   ],
-  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability'],
-  warehouse: ['/warehouse', '/service-accountability'],
+  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/notifications'],
+  warehouse: ['/warehouse', '/service-accountability', '/notifications'],
 }
 
 const viewports = {
@@ -634,6 +638,37 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
       2,
     )}\n`,
   )
+})
+
+test('notification delivery history remains scoped to the recipient account', async ({ browser, request }) => {
+  test.setTimeout(120_000)
+  const hierarchy = await createPlatformHierarchyFixture(request)
+
+  await publicApiJson<ApiEntity>(request, 'post', '/api/v1/auth/password-reset/request', {
+    email: hierarchy.accounts.admin.email,
+  })
+
+  const { context: supportContext, page: supportPage } = await newAuthedPageForAccount(
+    browser,
+    hierarchy.accounts.supportAdmin,
+    'desktop',
+  )
+  await supportPage.goto(`${APP_URL}/notifications`, { waitUntil: 'domcontentloaded' })
+  await expect(supportPage.getByRole('heading', { name: 'Notifications' })).toBeVisible()
+  await expect(supportPage.getByText('Password reset prepared')).toHaveCount(0)
+  await expect(supportPage.locator('[aria-label="1 unread alerts"]')).toHaveCount(0)
+  await supportContext.close()
+
+  const { context: adminContext, page: adminPage } = await newAuthedPageForAccount(
+    browser,
+    hierarchy.accounts.admin,
+    'desktop',
+  )
+  await adminPage.goto(`${APP_URL}/notifications`, { waitUntil: 'domcontentloaded' })
+  await expect(adminPage.getByRole('heading', { name: 'Notifications' })).toBeVisible()
+  await expect(adminPage.getByText('Password reset prepared')).toBeVisible()
+  await expect(adminPage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
+  await adminContext.close()
 })
 
 test('full frontend harmonic workflow proves admin merchant and warehouse coherence', async ({ browser, request }) => {

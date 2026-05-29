@@ -55,6 +55,8 @@ Keep markdown alive:
 
 When you find a gap, close it before expanding scope when practical. Gaps include stale docs, missing proof, script/doc drift, CI naming drift, unsafe publication-boundary content, broken markdown links, prototype behavior without labels, and private facts embedded in app source.
 
+If you decide something is for later, future work, a later deliberate step, Pre-V16, V16, or VInfinite, write it down before closing the task. Use the affected tracked architecture doc for design decisions, `docs/architecture/roadmap.md` for phase or version ownership, and an active `.notes/` page for working context that links back to the durable doc. Do not leave deferred decisions only in chat.
+
 If a gap cannot be closed in the current change, record it in the roadmap, a tracked doc, or a current QC note with:
 
 - what is wrong

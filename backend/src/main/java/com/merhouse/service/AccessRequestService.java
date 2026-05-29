@@ -8,6 +8,7 @@ import com.merhouse.dto.CreateUserRequest;
 import com.merhouse.entity.AccessRequest;
 import com.merhouse.entity.AccessRequestStatus;
 import com.merhouse.entity.AppUser;
+import com.merhouse.entity.NotificationTopic;
 import com.merhouse.entity.UserRole;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.exception.ResourceNotFoundException;
@@ -24,17 +25,20 @@ public class AccessRequestService {
     private final AccessRequestRepository requestRepository;
     private final UserService userService;
     private final TenantService tenantService;
+    private final NotificationService notificationService;
     private final Clock clock;
 
     public AccessRequestService(
         AccessRequestRepository requestRepository,
         UserService userService,
         TenantService tenantService,
+        NotificationService notificationService,
         Clock clock
     ) {
         this.requestRepository = requestRepository;
         this.userService = userService;
         this.tenantService = tenantService;
+        this.notificationService = notificationService;
         this.clock = clock;
     }
 
@@ -91,6 +95,14 @@ public class AccessRequestService {
             request.temporaryPassword(),
             accessRequest.getRequestedRole()
         ));
+        notificationService.recordForUser(
+            user,
+            NotificationTopic.ACCOUNT_LIFECYCLE,
+            "Account ready",
+            "Your MerHouse account was created from an approved access request. This is a prototype-local delivery record.",
+            "AccessRequest",
+            accessRequest.getId()
+        );
         AppUser actor = userService.getRequired(actorId);
         accessRequest.setConvertedTenant(tenant);
         accessRequest.setConvertedUser(user);
