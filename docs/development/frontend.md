@@ -40,6 +40,14 @@ Run them against a seeded local stack:
 npm run test:e2e
 ```
 
+When the Docker frontend is already running, point the whole Playwright suite at it so both route-tour and admin-console specs use the same browser target:
+
+```powershell
+$env:FRONTEND_TOUR_BASE_URL = "http://localhost:3000"
+npm run test:e2e
+Remove-Item Env:\FRONTEND_TOUR_BASE_URL
+```
+
 ## Route Map
 
 Routes are defined in `frontend/src/App.tsx`.

@@ -671,6 +671,66 @@ test('notification delivery history remains scoped to the recipient account', as
   await adminContext.close()
 })
 
+test('notification preferences change visible delivery state across merchant and warehouse roles', async ({ browser, request }) => {
+  test.setTimeout(180_000)
+  const fixture = await createHarmonicFixture(request)
+
+  await publicApiJson<ApiEntity>(request, 'post', '/api/v1/auth/password-reset/request', {
+    email: fixture.merchantAccount.email,
+  })
+
+  const { context: merchantContext, page: merchantPage } = await newAuthedPageForAccount(
+    browser,
+    fixture.merchantAccount,
+    'desktop',
+  )
+  await merchantPage.goto(`${APP_URL}/notifications`, { waitUntil: 'domcontentloaded' })
+  await expect(merchantPage.getByRole('heading', { name: 'Notifications' })).toBeVisible()
+  await expect(merchantPage.getByText('Password reset prepared')).toBeVisible()
+  await expect(merchantPage.getByText('Local recorded')).toBeVisible()
+  await expect(merchantPage.getByText('Provider not configured')).toBeVisible()
+  await expect(merchantPage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
+
+  const { context: warehouseContext, page: warehousePage } = await newAuthedPageForAccount(
+    browser,
+    fixture.warehouseAccount,
+    'desktop',
+  )
+  await warehousePage.goto(`${APP_URL}/notifications`, { waitUntil: 'domcontentloaded' })
+  await expect(warehousePage.getByRole('heading', { name: 'Notifications' })).toBeVisible()
+  await expect(warehousePage.getByText('Password reset prepared')).toHaveCount(0)
+  await expect(warehousePage.locator('[aria-label="1 unread alerts"]')).toHaveCount(0)
+
+  const accountLifecycleInAppRow = merchantPage
+    .locator('tr')
+    .filter({ hasText: 'Account lifecycle' })
+    .filter({ hasText: 'In app' })
+  await accountLifecycleInAppRow.getByRole('button', { name: 'Disable' }).click()
+  await expect(accountLifecycleInAppRow).toContainText('disabled')
+
+  await publicApiJson<ApiEntity>(request, 'post', '/api/v1/auth/password-reset/request', {
+    email: fixture.merchantAccount.email,
+  })
+  await merchantPage.reload({ waitUntil: 'domcontentloaded' })
+  await expect(merchantPage.getByText('2 local records')).toBeVisible()
+  await expect(merchantPage.getByText('Skipped by preference', { exact: true })).toBeVisible()
+  await expect(merchantPage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
+  await expect(merchantPage.locator('[aria-label="2 unread alerts"]')).toHaveCount(0)
+
+  await publicApiJson<ApiEntity>(request, 'post', '/api/v1/auth/password-reset/request', {
+    email: fixture.warehouseAccount.email,
+  })
+  await warehousePage.reload({ waitUntil: 'domcontentloaded' })
+  await expect(warehousePage.getByText('Password reset prepared')).toBeVisible()
+  await expect(warehousePage.getByText('Local recorded')).toBeVisible()
+  await expect(warehousePage.getByText('Provider not configured')).toBeVisible()
+  await expect(warehousePage.getByText('1 local records')).toBeVisible()
+  await expect(warehousePage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
+
+  await merchantContext.close()
+  await warehouseContext.close()
+})
+
 test('full frontend harmonic workflow proves admin merchant and warehouse coherence', async ({ browser, request }) => {
   test.setTimeout(420_000)
   const fixture = await createHarmonicFixture(request)

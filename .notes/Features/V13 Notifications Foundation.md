@@ -61,6 +61,7 @@ cd ..
 - Full backend test pass, including Flyway empty-database migration proof for 16 migrations.
 - Frontend lint, production build, and full Vitest.
 - Playwright browser proof on a rebuilt seeded local stack.
+- Multi-role Playwright proof that merchant notification preference changes affect merchant delivery state without leaking to warehouse, and warehouse receives its own local lifecycle delivery.
 - Live `/notifications` browser smoke showing `Password reset prepared`, `Local recorded`, `Provider not configured`, and `Prototype-local`.
 - Markdown link proof.
 - Public-readiness proof.
