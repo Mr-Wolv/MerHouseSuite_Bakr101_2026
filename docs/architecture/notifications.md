@@ -1,6 +1,6 @@
 # Notifications
 
-MerHouse V13 starts with a local notification foundation. It records account-lifecycle delivery history and exposes per-user notification preferences without connecting to an external provider.
+MerHouse V13 provides a local notification foundation. It records account-lifecycle delivery history and exposes per-user notification preferences without connecting to an external provider.
 
 This is prototype-local behavior. The backend stores delivery records for visibility and proof, but it does not send email, SMS, push, webhooks, or provider traffic. Production delivery, provider credentials, callback endpoints, bounce handling, and deliverability monitoring remain Pre-V16 and V16 work.
 
@@ -106,7 +106,7 @@ No provider credentials, private endpoints, webhook secrets, tokens, customer da
 
 ## Proof
 
-Current focused proof:
+Focused proof:
 
 ```powershell
 cd backend
@@ -118,6 +118,6 @@ npm test -- --run src/pages/NotificationCenterPage.test.tsx src/components/AppLa
 npm run lint
 ```
 
-The Playwright full tour includes a notification-recipient proof: a password-reset delivery created for one admin account is visible to that account and absent for a support-admin account.
+The Playwright full tour includes notification-recipient proof: a password-reset delivery created for one admin account is visible to that account and absent for a support-admin account. It also includes multi-role notification preference proof: a merchant preference change affects merchant delivery state without leaking to a warehouse operator, while the warehouse operator still receives its own local lifecycle delivery.
 
-Before V13 is complete, also run the broad backend, frontend, Playwright, migration, markdown, and publication-boundary checks from the roadmap change-quality rule.
+The V13 close-out proof also ran the broad backend, frontend, Playwright, migration, markdown, and publication-boundary checks from the roadmap change-quality rule.

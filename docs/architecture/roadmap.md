@@ -86,20 +86,20 @@ Current progress:
 - browser proof added for multi-role notification preference and delivery-state changes across merchant and warehouse contexts
 - provider-backed delivery remains intentionally out of scope until Pre-V16 and V16
 
-Planned scope:
+Delivered V13 scope:
 
 - notification preferences
 - delivery history
-- event-driven UI refresh paths
+- lightweight polling refresh paths
 - role-appropriate notification visibility
 - production-shaped access-request delivery flow
 - production-shaped password-reset delivery flow
 - explicit prototype labeling for any account lifecycle behavior that is not production-ready in V13
-- browser proof for multi-role state changes completed for V13 notification state
+- browser proof for multi-role state changes
 
 Any V13 prototype touching access requests, password reset, notification delivery, recovery delivery, or account lifecycle status must be carried forward as an explicit Pre-V16 and V16 certification item.
 
-Completion proof expected for V13:
+V13 completion proof:
 
 - backend tests for notification preferences, delivery records, and account lifecycle state transitions
 - frontend tests for notification visibility and account lifecycle flows
