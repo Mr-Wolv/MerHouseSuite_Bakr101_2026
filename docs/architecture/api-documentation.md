@@ -30,6 +30,7 @@ The generated OpenAPI title is `MerHouse API`, and the grouped contract is named
 | Merchant-warehouse workflow | `/api/v1/merchant-warehouse` |
 | Operational detail reads | `/api/v1/operational-details` |
 | Service accountability | `/api/v1/service-accountability` |
+| Notifications | `/api/v1/notifications` |
 
 ## Authentication
 

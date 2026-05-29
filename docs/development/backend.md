@@ -72,4 +72,5 @@ The backend test suite includes service tests, web/controller tests, OpenAPI con
 - Merchant-warehouse relationships and inbound stock
 - Operational details and timelines
 - Service accountability
+- Prototype-local notifications
 - Transactional outbox administration
