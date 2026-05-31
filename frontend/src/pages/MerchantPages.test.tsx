@@ -179,7 +179,7 @@ describe('Merchant overview', () => {
     renderWithAuth(<MerchantOverviewPage />)
 
     expect(await screen.findByText('Merchant Overview')).toBeInTheDocument()
-    expect(screen.getByLabelText('Merchant operations scan')).toHaveTextContent('Watch stock risk')
+    expect(screen.getByLabelText('Start with risk')).toHaveTextContent('Check stock risk')
     expect(screen.getByText('Inventory items')).toBeInTheDocument()
     expect(screen.getByText('SKU-1 x2')).toBeInTheDocument()
   })

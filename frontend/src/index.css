@@ -1069,7 +1069,7 @@ tr:last-child td {
 }
 
 .queue-card.risk-card,
-.queue-card.notification-attention {
+.queue-card.notification-action {
   border-color: color-mix(in srgb, var(--warning) 36%, var(--border));
   background: color-mix(in srgb, var(--warning) 4%, var(--surface));
 }
@@ -1079,11 +1079,11 @@ tr:last-child td {
   background: color-mix(in srgb, var(--danger-surface) 64%, var(--surface));
 }
 
-.queue-card.notification-info {
+.queue-card.notification-review {
   border-color: color-mix(in srgb, var(--info) 18%, var(--border));
 }
 
-.queue-card.notification-resolved {
+.queue-card.notification-cleared {
   border-color: color-mix(in srgb, var(--success) 24%, var(--border));
   background: color-mix(in srgb, var(--success-surface) 46%, var(--surface));
 }
@@ -1177,19 +1177,19 @@ tr:last-child td {
   color: var(--danger);
 }
 
-.data-chip.severity-attention {
+.data-chip.severity-action {
   border-color: color-mix(in srgb, var(--warning) 34%, var(--border));
   background: var(--status-warning-bg);
   color: var(--warning);
 }
 
-.data-chip.severity-info {
+.data-chip.severity-review {
   border-color: color-mix(in srgb, var(--info) 28%, var(--border));
   background: var(--status-info-bg);
   color: var(--status-info-text);
 }
 
-.data-chip.severity-resolved {
+.data-chip.severity-cleared {
   border-color: color-mix(in srgb, var(--success) 34%, var(--border));
   background: var(--status-success-bg);
   color: var(--success);

@@ -65,8 +65,8 @@ export function MerchantOverviewPage() {
   return (
     <div className="page-stack">
       <PageHeading title="Merchant Overview" subtitle="Inventory and order activity for the current merchant tenant." />
-      <GuidancePanel title="Merchant operations scan">
-        Watch stock risk, open exceptions, and backordered units first. The order queue below keeps allocations, backorders, and shipment evidence together for daily triage.
+      <GuidancePanel title="Start with risk">
+        Check stock risk, exceptions, and backorders first. Then open the order queue for allocation and shipment evidence.
       </GuidancePanel>
       <div className="metric-grid">
         <Metric label="Inventory items" value={data.items.length} />

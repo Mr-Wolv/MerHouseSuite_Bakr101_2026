@@ -60,15 +60,15 @@ describe('AppLayout role navigation', () => {
 
     expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Relations' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Service' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Partners' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Service review' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Outbox' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Audit' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Audit trail' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Assistant' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Alerts' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Tenants' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Users' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Access' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Organizations' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Accounts' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Access requests' })).not.toBeInTheDocument()
   })
 
   it('shows a scoped unread alert count in navigation', async () => {

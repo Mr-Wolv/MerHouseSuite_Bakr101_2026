@@ -37,17 +37,17 @@ const providerStatusLabels: Record<NotificationProviderStatus, string> = {
   READY_FOR_PROVIDER: 'Ready for handoff',
 }
 
-type NotificationSeverity = 'critical' | 'attention' | 'info' | 'resolved'
+type NotificationSeverity = 'critical' | 'action' | 'review' | 'cleared'
 
 const severityLabels: Record<NotificationSeverity, string> = {
   critical: 'Critical',
-  attention: 'Needs action',
-  info: 'For review',
-  resolved: 'Resolved',
+  action: 'Action needed',
+  review: 'Review',
+  cleared: 'Cleared',
 }
 
 function notificationSeverity(delivery: NotificationDelivery): NotificationSeverity {
-  if (delivery.status === 'READ' || delivery.readAt) return 'resolved'
+  if (delivery.status === 'READ' || delivery.readAt) return 'cleared'
 
   const text = `${delivery.title} ${delivery.body} ${delivery.topic} ${delivery.sourceType ?? ''}`.toLowerCase()
   const criticalTerms = ['failed', 'failure', 'error', 'dead-letter', 'dead letter', 'retry failed']
@@ -78,15 +78,15 @@ function notificationSeverity(delivery: NotificationDelivery): NotificationSever
     delivery.providerStatus === 'READY_FOR_PROVIDER' ||
     attentionTerms.some((term) => text.includes(term))
   ) {
-    return 'attention'
+    return 'action'
   }
-  return 'info'
+  return 'review'
 }
 
 function notificationSeverityIcon(severity: NotificationSeverity) {
   if (severity === 'critical') return TriangleAlert
-  if (severity === 'attention') return BellRing
-  if (severity === 'resolved') return CircleCheck
+  if (severity === 'action') return BellRing
+  if (severity === 'cleared') return CircleCheck
   return Info
 }
 
@@ -156,10 +156,10 @@ export function NotificationCenterPage() {
         counts[notificationSeverity(delivery)] += 1
         return counts
       },
-      { critical: 0, attention: 0, info: 0, resolved: 0 } satisfies Record<NotificationSeverity, number>,
+      { critical: 0, action: 0, review: 0, cleared: 0 } satisfies Record<NotificationSeverity, number>,
     )
   }, [deliveries])
-  const actionableCount = severityCounts.critical + severityCounts.attention
+  const actionableCount = severityCounts.critical + severityCounts.action
 
   async function togglePreference(preference: NotificationPreference) {
     if (!token) return
@@ -204,10 +204,10 @@ export function NotificationCenterPage() {
       <div className="page-heading">
         <span className="eyebrow">Alert center</span>
         <h1>Notifications</h1>
-        <p>Review account, operations, service, and outbox alerts before they become missed work.</p>
+        <p>Review alerts that may need action. Cleared history stays available below.</p>
       </div>
-      <GuidancePanel title="Notification delivery boundary">
-        Delivery records show what MerHouse prepared, skipped, or marked read. Preferences control which alert channels stay active for the signed-in account.
+      <GuidancePanel title="Alert rules">
+        Preferences decide which channels stay active. The inbox separates urgent work from review-only history.
       </GuidancePanel>
 
       {error ? <ErrorState title={error} /> : null}
@@ -219,7 +219,7 @@ export function NotificationCenterPage() {
           <strong>{unreadCount}</strong>
         </div>
         <div className="metric">
-          <span>Needs action</span>
+          <span>Action needed</span>
           <strong>{actionableCount}</strong>
         </div>
         <div className="metric">
@@ -227,7 +227,7 @@ export function NotificationCenterPage() {
           <strong>{enabledPreferences}/{preferences.length}</strong>
         </div>
         <div className="metric">
-          <span>Ready handoffs</span>
+          <span>Provider handoffs</span>
           <strong>{providerReadyCount}</strong>
         </div>
       </section>
@@ -277,8 +277,8 @@ export function NotificationCenterPage() {
 
       <section className="table-section">
         <div className="table-toolbar">
-          <h2>Delivery History</h2>
-          <span>{deliveries.length} local records</span>
+          <h2>Alert inbox</h2>
+          <span>{deliveries.length} records</span>
         </div>
         {deliveries.length ? (
           <div className="queue-list">
@@ -329,7 +329,7 @@ export function NotificationCenterPage() {
         ) : (
           <EmptyState
             label="No alerts yet"
-            guidance="When account, operations, service, or outbox events need your attention, they will appear here with severity, channel, source, and read status. Keep the preferences above enabled for the workflows you own."
+            guidance="New account, operations, service, or outbox alerts will appear here. Keep only the channels you own enabled."
           />
         )}
       </section>

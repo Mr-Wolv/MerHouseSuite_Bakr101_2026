@@ -203,6 +203,25 @@ Completion proof expected for V15.2:
 - publication-boundary proof that local AI configuration, prompts, model settings, eval reports, and generated traces do not leak into the future public app source
 - roadmap decision recorded before Pre-V16 begins: implemented read-only local agent slice, architecture-only closeout, or explicit blocker with proof required
 
+### V15.3: Human Comprehension And Quality-Of-Life UI
+
+Planned scope:
+
+- make the app understandable to a capable first-time user who did not help build MerHouse, without relying on chat history, hidden docs, or developer explanation
+- replace shorthand navigation labels with plain workflow names where space allows, and keep icon choices distinct enough that users can tell governance, access, partners, service review, alerts, audit, assistant, inventory, orders, warehouse work, receiving, and shipments apart
+- reduce over-telling: keep page guidance short, move repeated explanatory text into concise helper panels, and let headings, table names, status labels, and primary actions carry more of the meaning
+- strengthen notification/alert semantics so critical work, action-needed work, reviewable history, and resolved history are visually and verbally distinct
+- make first-run paths obvious for fresh merchants and warehouse operators: what to create first, what prerequisite is missing, and which page starts the work
+- review quality-of-life details from a new user's perspective: unclear abbreviations, overly similar icons, noisy metrics, dead-end empty states, missing next actions, unclear disabled buttons, and status labels that require domain knowledge
+- keep professional restraint: no marketing-style onboarding, no walls of instructional text, no fake production claims, and no customer-facing prototype wording on daily surfaces
+
+Completion proof expected for V15.3:
+
+- route-by-route human-comprehension audit in [Frontend V15 audit](frontend-v15-audit.md), including what was deleted or shortened as well as what was added
+- focused tests for navigation labels/icon distinctions, alert severity language, and the first-run empty-state guidance that changed
+- live browser tour with at least owner, merchant, warehouse, fresh merchant, fresh warehouse, notifications, assistant, service accountability, and a not-found detail state, recording console warnings/errors, horizontal overflow, unlabeled controls, and missing expected copy
+- explicit note of any remaining UI/UX blocker that would still confuse a first-time user before moving into AI-agent or Pre-V16 work
+
 ### Pre-V16 Professionalization, Reliability, Stress, And Safety Gate
 
 Planned scope:

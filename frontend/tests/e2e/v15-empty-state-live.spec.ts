@@ -227,7 +227,7 @@ test('fresh accounts see guided first-run empty states', async ({ browser, reque
     merchantPage,
     'merchant',
     '/notifications',
-    'they will appear here with severity',
+    'will appear here',
     screenshotDir,
   ))
   await merchantContext.close()
@@ -258,7 +258,7 @@ test('fresh accounts see guided first-run empty states', async ({ browser, reque
     warehousePage,
     'warehouse',
     '/notifications',
-    'they will appear here with severity',
+    'will appear here',
     screenshotDir,
   ))
   await warehouseContext.close()

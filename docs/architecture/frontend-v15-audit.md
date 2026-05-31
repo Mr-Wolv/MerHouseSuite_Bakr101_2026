@@ -73,6 +73,50 @@ Every row below should be evaluated through these dimensions before V15 closes:
 
 V15 frontend finish is ready for owner acceptance. The route matrix, theme infrastructure, dense workflow polish, public auth/recovery polish, targeted accessibility proof, and V15 generated evidence bundle are now tracked here. The roadmap quality gate passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`, and the final live acceptance sweep is recorded in `reports/v15-closeout/final-live/v15-final-live-acceptance.json` with 11 routes, 0 unexpected console errors, 0 horizontal overflow failures, 0 unlabeled controls, 0 unnamed buttons, 0 horizontally offscreen controls outside intentional scroll regions, and 0 missing expected-content checks before moving into Pre-V16.
 
+## V15.3 Human Comprehension Gate
+
+The 2026-05-31 live owner review found a real product-quality gap: MerHouse can pass route, accessibility, and workflow checks while still feeling difficult for a fresh human to understand. V15.3 owns that gap before AI-agent or Pre-V16 expansion.
+
+Human-comprehension acceptance means a first-time but capable user can tell:
+
+- which role mode they are in
+- what each navigation item means without decoding internal shorthand
+- which alerts require action and which are only history
+- which empty state blocks progress and what prerequisite comes next
+- which copy is essential guidance and which copy should be shortened or removed
+- which icons identify different workflows rather than repeating one visual metaphor
+
+Quality-of-life actions from the live review:
+
+| ID | User-facing problem | Action | Proof needed |
+| --- | --- | --- | --- |
+| V15.3-HC-001 | Navigation labels such as `Relations` and `Service` are too insider-ish for new users. | Replace shorthand with plain workflow labels and keep visible labels aligned with role tasks. | App layout tests and live route tour. |
+| V15.3-HC-002 | Some guidance panels over-tell while some empty states still under-guide. | Shorten repeated explanation, keep one concrete next step, and avoid long boundary language on daily surfaces. | Focused page tests and fresh-account browser proof. |
+| V15.3-HC-003 | Service accountability and partner relationships share too much icon language. | Split service review, partner relationship, access, and governance icons into distinct visual meanings. | Component/app-shell tests and visual live pass. |
+| V15.3-HC-004 | Alert severity reads improved but still needs sharper action language. | Use critical, action-needed, review, and cleared language consistently in summary metrics and cards. | Notification tests and live notification proof. |
+| V15.3-HC-005 | The app needs a new-user quality-of-life audit, not just engineering proof. | Maintain a route-by-route add/delete/change list before closing V15.3. | Updated audit row plus live closeout report. |
+
+First V15.3 slice proof on 2026-05-31:
+
+- `npm test -- --run AppLayout NotificationCenterPage MerchantPages WarehousePage`
+- `npm run lint`
+- `npm run build`
+- `.\scripts\quality\markdown-check.ps1`
+- Docker frontend rebuild and in-app browser role cycle across owner, merchant, and warehouse accounts. The pass verified the new navigation labels, notification wording, no visible notification `prototype` wording, merchant `Start with risk` guidance, warehouse `Work queue` label, and no captured browser console errors. One exact text assertion for `Start with today's work` was rechecked by visible DOM excerpt because apostrophe serialization made the first automated boolean too brittle.
+- `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` passed after aligning Playwright expectations with the new human-facing labels and notification severity names.
+
+User-perspective V15.3 quality-of-life backlog:
+
+| Change type | What to change | Why it matters |
+| --- | --- | --- |
+| Add | A first-run checklist per role: merchant should see stock, partner, inbound, and order prerequisites; warehouse should see partner activation, receiving, queue, and exception prerequisites. | Empty accounts need momentum without requiring a builder's knowledge of the system. |
+| Add | Stronger page-local action hierarchy: one primary next action, secondary utilities, and disabled-button reasons near the blocked action. | New users should not scan every table to infer what to do next. |
+| Add | Plain-language status glossary in compact tooltips or inline help for domain-heavy states like `REQUESTED`, `PREPARED`, `LOCAL_RECORDED`, and service review types. | Operational status names are necessary, but they should not feel like backend enum leakage. |
+| Delete | Repeated boundary/proof copy from daily workflow pages once the user has enough context. | Over-telling makes the console feel less professional and slows repeated use. |
+| Delete | Duplicate visual metaphors where unrelated workflows share the same icon or severity styling. | Icons should help recognition; repeated symbols make the app feel unfinished. |
+| Change | Rename insider shorthand in visible navigation and headings before deeper feature expansion. | Navigation is the user's mental model; unclear labels make every page feel harder. |
+| Change | Treat alert severity as a work queue, not a delivery log: critical, action needed, review, and cleared. | The notification center must tell users what deserves attention now. |
+
 ## V15.1 UI Signature Start
 
 The V15.1 pass begins with shared user-facing polish before deeper Pre-V16 hardening. The first slice removes customer-facing "prototype" wording from public auth, assistant, and notification surfaces while keeping release-boundary truth in the roadmap and engineering documentation; replaces the default favicon with a MerHouse-owned local mark; upgrades the shell brand mark and alert icon behavior; gives notification cards severity language; and expands shared empty states into role-aware next-step guidance instead of dead-end blank panels.

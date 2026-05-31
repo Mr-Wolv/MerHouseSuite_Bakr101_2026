@@ -56,7 +56,7 @@ test.describe('admin console', () => {
     await page.keyboard.press('Enter')
     await expect(page.locator('#main-content')).toBeFocused()
 
-    await page.getByRole('link', { name: 'Users' }).click()
+    await page.getByRole('link', { name: 'Accounts' }).click()
     await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible()
     await expect(page.getByRole('form', { name: 'Create user form' })).toBeVisible()
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBeTruthy()
@@ -76,13 +76,13 @@ test.describe('admin console', () => {
 
     await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Tenants' }).click()
+    await page.getByRole('link', { name: 'Organizations' }).click()
     await expect(page.getByRole('heading', { name: 'Tenants', level: 1 })).toBeVisible()
     await page.getByRole('form', { name: 'Create tenant form' }).getByLabel('Name').fill(tenantName)
     await page.getByRole('button', { name: 'Create tenant' }).click()
     await expect(page.getByRole('cell', { name: tenantName })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Users' }).click()
+    await page.getByRole('link', { name: 'Accounts' }).click()
     await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible()
     await expect(page.getByRole('row', { name: /admin@merhouse\.local/ }).getByRole('button', { name: 'Current user' })).toBeDisabled()
 
@@ -206,7 +206,7 @@ test.describe('admin console', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('heading', { name: 'Merchant Overview' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Inventory' }).click()
+    await page.getByRole('link', { name: 'Stock' }).click()
     const createItemForm = page.getByRole('form', { name: 'Create inventory item form' })
     await createItemForm.getByLabel('SKU').fill(sku)
     await createItemForm.getByLabel('Name').fill('E2E Merchant Item')
@@ -431,7 +431,7 @@ test.describe('admin console', () => {
     await page.getByLabel('Password').fill(merchantPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('heading', { name: 'Merchant Overview' })).toBeVisible()
-    await page.getByRole('link', { name: 'Inventory' }).click()
+    await page.getByRole('link', { name: 'Stock' }).click()
     await page.getByRole('form', { name: 'Create inventory item form' }).getByLabel('SKU').fill(sku)
     await page.getByRole('form', { name: 'Create inventory item form' }).getByLabel('Name').fill('V8 E2E Item')
     await page.getByRole('button', { name: 'Create item' }).click()
@@ -456,7 +456,7 @@ test.describe('admin console', () => {
     await page.getByLabel('Email').fill(merchantEmail)
     await page.getByLabel('Password').fill(merchantPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await page.getByRole('link', { name: 'Inventory' }).click()
+    await page.getByRole('link', { name: 'Stock' }).click()
     const inboundForm = page.getByRole('form', { name: 'Submit inbound stock form' })
     await inboundForm.getByLabel('Relationship').selectOption({ label: `E2E V8 Warehouse ${suffix}` })
     await inboundForm.getByLabel('Target warehouse').selectOption({ label: `V8 Hub ${suffix}` })
@@ -633,7 +633,7 @@ test.describe('admin console', () => {
     await page.getByLabel('Password').fill('merchant-password')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('heading', { name: 'Merchant Overview' })).toBeVisible()
-    await page.getByRole('link', { name: 'Service' }).click()
+    await page.getByRole('link', { name: 'Service review' }).click()
     await expect(page.getByRole('heading', { name: 'Service Accountability' })).toBeVisible()
     await expect(page.getByText(`V11 Service Terms ${suffix}`)).toBeVisible()
     await expect(page.getByText('INBOUND STOCK REQUEST')).toBeVisible()

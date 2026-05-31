@@ -328,8 +328,8 @@ export function WarehousePage() {
         <h1>Warehouse Console</h1>
         <p>Fulfillment queue, shipment actions, and inventory visibility for your warehouse tenant.</p>
       </div>
-      <GuidancePanel title="Warehouse execution focus">
-        Prioritize pick, pack, ship, inbound receiving, exceptions, and stock adjustments for the selected warehouse.
+      <GuidancePanel title="Start with today's work">
+        Pick urgent allocations, receive inbound stock, then clear exceptions. Change warehouse only when you need a different queue.
       </GuidancePanel>
 
       {warehouses.length ? (

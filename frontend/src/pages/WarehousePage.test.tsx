@@ -263,7 +263,7 @@ describe('WarehousePage', () => {
     renderWithAuth(<WarehousePage />)
 
     expect(await screen.findByText('Warehouse Console')).toBeInTheDocument()
-    expect(screen.getByText('Warehouse execution focus')).toBeInTheDocument()
+    expect(screen.getByText("Start with today's work")).toBeInTheDocument()
     expect(screen.getByText('Available units')).toBeInTheDocument()
     const queueCard = screen.getByLabelText(/Allocation allocati Adidas Merchant PENDING/i)
     expect(queueCard).toBeInTheDocument()
