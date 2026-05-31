@@ -109,40 +109,99 @@ V13 completion proof:
 
 ### V14: Agentic Operations Assistance
 
-Planned scope:
+Delivered V14 scope:
 
-- scoped assistant behavior for MerHouse operations
-- auditable suggestions and summaries
-- strict role and tenant boundaries
-- refusal paths for unsupported or unsafe requests
-- proof that assistant behavior cannot cross tenant, role, or operational authority boundaries
+- prototype-local assistant interaction ledger and API added
+- deterministic scoped summaries and risk-ranked review-only suggestions added for platform, merchant, and warehouse contexts
+- refusal paths added for unsupported mutations, missing or unknown target tenant scope, wrong target tenant type, cross-tenant requests, and over-authority scope requests
+- explicit accept/reject workflow added for pending assistant suggestions without operational mutation
+- assistant interaction route added for authenticated roles
+- admin audit review now summarizes and filters assistant activity for platform and auditor review
+- admin audit events added for assistant summaries, suggestions, refusals, accepted suggestions, and rejected suggestions
+- proof added that assistant behavior cannot cross tenant, role, or operational authority boundaries
 
-Completion proof expected for V14:
+V14 completion proof:
 
 - role and tenant boundary tests for every assistant-visible operation
-- audit trail proof for suggestions, summaries, refusals, and accepted actions
+- audit trail proof for suggestions, summaries, refusals, accepted suggestions, and rejected suggestions
 - refusal tests for unsupported, unsafe, cross-tenant, or over-authority requests
-- documentation of supported assistant scope and explicit non-goals
+- documentation of supported assistant scope, deterministic risk-priority rules, and explicit non-goals
 - publication-boundary proof that private prompts, provider keys, customer data, and internal endpoints are not hard-coded in `backend/` or `frontend/`
+- live browser closeout passed on 2026-05-30 for owner accept/reject, platform target summaries, missing-target refusal, assistant audit filtering, merchant scoped summary/refusal, warehouse scoped summary/refusal, and auditor read-only assistant/audit behavior
+- `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` passed on 2026-05-30 after live testing, including backend tests, frontend lint/build/Vitest, all Playwright tests, markdown links, publication boundary, CI naming, sensitive-file scan, and sensitive-pattern scan
+- `.\scripts\quality\api-smoke.ps1` passed on 2026-05-30 after live testing with V14 assistant endpoint, audit, history-scope, refusal, auditor-read-only, and smoke-scale concurrent request proof; latest summary: `reports/api-smoke-test-20260530-142704.summary.md`
 
 ### V15: Frontend Finish
 
 Planned scope:
 
-- cohesive visual system
-- light/dark theme support
-- responsive layout polish
-- clearer dense operational states
-- accessibility and screenshot proof for the main workflows
-- role-aware UX polish for agentic operations added in V14
+- full frontend audit matrix by route, role, viewport, workflow criticality, accessibility risk, and visual/UX gap, tracked in [Frontend V15 audit](frontend-v15-audit.md)
+- cohesive professional visual system for spacing, typography, color, density, buttons, forms, tables, cards, badges, loading states, empty states, error states, and destructive/privileged actions
+- light/dark theme support with persistent user preference, system preference handling, and contrast proof in both themes
+- responsive layout polish across desktop, tablet/narrow, and mobile-sized widths with no horizontal overflow, clipped controls, hidden critical actions, or unreadable dense data
+- accessibility hardening for semantic headings, labels, keyboard paths, focus states, contrast, status text, live updates, reduced-motion behavior where relevant, and screen-reader-friendly controls
+- clearer dense operational states for admin, merchant, warehouse, notifications, service-accountability, relationship, order, inbound, shipment, inventory, outbox, audit, and assistant workflows
+- role-aware UX polish for agentic operations added in V14, including clearer prototype-local framing, safer suggestion decision controls, easier history scanning, and visible audit linkage
+- consistent navigation and workflow ergonomics so repeated operational work feels predictable, professional, and efficient
+- screenshot/browser proof for the main workflows before V15 can close
 
 Completion proof expected for V15:
 
 - lint, build, Vitest, and Playwright proof for the main routed workflows
-- responsive screenshots or browser evidence for platform, merchant, warehouse, and service-accountability surfaces
-- accessibility review for navigation, forms, status text, contrast, and keyboard reachability
+- route-by-route audit record for owner, admin/support-admin where relevant, auditor, merchant, and warehouse operator surfaces, including the issue found, owner of the fix, and proof that it closed
+- responsive screenshots or browser evidence for platform, merchant, warehouse, assistant, notifications, service-accountability, audit/outbox, and public auth/recovery surfaces
+- light/dark screenshots or browser evidence for representative dense screens, forms, tables, and assistant/audit flows
+- accessibility review for navigation, forms, status text, contrast, keyboard reachability, focus visibility, semantic headings, unlabeled controls, and interactive state announcements
+- proof that no route has horizontal overflow, incoherent overlap, clipped button text, inaccessible critical actions, or remote visual assets required for local rendering
 - documentation updates for any changed routes, workflows, or runtime assumptions
 - publication-boundary proof that UI copy and frontend configuration remain safe for later public release
+
+### V15.1: UI Signature, Human Empty States, And Alerting Polish
+
+Planned scope:
+
+- remove customer-facing "prototype" framing from daily app surfaces and replace it with confident, production-shaped operational language while keeping release truth in roadmap, engineering docs, and guarded admin/release notes until Pre-V16 and V16 certify external delivery and SaaS readiness
+- create a distinct MerHouse visual signature for the application shell, favicon/app mark, navigation, page headers, empty states, notification surfaces, and action icons without relying on default Vite assets, generic placeholder sprites, missing textures, remote visual assets, or clunky one-off icon choices
+- standardize an icon language across roles and workflows so platform governance, merchant operations, warehouse execution, service accountability, notifications, assistant review, destructive actions, warnings, successes, and empty states have recognizable, accessible, non-primitive symbols
+- make notification counts reflect the real unread total instead of a sticky placeholder value; hide or quiet the badge at zero, show the exact number when unread items exist, and prove the count changes with notification state
+- make notifications alerting where operationally meaningful, including clear severity treatment for failed outbox work, failed or returned shipments, SLA risk, access-request readiness, account lifecycle events, and other user-actionable events without turning routine history into noise
+- redesign empty states as human onboarding surfaces: when a newly created account has no inventory, orders, inbound work, relationships, notifications, service records, or assistant history, the UI should explain what the user can do next, which prerequisites matter, and which primary action starts the workflow
+- ensure empty-state guidance is role-aware and workflow-aware: merchants should be guided toward creating inventory, relationships, inbound stock, and orders; warehouse operators toward receiving setup, fulfillment queues, and service relationships; platform users toward tenant/user/access/relationship setup; auditors toward review filters and evidence trails
+- keep empty states accessible and calm: semantic headings, concise next-step text, one clear primary action where available, safe secondary links, no misleading production claims, no secrets in examples, and no dead-end blank panels
+- review all loading, error, no-data, first-run, and "not found" states so they feel intentionally designed rather than mechanically generated
+
+Completion proof expected for V15.1:
+
+- focused frontend tests for notification unread counts, zero-count badge behavior, alert severity rendering, and role-aware empty-state guidance
+- route-tour proof showing no unlabeled controls, empty interactive names, horizontal overflow, or console errors after icon and empty-state changes
+- live browser screenshots for first-run/empty merchant, warehouse, platform, notification, assistant, and service-accountability states
+- visual proof that the app shell and favicon/app mark use MerHouse-owned local assets and do not expose default Vite assets, missing textures, or remote visual dependencies
+- documentation update explaining which user-facing prototype wording was removed, where release-truth wording still lives, and why this does not claim SaaS production readiness before V16
+- publication-boundary proof that new assets and UI copy are safe for the future public `backend/` and `frontend/` repository
+
+### V15.2: Local AI Agent Architecture And Docker Runtime
+
+Planned scope:
+
+- mark the current assistant honestly as deterministic risk triage, not provider-backed AI or an autonomous agent
+- design a local AI-agent stack that can run beside `frontend`, `backend`, and `postgres` in Docker without placing model credentials, private prompts, provider tokens, or internal endpoints inside the future public app source
+- introduce a separate `agent-service` boundary for AI reasoning so the Spring backend remains the source of truth for authentication, tenant scope, authorization, validation, auditing, and operational mutation
+- define the local model runtime option for development, such as Ollama, llama.cpp, vLLM, or another containerized runtime, with resource expectations and a documented fallback when no model runtime is available
+- keep AI tool use backend-mediated: the agent may request authorized read context and propose actions, but privileged mutations must pass backend validation and human approval before execution
+- define prompt, context, and memory boundaries so tenant data, private prompts, customer data, and operational secrets do not leak across users, tenants, logs, generated reports, or future publication boundaries
+- add an auditable agent tool-call model for proposed plans, retrieved context, tool requests, refusal reasons, human approvals, execution results, and evaluation outcomes
+- define local evals that prove the agent chooses useful next steps, refuses unsafe requests, respects tenant and role boundaries, and degrades cleanly when the model runtime is down or slow
+- decide whether V15.2 implements the first read-only local agent slice or closes as an architecture-only version before Pre-V16
+
+Completion proof expected for V15.2:
+
+- tracked architecture documentation for `frontend -> backend -> agent-service -> local-model-runtime`, including deployment boundaries, data flow, failure modes, and audit records
+- Docker Compose plan or implementation showing how the local agent components are configured without embedding secrets in `backend/` or `frontend`
+- backend tests proving every agent-visible tool remains role-scoped, tenant-scoped, audited, and non-mutating unless explicitly human-approved
+- frontend tests or browser proof showing the UI labels the capability honestly as local AI assistance only when the local runtime is available
+- model-runtime-off proof showing the app falls back to deterministic assistant behavior or a clear unavailable state without breaking core workflows
+- publication-boundary proof that local AI configuration, prompts, model settings, eval reports, and generated traces do not leak into the future public app source
+- roadmap decision recorded before Pre-V16 begins: implemented read-only local agent slice, architecture-only closeout, or explicit blocker with proof required
 
 ### Pre-V16 Professionalization, Reliability, Stress, And Safety Gate
 
@@ -150,12 +209,14 @@ Planned scope:
 
 - full-project gap review across backend, frontend, database, scripts, docs, containers, and repository boundaries
 - professional repository and documentation review against the actual code
+- V15.1 UI-signature review confirming user-facing copy, notification alerting, role-aware empty states, icons, favicon/app mark, and local visual assets are polished before deeper release hardening
+- V15.2 local AI-agent review confirming agent boundaries, Docker runtime shape, model-off fallback, prompt/data boundaries, eval expectations, and audit proof are documented or explicitly blocked before release hardening
 - quality-control proof for every supported local workflow
 - maximum practical load and stress testing for the current architecture
 - degraded-dependency behavior
 - backup and restore proof
 - dependency and container review
-- backend test-tooling review for the Mockito dynamic Java-agent warning on newer JDKs, including an explicit build configuration decision before release-gate hardening
+- backend test-tooling review confirming the Maven Surefire Mockito Java-agent configuration stays compatible with newer JDKs
 - publication-boundary and deployment-leakage review
 - verification that prototype account lifecycle behavior from V13 is either production-ready or still blocked from production claims
 - software-engineering review for maintainability, testability, observability, data integrity, role boundaries, tenant isolation, error handling, and operational proof
@@ -181,7 +242,7 @@ Pre-V16 CI todo:
 - Add release-gate automation for maximum practical load and stress testing.
 - Add backup and restore proof automation.
 - Add dependency and container review automation.
-- Add backend test-tooling automation or build configuration for Mockito Java-agent compatibility on newer JDKs.
+- Keep the backend Surefire Mockito Java-agent configuration covered by the normal backend test gate.
 - Add final publication-boundary and deployment-leakage certification for the future `backend/` and `frontend/` public repository.
 - Keep this release gate separate from the normal CI route until the project is ready to make it a blocking productionization requirement.
 

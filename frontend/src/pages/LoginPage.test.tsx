@@ -21,6 +21,9 @@ describe('LoginPage', () => {
   it('does not prefill local development credentials', () => {
     render(<LoginPage />, { wrapper: MemoryRouter })
 
+    expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Public account workflow guardrails')).toHaveTextContent('Access boundary')
+    expect(screen.getByText(/reviewable delivery history/i)).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toHaveValue('')
     expect(screen.getByLabelText('Password')).toHaveValue('')
   })

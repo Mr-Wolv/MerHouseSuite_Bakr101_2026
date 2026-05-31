@@ -11,7 +11,7 @@
 
 ## Current Work
 
-- [[.notes/Daily/2026-05-29|Today]]
+- [[.notes/Daily/2026-05-31|Today]]
 - [[.notes/QC/Roadmap QC Checklist|Roadmap QC checklist]]
 - [[.notes/Inbox/README|Inbox]]
 

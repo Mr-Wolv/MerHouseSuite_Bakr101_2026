@@ -255,8 +255,8 @@
       </p>
       <div class="meta" aria-label="diagram scope">
         <span class="pill">Local-development baseline</span>
-        <span class="pill">V1-V13 product surface</span>
-        <span class="pill">36 database tables</span>
+        <span class="pill">V1-V14 product surface</span>
+        <span class="pill">37 database tables</span>
         <span class="pill">SaaS readiness reserved for V16</span>
       </div>
     </header>
@@ -329,13 +329,24 @@
           </div>
           <div class="arrow">Lifecycle event -> local delivery -> Alerts badge</div>
         </article>
+
+        <article class="step" style="--accent: var(--ops)">
+          <h3>7. Users Ask For Scoped Assistance</h3>
+          <p>V14 starts with deterministic assistant summaries, risk-ranked review suggestions, and refusal records before any provider-backed AI work.</p>
+          <div class="scenario">
+            <div class="scenario-row"><b>Trigger</b><span>A platform, merchant, or warehouse user asks for an operational summary or review-only suggestion.</span></div>
+            <div class="scenario-row"><b>Flow</b><span>The assistant checks role and tenant scope, reads only authorized local services, ranks the allowed risk metrics, records the interaction, and keeps suggestion decisions explicit.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>Summaries, reasoned suggestions, refusals, and accept/reject decisions are visible in the user's assistant history and platform audit trail.</span></div>
+          </div>
+          <div class="arrow">Prompt -> scope check -> response + history + audit; decision -> audit</div>
+        </article>
       </div>
     </section>
 
     <section>
       <h2>ERD Cards: UML From Current Database Schema</h2>
       <p class="lede">
-        These cards summarize the Flyway schema through migration 16. Each entity card lists the relationship-defining columns and the important connections without drawing every line across the page.
+        These cards summarize the Flyway schema through migration 17. Each entity card lists the relationship-defining columns and the important connections without drawing every line across the page.
       </p>
 
       <div class="domain-grid">
@@ -379,6 +390,11 @@
                 <ul><li>Prototype-local recipient delivery history for account lifecycle and future operational topics.</li></ul>
               </div>
               <div class="entity">
+                <h4><code>assistant_interactions</code></h4>
+                <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK actor_user_id</span><span class="key fk">FK actor_tenant_id</span><span class="key fk">FK decided_by_user_id</span><span class="key">scope</span><span class="key">response_type</span><span class="key">action_status</span></div>
+                <ul><li>Prototype-local assistant summaries, suggestions, refusals, decisions, and scoped metadata.</li></ul>
+              </div>
+              <div class="entity">
                 <h4><code>idempotency_records</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key uk">UK idempotency_key</span><span class="key">request_hash</span></div>
                 <ul><li>Preserves retry-safe write responses.</li></ul>
@@ -390,6 +406,7 @@
               <span class="rel">app_users 1:n admin_audit_events</span>
               <span class="rel">app_users 1:n notification_preferences</span>
               <span class="rel">app_users 1:n notification_deliveries</span>
+              <span class="rel">app_users 1:n assistant_interactions</span>
               <span class="rel">access_requests -> tenants/app_users after conversion</span>
             </div>
           </div>

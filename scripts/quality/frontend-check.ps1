@@ -45,9 +45,22 @@ try {
 
     if ($IncludeE2E) {
         Write-Host "Running frontend Playwright tests..."
-        npm run test:e2e
-        if ($LASTEXITCODE -ne 0) {
-            throw "Frontend Playwright tests failed."
+        $previousBaseUrl = $env:FRONTEND_TOUR_BASE_URL
+        $previousApiUrl = $env:E2E_API_URL
+        try {
+            if (-not $env:FRONTEND_TOUR_BASE_URL) {
+                $env:FRONTEND_TOUR_BASE_URL = "http://localhost:3000"
+            }
+            if (-not $env:E2E_API_URL) {
+                $env:E2E_API_URL = $env:FRONTEND_TOUR_BASE_URL
+            }
+            npm run test:e2e
+            if ($LASTEXITCODE -ne 0) {
+                throw "Frontend Playwright tests failed."
+            }
+        } finally {
+            $env:FRONTEND_TOUR_BASE_URL = $previousBaseUrl
+            $env:E2E_API_URL = $previousApiUrl
         }
     } else {
         Write-Host "Skipping frontend Playwright tests. Use -IncludeE2E when a seeded local stack is running."

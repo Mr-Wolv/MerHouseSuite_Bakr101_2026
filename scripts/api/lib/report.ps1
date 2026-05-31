@@ -34,6 +34,17 @@ function New-SmokeReport {
         $allOrderIds += $Context.UnauthorizedStockOrder.id
     }
     $quotedOrderIds = ($allOrderIds | ForEach-Object { "'$_'::uuid" }) -join ", "
+    $allAssistantIds = @(
+        $Context.V14AssistantPlatformSuggestion.id,
+        $Context.V14AssistantAcceptedSuggestion.id,
+        $Context.V14AssistantMerchantSummary.id,
+        $Context.V14AssistantMerchantRefusal.id,
+        $Context.V14AssistantMerchantPlatformRefusal.id,
+        $Context.V14AssistantMissingTargetRefusal.id,
+        $Context.V14AssistantWrongTargetRefusal.id,
+        $Context.V14AssistantAuditorSuggestion.id
+    ) + @($Context.V14AssistantConcurrentSucceeded | ForEach-Object { $_.id })
+    $quotedAssistantIds = ($allAssistantIds | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { "'$_'::uuid" }) -join ", "
 
     $tableState = [ordered]@{
         tenants = Invoke-PostgresTableQuery -Sql @"
@@ -204,6 +215,12 @@ FROM access_requests
 WHERE requester_email IN ('$($Context.AccessRequest.requesterEmail)', '$($Context.RejectedAccessRequest.requesterEmail)', '$($Context.BoundaryAccessRequest.requesterEmail)')
 ORDER BY created_at
 "@
+        assistant_interactions = Invoke-PostgresTableQuery -Sql @"
+SELECT id, actor_user_id, actor_tenant_id, scope, response_type, action_status, prototype_local, created_at
+FROM assistant_interactions
+WHERE id IN ($quotedAssistantIds)
+ORDER BY created_at
+"@
     }
 
     [ordered]@{
@@ -286,6 +303,16 @@ ORDER BY created_at
             approvedAccessRequest = $Context.ApprovedAccessRequest
             rejectedAccessRequest = $Context.RejectedAccessRequest
             boundaryAccessRequest = $Context.BoundaryAccessRequest
+            v14AssistantPlatformSuggestion = $Context.V14AssistantPlatformSuggestion
+            v14AssistantAcceptedSuggestion = $Context.V14AssistantAcceptedSuggestion
+            v14AssistantMerchantSummary = $Context.V14AssistantMerchantSummary
+            v14AssistantMerchantRefusal = $Context.V14AssistantMerchantRefusal
+            v14AssistantMerchantPlatformRefusal = $Context.V14AssistantMerchantPlatformRefusal
+            v14AssistantMissingTargetRefusal = $Context.V14AssistantMissingTargetRefusal
+            v14AssistantWrongTargetRefusal = $Context.V14AssistantWrongTargetRefusal
+            v14AssistantAuditorSuggestion = $Context.V14AssistantAuditorSuggestion
+            v14AssistantMerchantHistory = $Context.V14AssistantMerchantHistory
+            v14AssistantConcurrentResults = $Context.V14AssistantConcurrentResults
             openApiContractPaths = @($Context.OpenApiContract.paths.PSObject.Properties.Name)
         }
         tableStateAfterTransactions = $tableState
@@ -332,6 +359,8 @@ function New-SmokeSummary {
     $v12TenantStatus = if ($Context.V12GovernedTenant -and $Context.V12GovernedTenant.active) { "ACTIVE" } else { "UNKNOWN" }
     $v12RelationshipStatus = if ($Context.V12Relationship) { $Context.V12Relationship.status } else { "" }
     $v12DeadLetterStatus = if ($Context.V12DeadLetterEvent) { $Context.V12DeadLetterEvent.status } else { "" }
+    $v14AssistantConcurrentSucceeded = @($Context.V14AssistantConcurrentSucceeded).Count
+    $v14AssistantConcurrentFailed = @($Context.V14AssistantConcurrentFailed).Count
     $passwordRecoveryProof = "Enabled-user reset stayed generic; missing account stayed generic; invalid reset tokens failed safely"
     if ($Context.ExpectRecoveryToken) {
         $passwordRecoveryProof = "Enabled-user reset produced a local dev token, missing account stayed generic, reset token was single-use, and login worked with the new password"
@@ -365,6 +394,7 @@ function New-SmokeSummary {
         "| Backorder status | PASS | Explicit backorder fulfillment and cancellation endpoints changed OPEN backorders to FULFILLED and CANCELLED |",
         "| V7.6 auth recovery/access | PASS | Password reset request/confirm, single-use rejection, access request submit/list/approve/reject verified |",
         "| API boundary checks | PASS | Injection-shaped access request data stayed inert, merchant access to admin APIs was blocked, invalid reset tokens failed safely, and OpenAPI exposed expected contract metadata |",
+        "| V14 assistant operations | PASS | Platform, merchant, and auditor assistant requests produced summaries, suggestions, refusals, accept audit proof, read-only auditor behavior, current-user history scoping, and $v14AssistantConcurrentSucceeded concurrent merchant summaries with $v14AssistantConcurrentFailed failures |",
         "",
         "## Key IDs",
         "",
@@ -486,6 +516,7 @@ function New-SmokeSummary {
         "| carrier_dispatches | $(@($tableState.carrier_dispatches).Count) |",
         "| app_users | $(@($tableState.app_users).Count) |",
         "| access_requests | $(@($tableState.access_requests).Count) |",
+        "| assistant_interactions | $(@($tableState.assistant_interactions).Count) |",
         "",
         "Full machine-readable details are in the matching JSON report."
     )

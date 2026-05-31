@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { api, ApiError } from '../api/client'
 import type {
   OrderImportBatch,
@@ -107,11 +107,11 @@ export function ServiceAccountabilityPage() {
 
   if (loading) return <LoadingState />
   if (error && !data) return <ErrorState title={error} />
-  if (!data) return <EmptyState label="No service-accountability data available" />
+  if (!data) return <EmptyState label="No service-accountability data available" guidance="Create service agreements and operational records before reviewing statements, disputes, claims, and performance evidence." />
 
-  const openIssues = data.disputes.filter((item) => item.status === 'OPEN').length
-    + data.claims.filter((item) => item.status === 'OPEN').length
-    + data.reviews.filter((item) => item.status === 'PENDING').length
+  const openDisputes = data.disputes.filter((item) => item.status === 'OPEN').length
+  const openClaims = data.claims.filter((item) => item.status === 'OPEN').length
+  const pendingReviews = data.reviews.filter((item) => item.status === 'PENDING').length
 
   return (
     <div className="page-stack">
@@ -121,13 +121,18 @@ export function ServiceAccountabilityPage() {
           ? 'Merchant-provider terms, service records, SLA review, and order import history.'
           : 'Merchant-provider terms, service records, and SLA review.'}
       />
+      <GuidancePanel title="Service accountability review">
+        Review agreements, SLA status, statements, disputes, claims, reviews, and import evidence together before requesting partner action.
+      </GuidancePanel>
       {error && <ErrorState title={error} />}
       {message ? <div className="inline-success">{message}</div> : null}
 
       <div className="metric-grid">
         <Metric label="Agreements" value={data.agreements.length} />
         <Metric label="Statements" value={data.statements.length} />
-        <Metric label="Open reviews" value={openIssues} />
+        <Metric label="Open disputes" value={openDisputes} />
+        <Metric label="Open claims" value={openClaims} />
+        <Metric label="Pending reviews" value={pendingReviews} />
         {canUseOrderImport && <Metric label="Imports" value={data.imports.length} />}
       </div>
 
@@ -135,7 +140,7 @@ export function ServiceAccountabilityPage() {
         <div className="section-header">
           <h2>Agreement Terms</h2>
           <form onSubmit={handleRequestReview}>
-            <button className="primary-button" type="submit" disabled={!activeAgreement || submitting}>
+            <button className="primary-button warning-button" type="submit" disabled={!activeAgreement || submitting}>
               Request review
             </button>
           </form>
@@ -148,8 +153,11 @@ export function ServiceAccountabilityPage() {
                   <th>Agreement</th>
                   <th>Provider</th>
                   <th>Status</th>
+                  <th>Version</th>
+                  <th>Scopes</th>
                   <th>Coordination fee</th>
                   <th>SLA</th>
+                  <th>Notes</th>
                 </tr>
               </thead>
               <tbody>
@@ -158,15 +166,28 @@ export function ServiceAccountabilityPage() {
                     <td>{agreement.title}</td>
                     <td>{agreement.warehouseProviderName}</td>
                     <td><StatusBadge value={agreement.status} /></td>
+                    <td><QuantityCell value={agreement.versionNumber} tone="neutral" /></td>
+                    <td>
+                      <div className="chip-list">
+                        {agreement.serviceScopes.map((scope) => <span className="data-chip" key={scope}>{scope.replaceAll('_', ' ')}</span>)}
+                      </div>
+                    </td>
                     <td>{agreement.rateCard.coordinationFeePercent}% + {money(agreement.rateCard.fixedCoordinationFee)}</td>
-                    <td>{agreement.slaPolicy.receivingSlaHours}h receiving</td>
+                    <td>
+                      <div className="chip-list">
+                        <span className="data-chip">{agreement.slaPolicy.receivingSlaHours}h receiving</span>
+                        <span className="data-chip">{agreement.slaPolicy.pickPackSlaHours}h pick/pack</span>
+                        <span className="data-chip">{agreement.slaPolicy.shipmentHandoffSlaHours}h handoff</span>
+                      </div>
+                    </td>
+                    <td className="note-cell">{agreement.serviceNotes ?? 'None'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <EmptyState label="No service agreements yet" />
+          <EmptyState label="No service agreements yet" guidance="Create or activate merchant-warehouse relationships, then record agreement terms so SLA and statement evidence have an operating basis." />
         )}
       </section>
 
@@ -178,12 +199,12 @@ export function ServiceAccountabilityPage() {
               <div className="status-count" key={`${status.sourceType}-${status.sourceId}`}>
                 <StatusBadge value={status.status} />
                 <span>{status.sourceType.replaceAll('_', ' ')}</span>
-                <strong>{status.elapsedHours}/{status.targetHours}h</strong>
+                <strong className={status.elapsedHours > status.targetHours ? 'data-chip warning-chip' : ''}>{status.elapsedHours}/{status.targetHours}h</strong>
               </div>
             ))}
           </div>
         ) : (
-          <EmptyState label="No SLA records for the selected agreement" />
+          <EmptyState label="No SLA records for the selected agreement" guidance="SLA records appear as service windows are measured against the selected agreement." />
         )}
       </section>
 
@@ -196,8 +217,10 @@ export function ServiceAccountabilityPage() {
                 <tr>
                   <th>Status</th>
                   <th>Period</th>
+                  <th>Due</th>
                   <th>Lines</th>
                   <th>Total</th>
+                  <th>Note</th>
                 </tr>
               </thead>
               <tbody>
@@ -205,26 +228,23 @@ export function ServiceAccountabilityPage() {
                   <tr key={statement.id}>
                     <td><StatusBadge value={statement.status} /></td>
                     <td>{statement.periodStart} to {statement.periodEnd}</td>
-                    <td>{statement.lines.length}</td>
+                    <td>{statement.dueDate}</td>
+                    <td><QuantityCell value={statement.lines.length} tone="ready" /></td>
                     <td>{money(statement.totalAmount)}</td>
+                    <td className="note-cell">{statement.note ?? 'None'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <EmptyState label="No service statements yet" />
+          <EmptyState label="No service statements yet" guidance="Statements appear after service periods close and fees, exceptions, or adjustments are ready for review." />
         )}
       </section>
 
       <section className="table-section">
         <h2>Disputes, Claims, Reviews</h2>
-        <div className="status-row">
-          {data.disputes.slice(0, 3).map((item) => <IssuePill key={item.id} label={item.reason} status={item.status} />)}
-          {data.claims.slice(0, 3).map((item) => <IssuePill key={item.id} label={item.claimType} status={item.status} />)}
-          {data.reviews.slice(0, 3).map((item) => <IssuePill key={item.id} label={item.reviewType} status={item.status} />)}
-        </div>
-        {!data.disputes.length && !data.claims.length && !data.reviews.length && <EmptyState label="No review records yet" />}
+        <IssueTable disputes={data.disputes} claims={data.claims} reviews={data.reviews} />
       </section>
 
       {canUseOrderImport && (
@@ -239,6 +259,7 @@ export function ServiceAccountabilityPage() {
                     <th>Status</th>
                     <th>Created</th>
                     <th>Rejected</th>
+                    <th>Summary</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -246,15 +267,16 @@ export function ServiceAccountabilityPage() {
                     <tr key={batch.id}>
                       <td>{batch.sourceLabel}</td>
                       <td><StatusBadge value={batch.status} /></td>
-                      <td>{batch.createdRows}</td>
-                      <td>{batch.rejectedRows}</td>
+                      <td><QuantityCell value={batch.createdRows} tone={batch.createdRows > 0 ? 'ready' : 'neutral'} /></td>
+                      <td><QuantityCell value={batch.rejectedRows} tone={batch.rejectedRows > 0 ? 'risk' : 'neutral'} /></td>
+                      <td className="note-cell">{batch.createdRows} created from {batch.totalRows} rows on {batch.createdAt}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <EmptyState label="No import batches yet" />
+            <EmptyState label="No import batches yet" guidance="Import batches appear when merchants submit order intake files for validation and audit review." />
           )}
         </section>
       )}
@@ -262,13 +284,88 @@ export function ServiceAccountabilityPage() {
   )
 }
 
-function IssuePill({ label, status }: { label: string, status: string }) {
+function GuidancePanel({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="status-count">
-      <StatusBadge value={status} />
-      <span>{label}</span>
+    <aside className="admin-guidance-panel" aria-label={title}>
+      <strong>{title}</strong>
+      <p>{children}</p>
+    </aside>
+  )
+}
+
+function IssueTable({
+  disputes,
+  claims,
+  reviews,
+}: {
+  disputes: ServiceDispute[]
+  claims: ServiceClaim[]
+  reviews: ServiceReview[]
+}) {
+  const rows = [
+    ...disputes.map((item) => ({
+      id: item.id,
+      type: 'Dispute',
+      status: item.status,
+      reason: item.reason,
+      evidence: item.evidenceNote,
+      outcome: item.outcomeNote,
+    })),
+    ...claims.map((item) => ({
+      id: item.id,
+      type: `Claim ${item.claimType}`,
+      status: item.status,
+      reason: item.reason,
+      evidence: item.evidenceNote,
+      outcome: item.outcomeNote,
+    })),
+    ...reviews.map((item) => ({
+      id: item.id,
+      type: `Review ${item.reviewType}`,
+      status: item.status,
+      reason: item.reason,
+      evidence: item.evidenceNote,
+      outcome: item.outcomeNote,
+    })),
+  ]
+  if (!rows.length) return <EmptyState label="No review records yet" guidance="Disputes, claims, and review requests will appear here when a service record needs partner attention." />
+
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Reason</th>
+            <th>Evidence</th>
+            <th>Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id}>
+              <td className="name-cell">{row.type.replaceAll('_', ' ')}</td>
+              <td><StatusBadge value={row.status} /></td>
+              <td className="note-cell">{row.reason}</td>
+              <td className="note-cell">{row.evidence ?? 'No evidence note'}</td>
+              <td className="note-cell">{row.outcome ?? 'Open'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
+}
+
+function QuantityCell({
+  value,
+  tone = 'neutral',
+}: {
+  value: number
+  tone?: 'neutral' | 'ready' | 'pending' | 'risk'
+}) {
+  return <span className={`quantity-cell quantity-${tone}`}>{value}</span>
 }
 
 function PageHeading({ title, subtitle }: { title: string, subtitle: string }) {

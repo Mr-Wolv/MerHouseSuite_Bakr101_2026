@@ -53,7 +53,7 @@ Or use the repository wrapper:
 .\scripts\quality\frontend-check.ps1 -IncludeE2E
 ```
 
-When testing against the Docker frontend on port 3000, set the shared browser target so every Playwright spec uses the same running app:
+`frontend-check.ps1 -IncludeE2E` defaults the shared browser and API targets to the Docker frontend on port 3000 so every Playwright spec uses the same running app. To test another running frontend, override the shared browser target:
 
 ```powershell
 $env:FRONTEND_TOUR_BASE_URL = "http://localhost:3000"
@@ -79,9 +79,11 @@ Run the API smoke suite after the stack is running:
 .\scripts\quality\api-smoke.ps1
 ```
 
+The API smoke suite includes the V14 assistant scenario. That scenario checks platform, merchant, and auditor assistant endpoints; assistant audit events; current-user history scoping; role and tenant refusals; read-only auditor behavior; and a smoke-scale concurrent assistant summary run.
+
 ## Script Families
 
-`scripts/api/` contains the lower-level smoke runner, assertion helpers, HTTP helpers, report helpers, and scenario files. The `scripts/quality/api-smoke.ps1` wrapper is the normal entry point.
+`scripts/api/` contains the lower-level smoke runner, assertion helpers, HTTP helpers, report helpers, and scenario files. The `scripts/quality/api-smoke.ps1` wrapper is the normal entry point. The smoke suite is broad functional proof, not production load certification; maximum practical load and stress limits are reserved for the Pre-V16 release gate.
 
 Frontend browser-flow scripts expect the local stack to be running and use the React app URL as the browser entry point. Playwright tests live under `frontend/tests/e2e/`, with configuration in `frontend/playwright.config.ts`. The Docker frontend target is controlled with `FRONTEND_TOUR_BASE_URL`.
 

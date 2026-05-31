@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { ApiError } from '../api/client'
 import type { AuthState } from '../auth/AuthContextValue'
 import { AuthContext } from '../auth/AuthContextValue'
-import { AdminAccessRequestsPage, AdminTenantsPage, AdminUsersPage } from './AdminPages'
+import { AdminAccessRequestsPage, AdminAuditPage, AdminRelationshipsPage, AdminTenantsPage, AdminUsersPage } from './AdminPages'
 
 const apiMock = vi.hoisted(() => ({
   tenants: vi.fn(),
@@ -12,6 +12,7 @@ const apiMock = vi.hoisted(() => ({
   orders: vi.fn(),
   adminSummary: vi.fn(),
   adminTenantHealth: vi.fn(),
+  adminAuditEvents: vi.fn(),
   createTenant: vi.fn(),
   suspendTenant: vi.fn(),
   activateTenant: vi.fn(),
@@ -24,6 +25,10 @@ const apiMock = vi.hoisted(() => ({
   approveAccessRequest: vi.fn(),
   rejectAccessRequest: vi.fn(),
   convertAccessRequest: vi.fn(),
+  merchantWarehouseRelationships: vi.fn(),
+  suspendMerchantWarehouseRelationship: vi.fn(),
+  reactivateMerchantWarehouseRelationship: vi.fn(),
+  endMerchantWarehouseRelationship: vi.fn(),
 }))
 
 vi.mock('../api/client', () => ({
@@ -95,6 +100,37 @@ const users = [
   },
 ]
 
+const relationships = [
+  {
+    id: 'relationship-1',
+    merchantId: 'merchant-tenant',
+    merchantName: 'Acme Merchant',
+    warehouseProviderId: 'warehouse-tenant',
+    warehouseProviderName: 'Cairo Warehouse',
+    status: 'ACTIVE',
+    serviceNotes: 'Daily receiving',
+    createdAt: '2026-05-17T00:00:00Z',
+    approvedAt: '2026-05-18T00:00:00Z',
+    suspendedAt: null,
+    endedAt: null,
+    statusReason: null,
+  },
+  {
+    id: 'relationship-2',
+    merchantId: 'merchant-tenant',
+    merchantName: 'Acme Merchant',
+    warehouseProviderId: 'warehouse-tenant',
+    warehouseProviderName: 'Delta Warehouse',
+    status: 'SUSPENDED',
+    serviceNotes: 'Overflow storage',
+    createdAt: '2026-05-19T00:00:00Z',
+    approvedAt: '2026-05-20T00:00:00Z',
+    suspendedAt: '2026-05-21T00:00:00Z',
+    endedAt: null,
+    statusReason: 'Capacity review',
+  },
+]
+
 function renderWithAuth(element: ReactNode, state: AuthState = authState) {
   return render(<AuthContext.Provider value={state}>{element}</AuthContext.Provider>)
 }
@@ -119,6 +155,7 @@ describe('Admin tenant management', () => {
     renderWithAuth(<AdminTenantsPage />)
 
     const createTenantForm = await screen.findByRole('form', { name: 'Create tenant form' })
+    expect(screen.getByLabelText('Tenant governance controls')).toHaveTextContent('audit review has operational context')
     await user.type(within(createTenantForm).getByLabelText('Name'), 'New Merchant')
     await user.click(within(createTenantForm).getByRole('button', { name: 'Create tenant' }))
 
@@ -150,6 +187,61 @@ describe('Admin tenant management', () => {
     await user.click(within(createTenantForm).getByRole('button', { name: 'Create tenant' }))
 
     expect(await screen.findByText('name must not be blank')).toBeInTheDocument()
+  })
+})
+
+describe('Admin relationship governance', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    apiMock.merchantWarehouseRelationships.mockResolvedValue(relationships)
+    apiMock.suspendMerchantWarehouseRelationship.mockResolvedValue({
+      ...relationships[0],
+      status: 'SUSPENDED',
+      suspendedAt: '2026-05-22T00:00:00Z',
+      statusReason: 'Relationship governance review',
+    })
+    apiMock.reactivateMerchantWarehouseRelationship.mockResolvedValue({
+      ...relationships[1],
+      status: 'ACTIVE',
+      statusReason: 'Relationship governance review',
+    })
+    apiMock.endMerchantWarehouseRelationship.mockResolvedValue({
+      ...relationships[0],
+      status: 'ENDED',
+      endedAt: '2026-05-22T00:00:00Z',
+      statusReason: 'Relationship governance review',
+    })
+  })
+
+  it('shows lifecycle guidance and lets admins suspend active relationships', async () => {
+    const user = userEvent.setup()
+    renderWithAuth(<AdminRelationshipsPage />)
+
+    const activeRow = await screen.findByRole('row', { name: /Cairo Warehouse/i })
+    expect(screen.getByLabelText('Relationship operating boundary')).toHaveTextContent('same lifecycle trail')
+    expect(within(activeRow).getByText('Created')).toBeInTheDocument()
+    expect(within(activeRow).getByText('Activated')).toBeInTheDocument()
+
+    await user.click(within(activeRow).getByRole('button', { name: 'Suspend' }))
+
+    expect(apiMock.suspendMerchantWarehouseRelationship).toHaveBeenCalledWith('admin-token', 'relationship-1', {
+      reason: 'Relationship governance review',
+    })
+    expect(await within(activeRow).findByText('SUSPENDED')).toBeInTheDocument()
+  })
+
+  it('keeps support admins in read-only relationship review mode', async () => {
+    renderWithAuth(<AdminRelationshipsPage />, {
+      ...authState,
+      user: {
+        ...authState.user!,
+        role: 'SUPPORT_ADMIN',
+      },
+    })
+
+    const activeRow = await screen.findByRole('row', { name: /Cairo Warehouse/i })
+    expect(within(activeRow).getByRole('button', { name: 'Owner/admin only' })).toBeDisabled()
+    expect(apiMock.suspendMerchantWarehouseRelationship).not.toHaveBeenCalled()
   })
 })
 
@@ -189,13 +281,17 @@ describe('Admin access request management', () => {
     renderWithAuth(<AdminAccessRequestsPage />)
 
     expect(await screen.findByText('owner@new.test')).toBeInTheDocument()
+    expect(screen.getByLabelText('Onboarding review controls')).toHaveTextContent('Conversion creates the tenant account')
+    expect(screen.getByLabelText('Access request status narration')).toHaveTextContent('approved requests still need conversion')
     await user.type(screen.getByLabelText('Note applied to the next review action'), 'Looks good')
     await user.click(screen.getByRole('button', { name: 'Approve' }))
 
     expect(apiMock.approveAccessRequest).toHaveBeenCalledWith('admin-token', 'request-1', {
       reviewNote: 'Looks good',
     })
-    expect(await screen.findByText('APPROVED')).toBeInTheDocument()
+    const row = await screen.findByRole('row', { name: /owner@new\.test/i })
+    expect(within(row).getByText('APPROVED')).toBeInTheDocument()
+    expect(within(row).getByText('Reviewed')).toBeInTheDocument()
   })
 
   it('shows access requests to support admins without decision controls', async () => {
@@ -272,6 +368,8 @@ describe('Admin user management', () => {
     renderWithAuth(<AdminUsersPage />)
 
     await screen.findByText('merchant@merhouse.local')
+    expect(screen.getByLabelText('Privileged account changes')).toHaveTextContent('Reset buttons stay locked')
+    expect(screen.getByLabelText('Account action safety summary')).toHaveTextContent('RESET LOCKED')
     const createUserForm = screen.getByRole('form', { name: 'Create user form' })
     await user.selectOptions(within(createUserForm).getByLabelText('Tenant'), 'warehouse-tenant')
     await user.selectOptions(within(createUserForm).getByLabelText('Role'), 'WAREHOUSE_OPERATOR')
@@ -343,6 +441,7 @@ describe('Admin user management', () => {
     const row = screen.getByRole('row', { name: /merchant@merhouse.local/i })
     expect(within(row).getByRole('button', { name: 'Disable' })).toBeDisabled()
     await user.type(screen.getByLabelText('Temporary reset password'), 'support-reset-password')
+    expect(screen.getByLabelText('Account action safety summary')).toHaveTextContent('RESET READY')
     await user.click(within(row).getByRole('button', { name: 'Reset' }))
 
     expect(apiMock.adminResetUserPassword).toHaveBeenCalledWith('admin-token', 'merchant-user', {
@@ -444,5 +543,80 @@ describe('Admin user management', () => {
     await user.type(screen.getByLabelText('Email search'), 'bulk-user-30')
     expect(screen.getByText('Showing 1-1 of 1 users')).toBeInTheDocument()
     expect(screen.getByText('bulk-user-30@merhouse.local')).toBeInTheDocument()
+  })
+})
+
+describe('Admin audit review', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    apiMock.adminAuditEvents.mockResolvedValue([
+      {
+        id: 'audit-summary',
+        actorUserId: 'merchant-user',
+        actorEmail: 'merchant@merhouse.local',
+        action: 'ASSISTANT_SUMMARY',
+        aggregateType: 'AssistantInteraction',
+        aggregateId: '11111111-1111-4111-8111-111111111111',
+        reason: 'Assistant generated scoped summary',
+        metadata: { scope: 'MERCHANT_OPERATIONS' },
+        createdAt: '2026-05-30T00:00:00Z',
+      },
+      {
+        id: 'audit-suggestion',
+        actorUserId: 'merchant-user',
+        actorEmail: 'merchant@merhouse.local',
+        action: 'ASSISTANT_SUGGESTION_ACCEPTED',
+        aggregateType: 'AssistantInteraction',
+        aggregateId: '22222222-2222-4222-8222-222222222222',
+        reason: 'Reviewed by operator',
+        metadata: { actionStatus: 'ACCEPTED' },
+        createdAt: '2026-05-30T00:01:00Z',
+      },
+      {
+        id: 'tenant-created',
+        actorUserId: 'admin-id',
+        actorEmail: 'owner@example.test',
+        action: 'TENANT_CREATED',
+        aggregateType: 'Tenant',
+        aggregateId: '33333333-3333-4333-8333-333333333333',
+        reason: 'Tenant created',
+        metadata: {},
+        createdAt: '2026-05-30T00:02:00Z',
+      },
+    ])
+  })
+
+  it('summarizes and filters assistant audit events for platform review', async () => {
+    const user = userEvent.setup()
+    renderWithAuth(<AdminAuditPage />)
+
+    expect(await screen.findByText('ASSISTANT SUMMARY')).toBeInTheDocument()
+    expect(screen.getByLabelText('Audit review lens')).toHaveTextContent('isolate V14 summaries')
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 3 audit events')
+    expect(screen.getByLabelText('Scrollable admin audit table')).toHaveAttribute('tabIndex', '0')
+    expect(screen.getByText('TENANT CREATED')).toBeInTheDocument()
+    expect(screen.getByText('Assistant summaries')).toBeInTheDocument()
+    expect(screen.getByText('Suggestions accepted')).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Audit filter'), 'ASSISTANT')
+
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 2 assistant audit events')
+    expect(screen.getByText('ASSISTANT SUGGESTION ACCEPTED')).toBeInTheDocument()
+    expect(screen.queryByText('TENANT CREATED')).not.toBeInTheDocument()
+    expect(apiMock.adminAuditEvents).toHaveBeenCalledWith('admin-token')
+  })
+
+  it('lets auditors review assistant audit records through the same read-only page', async () => {
+    renderWithAuth(<AdminAuditPage />, {
+      ...authState,
+      user: {
+        ...authState.user!,
+        role: 'AUDITOR',
+      },
+    })
+
+    expect(await screen.findByText('ASSISTANT SUMMARY')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Accept suggestion' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reject suggestion' })).not.toBeInTheDocument()
   })
 })

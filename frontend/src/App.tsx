@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { AppLayout } from './components/AppLayout'
 import { RequireAuth } from './components/RequireAuth'
+import { ThemeProvider } from './theme/ThemeContext'
 import {
   AdminAccessRequestsPage,
   AdminAuditPage,
@@ -12,6 +13,7 @@ import {
   AdminUsersPage,
 } from './pages/AdminPages'
 import { ForgotPasswordPage, RequestAccessPage, ResetPasswordPage } from './pages/AuthRecoveryPages'
+import { AssistantPage } from './pages/AssistantPage'
 import { HomeRedirect } from './pages/HomeRedirect'
 import { LoginPage } from './pages/LoginPage'
 import { MerchantInventoryPage, MerchantOrdersPage, MerchantOverviewPage } from './pages/MerchantPages'
@@ -77,6 +79,7 @@ const router = createBrowserRouter([
             element: <RequireAuth roles={['OWNER', 'ADMIN', 'SUPPORT_ADMIN', 'AUDITOR', 'MERCHANT', 'WAREHOUSE_OPERATOR']} />,
             children: [
               { path: '/service-accountability', element: <ServiceAccountabilityPage /> },
+              { path: '/assistant', element: <AssistantPage /> },
               { path: '/notifications', element: <NotificationCenterPage /> },
               { path: '/orders/:orderId', element: <OrderDetailPage /> },
               { path: '/inbound-stock-requests/:inboundStockRequestId', element: <InboundStockRequestDetailPage /> },
@@ -99,9 +102,11 @@ const router = createBrowserRouter([
 
 function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

@@ -52,6 +52,7 @@ Write-Host "Running MerHouse API smoke test against $BaseUrl"
 . (Join-Path $apiRoot "scenarios\13-outbox-processing.ps1") -Context $context
 . (Join-Path $apiRoot "scenarios\14-auth-recovery-access.ps1") -Context $context
 . (Join-Path $apiRoot "scenarios\15-api-boundary-assurance.ps1") -Context $context
+. (Join-Path $apiRoot "scenarios\16-assistant-operations.ps1") -Context $context
 
 $report = New-SmokeReport -Context $context
 $report | ConvertTo-Json -Depth 12 | Set-Content -Path $OutputPath -Encoding UTF8

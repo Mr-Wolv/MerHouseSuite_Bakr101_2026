@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import type {
@@ -247,7 +248,16 @@ export function WarehousePage() {
     setActionError('')
     try {
       const updated = await api.updateAllocationWorkload(token, allocation.id, patch)
-      setAllocations((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      setAllocations((current) => current.map((item) => (
+        item.id === updated.id
+          ? {
+              ...item,
+              priority: updated.priority,
+              scanCode: updated.scanCode,
+              pickSheetPrintedAt: updated.pickSheetPrintedAt,
+            }
+          : item
+      )))
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to update workload.')
     }
@@ -318,6 +328,9 @@ export function WarehousePage() {
         <h1>Warehouse Console</h1>
         <p>Fulfillment queue, shipment actions, and inventory visibility for your warehouse tenant.</p>
       </div>
+      <GuidancePanel title="Warehouse execution focus">
+        Prioritize pick, pack, ship, inbound receiving, exceptions, and stock adjustments for the selected warehouse.
+      </GuidancePanel>
 
       {warehouses.length ? (
         <>
@@ -401,7 +414,7 @@ export function WarehousePage() {
           )}
         </>
       ) : (
-        <EmptyState label="No warehouses available for this account" />
+        <EmptyState label="No warehouses available for this account" guidance="Ask a platform admin to connect this operator to a warehouse provider before receiving or fulfillment work can begin." />
       )}
     </div>
   )
@@ -413,7 +426,7 @@ function RecentShipmentsPanel({
   rows: Array<{ allocation: FulfillmentAllocation; shipment: NonNullable<FulfillmentAllocation['shipment']> }>
 }) {
   if (!rows.length) {
-    return <EmptyState label="No recent shipments for this warehouse" />
+    return <EmptyState label="No recent shipments for this warehouse" guidance="Shipment records appear after allocations are packed and handed to a carrier." />
   }
 
   return (
@@ -447,7 +460,7 @@ function RecentShipmentsPanel({
                     </span>
                   )) : shipment.packageCount ?? 'Unknown'}
                 </td>
-                <td>{shipment.packingNote ?? 'No packing note'}</td>
+                <td className="note-cell">{shipment.packingNote ?? 'No packing note'}</td>
               </tr>
             ))}
           </tbody>
@@ -459,7 +472,7 @@ function RecentShipmentsPanel({
 
 function WarehouseExceptionsTable({ exceptions }: { exceptions: FulfillmentException[] }) {
   if (!exceptions.length) {
-    return <EmptyState label="No fulfillment exceptions reported by this warehouse" />
+    return <EmptyState label="No fulfillment exceptions reported by this warehouse" guidance="Short picks, damage reports, and shipment issues will appear here when operators raise exceptions." />
   }
 
   return (
@@ -481,9 +494,9 @@ function WarehouseExceptionsTable({ exceptions }: { exceptions: FulfillmentExcep
               <tr key={exception.id}>
                 <td>{exception.reasonCode}</td>
                 <td>{exception.merchantName}</td>
-                <td>{exception.description}</td>
+                <td className="note-cell">{exception.description}</td>
                 <td><StatusBadge value={exception.status} /></td>
-                <td>{exception.resolutionNote ?? 'Waiting for merchant'}</td>
+                <td className="note-cell">{exception.resolutionNote ?? 'Waiting for merchant'}</td>
               </tr>
             ))}
           </tbody>
@@ -522,7 +535,7 @@ function AllocationsTable({
   onReportException: (allocation: FulfillmentAllocation, reasonCode: string) => void
 }) {
   if (!allocations.length) {
-    return <EmptyState label="No fulfillment allocations for this warehouse" />
+    return <EmptyState label="No fulfillment allocations for this warehouse" guidance="Allocations appear when merchant orders reserve stock in this warehouse. Start with active relationships, received inventory, and merchant demand." />
   }
 
   return (
@@ -537,12 +550,13 @@ function AllocationsTable({
           const canPack = allocation.status === 'PICKING'
           const canShip = allocation.status === 'PACKED'
           const canResolveShipment = allocation.status === 'SHIPPED' && allocation.shipment?.status === 'IN_TRANSIT'
+          const needsShipmentEvidence = canShip || canResolveShipment
           const draft = shipmentDraft(allocation)
           const fieldPrefix = `warehouse-allocation-${allocation.id}`
           return (
             <article
               aria-label={`Allocation ${shortId(allocation.id)} ${allocation.merchantName} ${allocation.status} ${allocation.customerAddress} ${allocation.shipment?.trackingNumber ?? ''} ${allocation.shipment?.status ?? ''}`}
-              className="queue-card"
+              className={needsShipmentEvidence ? 'queue-card risk-card' : 'queue-card'}
               key={allocation.id}
             >
               <div className="queue-card-header">
@@ -558,6 +572,12 @@ function AllocationsTable({
                     </Link>
                   ) : <span className="data-chip">Unlinked</span>}
                   <span className="data-chip">Priority {allocation.priority}</span>
+                  <span className={allocation.pickSheetPrintedAt ? 'data-chip' : 'data-chip warning-chip'}>
+                    {allocation.pickSheetPrintedAt ? 'Pick sheet printed' : 'Pick sheet needed'}
+                  </span>
+                  <span className={allocation.scanCode ? 'data-chip' : 'data-chip warning-chip'}>
+                    {allocation.scanCode ?? 'Scan pending'}
+                  </span>
                 </div>
               </div>
 
@@ -719,18 +739,18 @@ function AllocationsTable({
                     <button className="table-button" type="button" onClick={() => onDeliver(allocation)}>
                       Deliver
                     </button>
-                    <button className="table-button" type="button" onClick={() => onFail(allocation)}>
+                    <button className="table-button destructive-button" type="button" onClick={() => onFail(allocation)}>
                       Mark failed
                     </button>
-                    <button className="table-button" type="button" onClick={() => onReturn(allocation)}>
+                    <button className="table-button warning-button" type="button" onClick={() => onReturn(allocation)}>
                       Mark returned
                     </button>
                   </>
                 ) : null}
-                <button className="table-button" type="button" onClick={() => onReportException(allocation, 'SHORT_PICK')}>
+                <button className="table-button warning-button" type="button" onClick={() => onReportException(allocation, 'SHORT_PICK')}>
                   Report short pick
                 </button>
-                <button className="table-button" type="button" onClick={() => onReportException(allocation, 'DAMAGED_ITEM')}>
+                <button className="table-button destructive-button" type="button" onClick={() => onReportException(allocation, 'DAMAGED_ITEM')}>
                   Report damage
                 </button>
               </div>
@@ -750,7 +770,7 @@ function RelationshipsTable({
   onActivate: (relationship: MerchantWarehouseRelationship) => void
 }) {
   if (!relationships.length) {
-    return <EmptyState label="No merchant service relationships yet" />
+    return <EmptyState label="No merchant service relationships yet" guidance="Service relationships connect merchants to warehouse work. Platform or merchant users can request and activate the relationship before operations begin." />
   }
 
   return (
@@ -777,7 +797,7 @@ function RelationshipsTable({
                     </Link>
                   </td>
                   <td><StatusBadge value={relationship.status} /></td>
-                  <td>{relationship.serviceNotes ?? 'None'}</td>
+                  <td className="note-cell">{relationship.serviceNotes ?? 'None'}</td>
                   <td>
                     <button className="table-button" type="button" disabled={!canActivate} onClick={() => onActivate(relationship)}>
                       {canActivate ? 'Activate' : relationship.status === 'ACTIVE' ? 'Active' : 'Locked'}
@@ -807,7 +827,7 @@ function InboundRequestsTable({
   onReject: (request: InboundStockRequest) => void
 }) {
   if (!requests.length) {
-    return <EmptyState label="No inbound stock requests for this warehouse" />
+    return <EmptyState label="No inbound stock requests for this warehouse" guidance="Inbound requests appear when merchants send stock to this warehouse for receiving." />
   }
 
   return (
@@ -838,8 +858,8 @@ function InboundRequestsTable({
                     </Link>
                   </td>
                   <td className="item-cell">{request.sku} - {request.itemName}</td>
-                  <td>{request.requestedQuantity}</td>
-                  <td>{request.receivedQuantity}</td>
+                  <td><QuantityCell value={request.requestedQuantity} tone="pending" /></td>
+                  <td><QuantityCell value={request.receivedQuantity} tone={request.receivedQuantity >= request.requestedQuantity ? 'ready' : 'pending'} /></td>
                   <td><StatusBadge value={request.status} /></td>
                   <td>
                     <div className="table-actions">
@@ -858,7 +878,7 @@ function InboundRequestsTable({
                           <button className="table-button" type="button" onClick={() => onReceive(request)}>
                             Receive all
                           </button>
-                          <button className="table-button" type="button" onClick={() => onReject(request)}>
+                          <button className="table-button destructive-button" type="button" onClick={() => onReject(request)}>
                             Reject inbound
                           </button>
                         </>
@@ -891,7 +911,7 @@ function InventoryTable({
   onAdjust: (row: WarehouseInventory) => void
 }) {
   if (!inventory.length) {
-    return <EmptyState label="No stock rows for this warehouse" />
+    return <EmptyState label="No stock rows for this warehouse" guidance="Stock rows appear after inbound receiving posts available, damaged, or reserved inventory." />
   }
 
   return (
@@ -917,9 +937,9 @@ function InventoryTable({
                 <tr key={`${row.warehouseId}-${row.inventoryItemId}`}>
                   <td className="nowrap-cell">{row.sku}</td>
                   <td className="item-cell">{row.itemName}</td>
-                  <td>{row.quantity}</td>
-                  <td>{row.reservedQuantity}</td>
-                  <td>{row.availableQuantity}</td>
+                  <td><QuantityCell value={row.quantity} tone={row.quantity > 0 ? 'ready' : 'risk'} /></td>
+                  <td><QuantityCell value={row.reservedQuantity} tone={row.reservedQuantity > 0 ? 'pending' : 'neutral'} /></td>
+                  <td><QuantityCell value={row.availableQuantity} tone={row.availableQuantity > 0 ? 'ready' : 'risk'} /></td>
                   <td>
                     <div className="adjustment-form" aria-label={`Stock adjustment for ${row.sku}`}>
                       <label htmlFor={`${fieldPrefix}-delta`}>
@@ -951,7 +971,7 @@ function InventoryTable({
                           onChange={(event) => onAdjustmentDraftChange(row, { reasonNote: event.target.value })}
                         />
                       </label>
-                      <button className="table-button" type="button" onClick={() => onAdjust(row)}>
+                      <button className="table-button warning-button" type="button" onClick={() => onAdjust(row)}>
                         Apply adjustment
                       </button>
                     </div>
@@ -964,6 +984,25 @@ function InventoryTable({
       </div>
     </section>
   )
+}
+
+function GuidancePanel({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <aside className="admin-guidance-panel" aria-label={title}>
+      <strong>{title}</strong>
+      <p>{children}</p>
+    </aside>
+  )
+}
+
+function QuantityCell({
+  value,
+  tone = 'neutral',
+}: {
+  value: number
+  tone?: 'neutral' | 'ready' | 'pending' | 'risk'
+}) {
+  return <span className={`quantity-cell quantity-${tone}`}>{value}</span>
 }
 
 function shortId(id: string) {

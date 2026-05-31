@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { AuthState } from '../auth/AuthContextValue'
 import { AuthContext } from '../auth/AuthContextValue'
@@ -99,6 +99,10 @@ describe('AdminOutboxPage', () => {
     renderPage()
 
     expect(await screen.findByText('Recent Events')).toBeInTheDocument()
+    expect(screen.getByText('Diagnostic actions')).toBeInTheDocument()
+    expect(screen.getByText(/Dead-letter actions keep the reason below/)).toBeInTheDocument()
+    expect(await screen.findByText(/Outbox data refreshed/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Outbox severity hierarchy')).toHaveTextContent('Outbox healthy')
     expect(screen.getByText('Carrier Dispatches')).toBeInTheDocument()
     expect(screen.getAllByText('ShipmentCreated')).toHaveLength(2)
     expect(screen.getByText('Smoke Carrier')).toBeInTheDocument()
@@ -130,5 +134,37 @@ describe('AdminOutboxPage', () => {
 
     expect(await screen.findByRole('button', { name: 'Owner/admin only' })).toBeDisabled()
     expect(apiMock.processOutbox).not.toHaveBeenCalled()
+  })
+
+  it('surfaces failed event severity, retry schedule, and failure detail', async () => {
+    apiMock.outboxSummary.mockResolvedValue({
+      pending: 2,
+      processed: 12,
+      failed: 1,
+      retryableFailed: 1,
+    })
+    apiMock.outboxEvents.mockResolvedValue([
+      {
+        id: 'failed-event-id',
+        eventType: 'ShipmentFailed',
+        aggregateType: 'Shipment',
+        aggregateId: 'shipment-id-654321',
+        status: 'FAILED',
+        attempts: 3,
+        createdAt: '2026-05-17T00:00:00Z',
+        nextAttemptAt: '2026-05-17T01:00:00Z',
+        processedAt: null,
+        lastError: 'Carrier endpoint unavailable',
+      },
+    ])
+
+    renderPage()
+
+    expect(await screen.findByLabelText('Outbox severity hierarchy')).toHaveTextContent('Attention required')
+    expect(screen.getByText('Carrier endpoint unavailable')).toHaveClass('note-cell')
+    expect(screen.getByText('3')).toHaveClass('quantity-pending')
+    const row = screen.getByRole('row', { name: /ShipmentFailed/i })
+    expect(within(row).getByRole('button', { name: 'Retry' })).toBeEnabled()
+    expect(within(row).getByRole('button', { name: 'Dead-letter' })).toBeEnabled()
   })
 })

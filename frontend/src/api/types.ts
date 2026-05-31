@@ -75,6 +75,38 @@ export type NotificationSummary = {
   latestDeliveryAt: string | null
 }
 
+export type AssistantScope = 'PLATFORM_OVERVIEW' | 'MERCHANT_OPERATIONS' | 'WAREHOUSE_OPERATIONS'
+export type AssistantInteractionType = 'SUMMARY' | 'SUGGESTION' | 'REFUSAL'
+export type AssistantActionStatus = 'NOT_APPLICABLE' | 'PENDING' | 'ACCEPTED' | 'REJECTED'
+
+export type AssistantInteraction = {
+  id: string
+  actorUserId: string
+  actorTenantId: string
+  scope: AssistantScope
+  targetTenantId: string | null
+  responseType: AssistantInteractionType
+  actionStatus: AssistantActionStatus
+  requestText: string
+  responseText: string
+  prototypeLocal: boolean
+  decidedByUserId: string | null
+  decisionNote: string | null
+  decidedAt: string | null
+  metadata: Record<string, unknown>
+  createdAt: string
+}
+
+export type AssistantInteractionPayload = {
+  scope?: AssistantScope | null
+  targetTenantId?: string | null
+  prompt: string
+}
+
+export type AssistantDecisionPayload = {
+  reason: string
+}
+
 export type InventoryItem = {
   id: string
   merchantId: string

@@ -263,10 +263,15 @@ describe('WarehousePage', () => {
     renderWithAuth(<WarehousePage />)
 
     expect(await screen.findByText('Warehouse Console')).toBeInTheDocument()
+    expect(screen.getByText('Warehouse execution focus')).toBeInTheDocument()
     expect(screen.getByText('Available units')).toBeInTheDocument()
     const queueCard = screen.getByLabelText(/Allocation allocati Adidas Merchant PENDING/i)
     expect(queueCard).toBeInTheDocument()
+    expect(within(queueCard).getByText('Pick sheet needed')).toBeInTheDocument()
+    expect(within(queueCard).getByText('Scan pending')).toBeInTheDocument()
     expect(await screen.findByText('Merchant Item')).toBeInTheDocument()
+    expect(screen.getAllByText('10')[0]).toHaveClass('quantity-cell', 'quantity-ready')
+    expect(screen.getAllByText('5')[0]).toHaveClass('quantity-cell', 'quantity-pending')
   })
 
   it('advances a pending allocation to picking', async () => {
@@ -331,6 +336,7 @@ describe('WarehousePage', () => {
       metadata: { source: 'warehouse-console', evidence: 'operator-entered' },
     })
     expect(await within(card).findByText(/IN_TRANSIT/)).toBeInTheDocument()
+    expect(card).toHaveClass('risk-card')
 
     await user.click(within(card).getByRole('button', { name: 'Deliver' }))
     expect(apiMock.markShipmentDelivered).toHaveBeenCalledWith('operator-token', 'shipment-1')

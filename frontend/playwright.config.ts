@@ -6,6 +6,7 @@ const frontendBaseUrl = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://127.0.0.1:
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
+  workers: 1,
   reporter: [['list']],
   use: {
     baseURL: frontendBaseUrl,

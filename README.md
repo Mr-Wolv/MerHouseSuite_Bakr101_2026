@@ -13,6 +13,7 @@ It models the operating relationship between a brand or merchant and a warehouse
 - Warehouse workflows for receiving, pick/pack/ship progress, shipment package evidence, exception reporting, and warehouse inventory.
 - Platform workflows for tenant management, user management, onboarding requests, role changes, account status, audit events, and background work visibility.
 - Service accountability for agreements, service statements, SLA status, disputes, claims, and review requests.
+- Prototype-local assistant for scoped operational summaries, review-only suggestions, refusals, and auditable interaction history.
 - Prototype-local notifications for account lifecycle events, per-user preferences, delivery history, and app-shell alert counts without external provider delivery.
 - REST API with validation, authorization, tenant-aware data access, Flyway migrations, PostgreSQL persistence, and OpenAPI metadata.
 
@@ -123,5 +124,6 @@ The backend reads configuration from environment variables. `.env.example` conta
 - [Scripts guide](docs/development/scripts.md)
 - [Knowledge system](docs/development/knowledge-system.md)
 - [Architecture notes](docs/architecture/merchant-warehouse-operating-loop.md)
+- [Agentic operations assistance](docs/architecture/agentic-operations-assistance.md)
 - [Notifications](docs/architecture/notifications.md)
 - [System diagrams](docs/architecture/system-diagrams.html)

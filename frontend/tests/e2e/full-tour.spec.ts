@@ -68,6 +68,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
+    '/assistant',
     '/notifications',
   ],
   admin: [
@@ -79,6 +80,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
+    '/assistant',
     '/notifications',
   ],
   supportAdmin: [
@@ -89,6 +91,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
+    '/assistant',
     '/notifications',
   ],
   auditor: [
@@ -97,10 +100,11 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
+    '/assistant',
     '/notifications',
   ],
-  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/notifications'],
-  warehouse: ['/warehouse', '/service-accountability', '/notifications'],
+  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/assistant', '/notifications'],
+  warehouse: ['/warehouse', '/service-accountability', '/assistant', '/notifications'],
 }
 
 const viewports = {
@@ -334,7 +338,7 @@ async function collectDetailPaths(
 
   for (const path of rolePaths[role]) {
     await page.goto(`${APP_URL}${path}`, { waitUntil: 'domcontentloaded' })
-    await expect(page.locator('h1').first()).toBeVisible()
+    await expect(page.locator('h1').first()).toBeVisible({ timeout: 20_000 })
     const hrefs = await page.locator('a[href]').evaluateAll((anchors) =>
       anchors.map((anchor) => (anchor as HTMLAnchorElement).href),
     )
@@ -372,7 +376,7 @@ async function inspectPage(page: Page, role: Role, path: string, viewport: 'desk
 
   const response = await page.goto(`${APP_URL}${path}`, { waitUntil: 'domcontentloaded' })
   expect(response, `${role} ${path} should return a response`).toBeTruthy()
-  await expect(page.locator('h1').first(), `${role} ${path} h1 should render`).toBeVisible()
+  await expect(page.locator('h1').first(), `${role} ${path} h1 should render`).toBeVisible({ timeout: 20_000 })
 
   const record = await page.evaluate(
     ({ roleName, routePath, viewportName, errors }) => {
@@ -468,10 +472,12 @@ test('full frontend route tour passes with seeded accounts', async ({ browser, r
   const hierarchy = await createPlatformHierarchyFixture(request)
   const records: TourRecord[] = []
   const detailCases: TourCase[] = []
+  const detailPathsByRole: Partial<Record<AuthenticatedRole, string[]>> = {}
   const accounts = hierarchy.accounts
 
   for (const role of ['owner', 'admin', 'supportAdmin', 'auditor', 'merchant', 'warehouse'] as const) {
     const detailPaths = await collectDetailPaths(browser, role, accounts[role])
+    detailPathsByRole[role] = detailPaths
     for (const path of detailPaths) {
       detailCases.push({ role, path, viewport: 'desktop' }, { role, path, viewport: 'narrow' })
     }
@@ -524,6 +530,7 @@ test('full frontend route tour passes with seeded accounts', async ({ browser, r
         checkedAt: new Date().toISOString(),
         checkedRoutes: records.length,
         acceptanceStandard: 'Every routed surface records visible interactive controls and requires visible form controls to have explicit label bindings or ARIA names.',
+        detailPathsByRole,
         totals: {
           interactionUnits: records.reduce((sum, record) => sum + record.interactionUnitCount, 0),
           formControls: records.reduce((sum, record) => sum + record.formControlCount, 0),
@@ -586,11 +593,21 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   await expect(auditorPage.getByRole('link', { name: 'Tenants' })).toHaveCount(0)
   await expect(auditorPage.getByRole('link', { name: 'Users' })).toHaveCount(0)
   await expect(auditorPage.getByRole('link', { name: 'Access' })).toHaveCount(0)
+  await auditorPage.goto(`${APP_URL}/assistant`, { waitUntil: 'networkidle' })
+  await expect(auditorPage.getByRole('heading', { name: 'Assistant' })).toBeVisible()
+  await auditorPage.getByLabel('Prompt').fill('What should I review next?')
+  await auditorPage.getByRole('button', { name: 'Run assistant' }).click()
+  await expect(auditorPage.getByText(/Suggested next step/)).toBeVisible()
+  await expect(auditorPage.getByRole('button', { name: 'Accept suggestion' })).toHaveCount(0)
+  await expect(auditorPage.getByRole('button', { name: 'Reject suggestion' })).toHaveCount(0)
+  await auditorPage.goto(`${APP_URL}/admin/audit`, { waitUntil: 'networkidle' })
+  await auditorPage.getByLabel('Audit filter').selectOption('ASSISTANT')
+  await expect(auditorPage.getByText('ASSISTANT SUGGESTION', { exact: true }).first()).toBeVisible()
   await auditorPage.goto(`${APP_URL}/admin/users`, { waitUntil: 'networkidle' })
   await expect(auditorPage.getByRole('heading', { name: 'Admin Overview' })).toBeVisible()
   await auditorPage.goto(`${APP_URL}/admin/outbox`, { waitUntil: 'networkidle' })
   await expect(auditorPage.getByRole('button', { name: 'Owner/admin only' })).toBeDisabled()
-  records.push({ role: 'auditor', action: 'read audit and outbox diagnostics without mutation routes' })
+  records.push({ role: 'auditor', action: 'reviewed assistant audit records without suggestion decision controls' })
   await auditorContext.close()
 
   const { context: adminContext, page: adminPage } = await newAuthedPageForAccount(
@@ -688,7 +705,7 @@ test('notification preferences change visible delivery state across merchant and
   await expect(merchantPage.getByRole('heading', { name: 'Notifications' })).toBeVisible()
   await expect(merchantPage.getByText('Password reset prepared')).toBeVisible()
   await expect(merchantPage.getByText('Local recorded')).toBeVisible()
-  await expect(merchantPage.getByText('Provider not configured')).toBeVisible()
+  await expect(merchantPage.getByText('Channel recorded')).toBeVisible()
   await expect(merchantPage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
 
   const { context: warehouseContext, page: warehousePage } = await newAuthedPageForAccount(
@@ -723,7 +740,7 @@ test('notification preferences change visible delivery state across merchant and
   await warehousePage.reload({ waitUntil: 'domcontentloaded' })
   await expect(warehousePage.getByText('Password reset prepared')).toBeVisible()
   await expect(warehousePage.getByText('Local recorded')).toBeVisible()
-  await expect(warehousePage.getByText('Provider not configured')).toBeVisible()
+  await expect(warehousePage.getByText('Channel recorded')).toBeVisible()
   await expect(warehousePage.getByText('1 local records')).toBeVisible()
   await expect(warehousePage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
 

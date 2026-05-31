@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
+import { appIcons } from '../components/AppIcons'
+import { PublicAuthPanel } from '../components/PublicAuthPanel'
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -28,20 +30,39 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <PublicAuthPanel title="Password Recovery" subtitle="Request a reset link for an enabled platform account.">
+    <PublicAuthPanel
+      title="Password Recovery"
+      subtitle="Request a reset for an enabled local MerHouse account."
+      icon={appIcons.password}
+      cues={[
+        { label: 'Generic response', detail: 'The page does not reveal whether an email exists.' },
+        { label: 'Delivery history', detail: 'Prepared reset events are recorded for account review.' },
+      ]}
+      footer={<Link className="text-link" to="/login">Back to sign in</Link>}
+    >
       <form className="form-stack" onSubmit={handleSubmit}>
         <label htmlFor="forgot-password-email">
           <span>Email</span>
-          <input id="forgot-password-email" value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
+          <input
+            id="forgot-password-email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            autoComplete="email"
+            aria-describedby="forgot-password-help"
+            required
+          />
         </label>
-        {error ? <div className="inline-error">{error}</div> : null}
+        <p id="forgot-password-help" className="field-help">Reset links remain hidden unless the local API intentionally returns a reset path.</p>
+        {error ? <div className="inline-error" role="alert">{error}</div> : null}
         {message ? (
-          <div className="inline-success">
+          <div className="inline-success" role="status">
             <span>{message}</span>
             {resetPath ? <Link to={resetPath}>Open reset link</Link> : null}
           </div>
         ) : null}
         <button className="primary-button" type="submit" disabled={submitting}>
+          <appIcons.password size={16} aria-hidden="true" />
           {submitting ? 'Requesting' : 'Request reset'}
         </button>
       </form>
@@ -75,12 +96,29 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <PublicAuthPanel title="Set New Password" subtitle="Use the reset token from the recovery request.">
+    <PublicAuthPanel
+      title="Set New Password"
+      subtitle="Confirm a local reset token and choose a replacement password."
+      icon={appIcons.recovery}
+      cues={[
+        { label: 'Token boundary', detail: 'Expired, used, missing, disabled, and invalid tokens receive the same result.' },
+        { label: 'After reset', detail: 'Return to sign in and use the updated password.' },
+      ]}
+      footer={<Link className="text-link" to="/login">Back to sign in</Link>}
+    >
       <form className="form-stack" onSubmit={handleSubmit}>
         <label htmlFor="reset-password-token">
           <span>Reset token</span>
-          <input id="reset-password-token" value={token} onChange={(event) => setToken(event.target.value)} required />
+          <input
+            id="reset-password-token"
+            value={token}
+            onChange={(event) => setToken(event.target.value)}
+            autoComplete="one-time-code"
+            aria-describedby="reset-token-help"
+            required
+          />
         </label>
+        <p id="reset-token-help" className="field-help">Tokens are single-use local credentials; keep them out of screenshots and reports.</p>
         <label htmlFor="reset-password-new-password">
           <span>New password</span>
           <input
@@ -89,12 +127,16 @@ export function ResetPasswordPage() {
             onChange={(event) => setNewPassword(event.target.value)}
             minLength={8}
             type="password"
+            autoComplete="new-password"
+            aria-describedby="reset-password-help"
             required
           />
         </label>
-        {error ? <div className="inline-error">{error}</div> : null}
-        {message ? <div className="inline-success">{message} <Link to="/login">Return to sign in</Link></div> : null}
+        <p id="reset-password-help" className="field-help">Use at least 8 characters for local development proof.</p>
+        {error ? <div className="inline-error" role="alert">{error}</div> : null}
+        {message ? <div className="inline-success" role="status">{message} <Link to="/login">Return to sign in</Link></div> : null}
         <button className="primary-button" type="submit" disabled={submitting}>
+          <appIcons.recovery size={16} aria-hidden="true" />
           {submitting ? 'Resetting' : 'Reset password'}
         </button>
       </form>
@@ -131,15 +173,24 @@ export function RequestAccessPage() {
   }
 
   return (
-    <PublicAuthPanel title="Request Access" subtitle="Ask an admin to review a merchant or warehouse account request.">
+    <PublicAuthPanel
+      title="Request Access"
+      subtitle="Submit a local merchant or warehouse onboarding request."
+      icon={appIcons.onboarding}
+      cues={[
+        { label: 'Review queue', detail: 'Platform users review requests before any tenant or user is created.' },
+        { label: 'Account readiness', detail: 'Approved requests create a reviewable account-ready record.' },
+      ]}
+      footer={<Link className="text-link" to="/login">Back to sign in</Link>}
+    >
       <form className="form-stack" onSubmit={handleSubmit}>
         <label htmlFor="request-access-organization">
           <span>Organization</span>
-          <input id="request-access-organization" value={organizationName} onChange={(event) => setOrganizationName(event.target.value)} required />
+          <input id="request-access-organization" value={organizationName} onChange={(event) => setOrganizationName(event.target.value)} autoComplete="organization" required />
         </label>
         <label htmlFor="request-access-email">
           <span>Email</span>
-          <input id="request-access-email" value={requesterEmail} onChange={(event) => setRequesterEmail(event.target.value)} type="email" required />
+          <input id="request-access-email" value={requesterEmail} onChange={(event) => setRequesterEmail(event.target.value)} type="email" autoComplete="email" required />
         </label>
         <label htmlFor="request-access-role">
           <span>Role</span>
@@ -150,30 +201,22 @@ export function RequestAccessPage() {
         </label>
         <label htmlFor="request-access-notes">
           <span>Notes</span>
-          <textarea id="request-access-notes" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} />
+          <textarea
+            id="request-access-notes"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            maxLength={1000}
+            aria-describedby="request-access-notes-help"
+          />
         </label>
-        {error ? <div className="inline-error">{error}</div> : null}
-        {message ? <div className="inline-success">{message}</div> : null}
+        <p id="request-access-notes-help" className="field-help">Notes are stored for admin review; avoid secrets, keys, or production credentials.</p>
+        {error ? <div className="inline-error" role="alert">{error}</div> : null}
+        {message ? <div className="inline-success" role="status">{message}</div> : null}
         <button className="primary-button" type="submit" disabled={submitting}>
+          <appIcons.onboarding size={16} aria-hidden="true" />
           {submitting ? 'Submitting' : 'Submit request'}
         </button>
       </form>
     </PublicAuthPanel>
-  )
-}
-
-function PublicAuthPanel({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
-  return (
-    <main className="login-page">
-      <section className="login-panel" aria-labelledby="auth-title">
-        <div>
-          <span className="eyebrow">MerHouse</span>
-          <h1 id="auth-title">{title}</h1>
-          <p>{subtitle}</p>
-        </div>
-        {children}
-        <Link className="text-link" to="/login">Back to sign in</Link>
-      </section>
-    </main>
   )
 }

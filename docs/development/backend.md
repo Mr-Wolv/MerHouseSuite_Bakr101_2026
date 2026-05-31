@@ -49,6 +49,8 @@ Important environment variables:
 
 The backend test suite includes service tests, web/controller tests, OpenAPI configuration tests, startup validation tests, JWT tests, and PostgreSQL integration tests with Flyway migrations.
 
+Maven Surefire loads Mockito as an explicit Java agent during tests so newer JDKs do not depend on Mockito's deprecated dynamic self-attachment path.
+
 ## Code Map
 
 | Path | Role |
@@ -72,5 +74,6 @@ The backend test suite includes service tests, web/controller tests, OpenAPI con
 - Merchant-warehouse relationships and inbound stock
 - Operational details and timelines
 - Service accountability
+- Prototype-local agentic operations assistance
 - Prototype-local notifications
 - Transactional outbox administration

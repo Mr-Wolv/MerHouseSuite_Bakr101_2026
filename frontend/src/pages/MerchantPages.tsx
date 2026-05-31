@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import type {
@@ -57,7 +57,7 @@ export function MerchantOverviewPage() {
 
   if (loading) return <LoadingState />
   if (error) return <ErrorState title={error} />
-  if (!data) return <EmptyState label="No merchant data available" />
+  if (!data) return <EmptyState label="No merchant data available" guidance="Set up inventory, confirm warehouse relationships, and create the first order to start the merchant operating view." />
 
   const backorderedUnits = data.orders.flatMap((order) => order.backorders).reduce((sum, item) => sum + item.quantity, 0)
   const recentShipments = recentOrderShipments(data.orders)
@@ -65,6 +65,9 @@ export function MerchantOverviewPage() {
   return (
     <div className="page-stack">
       <PageHeading title="Merchant Overview" subtitle="Inventory and order activity for the current merchant tenant." />
+      <GuidancePanel title="Merchant operations scan">
+        Watch stock risk, open exceptions, and backordered units first. The order queue below keeps allocations, backorders, and shipment evidence together for daily triage.
+      </GuidancePanel>
       <div className="metric-grid">
         <Metric label="Inventory items" value={data.items.length} />
         <Metric label="Orders" value={data.orders.length} />
@@ -85,7 +88,7 @@ export function MerchantOverviewPage() {
             ))}
           </div>
         ) : (
-          <EmptyState label="No orders yet" />
+          <EmptyState label="No orders yet" guidance="Create an order once inventory and warehouse relationships are ready. Backorders, allocations, and shipment evidence will stay connected here." />
         )}
       </section>
       <RecentShipmentsPanel shipments={recentShipments} />
@@ -300,6 +303,9 @@ export function MerchantInventoryPage() {
   return (
     <div className="page-stack">
       <PageHeading title="Inventory" subtitle="Create and review items owned by your merchant tenant." />
+      <GuidancePanel title="Inventory and inbound readiness">
+        Inbound stock is tied to active warehouse relationships. The selected relationship controls which target warehouses are available for receiving.
+      </GuidancePanel>
       <div className="metric-grid">
         <Metric label="Service providers" value={relationships.length} />
         <Metric label="Active relationships" value={activeRelationships.length} />
@@ -623,11 +629,14 @@ export function MerchantOrdersPage() {
 
   if (loading) return <LoadingState />
   if (error) return <ErrorState title={error} />
-  if (!data) return <EmptyState label="No merchant orders available" />
+  if (!data) return <EmptyState label="No merchant orders available" guidance="Add inventory, confirm stock availability, then create the first customer order from this page." />
 
   return (
     <div className="page-stack">
       <PageHeading title="Orders" subtitle="Create orders, allocate available stock, and monitor backorders." />
+      <GuidancePanel title="Order queue controls">
+        Allocate newly created orders when stock is ready. Backordered lines stay visible on the order card until they are fulfilled or cancelled.
+      </GuidancePanel>
       {actionError ? <div className="inline-error">{actionError}</div> : null}
       {actionMessage ? <div className="inline-success">{actionMessage}</div> : null}
       <form aria-label="Create order form" className="panel-form" onSubmit={handleCreateOrder}>
@@ -757,7 +766,7 @@ export function MerchantOrdersPage() {
             </table>
           </div>
         ) : (
-          <EmptyState label="No audited import batches yet" />
+          <EmptyState label="No audited import batches yet" guidance="Submit an import batch when you need order intake evidence and validation feedback." />
         )}
       </section>
       <div className="filter-row">
@@ -789,7 +798,7 @@ export function MerchantOrdersPage() {
 
 function RecentShipmentsPanel({ shipments }: { shipments: Shipment[] }) {
   if (!shipments.length) {
-    return <EmptyState label="No recent shipments yet" />
+    return <EmptyState label="No recent shipments yet" guidance="Shipments appear after warehouse teams pick, pack, and hand off allocated orders." />
   }
 
   return (
@@ -827,7 +836,7 @@ function RecentShipmentsPanel({ shipments }: { shipments: Shipment[] }) {
 
 function InventoryTable({ items, onToggleArchive }: { items: InventoryItem[], onToggleArchive: (item: InventoryItem) => void }) {
   if (!items.length) {
-    return <EmptyState label="No inventory items yet" />
+    return <EmptyState label="No inventory items yet" guidance="Create your first SKU, then connect it to inbound stock and warehouse relationships so orders can allocate cleanly." />
   }
 
   return (
@@ -851,10 +860,10 @@ function InventoryTable({ items, onToggleArchive }: { items: InventoryItem[], on
                   <Link className="text-link" to={`/inventory/items/${item.id}`}>{item.sku}</Link>
                 </td>
                 <td>{item.name}</td>
-                <td>{item.archived ? 'ARCHIVED' : 'ACTIVE'}</td>
+                <td><StatusBadge value={item.archived ? 'ARCHIVED' : 'ACTIVE'} /></td>
                 <td className="mono-cell">{shortId(item.id)}</td>
                 <td>
-                  <button className="table-button" type="button" onClick={() => onToggleArchive(item)}>
+                  <button className={`table-button ${item.archived ? '' : 'warning-button'}`.trim()} type="button" onClick={() => onToggleArchive(item)}>
                     {item.archived ? 'Restore' : 'Archive'}
                   </button>
                 </td>
@@ -875,7 +884,7 @@ function MerchantExceptionsTable({
   onResolve: (exceptionId: string) => void
 }) {
   if (!exceptions.length) {
-    return <EmptyState label="No fulfillment exceptions need merchant action" />
+    return <EmptyState label="No fulfillment exceptions need merchant action" guidance="Short picks, damaged stock, and other warehouse exceptions will appear here when they need merchant review." />
   }
 
   return (
@@ -918,7 +927,7 @@ function MerchantExceptionsTable({
 
 function RelationshipsTable({ relationships }: { relationships: MerchantWarehouseRelationship[] }) {
   if (!relationships.length) {
-    return <EmptyState label="No warehouse service relationships yet" />
+    return <EmptyState label="No warehouse service relationships yet" guidance="Request or activate a warehouse relationship before sending inbound stock or routing fulfillment work." />
   }
 
   return (
@@ -942,7 +951,7 @@ function RelationshipsTable({ relationships }: { relationships: MerchantWarehous
                   </Link>
                 </td>
                 <td><StatusBadge value={relationship.status} /></td>
-                <td>{relationship.serviceNotes ?? 'None'}</td>
+                <td className="note-cell">{relationship.serviceNotes ?? 'None'}</td>
               </tr>
             ))}
           </tbody>
@@ -954,7 +963,7 @@ function RelationshipsTable({ relationships }: { relationships: MerchantWarehous
 
 function AuthorizedStockTable({ stockRows }: { stockRows: MerchantAuthorizedStock[] }) {
   if (!stockRows.length) {
-    return <EmptyState label="No authorized warehouse stock yet" />
+    return <EmptyState label="No authorized warehouse stock yet" guidance="Authorized stock appears after inventory is received into a warehouse connected to this merchant." />
   }
 
   return (
@@ -978,9 +987,9 @@ function AuthorizedStockTable({ stockRows }: { stockRows: MerchantAuthorizedStoc
                 <td className="name-cell">{row.warehouseProviderName}</td>
                 <td className="name-cell">{row.warehouseName}</td>
                 <td className="item-cell">{row.sku} - {row.itemName}</td>
-                <td>{row.availableQuantity}</td>
-                <td>{row.reservedQuantity}</td>
-                <td>{row.inboundQuantity}</td>
+                <td><QuantityCell value={row.availableQuantity} tone={row.availableQuantity <= 0 ? 'risk' : 'ready'} /></td>
+                <td><QuantityCell value={row.reservedQuantity} /></td>
+                <td><QuantityCell value={row.inboundQuantity} tone={row.inboundQuantity > 0 ? 'pending' : 'neutral'} /></td>
               </tr>
             ))}
           </tbody>
@@ -1000,7 +1009,7 @@ function InboundRequestsTable({
   onCancel: (request: InboundStockRequest) => void
 }) {
   if (!requests.length) {
-    return <EmptyState label="No inbound stock requests yet" />
+    return <EmptyState label="No inbound stock requests yet" guidance="Create inbound stock once a warehouse relationship is active and the SKU is ready to receive." />
   }
 
   return (
@@ -1043,7 +1052,7 @@ function InboundRequestsTable({
                       <button className="table-button" type="button" disabled={!canSubmit} onClick={() => onSubmit(request)}>
                         {submitLabel}
                       </button>
-                      <button className="table-button" type="button" disabled={!canCancel} onClick={() => onCancel(request)}>
+                      <button className="table-button warning-button" type="button" disabled={!canCancel} onClick={() => onCancel(request)}>
                         {canCancel ? 'Cancel inbound' : 'Closed'}
                       </button>
                     </div>
@@ -1070,7 +1079,7 @@ function OrdersTable({
   onBackorder?: (orderId: string, backorderId: string, nextStatus: BackorderStatus) => void
 }) {
   if (!orders.length) {
-    return <EmptyState label="No orders yet" />
+    return <EmptyState label="No orders yet" guidance="Create the first order to begin allocation, backorder, fulfillment, and shipment tracking." />
   }
 
   return (
@@ -1085,10 +1094,11 @@ function OrdersTable({
           const canCancel = ['CREATED', 'ALLOCATED', 'PARTIALLY_ALLOCATED', 'BACKORDERED'].includes(order.status)
           const cancelLabel = canCancel ? 'Cancel' : order.status === 'CANCELLED' ? 'Cancelled' : 'Locked'
           const hasOrderAction = canAllocate || canCancel
+          const openBackorders = order.backorders.filter((item) => item.status === 'OPEN')
           return (
             <article
               aria-label={`Order ${shortId(order.id)} ${order.status} ${order.items.map((item) => `${item.sku} x${item.quantity}`).join(' ')}`}
-              className="queue-card"
+              className={`queue-card ${openBackorders.length ? 'risk-card' : ''}`.trim()}
               key={order.id}
             >
               <div className="queue-card-header">
@@ -1099,7 +1109,7 @@ function OrdersTable({
                 <div className="queue-card-meta">
                   <span className="data-chip">{order.items.length} item lines</span>
                   <span className="data-chip">{order.allocations.length} allocations</span>
-                  <span className="data-chip">{order.backorders.length} backorders</span>
+                  <span className={`data-chip ${openBackorders.length ? 'warning-chip' : ''}`.trim()}>{order.backorders.length} backorders</span>
                 </div>
               </div>
 
@@ -1139,7 +1149,7 @@ function OrdersTable({
                               <button className="table-button" type="button" onClick={() => onBackorder(order.id, item.id, 'FULFILLED')}>
                                 Mark fulfilled
                               </button>
-                              <button className="table-button" type="button" onClick={() => onBackorder(order.id, item.id, 'CANCELLED')}>
+                              <button className="table-button warning-button" type="button" onClick={() => onBackorder(order.id, item.id, 'CANCELLED')}>
                                 Cancel line
                               </button>
                             </div>
@@ -1159,7 +1169,7 @@ function OrdersTable({
                     </button>
                   ) : null}
                   {onCancel && canCancel ? (
-                    <button className="table-button" type="button" onClick={() => onCancel(order.id)}>
+                    <button className="table-button warning-button" type="button" onClick={() => onCancel(order.id)}>
                       {cancelLabel}
                     </button>
                   ) : null}
@@ -1181,6 +1191,19 @@ function PageHeading({ title, subtitle }: { title: string; subtitle: string }) {
       <p>{subtitle}</p>
     </div>
   )
+}
+
+function GuidancePanel({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <aside className="admin-guidance-panel" aria-label={title}>
+      <strong>{title}</strong>
+      <p>{children}</p>
+    </aside>
+  )
+}
+
+function QuantityCell({ value, tone = 'neutral' }: { value: number; tone?: 'neutral' | 'ready' | 'pending' | 'risk' }) {
+  return <span className={`quantity-cell quantity-${tone}`}>{value}</span>
 }
 
 function shortId(id: string) {

@@ -50,6 +50,14 @@ describe('api client', () => {
     })
     await api.notificationDeliveries('token', 25)
     await api.markNotificationRead('token', 'delivery-1')
+    await api.assistantInteractions('token', 10)
+    await api.createAssistantInteraction('token', {
+      scope: 'MERCHANT_OPERATIONS',
+      targetTenantId: null,
+      prompt: 'Summarize my queues',
+    })
+    await api.acceptAssistantSuggestion('token', 'interaction-1', { reason: 'Looks right' })
+    await api.rejectAssistantSuggestion('token', 'interaction-2', { reason: 'Not useful' })
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/notifications/preferences', {
       method: 'GET',
@@ -79,6 +87,30 @@ describe('api client', () => {
       method: 'PATCH',
       headers: expect.any(Headers),
       body: undefined,
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(6, '/api/v1/assistant/interactions?limit=10', {
+      method: 'GET',
+      headers: expect.any(Headers),
+      body: undefined,
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(7, '/api/v1/assistant/interactions', {
+      method: 'POST',
+      headers: expect.any(Headers),
+      body: JSON.stringify({
+        scope: 'MERCHANT_OPERATIONS',
+        targetTenantId: null,
+        prompt: 'Summarize my queues',
+      }),
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(8, '/api/v1/assistant/interactions/interaction-1/accept', {
+      method: 'POST',
+      headers: expect.any(Headers),
+      body: JSON.stringify({ reason: 'Looks right' }),
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(9, '/api/v1/assistant/interactions/interaction-2/reject', {
+      method: 'POST',
+      headers: expect.any(Headers),
+      body: JSON.stringify({ reason: 'Not useful' }),
     })
   })
 

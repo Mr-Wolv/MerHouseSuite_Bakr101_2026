@@ -179,6 +179,7 @@ describe('Merchant overview', () => {
     renderWithAuth(<MerchantOverviewPage />)
 
     expect(await screen.findByText('Merchant Overview')).toBeInTheDocument()
+    expect(screen.getByLabelText('Merchant operations scan')).toHaveTextContent('Watch stock risk')
     expect(screen.getByText('Inventory items')).toBeInTheDocument()
     expect(screen.getByText('SKU-1 x2')).toBeInTheDocument()
   })
@@ -209,6 +210,7 @@ describe('Merchant inventory', () => {
     renderWithAuth(<MerchantInventoryPage />)
 
     const form = await screen.findByRole('form', { name: 'Create inventory item form' })
+    expect(screen.getByLabelText('Inventory and inbound readiness')).toHaveTextContent('active warehouse relationships')
     await user.type(within(form).getByLabelText('SKU'), 'SKU-2')
     await user.type(within(form).getByLabelText('Name'), 'New Merchant Item')
     await user.click(within(form).getByRole('button', { name: 'Create item' }))
@@ -476,6 +478,7 @@ describe('Merchant orders', () => {
     renderWithAuth(<MerchantOrdersPage />)
 
     const form = await screen.findByRole('form', { name: 'Create order form' })
+    expect(screen.getByLabelText('Order queue controls')).toHaveTextContent('Backordered lines stay visible')
     await user.type(within(form).getByLabelText('Customer address'), 'Giza Customer')
     await user.clear(within(form).getByLabelText('Quantity'))
     await user.type(within(form).getByLabelText('Quantity'), '3')

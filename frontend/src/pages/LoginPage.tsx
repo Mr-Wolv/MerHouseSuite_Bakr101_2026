@@ -4,6 +4,8 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
+import { appIcons } from '../components/AppIcons'
+import { PublicAuthPanel } from '../components/PublicAuthPanel'
 
 export function LoginPage() {
   const { login, user } = useAuth()
@@ -38,39 +40,43 @@ export function LoginPage() {
   }
 
   return (
-    <main className="login-page">
-      <section className="login-panel" aria-labelledby="login-title">
-        <div>
-          <span className="eyebrow">MerHouse</span>
-          <h1 id="login-title">Operations Console</h1>
-          <p>Sign in with a platform account to continue.</p>
-        </div>
-
-        <form className="form-stack" onSubmit={handleSubmit}>
-          <label htmlFor="login-email">
-            <span>Email</span>
-            <input id="login-email" value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />
-          </label>
-          <label htmlFor="login-password">
-            <span>Password</span>
-            <input
-              id="login-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              required
-            />
-          </label>
-          {error ? <div className="inline-error">{error}</div> : null}
-          <button className="primary-button" type="submit" disabled={submitting}>
-            {submitting ? 'Signing in' : 'Sign in'}
-          </button>
-        </form>
-        <div className="login-actions" aria-label="Account help">
+    <PublicAuthPanel
+      title="Operations Console"
+      subtitle="Sign in with an enabled local MerHouse account."
+      icon={appIcons.login}
+      cues={[
+        { label: 'Access boundary', detail: 'Role and tenant scope are checked after sign-in.' },
+        { label: 'Account support', detail: 'Recovery and access requests keep a reviewable delivery history.' },
+      ]}
+      footer={(
+        <>
           <Link to="/forgot-password">Forgot password?</Link>
           <Link to="/request-access">Request access</Link>
-        </div>
-      </section>
-    </main>
+        </>
+      )}
+    >
+      <form className="form-stack" onSubmit={handleSubmit}>
+        <label htmlFor="login-email">
+          <span>Email</span>
+          <input id="login-email" value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required />
+        </label>
+        <label htmlFor="login-password">
+          <span>Password</span>
+          <input
+            id="login-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            type="password"
+            autoComplete="current-password"
+            required
+          />
+        </label>
+        {error ? <div className="inline-error" role="alert">{error}</div> : null}
+        <button className="primary-button" type="submit" disabled={submitting}>
+          <appIcons.login size={16} aria-hidden="true" />
+          {submitting ? 'Signing in' : 'Sign in'}
+        </button>
+      </form>
+    </PublicAuthPanel>
   )
 }

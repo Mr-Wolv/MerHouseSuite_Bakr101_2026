@@ -18,10 +18,12 @@ MerHouse is prepared here as a private local development stack. Production SaaS 
 ## Architecture
 
 - [Account lifecycle](architecture/account-lifecycle.md)
+- [Agentic operations assistance](architecture/agentic-operations-assistance.md): current deterministic assistant behavior and the V15.2 local AI-agent direction.
 - [Admin and authentication model](architecture/admin-auth.md)
 - [Allocation strategy](architecture/allocation-strategy.md)
 - [API documentation](architecture/api-documentation.md)
 - [Cancellation workflow](architecture/cancellation-workflow.md)
+- [Frontend V15 audit](architecture/frontend-v15-audit.md)
 - [Idempotency](architecture/idempotency.md)
 - [Inventory locking](architecture/inventory-locking.md)
 - [Merchant-warehouse operating loop](architecture/merchant-warehouse-operating-loop.md)

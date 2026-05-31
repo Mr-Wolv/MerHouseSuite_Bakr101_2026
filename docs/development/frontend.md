@@ -26,6 +26,12 @@ The Vite dev server proxies `/api` to `http://localhost:8080`.
 
 The Docker image builds the React app and serves it through nginx. In Docker Compose, nginx proxies API and OpenAPI requests to the backend service.
 
+## Theme Runtime
+
+V15 adds a frontend theme provider under `frontend/src/theme`. The default preference is `system`, which resolves through `prefers-color-scheme`. When a user toggles the visible theme control, the explicit `light` or `dark` preference is stored in `localStorage` under `merhouse-theme-preference`.
+
+The provider applies `data-theme="light"` or `data-theme="dark"` and `color-scheme` to the document root. Shared color, surface, focus, status, and form tokens live in `frontend/src/index.css`; page-specific styling should consume those tokens instead of adding new hard-coded colors.
+
 ## Tests And Build
 
 ```powershell
@@ -39,6 +45,8 @@ Run them against a seeded local stack:
 ```powershell
 npm run test:e2e
 ```
+
+The Playwright suite runs with one worker because the end-to-end tests share one seeded local backend, database, and browser target. Keep it serial unless the suite is redesigned to isolate data and runtime state per worker.
 
 When the Docker frontend is already running, point the whole Playwright suite at it so both route-tour and admin-console specs use the same browser target:
 
@@ -70,6 +78,7 @@ Routes are defined in `frontend/src/App.tsx`.
 | `/merchant/orders` | Order creation, allocation, cancellation, contacts, imports, and shipment-facing work |
 | `/warehouse` | Warehouse inventory, receiving, fulfillment, shipments, and exceptions |
 | `/service-accountability` | Agreements, SLA status, statements, disputes, claims, reviews, and import history |
+| `/assistant` | Prototype-local scoped assistant summaries, suggestions, refusals, and interaction history |
 | `/notifications` | Authenticated notification preferences and prototype-local delivery history |
 | `/orders/:orderId` | Order detail |
 | `/inventory/items/:inventoryItemId` | Inventory item detail |
@@ -86,6 +95,7 @@ Routes are defined in `frontend/src/App.tsx`.
 | `frontend/src/auth` | Authentication context and hooks |
 | `frontend/src/components` | Shared layout, metric, status, and data-state components |
 | `frontend/src/pages` | Route-level pages |
+| `frontend/src/theme` | V15 theme provider, persistence, and document theme hook |
 | `frontend/src/test` | Test setup |
 
 Frontend role gates shape navigation and page access. Backend authorization remains the source of enforcement for API behavior.

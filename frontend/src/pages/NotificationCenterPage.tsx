@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Bell, Check, RefreshCcw } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { BellRing, Check, CircleCheck, Info, RefreshCcw, TriangleAlert } from 'lucide-react'
 import { api, ApiError } from '../api/client'
 import type {
   NotificationChannel,
@@ -22,7 +23,7 @@ const topicLabels: Record<NotificationTopic, string> = {
 
 const channelLabels: Record<NotificationChannel, string> = {
   IN_APP: 'In app',
-  EMAIL_PROTOTYPE: 'Email prototype',
+  EMAIL_PROTOTYPE: 'Email channel',
 }
 
 const deliveryStageLabels: Record<NotificationDeliveryStage, string> = {
@@ -32,8 +33,67 @@ const deliveryStageLabels: Record<NotificationDeliveryStage, string> = {
 }
 
 const providerStatusLabels: Record<NotificationProviderStatus, string> = {
-  NOT_CONFIGURED: 'Provider not configured',
-  READY_FOR_PROVIDER: 'Ready for provider',
+  NOT_CONFIGURED: 'Channel recorded',
+  READY_FOR_PROVIDER: 'Ready for handoff',
+}
+
+type NotificationSeverity = 'critical' | 'attention' | 'info' | 'resolved'
+
+const severityLabels: Record<NotificationSeverity, string> = {
+  critical: 'Critical',
+  attention: 'Needs action',
+  info: 'For review',
+  resolved: 'Resolved',
+}
+
+function notificationSeverity(delivery: NotificationDelivery): NotificationSeverity {
+  if (delivery.status === 'READ' || delivery.readAt) return 'resolved'
+
+  const text = `${delivery.title} ${delivery.body} ${delivery.topic} ${delivery.sourceType ?? ''}`.toLowerCase()
+  const criticalTerms = ['failed', 'failure', 'error', 'dead-letter', 'dead letter', 'retry failed']
+  const attentionTerms = [
+    'returned',
+    'return',
+    'sla',
+    'breach',
+    'risk',
+    'ready',
+    'handoff',
+    'prepared',
+    'access request',
+    'account ready',
+    'account created',
+    'password reset',
+    'dispute',
+    'claim',
+  ]
+
+  if (
+    delivery.topic === 'OUTBOX_HEALTH' ||
+    criticalTerms.some((term) => text.includes(term))
+  ) {
+    return 'critical'
+  }
+  if (
+    delivery.providerStatus === 'READY_FOR_PROVIDER' ||
+    attentionTerms.some((term) => text.includes(term))
+  ) {
+    return 'attention'
+  }
+  return 'info'
+}
+
+function notificationSeverityIcon(severity: NotificationSeverity) {
+  if (severity === 'critical') return TriangleAlert
+  if (severity === 'attention') return BellRing
+  if (severity === 'resolved') return CircleCheck
+  return Info
+}
+
+function displayDeliveryBody(body: string) {
+  return body
+    .replace(/prototype-local delivery record/gi, 'delivery history record')
+    .replace(/prototype-local/gi, 'reviewable')
 }
 
 export function NotificationCenterPage() {
@@ -82,6 +142,24 @@ export function NotificationCenterPage() {
     () => deliveries.filter((delivery) => delivery.status === 'RECORDED' && !delivery.readAt).length,
     [deliveries],
   )
+  const enabledPreferences = useMemo(
+    () => preferences.filter((preference) => preference.enabled).length,
+    [preferences],
+  )
+  const providerReadyCount = useMemo(
+    () => deliveries.filter((delivery) => delivery.providerStatus === 'READY_FOR_PROVIDER').length,
+    [deliveries],
+  )
+  const severityCounts = useMemo(() => {
+    return deliveries.reduce(
+      (counts, delivery) => {
+        counts[notificationSeverity(delivery)] += 1
+        return counts
+      },
+      { critical: 0, attention: 0, info: 0, resolved: 0 } satisfies Record<NotificationSeverity, number>,
+    )
+  }, [deliveries])
+  const actionableCount = severityCounts.critical + severityCounts.attention
 
   async function togglePreference(preference: NotificationPreference) {
     if (!token) return
@@ -124,10 +202,13 @@ export function NotificationCenterPage() {
   return (
     <div className="page-stack">
       <div className="page-heading">
-        <span className="eyebrow">Prototype-local</span>
+        <span className="eyebrow">Alert center</span>
         <h1>Notifications</h1>
-        <p>Review local delivery records and tune account, operations, service, and outbox notification preferences.</p>
+        <p>Review account, operations, service, and outbox alerts before they become missed work.</p>
       </div>
+      <GuidancePanel title="Notification delivery boundary">
+        Delivery records show what MerHouse prepared, skipped, or marked read. Preferences control which alert channels stay active for the signed-in account.
+      </GuidancePanel>
 
       {error ? <ErrorState title={error} /> : null}
       {message ? <div className="inline-success">{message}</div> : null}
@@ -138,16 +219,16 @@ export function NotificationCenterPage() {
           <strong>{unreadCount}</strong>
         </div>
         <div className="metric">
-          <span>Delivery records</span>
-          <strong>{deliveries.length}</strong>
+          <span>Needs action</span>
+          <strong>{actionableCount}</strong>
         </div>
         <div className="metric">
-          <span>Preferences</span>
-          <strong>{preferences.length}</strong>
+          <span>Enabled preferences</span>
+          <strong>{enabledPreferences}/{preferences.length}</strong>
         </div>
         <div className="metric">
-          <span>Prototype scope</span>
-          <strong>Local</strong>
+          <span>Ready handoffs</span>
+          <strong>{providerReadyCount}</strong>
         </div>
       </section>
 
@@ -166,6 +247,7 @@ export function NotificationCenterPage() {
                 <th>Topic</th>
                 <th>Channel</th>
                 <th>Status</th>
+                <th>Updated</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -175,9 +257,10 @@ export function NotificationCenterPage() {
                   <td>{topicLabels[preference.topic]}</td>
                   <td>{channelLabels[preference.channel]}</td>
                   <td><StatusBadge value={preference.enabled ? 'enabled' : 'disabled'} /></td>
+                  <td><span className="timestamp-cell">{new Date(preference.updatedAt).toLocaleString()}</span></td>
                   <td>
                     <button
-                      className="table-button"
+                      className={preference.enabled ? 'table-button warning-button' : 'table-button'}
                       type="button"
                       disabled={busyKey === preference.id}
                       onClick={() => void togglePreference(preference)}
@@ -201,26 +284,34 @@ export function NotificationCenterPage() {
           <div className="queue-list">
             {deliveries.map((delivery) => {
               const canMarkRead = delivery.status === 'RECORDED' && !delivery.readAt
+              const severity = notificationSeverity(delivery)
+              const Icon = notificationSeverityIcon(severity)
               return (
-                <article className="queue-card" key={delivery.id}>
+                <article className={`queue-card notification-card notification-${severity}`} key={delivery.id}>
                   <div className="queue-card-header">
                     <div className="queue-card-title">
-                      <Bell size={18} aria-hidden="true" />
+                      <Icon size={18} aria-hidden="true" />
                       <strong>{delivery.title}</strong>
                       <StatusBadge value={delivery.status} />
+                      {canMarkRead ? <span className="data-chip warning-chip">Unread</span> : <span className="data-chip">Read</span>}
                     </div>
                     <div className="queue-card-meta">
-                      {delivery.prototypeLocal ? <span className="data-chip">Prototype-local</span> : null}
+                      <span className={`data-chip severity-chip severity-${severity}`}>
+                        {severityLabels[severity]}
+                      </span>
                       <span className="data-chip">{topicLabels[delivery.topic]}</span>
                     </div>
                   </div>
-                  <p>{delivery.body}</p>
+                  <p className="note-cell">{displayDeliveryBody(delivery.body)}</p>
                   <div className="action-row">
                     <span className="data-chip">{channelLabels[delivery.channel]}</span>
                     <span className="data-chip">{deliveryStageLabels[delivery.deliveryStage]}</span>
-                    <span className="data-chip">{providerStatusLabels[delivery.providerStatus]}</span>
+                    <span className={delivery.providerStatus === 'READY_FOR_PROVIDER' ? 'data-chip warning-chip' : 'data-chip'}>
+                      {providerStatusLabels[delivery.providerStatus]}
+                    </span>
                     <span className="data-chip">{new Date(delivery.createdAt).toLocaleString()}</span>
                     {delivery.sourceType ? <span className="data-chip">{delivery.sourceType}</span> : null}
+                    {delivery.sourceId ? <span className="data-chip mono-cell">{shortId(delivery.sourceId)}</span> : null}
                     <button
                       className="table-button"
                       type="button"
@@ -236,9 +327,25 @@ export function NotificationCenterPage() {
             })}
           </div>
         ) : (
-          <EmptyState label="No notification delivery records yet" />
+          <EmptyState
+            label="No alerts yet"
+            guidance="When account, operations, service, or outbox events need your attention, they will appear here with severity, channel, source, and read status. Keep the preferences above enabled for the workflows you own."
+          />
         )}
       </section>
     </div>
   )
+}
+
+function GuidancePanel({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <aside className="admin-guidance-panel" aria-label={title}>
+      <strong>{title}</strong>
+      <p>{children}</p>
+    </aside>
+  )
+}
+
+function shortId(id: string) {
+  return id.slice(0, 8)
 }

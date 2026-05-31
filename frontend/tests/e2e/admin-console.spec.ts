@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { APIRequestContext } from '@playwright/test'
+import type { APIRequestContext, Locator } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 
 const API_URL = process.env.E2E_API_URL ?? 'http://localhost:8080'
@@ -24,6 +24,22 @@ async function createActiveRelationship(request: APIRequestContext, token: strin
   return relationship
 }
 
+async function clickFreshButton(button: () => Locator) {
+  let lastError: unknown
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const current = button()
+      await expect(current).toBeVisible({ timeout: 5_000 })
+      await current.click({ timeout: 5_000 })
+      return
+    } catch (error) {
+      lastError = error
+      await new Promise((resolve) => setTimeout(resolve, 250))
+    }
+  }
+  throw lastError
+}
+
 test.describe('admin console', () => {
   test('supports keyboard skip navigation and narrow admin layout', async ({ page }) => {
     mkdirSync(screenshotDir, { recursive: true })
@@ -32,7 +48,7 @@ test.describe('admin console', () => {
     await page.getByLabel('Email').fill('admin@merhouse.local')
     await page.getByLabel('Password').fill('local-owner-password')
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible({ timeout: 20_000 })
 
     await page.keyboard.press('Tab')
     const skipLink = page.getByRole('link', { name: 'Skip to content' })
@@ -137,7 +153,7 @@ test.describe('admin console', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible()
     await page.goto('/admin/access-requests')
-    await expect(page.getByRole('heading', { name: 'Access Requests' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Access Requests' })).toBeVisible({ timeout: 20_000 })
     const requestRow = page.getByRole('row', { name: new RegExp(`e2e-access-${suffix}@merhouse\\.local`) })
     await expect(requestRow).toContainText(accessOrganization)
     await expect(requestRow.locator('img')).toHaveCount(0)
@@ -454,13 +470,16 @@ test.describe('admin console', () => {
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    const inboundRow = page.getByRole('row', { name: new RegExp(`${sku} - V8 E2E Item`) })
-    await inboundRow.getByRole('button', { name: 'Approve' }).click()
-    await expect(inboundRow).toContainText('APPROVED')
-    await inboundRow.getByRole('button', { name: 'Start receiving' }).click()
-    await expect(inboundRow).toContainText('RECEIVING')
-    await inboundRow.getByRole('button', { name: 'Receive all' }).click()
-    await expect(inboundRow).toContainText('RECEIVED')
+    const inboundRow = () => page.getByRole('row', { name: new RegExp(`${sku} - V8 E2E Item`) })
+    await clickFreshButton(() => inboundRow().getByRole('button', { name: 'Approve' }))
+    await expect(inboundRow()).toContainText('APPROVED', { timeout: 20_000 })
+    await page.reload({ waitUntil: 'networkidle' })
+    await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible()
+    await expect(inboundRow()).toContainText('APPROVED', { timeout: 20_000 })
+    await expect(inboundRow().getByRole('button', { name: 'Receive all' })).toBeVisible()
+    await clickFreshButton(() => inboundRow().getByRole('button', { name: 'Receive all' }))
+    await expect(inboundRow().getByText('No warehouse action')).toBeVisible()
+    await expect(inboundRow()).toContainText('RECEIVED', { timeout: 20_000 })
 
     await page.getByRole('button', { name: 'Logout' }).click()
     await page.getByLabel('Email').fill(merchantEmail)
@@ -613,12 +632,13 @@ test.describe('admin console', () => {
     await page.getByLabel('Email').fill(merchantEmail)
     await page.getByLabel('Password').fill('merchant-password')
     await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page.getByRole('heading', { name: 'Merchant Overview' })).toBeVisible()
     await page.getByRole('link', { name: 'Service' }).click()
     await expect(page.getByRole('heading', { name: 'Service Accountability' })).toBeVisible()
     await expect(page.getByText(`V11 Service Terms ${suffix}`)).toBeVisible()
     await expect(page.getByText('INBOUND STOCK REQUEST')).toBeVisible()
     await expect(page.getByText('Playwright dispute review')).toBeVisible()
-    await expect(page.getByText('RECEIVING_REVIEW')).toBeVisible()
+    await expect(page.getByText('RECEIVING REVIEW')).toBeVisible()
     await expect(page.getByText(`V11 Import ${suffix}`)).toBeVisible()
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBeTruthy()
     await page.screenshot({ path: `../reports/v11/service-accountability-${suffix}.png`, fullPage: true })

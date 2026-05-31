@@ -43,7 +43,8 @@ describe('auth recovery pages', () => {
     await user.click(screen.getByRole('button', { name: 'Request reset' }))
 
     expect(apiMock.requestPasswordReset).toHaveBeenCalledWith('owner@example.test')
-    expect(await screen.findByText(/reset link has been prepared/i)).toBeInTheDocument()
+    expect(screen.getByText(/does not reveal whether an email exists/i)).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent(/reset link has been prepared/i)
     expect(screen.queryByRole('link', { name: 'Open reset link' })).not.toBeInTheDocument()
   })
 
@@ -64,7 +65,8 @@ describe('auth recovery pages', () => {
     await user.click(screen.getByRole('button', { name: 'Reset password' }))
 
     expect(apiMock.confirmPasswordReset).toHaveBeenCalledWith('route-token', 'new-password')
-    expect(await screen.findByText(/password has been reset/i)).toBeInTheDocument()
+    expect(screen.getByText(/single-use local credentials/i)).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent(/password has been reset/i)
   })
 
   it('submits a merchant access request', async () => {
@@ -95,7 +97,8 @@ describe('auth recovery pages', () => {
       requestedRole: 'MERCHANT',
       notes: 'Please onboard',
     })
-    expect(await screen.findByText('Access request pending for owner@acme.test.')).toBeInTheDocument()
+    expect(screen.getByText(/avoid secrets, keys, or production credentials/i)).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Access request pending for owner@acme.test.')
   })
 
   it('shows backend validation errors', async () => {
@@ -107,7 +110,7 @@ describe('auth recovery pages', () => {
     await user.type(screen.getByLabelText('Email'), 'blocked@example.test')
     await user.click(screen.getByRole('button', { name: 'Request reset' }))
 
-    expect(await screen.findByText('email must be valid')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('email must be valid')
   })
 })
 
@@ -116,6 +119,8 @@ describe('login secondary actions', () => {
     render(<RequestAccessPage />, { wrapper: MemoryRouter })
 
     const panel = screen.getByRole('main')
+    expect(within(panel).getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
+    expect(within(panel).getByLabelText('Public account workflow guardrails')).toHaveTextContent('Account readiness')
     expect(within(panel).getByRole('link', { name: 'Back to sign in' })).toHaveAttribute('href', '/login')
   })
 })

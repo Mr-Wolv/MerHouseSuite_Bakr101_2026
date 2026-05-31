@@ -3,6 +3,9 @@ import type {
   AdminActionPayload,
   AdminAuditEvent,
   AdminPlatformSummary,
+  AssistantInteraction,
+  AssistantDecisionPayload,
+  AssistantInteractionPayload,
   AdminResetPasswordPayload,
   AdminTenantHealth,
   AccessRequest,
@@ -147,6 +150,30 @@ export const api = {
   },
   notificationSummary(token: string) {
     return request<NotificationSummary>('/api/v1/notifications/summary', { token })
+  },
+  assistantInteractions(token: string, limit = 25) {
+    return request<AssistantInteraction[]>(`/api/v1/assistant/interactions?limit=${limit}`, { token })
+  },
+  createAssistantInteraction(token: string, body: AssistantInteractionPayload) {
+    return request<AssistantInteraction>('/api/v1/assistant/interactions', {
+      method: 'POST',
+      token,
+      body,
+    })
+  },
+  acceptAssistantSuggestion(token: string, interactionId: string, body: AssistantDecisionPayload) {
+    return request<AssistantInteraction>(`/api/v1/assistant/interactions/${interactionId}/accept`, {
+      method: 'POST',
+      token,
+      body,
+    })
+  },
+  rejectAssistantSuggestion(token: string, interactionId: string, body: AssistantDecisionPayload) {
+    return request<AssistantInteraction>(`/api/v1/assistant/interactions/${interactionId}/reject`, {
+      method: 'POST',
+      token,
+      body,
+    })
   },
   updateNotificationPreference(token: string, body: NotificationPreferencePayload) {
     return request<NotificationPreference>('/api/v1/notifications/preferences', {

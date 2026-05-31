@@ -58,11 +58,13 @@ describe('AppLayout role navigation', () => {
   it('keeps auditor navigation read-only and diagnostic-focused', () => {
     renderLayout(baseAuthState)
 
+    expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Relations' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Service' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Outbox' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Audit' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Assistant' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Alerts' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Tenants' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Users' })).not.toBeInTheDocument()
@@ -76,6 +78,19 @@ describe('AppLayout role navigation', () => {
     expect(apiMock.notificationSummary).toHaveBeenCalledWith('role-token')
   })
 
+  it('hides the alert badge when there are no unread alerts', async () => {
+    apiMock.notificationSummary.mockResolvedValue({
+      unreadCount: 0,
+      latestDeliveryAt: null,
+    })
+
+    renderLayout(baseAuthState)
+
+    expect(screen.getByRole('link', { name: 'Alerts' })).toBeInTheDocument()
+    await screen.findByRole('link', { name: 'Alerts' })
+    expect(screen.queryByLabelText(/unread alerts/i)).not.toBeInTheDocument()
+  })
+
   it.each([
     'OWNER',
     'ADMIN',
@@ -83,7 +98,7 @@ describe('AppLayout role navigation', () => {
     'AUDITOR',
     'MERCHANT',
     'WAREHOUSE_OPERATOR',
-  ] as const)('shows alerts navigation to %s users', async (role) => {
+  ] as const)('shows assistant and alerts navigation to %s users', async (role) => {
     renderLayout({
       ...baseAuthState,
       user: {
@@ -92,6 +107,7 @@ describe('AppLayout role navigation', () => {
       },
     })
 
+    expect(screen.getByRole('link', { name: 'Assistant' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Alerts/ })).toBeInTheDocument()
     expect(await screen.findByLabelText('2 unread alerts')).toBeInTheDocument()
   })
