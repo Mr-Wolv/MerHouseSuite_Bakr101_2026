@@ -278,6 +278,61 @@ select:focus-visible,
   line-height: 1.45;
 }
 
+.field-help.prerequisite-help {
+  color: var(--warning);
+  font-weight: 700;
+}
+
+.first-run-checklist {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 14px;
+}
+
+.first-run-checklist h2,
+.first-run-checklist ol,
+.first-run-checklist p {
+  margin: 0;
+}
+
+.first-run-checklist ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.first-run-checklist li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  padding: 10px;
+}
+
+.first-run-checklist li.is-complete {
+  border-color: color-mix(in srgb, var(--success) 28%, var(--border));
+  background: color-mix(in srgb, var(--success-surface) 44%, var(--surface));
+}
+
+.first-run-checklist strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.first-run-checklist p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .form-stack input,
 .form-stack select,
 .form-stack textarea,

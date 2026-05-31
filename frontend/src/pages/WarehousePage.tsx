@@ -321,6 +321,8 @@ export function WarehousePage() {
   if (error) return <ErrorState title={error} />
 
   const totalAvailable = inventory.reduce((sum, row) => sum + row.availableQuantity, 0)
+  const requestedRelationships = relationships.filter((relationship) => relationship.status === 'REQUESTED').length
+  const activeRelationships = relationships.filter((relationship) => relationship.status === 'ACTIVE').length
 
   return (
     <div className="page-stack">
@@ -342,6 +344,16 @@ export function WarehousePage() {
               ))}
             </select>
           </label>
+
+          <FirstRunChecklist
+            title="Warehouse setup path"
+            items={[
+              { label: 'Activate partner access', done: activeRelationships > 0, detail: requestedRelationships ? 'Review requested partners first; active partners can send stock and orders.' : 'Wait for a merchant or platform admin to request service.' },
+              { label: 'Receive inbound stock', done: inventory.length > 0, detail: 'Approved inbound stock creates the stock rows that fulfillment uses.' },
+              { label: 'Work the queue', done: warehouseAllocations.length > 0, detail: 'Allocations appear after merchants create orders against available stock.' },
+              { label: 'Watch exceptions', done: !exceptions.some((exception) => exception.status === 'OPEN'), detail: 'Open exceptions show stock or shipment work that needs review.' },
+            ]}
+          />
 
           <div className="metric-grid">
             <Metric label="Capacity" value={selected?.capacity ?? 0} />
@@ -789,6 +801,11 @@ function RelationshipsTable({
           <tbody>
             {relationships.map((relationship) => {
               const canActivate = relationship.status === 'REQUESTED'
+              const actionHint = canActivate
+                ? 'Activate this partner so inbound stock and fulfillment work can begin.'
+                : relationship.status === 'ACTIVE'
+                  ? 'This partner is already active.'
+                  : `Status ${relationship.status} cannot be activated from the warehouse queue.`
               return (
                 <tr key={relationship.id}>
                   <td className="name-cell">
@@ -799,9 +816,10 @@ function RelationshipsTable({
                   <td><StatusBadge value={relationship.status} /></td>
                   <td className="note-cell">{relationship.serviceNotes ?? 'None'}</td>
                   <td>
-                    <button className="table-button" type="button" disabled={!canActivate} onClick={() => onActivate(relationship)}>
+                    <button className="table-button" type="button" disabled={!canActivate} title={actionHint} onClick={() => onActivate(relationship)}>
                       {canActivate ? 'Activate' : relationship.status === 'ACTIVE' ? 'Active' : 'Locked'}
                     </button>
+                    {!canActivate ? <p className="field-help prerequisite-help">{actionHint}</p> : null}
                   </td>
                 </tr>
               )
@@ -850,6 +868,13 @@ function InboundRequestsTable({
               const canApprove = request.status === 'SUBMITTED'
               const canStart = request.status === 'APPROVED'
               const canResolve = request.status === 'APPROVED' || request.status === 'RECEIVING'
+              const inboundActionHint = request.status === 'DRAFT'
+                ? 'Merchant still needs to submit this draft.'
+                : request.status === 'RECEIVED'
+                  ? 'This inbound request has already been received.'
+                  : request.status === 'REJECTED' || request.status === 'CANCELLED'
+                    ? `This inbound request is ${request.status.toLowerCase()} and has no warehouse action.`
+                    : ''
               return (
                 <tr key={request.id}>
                   <td className="name-cell">
@@ -883,7 +908,12 @@ function InboundRequestsTable({
                           </button>
                         </>
                       ) : null}
-                      {!canApprove && !canStart && !canResolve ? <span className="data-chip">No warehouse action</span> : null}
+                      {!canApprove && !canStart && !canResolve ? (
+                        <>
+                          <span className="data-chip">No warehouse action</span>
+                          {inboundActionHint ? <p className="field-help prerequisite-help">{inboundActionHint}</p> : null}
+                        </>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -992,6 +1022,34 @@ function GuidancePanel({ title, children }: { title: string; children: ReactNode
       <strong>{title}</strong>
       <p>{children}</p>
     </aside>
+  )
+}
+
+function FirstRunChecklist({
+  title,
+  items,
+}: {
+  title: string
+  items: Array<{ label: string; done: boolean; detail: string }>
+}) {
+  return (
+    <section className="first-run-checklist" aria-label={title}>
+      <div className="section-heading-row">
+        <h2>{title}</h2>
+        <span>{items.filter((item) => item.done).length}/{items.length} ready</span>
+      </div>
+      <ol>
+        {items.map((item) => (
+          <li className={item.done ? 'is-complete' : ''} key={item.label}>
+            <span className={item.done ? 'data-chip' : 'data-chip warning-chip'}>{item.done ? 'Ready' : 'Next'}</span>
+            <div>
+              <strong>{item.label}</strong>
+              <p>{item.detail}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
   )
 }
 

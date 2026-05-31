@@ -211,6 +211,7 @@ describe('Merchant inventory', () => {
 
     const form = await screen.findByRole('form', { name: 'Create inventory item form' })
     expect(screen.getByLabelText('Inventory and inbound readiness')).toHaveTextContent('active warehouse relationships')
+    expect(screen.getByLabelText('Merchant setup path')).toHaveTextContent('4/4 ready')
     await user.type(within(form).getByLabelText('SKU'), 'SKU-2')
     await user.type(within(form).getByLabelText('Name'), 'New Merchant Item')
     await user.click(within(form).getByRole('button', { name: 'Create item' }))
@@ -362,7 +363,7 @@ describe('Merchant inventory', () => {
 
     expect(within(inboundForm).getByLabelText('Target warehouse')).toHaveValue('warehouse-2')
     expect(within(inboundForm).queryByRole('option', { name: 'Cairo Hub' })).not.toBeInTheDocument()
-    expect(screen.getByText('Warehouses are limited to the selected active service relationship.')).toBeInTheDocument()
+    expect(screen.getByText('Ready to send stock to the selected warehouse.')).toBeInTheDocument()
 
     await user.clear(within(inboundForm).getByLabelText('Quantity'))
     await user.type(within(inboundForm).getByLabelText('Quantity'), '2')
@@ -590,6 +591,7 @@ describe('Merchant orders', () => {
 
     const form = await screen.findByRole('form', { name: 'Create order form' })
 
+    expect(within(form).getByText('Create a stock item before creating an order.')).toBeInTheDocument()
     expect(within(form).getByRole('button', { name: 'Create order' })).toBeDisabled()
   })
 

@@ -264,6 +264,8 @@ describe('WarehousePage', () => {
 
     expect(await screen.findByText('Warehouse Console')).toBeInTheDocument()
     expect(screen.getByText("Start with today's work")).toBeInTheDocument()
+    expect(screen.getByLabelText('Warehouse setup path')).toHaveTextContent('2/4 ready')
+    expect(screen.getByText('Activate partner access')).toBeInTheDocument()
     expect(screen.getByText('Available units')).toBeInTheDocument()
     const queueCard = screen.getByLabelText(/Allocation allocati Adidas Merchant PENDING/i)
     expect(queueCard).toBeInTheDocument()
@@ -296,6 +298,7 @@ describe('WarehousePage', () => {
 
     expect(apiMock.activateMerchantWarehouseRelationship).toHaveBeenCalledWith('operator-token', 'relationship-1')
     expect(await within(relationshipRow).findByText('ACTIVE')).toBeInTheDocument()
+    expect(await within(relationshipRow).findByText('This partner is already active.')).toBeInTheDocument()
 
     const inboundRow = await screen.findByRole('row', { name: /Approve/i })
     await user.click(within(inboundRow).getByRole('button', { name: 'Approve' }))
@@ -313,6 +316,7 @@ describe('WarehousePage', () => {
       receivingNote: 'Received from warehouse console',
     })
     expect(await within(inboundRow).findByText('RECEIVED')).toBeInTheDocument()
+    expect(await within(inboundRow).findByText('This inbound request has already been received.')).toBeInTheDocument()
   })
 
   it('creates and delivers a shipment for a packed allocation', async () => {

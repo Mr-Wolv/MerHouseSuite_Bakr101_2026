@@ -168,13 +168,19 @@ export function MerchantInventoryPage() {
   const selectedWarehouse = inboundWarehouseOptions.find((option) => option.warehouseId === warehouseId)
   const warehouseMatchesRelationship = Boolean(selectedRelationship && selectedWarehouse)
   const canCreateInbound = activeRelationships.length > 0 && items.length > 0 && Boolean(inventoryItemId) && warehouseMatchesRelationship
-  const inboundReadinessMessage = !activeRelationships.length
+  const inboundBlocker = !activeRelationships.length
     ? 'Create or activate a warehouse relationship before submitting inbound stock.'
     : !items.length
       ? 'Create an inventory item before submitting inbound stock.'
       : !inboundWarehouseOptions.length
         ? 'The selected relationship has no warehouse available for inbound stock.'
-        : 'Warehouses are limited to the selected active service relationship.'
+        : !warehouseMatchesRelationship
+          ? 'Choose a warehouse that belongs to the selected active service relationship.'
+          : ''
+  const inboundReadinessMessage = inboundBlocker || 'Ready to send stock to the selected warehouse.'
+  const providerBlocker = providerOptions.length === 0
+    ? 'No warehouse providers are available yet. Ask a platform admin to create a warehouse provider first.'
+    : ''
 
   function handleRelationshipChange(nextRelationshipId: string) {
     const nextRelationship = relationships.find((relationship) => relationship.id === nextRelationshipId)
@@ -306,6 +312,15 @@ export function MerchantInventoryPage() {
       <GuidancePanel title="Inventory and inbound readiness">
         Inbound stock is tied to active warehouse relationships. The selected relationship controls which target warehouses are available for receiving.
       </GuidancePanel>
+      <FirstRunChecklist
+        title="Merchant setup path"
+        items={[
+          { label: 'Create a SKU', done: items.length > 0, detail: 'Start with the item the warehouse will receive or allocate.' },
+          { label: 'Connect a warehouse partner', done: activeRelationships.length > 0, detail: 'Request service, then wait for activation before inbound stock can move.' },
+          { label: 'Send inbound stock', done: inboundRequests.length > 0, detail: 'Submit stock against an active relationship and target warehouse.' },
+          { label: 'Create the first order', done: authorizedStock.some((row) => row.availableQuantity > 0), detail: 'Orders allocate cleanly after stock is available in a connected warehouse.' },
+        ]}
+      />
       <div className="metric-grid">
         <Metric label="Service providers" value={relationships.length} />
         <Metric label="Active relationships" value={activeRelationships.length} />
@@ -332,6 +347,7 @@ export function MerchantInventoryPage() {
       </form>
       <form aria-label="Request warehouse service form" className="panel-form" onSubmit={handleRequestRelationship}>
         <h2>Request Warehouse Service</h2>
+        {providerBlocker ? <p className="field-help prerequisite-help">{providerBlocker}</p> : null}
         <div className="form-grid">
           <label htmlFor="merchant-service-provider">
             <span>Warehouse provider</span>
@@ -353,7 +369,7 @@ export function MerchantInventoryPage() {
             <input id="merchant-service-notes" value={relationshipNote} onChange={(event) => setRelationshipNote(event.target.value)} />
           </label>
         </div>
-        <button className="primary-button fit-button" type="submit" disabled={submitting || providerOptions.length === 0}>
+        <button className="primary-button fit-button" type="submit" disabled={submitting || providerOptions.length === 0} title={providerBlocker || undefined}>
           Request service
         </button>
       </form>
@@ -416,15 +432,17 @@ export function MerchantInventoryPage() {
           </label>
         </div>
         <div className="form-actions">
+          {inboundBlocker ? <p className="field-help prerequisite-help">{inboundBlocker}</p> : null}
           <button
             className="secondary-button fit-button"
             type="button"
             disabled={submitting || !canCreateInbound}
+            title={inboundBlocker || undefined}
             onClick={() => void createInboundRequest('draft')}
           >
             Save draft
           </button>
-          <button className="primary-button fit-button" type="submit" disabled={submitting || !canCreateInbound}>
+          <button className="primary-button fit-button" type="submit" disabled={submitting || !canCreateInbound} title={inboundBlocker || undefined}>
             Submit inbound
           </button>
         </div>
@@ -631,6 +649,8 @@ export function MerchantOrdersPage() {
   if (error) return <ErrorState title={error} />
   if (!data) return <EmptyState label="No merchant orders available" guidance="Add inventory, confirm stock availability, then create the first customer order from this page." />
 
+  const createOrderBlocker = data.items.length === 0 ? 'Create a stock item before creating an order.' : ''
+
   return (
     <div className="page-stack">
       <PageHeading title="Orders" subtitle="Create orders, allocate available stock, and monitor backorders." />
@@ -641,6 +661,7 @@ export function MerchantOrdersPage() {
       {actionMessage ? <div className="inline-success">{actionMessage}</div> : null}
       <form aria-label="Create order form" className="panel-form" onSubmit={handleCreateOrder}>
         <h2>Create Order</h2>
+        {createOrderBlocker ? <p className="field-help prerequisite-help">{createOrderBlocker}</p> : null}
         <div className="form-grid">
           <label htmlFor="merchant-order-item">
             <span>Item</span>
@@ -714,7 +735,7 @@ export function MerchantOrdersPage() {
             })}
           </div>
         ) : null}
-        <button className="primary-button fit-button" type="submit" disabled={submitting || data.items.length === 0}>
+        <button className="primary-button fit-button" type="submit" disabled={submitting || data.items.length === 0} title={createOrderBlocker || undefined}>
           {submitting ? 'Creating' : 'Create order'}
         </button>
       </form>
@@ -1199,6 +1220,34 @@ function GuidancePanel({ title, children }: { title: string; children: ReactNode
       <strong>{title}</strong>
       <p>{children}</p>
     </aside>
+  )
+}
+
+function FirstRunChecklist({
+  title,
+  items,
+}: {
+  title: string
+  items: Array<{ label: string; done: boolean; detail: string }>
+}) {
+  return (
+    <section className="first-run-checklist" aria-label={title}>
+      <div className="section-heading-row">
+        <h2>{title}</h2>
+        <span>{items.filter((item) => item.done).length}/{items.length} ready</span>
+      </div>
+      <ol>
+        {items.map((item) => (
+          <li className={item.done ? 'is-complete' : ''} key={item.label}>
+            <span className={item.done ? 'data-chip' : 'data-chip warning-chip'}>{item.done ? 'Ready' : 'Next'}</span>
+            <div>
+              <strong>{item.label}</strong>
+              <p>{item.detail}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
   )
 }
 

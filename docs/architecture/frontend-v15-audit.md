@@ -105,6 +105,14 @@ First V15.3 slice proof on 2026-05-31:
 - Docker frontend rebuild and in-app browser role cycle across owner, merchant, and warehouse accounts. The pass verified the new navigation labels, notification wording, no visible notification `prototype` wording, merchant `Start with risk` guidance, warehouse `Work queue` label, and no captured browser console errors. One exact text assertion for `Start with today's work` was rechecked by visible DOM excerpt because apostrophe serialization made the first automated boolean too brittle.
 - `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` passed after aligning Playwright expectations with the new human-facing labels and notification severity names.
 
+Second V15.3 slice:
+
+- Merchant inventory now shows a compact `Merchant setup path` checklist for first SKU, warehouse partner, inbound stock, and first order readiness.
+- Merchant inbound and order forms now explain missing prerequisites beside disabled actions instead of relying only on disabled button state.
+- Warehouse console now shows a compact `Warehouse setup path` checklist for partner access, inbound receiving, queue work, and exceptions.
+- Warehouse relationship and inbound rows now explain why actions are locked after activation, receipt, cancellation, rejection, or draft-only states.
+- Focused proof passed with `npm test -- --run MerchantPages WarehousePage`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, and an in-app browser proof of the merchant and warehouse checklist surfaces after rebuilding the Docker frontend.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |
