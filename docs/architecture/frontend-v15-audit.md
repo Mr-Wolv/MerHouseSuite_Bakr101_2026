@@ -129,6 +129,14 @@ Fourth V15.3 slice:
 - Focused proof passed with `npm test -- --run MerchantPages WarehousePage ServiceAccountabilityPage AssistantPage`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and in-app browser merchant/service/assistant/warehouse copy proof with no captured console errors.
 - The first broad check caught one stale V15 empty-state E2E expectation for the old merchant guidance; the proof was updated to the new concise copy, `npm exec -- playwright test tests/e2e/v15-empty-state-live.spec.ts --project=chromium` passed, and `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` then passed.
 
+V15.3 closeout proof:
+
+- `.\scripts\quality\frontend-full-tour.ps1 -OutputPath .\reports\v15-3-human-comprehension\route-tour-closeout.json` passed. The report covered 136 routed checks across public, owner, admin, support admin, auditor, merchant, warehouse, detail, desktop, and narrow surfaces with 0 horizontal-overflow records, 0 console-error records, 0 empty interactive-name records, and 0 unlabeled form-control records.
+- `V15_EMPTY_STATE_REPORT=..\reports\v15-3-human-comprehension\empty-state-closeout.json npm exec -- playwright test tests/e2e/v15-empty-state-live.spec.ts --project=chromium` passed for 10 fresh merchant and warehouse empty-state routes, with screenshots saved under `reports/v15-3-human-comprehension/`.
+- The in-app browser spot check covered owner overview/audit/notifications/assistant, merchant overview/inventory/orders/service/assistant/notifications, warehouse console/service/assistant/notifications, and merchant inventory not-found detail state. The pass confirmed expected V15.3 copy, no horizontal overflow, and no captured console errors on the checked surfaces.
+- The only closeout caveats were tooling/session mechanics, not app regressions: the in-app browser hit its known virtual-clipboard limitation during scripted login fill, and one owner overview attempt reused a merchant session until a direct visible logout/login corrected it.
+- No remaining V15.3 UI/UX blocker was found that should stop movement into local AI-agent planning or Pre-V16 review. Remaining polish belongs to V15.2 AI-agent architecture and the Pre-V16 professionalization gate.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |
