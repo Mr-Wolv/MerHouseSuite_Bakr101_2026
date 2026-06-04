@@ -12,6 +12,7 @@ The roadmap QC rules are mandatory acceptance criteria, not advisory notes. Befo
 - Translate the relevant QC rules into concrete checks for the task.
 - Identify whether the change touches the future publication boundary, private notes, scripts, CI, docs, database, backend behavior, frontend behavior, or repository metadata.
 - Check the visible user-facing result, not only the implementation detail. For example, GitHub Actions naming means both the workflow name and visible run title.
+- Add or update focused tests for newly added or materially changed behavior. Tests should assert the durable user-facing contract and current invariant, not obsolete fixture counts, incidental ordering, or implementation timing.
 - If code, documentation, scripts, CI behavior, or repository publication state disagree with the roadmap, fix the disagreement or call it out before closing the task.
 - Do not mark work complete until the matching proof from the Change Quality Rule has passed or the remaining gap is explicitly documented.
 
