@@ -145,7 +145,8 @@ describe('AssistantPage', () => {
     renderPage()
 
     const prompt = await screen.findByLabelText('Prompt')
-    await user.clear(prompt)
+    expect(prompt).toHaveAttribute('placeholder', 'Summarize what needs review next')
+    expect(prompt).toHaveValue('')
     await user.type(prompt, 'Suggest what needs review')
     await user.click(screen.getByRole('button', { name: 'Run assistant' }))
 

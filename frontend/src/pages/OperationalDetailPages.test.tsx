@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { ApiError } from '../api/client'
 import type { AuthState } from '../auth/AuthContextValue'
 import { AuthContext } from '../auth/AuthContextValue'
 import {
@@ -190,6 +191,16 @@ describe('InventoryItemDetailPage', () => {
     expect(screen.getAllByText('reserved 0')).toHaveLength(1)
     expect(screen.getAllByText('reserved 1')).toHaveLength(1)
     expect(apiMock.inventoryItemDetail).toHaveBeenCalledWith('merchant-token', 'item-1')
+  })
+
+  it('renders recoverable inventory not-found guidance', async () => {
+    apiMock.inventoryItemDetail.mockRejectedValue(new ApiError(404, 'Not found', ['Inventory item not found: missing-item']))
+
+    renderWithRoute(<InventoryItemDetailPage />, '/inventory/items/missing-item', '/inventory/items/:inventoryItemId')
+
+    expect(await screen.findByText('Inventory item not found: missing-item')).toBeInTheDocument()
+    expect(screen.getByText(/archived, removed, or belongs to another merchant context/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to Stock' })).toHaveAttribute('href', '/merchant/inventory')
   })
 })
 

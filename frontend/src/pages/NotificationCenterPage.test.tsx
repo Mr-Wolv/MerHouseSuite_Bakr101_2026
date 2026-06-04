@@ -107,7 +107,9 @@ describe('NotificationCenterPage', () => {
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Notifications' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Alert rules')).toHaveTextContent('Preferences decide which channels stay active')
+    expect(screen.getByLabelText('Alert rules')).toHaveTextContent('Start with the inbox')
+    const sections = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+    expect(sections.indexOf('Alert inbox')).toBeLessThan(sections.indexOf('Preferences'))
     expect(screen.getAllByText('Account lifecycle')).toHaveLength(2)
     expect(screen.getByText('Email channel')).toBeInTheDocument()
     expect(screen.getByText('Account ready')).toBeInTheDocument()

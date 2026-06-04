@@ -161,6 +161,14 @@ V15.4/V15.5 ownership for user-raised UX concerns:
 | Connected users through alerts, packages, relationships, and handoffs | V15.5 | Alerts and detail views connect merchant, warehouse, platform, package, relationship, inbound, fulfillment, exception, and service events. | Role/tenant-scoped backend/frontend tests and connected live workflow proof. |
 | Performance, indexing, and metrics | V15.6 | Dense routes, backend endpoints, database access paths, polling, and Docker resource use have measured baselines and justified optimizations before Pre-V16. | Query-plan/baseline report, focused tests, browser route proof, and broad quality gate. |
 
+First V15.4 slice:
+
+- Assistant prompt ergonomics now use an empty text area with a prompt suggestion as placeholder, so user input no longer appends to editable default text.
+- Notifications now put `Alert inbox` before `Preferences`; channel settings remain available below the work queue.
+- Warehouse setup guidance now changes partner-access detail based on actual state, avoiding the `Ready` plus "wait for request" contradiction.
+- Inventory detail not-found now uses a recoverable empty state with likely causes and a `Back to Stock` action instead of a bare missing-id page.
+- Focused proof passed with `npm test -- --run AssistantPage NotificationCenterPage WarehousePage OperationalDetailPages`, `npm test -- --run`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and in-app browser proof of assistant, notifications, warehouse, and inventory not-found surfaces with no captured console errors.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |

@@ -266,6 +266,7 @@ describe('WarehousePage', () => {
     expect(screen.getByText("Start with today's work")).toBeInTheDocument()
     expect(screen.getByLabelText('Warehouse setup path')).toHaveTextContent('2/4 ready')
     expect(screen.getByText('Activate partner access')).toBeInTheDocument()
+    expect(screen.getByText('Review requested partners first; active partners can send stock and orders.')).toBeInTheDocument()
     expect(screen.getByText('Available units')).toBeInTheDocument()
     const queueCard = screen.getByLabelText(/Allocation allocati Adidas Merchant PENDING/i)
     expect(queueCard).toBeInTheDocument()
@@ -274,6 +275,18 @@ describe('WarehousePage', () => {
     expect(await screen.findByText('Merchant Item')).toBeInTheDocument()
     expect(screen.getAllByText('10')[0]).toHaveClass('quantity-cell', 'quantity-ready')
     expect(screen.getAllByText('5')[0]).toHaveClass('quantity-cell', 'quantity-pending')
+  })
+
+  it('does not tell active partner accounts to wait for a request', async () => {
+    apiMock.merchantWarehouseRelationships.mockResolvedValue([
+      { ...relationships[0], status: 'ACTIVE', approvedAt: '2026-05-17T00:05:00Z' },
+    ])
+
+    renderWithAuth(<WarehousePage />)
+
+    expect(await screen.findByLabelText('Warehouse setup path')).toHaveTextContent('3/4 ready')
+    expect(screen.getByText('Active partners can send stock and orders.')).toBeInTheDocument()
+    expect(screen.queryByText('Wait for a merchant or platform admin to request service.')).not.toBeInTheDocument()
   })
 
   it('advances a pending allocation to picking', async () => {

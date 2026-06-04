@@ -17,7 +17,7 @@ const scopeLabels: Record<AssistantScope, string> = {
 export function AssistantPage() {
   const { token, user } = useAuth()
   const [interactions, setInteractions] = useState<AssistantInteraction[]>([])
-  const [prompt, setPrompt] = useState('Summarize what needs review next')
+  const [prompt, setPrompt] = useState('')
   const [scope, setScope] = useState<AssistantScope>('PLATFORM_OVERVIEW')
   const [targetTenantId, setTargetTenantId] = useState('')
   const [decisionReason, setDecisionReason] = useState('Reviewed by operator')
@@ -137,7 +137,13 @@ export function AssistantPage() {
           </>
         ) : null}
         <label htmlFor="assistant-prompt">Prompt</label>
-        <textarea id="assistant-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={4} />
+        <textarea
+          id="assistant-prompt"
+          value={prompt}
+          onChange={(event) => setPrompt(event.target.value)}
+          placeholder="Summarize what needs review next"
+          rows={4}
+        />
         <div className="action-row">
           <button className="icon-text-button" type="submit" disabled={submitting || !prompt.trim()}>
             <Send size={16} aria-hidden="true" />

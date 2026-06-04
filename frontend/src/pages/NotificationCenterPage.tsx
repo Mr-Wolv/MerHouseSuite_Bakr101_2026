@@ -208,7 +208,7 @@ export function NotificationCenterPage() {
         <p>Review alerts that may need action. Cleared history stays available below.</p>
       </div>
       <GuidancePanel title="Alert rules">
-        Preferences decide which channels stay active. The inbox separates urgent work from review-only history.
+        Start with the inbox. Preferences stay below when channels need tuning.
       </GuidancePanel>
 
       {error ? <ErrorState title={error} /> : null}
@@ -230,49 +230,6 @@ export function NotificationCenterPage() {
         <div className="metric">
           <span>Provider handoffs</span>
           <strong>{providerReadyCount}</strong>
-        </div>
-      </section>
-
-      <section className="table-section">
-        <div className="table-toolbar">
-          <h2>Preferences</h2>
-          <button className="icon-text-button" type="button" onClick={() => void load()}>
-            <RefreshCcw size={16} aria-hidden="true" />
-            <span>Refresh</span>
-          </button>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Topic</th>
-                <th>Channel</th>
-                <th>Status</th>
-                <th>Updated</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {preferences.map((preference) => (
-                <tr key={preference.id}>
-                  <td>{topicLabels[preference.topic]}</td>
-                  <td>{channelLabels[preference.channel]}</td>
-                  <td><StatusBadge value={preference.enabled ? 'enabled' : 'disabled'} /></td>
-                  <td><span className="timestamp-cell">{new Date(preference.updatedAt).toLocaleString()}</span></td>
-                  <td>
-                    <button
-                      className={preference.enabled ? 'table-button warning-button' : 'table-button'}
-                      type="button"
-                      disabled={busyKey === preference.id}
-                      onClick={() => void togglePreference(preference)}
-                    >
-                      {preference.enabled ? 'Disable' : 'Enable'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </section>
 
@@ -343,6 +300,49 @@ export function NotificationCenterPage() {
             guidance="New account, operations, service, or outbox alerts will appear here. Keep only the channels you own enabled."
           />
         )}
+      </section>
+
+      <section className="table-section">
+        <div className="table-toolbar">
+          <h2>Preferences</h2>
+          <button className="icon-text-button" type="button" onClick={() => void load()}>
+            <RefreshCcw size={16} aria-hidden="true" />
+            <span>Refresh</span>
+          </button>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Topic</th>
+                <th>Channel</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {preferences.map((preference) => (
+                <tr key={preference.id}>
+                  <td>{topicLabels[preference.topic]}</td>
+                  <td>{channelLabels[preference.channel]}</td>
+                  <td><StatusBadge value={preference.enabled ? 'enabled' : 'disabled'} /></td>
+                  <td><span className="timestamp-cell">{new Date(preference.updatedAt).toLocaleString()}</span></td>
+                  <td>
+                    <button
+                      className={preference.enabled ? 'table-button warning-button' : 'table-button'}
+                      type="button"
+                      disabled={busyKey === preference.id}
+                      onClick={() => void togglePreference(preference)}
+                    >
+                      {preference.enabled ? 'Disable' : 'Enable'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   )

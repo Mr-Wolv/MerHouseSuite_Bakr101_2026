@@ -348,7 +348,15 @@ export function WarehousePage() {
           <FirstRunChecklist
             title="Warehouse setup path"
             items={[
-              { label: 'Activate partner access', done: activeRelationships > 0, detail: requestedRelationships ? 'Review requested partners first; active partners can send stock and orders.' : 'Wait for a merchant or platform admin to request service.' },
+              {
+                label: 'Activate partner access',
+                done: activeRelationships > 0,
+                detail: activeRelationships > 0
+                  ? 'Active partners can send stock and orders.'
+                  : requestedRelationships
+                    ? 'Review requested partners first; active partners can send stock and orders.'
+                    : 'Wait for a merchant or platform admin to request service.',
+              },
               { label: 'Receive inbound stock', done: inventory.length > 0, detail: 'Approved inbound stock creates the stock rows that fulfillment uses.' },
               { label: 'Work the queue', done: warehouseAllocations.length > 0, detail: 'Orders appear here after merchants allocate available stock.' },
               { label: 'Watch exceptions', done: !exceptions.some((exception) => exception.status === 'OPEN'), detail: 'Open exceptions need review before the queue is clean.' },
