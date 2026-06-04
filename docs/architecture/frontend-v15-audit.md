@@ -113,6 +113,13 @@ Second V15.3 slice:
 - Warehouse relationship and inbound rows now explain why actions are locked after activation, receipt, cancellation, rejection, or draft-only states.
 - Focused proof passed with `npm test -- --run MerchantPages WarehousePage`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, and an in-app browser proof of the merchant and warehouse checklist surfaces after rebuilding the Docker frontend.
 
+Third V15.3 slice:
+
+- Shared status language now adds plain-language accessible labels and hover titles to compact status badges without adding table noise.
+- Notification delivery-stage and provider-status chips now use the same explanation language for `PREPARED`, `LOCAL_RECORDED`, `SKIPPED_BY_PREFERENCE`, `NOT_CONFIGURED`, and `READY_FOR_PROVIDER`.
+- Focused proof passed with `npm test -- --run StatusBadge NotificationCenterPage ServiceAccountabilityPage MerchantPages WarehousePage AdminManagement`, `npm run lint`, and `npm run build`.
+- Docker frontend rebuild and in-app browser proof verified status explanations on notifications, partner relationships, and service review with no captured browser console errors.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |

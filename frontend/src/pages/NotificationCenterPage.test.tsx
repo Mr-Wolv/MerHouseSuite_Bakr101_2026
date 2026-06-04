@@ -116,6 +116,8 @@ describe('NotificationCenterPage', () => {
     expect(screen.getByText('Your MerHouse account was created from an approved access request.')).toHaveClass('note-cell')
     expect(screen.getByText('Local recorded')).toBeInTheDocument()
     expect(screen.getByText('Channel recorded')).toBeInTheDocument()
+    expect(screen.getByLabelText(/LOCAL RECORDED: Recorded inside MerHouse/i).getAttribute('title')).toContain('local review')
+    expect(screen.getByLabelText(/NOT CONFIGURED: No external provider is configured/i).getAttribute('title')).toContain('locally')
     expect(screen.getAllByText('Action needed').some((node) => node.classList.contains('severity-action'))).toBe(true)
     expect(screen.queryByText(/prototype/i)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Disable' })).toHaveClass('warning-button')
@@ -172,6 +174,7 @@ describe('NotificationCenterPage', () => {
 
     expect(await screen.findByText('Current user alert')).toBeInTheDocument()
     expect(screen.getByText('Ready for handoff')).toHaveClass('data-chip', 'warning-chip')
+    expect(screen.getByLabelText(/READY FOR PROVIDER: Ready for an external delivery provider/i)).toHaveClass('data-chip', 'warning-chip')
     expect(screen.getAllByText('Action needed').some((node) => node.classList.contains('severity-action'))).toBe(true)
     expect(screen.getByText('Shipment')).toBeInTheDocument()
     expect(screen.queryByText('Another user alert')).not.toBeInTheDocument()

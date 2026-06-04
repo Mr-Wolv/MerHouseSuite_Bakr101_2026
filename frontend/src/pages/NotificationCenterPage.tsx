@@ -13,6 +13,7 @@ import type {
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
 import { StatusBadge } from '../components/StatusBadge'
+import { statusAccessibleLabel, statusExplanation } from '../components/StatusLanguage'
 
 const topicLabels: Record<NotificationTopic, string> = {
   ACCOUNT_LIFECYCLE: 'Account lifecycle',
@@ -305,8 +306,18 @@ export function NotificationCenterPage() {
                   <p className="note-cell">{displayDeliveryBody(delivery.body)}</p>
                   <div className="action-row">
                     <span className="data-chip">{channelLabels[delivery.channel]}</span>
-                    <span className="data-chip">{deliveryStageLabels[delivery.deliveryStage]}</span>
-                    <span className={delivery.providerStatus === 'READY_FOR_PROVIDER' ? 'data-chip warning-chip' : 'data-chip'}>
+                    <span
+                      className="data-chip"
+                      aria-label={statusAccessibleLabel(delivery.deliveryStage)}
+                      title={statusExplanation(delivery.deliveryStage)}
+                    >
+                      {deliveryStageLabels[delivery.deliveryStage]}
+                    </span>
+                    <span
+                      className={delivery.providerStatus === 'READY_FOR_PROVIDER' ? 'data-chip warning-chip' : 'data-chip'}
+                      aria-label={statusAccessibleLabel(delivery.providerStatus)}
+                      title={statusExplanation(delivery.providerStatus)}
+                    >
                       {providerStatusLabels[delivery.providerStatus]}
                     </span>
                     <span className="data-chip">{new Date(delivery.createdAt).toLocaleString()}</span>
