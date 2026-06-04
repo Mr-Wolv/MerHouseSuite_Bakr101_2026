@@ -137,6 +137,17 @@ V15.3 closeout proof:
 - The only closeout caveats were tooling/session mechanics, not app regressions: the in-app browser hit its known virtual-clipboard limitation during scripted login fill, and one owner overview attempt reused a merchant session until a direct visible logout/login corrected it.
 - No remaining V15.3 UI/UX blocker was found that should stop movement into local AI-agent planning or Pre-V16 review. Remaining polish belongs to V15.2 AI-agent architecture and the Pre-V16 professionalization gate.
 
+Slow live UX review before V15.2:
+
+- Owner/admin overview works without overflow or console errors, but it still feels database-heavy for a fresh human because seeded/test-looking tenants, IDs, and long operational tables appear before a clear "what needs attention now" work queue.
+- Admin governance tables expose repeated destructive or privileged actions (`Suspend`, `End`, `Retry`, `Dead-letter`, `Reset`) across dense rows. The controls are protected, but the visual rhythm feels harsher than a professional review queue.
+- Merchant inventory is doing too many jobs at once: SKU creation, partner request, inbound stock, relationships, authorized stock, inbound history, and item history all compete in one vertical surface.
+- Merchant orders combines create-order, contact capture, CSV/import intake, exception resolution, shipments, and order cards. It works, but a first-time user may not know which panel matters first.
+- Warehouse console is operationally useful but action-heavy. The setup checklist can say a step is `Ready` while its detail still says to wait for a merchant/platform request, which reads contradictory.
+- Notifications put preference administration before the alert inbox, so the actual "what needs my attention?" item sits below settings. The visible account-lifecycle alert also still reads like delivery-history plumbing rather than a user-action cue.
+- Assistant suggestions are useful enough for deterministic triage, but the prompt field starts with an editable prefilled prompt. Typing without clearing appends to the default text, which makes the assistant feel clunky.
+- Detail not-found states are intentionally safe, but the inventory not-found state is too bare: it shows the missing ID without a recovery action back to Stock or an explanation of likely causes.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |
