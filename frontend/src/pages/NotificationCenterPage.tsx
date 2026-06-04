@@ -14,6 +14,7 @@ import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
 import { StatusBadge } from '../components/StatusBadge'
 import { statusAccessibleLabel, statusExplanation } from '../components/StatusLanguage'
+import { notifyUnreadChanged } from '../notifications/notificationEvents'
 
 const topicLabels: Record<NotificationTopic, string> = {
   ACCOUNT_LIFECYCLE: 'Account lifecycle',
@@ -190,6 +191,9 @@ export function NotificationCenterPage() {
     try {
       const updated = await api.markNotificationRead(token, delivery.id)
       setDeliveries((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      if (delivery.status === 'RECORDED' && !delivery.readAt && (updated.status === 'READ' || updated.readAt)) {
+        notifyUnreadChanged(-1)
+      }
       setMessage('Notification marked read.')
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to mark notification read.')

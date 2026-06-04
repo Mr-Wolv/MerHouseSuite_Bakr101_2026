@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { AuthState } from '../auth/AuthContextValue'
 import { AuthContext } from '../auth/AuthContextValue'
+import { notificationUnreadChangedEvent } from '../notifications/notificationEvents'
 import { NotificationCenterPage } from './NotificationCenterPage'
 
 const apiMock = vi.hoisted(() => ({
@@ -129,6 +130,8 @@ describe('NotificationCenterPage', () => {
 
   it('updates preferences and marks delivery records read', async () => {
     const user = userEvent.setup()
+    const unreadListener = vi.fn()
+    window.addEventListener(notificationUnreadChangedEvent, unreadListener)
     renderPage()
 
     await user.click(await screen.findByRole('button', { name: 'Disable' }))
@@ -146,6 +149,9 @@ describe('NotificationCenterPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Read/ })).toBeDisabled()
     })
+    expect(unreadListener).toHaveBeenCalledTimes(1)
+    expect(unreadListener.mock.calls[0][0]).toMatchObject({ detail: { delta: -1 } })
+    window.removeEventListener(notificationUnreadChangedEvent, unreadListener)
   })
 
   it('renders only the delivery records returned for the authenticated user', async () => {

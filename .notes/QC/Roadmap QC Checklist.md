@@ -39,6 +39,14 @@ Use this before calling meaningful work done.
 - [ ] Markdown or notes changed: run `.\scripts\quality\markdown-check.ps1`.
 - [ ] Publication-facing boundaries changed: run public-readiness and review the `backend/` and `frontend/` boundary.
 
+## Coherence Gap Check
+
+- [ ] Code behavior, database migrations, tests, scripts, generated reports, tracked docs, private notes, and roadmap claims describe the same current system.
+- [ ] New or changed behavior has tests at the right layer and proof that it works with surrounding flows.
+- [ ] Scripts still verify the app as documented, and docs still name the scripts that matter.
+- [ ] Generated reports and screenshots are referenced accurately and do not become stale proof for changed behavior.
+- [ ] Any contradiction names the conflicting source of truth, owner version, next action, and proof needed to close it.
+
 ## Completion Note
 
 Record:

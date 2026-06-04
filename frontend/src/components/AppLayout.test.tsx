@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import type { AuthState } from '../auth/AuthContextValue'
 import { AuthContext } from '../auth/AuthContextValue'
 import { AppLayout } from './AppLayout'
+import { notificationUnreadChangedEvent } from '../notifications/notificationEvents'
 
 const apiMock = vi.hoisted(() => ({
   notificationSummary: vi.fn(),
@@ -76,6 +77,19 @@ describe('AppLayout role navigation', () => {
 
     expect(await screen.findByLabelText('2 unread alerts')).toBeInTheDocument()
     expect(apiMock.notificationSummary).toHaveBeenCalledWith('role-token')
+  })
+
+  it('updates the unread alert badge immediately when notification state changes in-page', async () => {
+    renderLayout(baseAuthState)
+
+    expect(await screen.findByLabelText('2 unread alerts')).toBeInTheDocument()
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(notificationUnreadChangedEvent, { detail: { delta: -1 } }))
+    })
+
+    expect(await screen.findByLabelText('1 unread alerts')).toBeInTheDocument()
+    expect(screen.queryByLabelText('2 unread alerts')).not.toBeInTheDocument()
   })
 
   it('hides the alert badge when there are no unread alerts', async () => {

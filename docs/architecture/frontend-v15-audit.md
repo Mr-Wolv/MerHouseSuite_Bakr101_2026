@@ -23,6 +23,24 @@ After the current V15 subversions finish, V15 needs a full gap-coverage sweep be
 
 Each remaining V15 subversion should apply the same gateway at its own scale before closeout, then the whole-app pass repeats after V15.6 and before Pre-V16.
 
+## Program-Wide Gap Radar
+
+The owner review raised a valid concern: the app can pass automated checks while still hiding program-wide gaps that are hard to prove from instinct alone. V15 will treat that concern as a standing discovery routine, not as a reason to abandon the planned sequence.
+
+For each remaining V15 pass, use this gap radar before closeout:
+
+| Lens | Question | Owner when gap is found |
+| --- | --- | --- |
+| Fresh human comprehension | Can a capable new user understand what this screen is for, what to do first, and what waits on another role? | V15.5 for connected workflow confusion; V15 closeout for broad docs/copy contradiction. |
+| Connected workflow continuity | Do relationships, packages, inbound work, fulfillment, service issues, alerts, and detail pages explain how users affect each other? | V15.5. |
+| Immediate interaction feedback | Does the current screen respond after the click, submit, toggle, filter, retry, or decision without requiring navigation or polling to feel correct? | V15.7. |
+| Performance and scale feel | Does the route feel slow, dense, polling-heavy, over-rendered, or database-expensive under realistic local data? | V15.6. |
+| Accessibility and professional polish | Are labels, focus, busy states, announcements, icons, empty/error states, and narrow layouts coherent for real use? | Current subversion if touched; otherwise V15 closeout. |
+| Code/docs/tests/scripts coherence | Do code behavior, database migrations, tests, scripts, generated reports, tracked docs, private notes, and roadmap claims describe the same current system? | V15 whole-version closeout, unless the gap blocks the current subversion or belongs to Pre-V16/V16 release certification. |
+| Safety and publication boundary | Could the behavior, copy, config, report, or source leak private context or imply production readiness too early? | Immediate blocker; Pre-V16/V16 if production certification is required. |
+
+Each gap record should name the route, subsystem, or repository layer; the user-visible or maintainer-visible symptom; the conflicting source of truth if any; why it matters; the assigned owner version; the next action; and the proof that will close it.
+
 ## Audit Dimensions
 
 Every row below should be evaluated through these dimensions before V15 closes:
@@ -166,6 +184,7 @@ V15.4/V15.5 ownership for user-raised UX concerns:
 | New-user guidance and connection | V15.4 and V15.5 | Fresh users understand what to create, who to connect with, what waits on another role, and where handoffs appear. | Fresh-account proof plus connected workflow live scenario. |
 | Connected users through alerts, packages, relationships, and handoffs | V15.5 | Alerts and detail views connect merchant, warehouse, platform, package, relationship, inbound, fulfillment, exception, and service events. | Role/tenant-scoped backend/frontend tests and connected live workflow proof. |
 | Performance, indexing, and metrics | V15.6 | Dense routes, backend endpoints, database access paths, polling, and Docker resource use have measured baselines and justified optimizations before Pre-V16. | Query-plan/baseline report, focused tests, browser route proof, and broad quality gate. |
+| Responsive app interactivity | V15.7 | Clicks, submits, toggles, filters, mark-read actions, assistant decisions, retries, creates, updates, and destructive actions visibly respond on the current screen without requiring route changes or polling to feel correct. | Route/action matrix, focused interaction tests, before/after Playwright proof, live slow-tour proof, and broad quality gate. |
 
 First V15.4 slice:
 
@@ -219,6 +238,7 @@ V15.4 closeout slice:
 - `.\scripts\quality\frontend-full-tour.ps1 -OutputPath .\reports\v15-4-closeout\route-tour-closeout.json` passed, covering 136 routed checks across public, owner/admin, support admin, auditor, merchant, warehouse, detail, desktop, and narrow surfaces.
 - Settled Docker slow-tour proof passed with 11 targeted V15.4 checks across `/admin`, `/admin/audit`, `/notifications`, `/assistant`, `/service-accountability`, `/merchant/inventory`, `/merchant/orders`, `/warehouse`, and inventory not-found. The report at `reports/v15-4-closeout/slow-tour/v15-4-slow-tour-settled.json` recorded 0 failures for expected hierarchy text, visible version/prototype residue, unnamed controls, icon-text button gaps, horizontal overflow, unexpected console errors, and recoverable not-found semantics.
 - Final production live tour proof on `localhost:3000` covered 54 public, owner, admin, support admin, auditor, merchant, warehouse, notification, assistant, service-accountability, and not-found route-role combinations. The report at `reports/v15-4-live-tour/live-tour-summary.json` recorded 0 unexpected failures for page headings, horizontal overflow, unlabeled controls, default Vite asset residue, and unexpected console errors; intentional invalid detail routes still produce the API `404` used to render recoverable not-found states.
+- Notification read actions now publish an immediate unread-count change to the app shell, so clicking `Mark read` on `/notifications` decrements the `Alerts` badge without requiring a route change or waiting for the next summary poll. The summary poll remains the correction path if a later backend refresh disagrees.
 - Broad closeout proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
 
 User-perspective V15.3 quality-of-life backlog:
@@ -241,10 +261,26 @@ The first proof set is focused frontend coverage for app-shell unread badge beha
 
 The first-run empty-state proof is now tracked in `reports/v15-1-ui-signature/empty-state-live-check.json`. It creates fresh merchant and warehouse accounts with no operational history, then proves guided empty states for merchant overview, inventory, orders, service accountability, assistant, notifications, warehouse console, and warehouse service/assistant/notification surfaces. Screenshot evidence lives beside the report under `reports/v15-1-ui-signature/`.
 
-Notification alerting is now split into distinct critical, needs-action, for-review, and resolved visual lanes instead of a single broad warning treatment. The focused proof covers unread count behavior, severity rendering, resolved/read quieting, and a live notification-center route with realistic delivery records; evidence is tracked in `reports/v15-1-ui-signature/notification-alert-live-check.json` with screenshots in the same report folder.
+Notification alerting is now split into distinct critical, needs-action, for-review, and resolved visual lanes instead of a single broad warning treatment. The focused proof covers unread count behavior, immediate shell-badge decrement after a read action, severity rendering, resolved/read quieting, and a live notification-center route with realistic delivery records; evidence is tracked in `reports/v15-1-ui-signature/notification-alert-live-check.json` with screenshots in the same report folder.
 
 The icon and state consistency sweep now centralizes MerHouse's shared icon language for navigation, auth, workflow states, alerts, assistant, inventory, orders, warehouse execution, service, audit, and not-found cases. Shared loading, error, and empty states now render accessible, purpose-specific symbols instead of a single generic state treatment, with focused component proof in `frontend/src/components/DataState.test.tsx`.
 
 V15.1 closeout proof passed on 2026-05-31 with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`. The gate covered backend tests, frontend lint, frontend build, Vitest, the full Playwright suite, markdown links, publication-boundary checks, CI naming, sensitive-file checks, and sensitive-pattern scans. During closeout the Playwright suite was made serial at the worker level because these E2E tests intentionally share one seeded local stack; this avoids connection-refused cascades and state races while preserving the route-tour and workflow proof.
 
 The final live browser sweep checked `/login`, `/admin`, `/assistant`, `/notifications`, `/service-accountability`, and a stale inventory-detail URL. The authenticated routes showed the shared icon language, no visible customer-facing "prototype" wording, no stuck loading state, and real unread alert labeling; the stale inventory-detail URL landed in the intentional error/not-found treatment instead of a broken page.
+
+## V15.7 Responsive App Interactivity Gate
+
+The notification read/badge issue exposed a broader acceptance question: the app should feel responsive on the action itself, not only after route changes, polling refreshes, or manual reloads. V15.7 owns the final app-wide interaction pass before Pre-V16.
+
+Responsive-interactivity acceptance means:
+
+- a successful click, submit, toggle, filter, refresh, mark-read, accept/reject, retry, create, update, cancel, or destructive action changes the visible current screen as soon as the backend confirms it or enters a clear pending state while waiting
+- app-shell badges, page metrics, row/card state, disabled buttons, success/error messages, and visible lists stay synchronized after the action
+- failures roll back or explain the failed state without leaving stale success-looking UI behind
+- repeated clicks are protected with busy/disabled states where duplicate actions would be unsafe
+- keyboard and screen-reader users get the same state feedback through focus, labels, disabled/busy state, and live status announcements
+
+First V15.7 proof seed:
+
+- The notification center now decrements the `Alerts` shell badge immediately after a successful `Mark read` click. Focused AppLayout and NotificationCenter tests cover the event contract, `tests/e2e/v15-notification-alerts-live.spec.ts` proves the badge moves from `3 unread alerts` to `2 unread alerts` on the same route, and a real-backend localhost proof confirmed a visible `2` to `1` badge/metric change without navigation or console warnings.

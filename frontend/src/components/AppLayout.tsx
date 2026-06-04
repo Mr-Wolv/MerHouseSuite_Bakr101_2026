@@ -5,6 +5,8 @@ import { api } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { appIcons } from './AppIcons'
 import { ThemeToggle } from './ThemeToggle'
+import { notificationUnreadChangedEvent } from '../notifications/notificationEvents'
+import type { NotificationUnreadChangedDetail } from '../notifications/notificationEvents'
 
 const adminNav = [
   { to: '/admin', label: 'Overview', icon: appIcons.governance },
@@ -75,6 +77,17 @@ export function AppLayout() {
       window.clearInterval(interval)
     }
   }, [refreshNotificationSummary])
+
+  useEffect(() => {
+    function handleUnreadChanged(event: Event) {
+      const detail = (event as CustomEvent<NotificationUnreadChangedDetail>).detail
+      if (!detail || typeof detail.delta !== 'number') return
+      setUnreadCount((current) => Math.max(0, current + detail.delta))
+    }
+
+    window.addEventListener(notificationUnreadChangedEvent, handleUnreadChanged)
+    return () => window.removeEventListener(notificationUnreadChangedEvent, handleUnreadChanged)
+  }, [])
 
   return (
     <div className="app-shell">

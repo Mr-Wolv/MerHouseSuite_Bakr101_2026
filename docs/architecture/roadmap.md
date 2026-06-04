@@ -166,6 +166,20 @@ V15 whole-version closeout gateway:
 - UI/UX must pass a final professional review across the app: no awkward daily components, missing icons, ghost alerts, confusing empty states, inaccessible controls, clunky transitions, broken handoffs, incoherent overlap, misleading wording, or user-facing residue from earlier versions.
 - Each remaining V15 subversion should apply this gateway at its own scale before it is called closed, then the whole-version sweep repeats after V15.6 and before Pre-V16.
 
+Program-wide gap discovery routine:
+
+- Treat unproven product unease as a valid signal, not as proof of correctness or proof of failure. Convert it into a repeatable gap-discovery pass before claiming any remaining V15 subversion is closed.
+- Walk the app by role, route, viewport, and action. For each surface, record what a fresh user is trying to do, what changed visibly after each action, what stayed stale, what felt over-explained or under-explained, what required hidden project knowledge, and what proof exists.
+- Walk the repository by coherence boundary too: code behavior, database migrations, tests, scripts, generated reports, tracked docs, private notes, and roadmap claims must describe the same current system. A pass in one layer does not excuse drift in another layer.
+- Classify each gap by owner before fixing or deferring it:
+  - V15.5 for connected-user workflow, alert, package, relationship, handoff, and cross-role comprehension gaps.
+  - V15.6 for latency, database, polling, rendering, large-list, Docker resource, and measurable performance gaps.
+  - V15.7 for responsive interaction, stale count, silent click, duplicate-submit, busy-state, rollback, app-shell synchronization, and action-feedback gaps.
+  - V15 whole-version closeout for code/docs/test/script/report/roadmap coherence gaps, stale proof, publication-boundary drift, and cases where the project cannot prove its own current behavior.
+  - Pre-V16 or V16 only when the gap genuinely depends on productionization, external providers, stress/load certification, deployment, monitoring, backup/restore, or SaaS readiness.
+- Every discovered gap needs a short record with the route, subsystem, or repository layer; the conflicting source of truth if any; why it matters to a real user or maintainer; the assigned version owner; the next action; and the proof that will close it.
+- Do not let a broad gap hunt reorder the roadmap by accident. Use it to feed the next correct subversion in sequence unless the finding is a blocker for the current subversion or a safety/publication-boundary issue.
+
 ### V15.1: UI Signature, Human Empty States, And Alerting Polish
 
 Planned scope:
@@ -306,6 +320,27 @@ Completion proof expected for V15.6:
 - before/after proof for each optimization: measured problem, change made, metric improved or tradeoff documented
 - `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` plus any new performance proof script added under `scripts/quality/`
 - documentation update explaining which bottlenecks remain for Pre-V16 stress/load testing and which are already closed by V15.6
+
+### V15.7: Responsive App Interactivity And Action Feedback
+
+Planned scope:
+
+- audit the whole app for whether user actions feel immediately responsive after a click, submit, toggle, filter, navigation selection, refresh, mark-read, accept/reject, retry, create, update, cancel, or destructive action
+- make visible state update on the action that changed it, not only after leaving and returning to a route, waiting for a polling cycle, or relying on a later full reload
+- standardize optimistic or near-immediate UI feedback where safe: loading/busy states, disabled duplicate-submit protection, success/error announcements, count/badge updates, local row/card updates, focus return, and route-local refresh behavior
+- keep backend truth authoritative: optimistic UI must reconcile with API responses, roll back or explain failures clearly, and avoid showing cross-tenant, cross-role, or uncommitted data as durable truth
+- verify the app shell and page-local summaries stay synchronized for alerts, orders, inventory, inbound stock, warehouse work, service records, assistant suggestions, audit filters, outbox work, relationship actions, and account lifecycle flows
+- remove interaction dead zones where a user clicks a valid control and sees no state change, unclear waiting state, stale count, stale card, hidden error, duplicate row, or delayed confirmation
+- include accessible interaction proof: controls expose busy/disabled state where relevant, status changes are announced, focus remains predictable, keyboard users get the same immediate feedback, and reduced-motion users are not dependent on animation
+- document intentional exceptions where immediate local update is unsafe because of authorization, validation, concurrency, or workflow ownership, and show the user a clear pending or refresh state instead
+
+Completion proof expected for V15.7:
+
+- route/action matrix covering public auth/recovery, owner/admin governance, merchant inventory/orders/details, warehouse receiving/fulfillment/shipping/details, notifications, assistant, service accountability, outbox, audit, relationships, and not-found recovery
+- focused frontend tests for newly hardened interaction contracts, especially counters, badges, busy states, immediate card/row updates, error rollback, and app-shell/page-summary synchronization
+- Playwright proof that representative actions update visible UI immediately without route changes: notification read, assistant decision, relationship/request action, inventory or inbound submit, order state change, warehouse pick/pack/ship, outbox retry, audit filter, theme toggle, and recovery/auth status messages
+- live browser slow-tour proof recording before/after state for each stakeholder and confirming no stale counts, ghost alerts, duplicate submissions, silent clicks, console warnings/errors, horizontal overflow, or inaccessible controls
+- broad `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` after the interaction hardening, plus documentation updates in [Frontend V15 audit](frontend-v15-audit.md)
 
 ### Pre-V16 Professionalization, Reliability, Stress, And Safety Gate
 
