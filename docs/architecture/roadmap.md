@@ -222,6 +222,58 @@ Completion proof expected for V15.3:
 - live browser tour with at least owner, merchant, warehouse, fresh merchant, fresh warehouse, notifications, assistant, service accountability, and a not-found detail state, recording console warnings/errors, horizontal overflow, unlabeled controls, and missing expected copy
 - explicit note of any remaining UI/UX blocker that would still confuse a first-time user before moving into AI-agent or Pre-V16 work
 
+Carry-forward UX commitments from the slow live review:
+
+- no awkward-looking daily UI components may be treated as acceptable merely because they pass automated proof
+- no missing, generic, or visually confusing icons on primary route, action, state, alert, assistant, empty, loading, error, or not-found surfaces
+- no ghost alert count: the shell badge must reflect real unread work, hide or quiet at zero, and never appear as a sticky unexplained `1`
+- assistant entry points must feel functionally sound even before the local AI agent lands: no clunky prefilled prompt behavior, clear review-only boundaries, useful deterministic triage, and obvious audit linkage
+- the overall product experience should feel smooth: clear first action, fewer repeated destructive buttons, less seeded-data noise, better page hierarchy, and fewer walls of operational tables before priority work
+- new users must be guided into connection: what to create first, who they need to connect with, what waits on another role, and where the next visible handoff appears
+- future connected-user workflows must make relationships, package handoffs, inbound stock, fulfillment, service issues, and alerts feel linked across merchant, warehouse, and platform roles rather than isolated logs
+
+### V15.4: Smooth Professional UX And Component Quality Gate
+
+Planned scope:
+
+- close the slow-review UI rough edges before deeper agent work: awkward-looking components, harsh dense tables, repeated destructive controls, bare not-found states, and pages that combine too many unrelated jobs
+- rebalance owner/admin overview so platform users see attention-worthy work first and seeded/demo history does not dominate the first viewport
+- split or visually group merchant inventory and merchant order workflows so create/setup, active work, evidence/history, and exception handling have clearer hierarchy
+- make the warehouse console feel like a daily work queue first and a full operations ledger second, including a clearer single next item and less repetitive action noise
+- move notification inbox/alert work ahead of preference administration, while keeping preferences available as secondary settings
+- fix assistant input ergonomics so the prompt starts as a suggestion or placeholder instead of editable prefilled text that appends user input
+- make not-found states human and recoverable, with clear likely cause and a role-appropriate return action
+- recheck shared component quality: icons, buttons, tables, cards, badges, empty/loading/error/not-found surfaces, focus states, and narrow view behavior must look intentional rather than assembled
+
+Completion proof expected for V15.4:
+
+- focused frontend tests for assistant prompt ergonomics, notification inbox ordering, recoverable not-found states, and any split/grouped workflow surfaces
+- component-level proof that primary empty/loading/error/not-found states and action buttons use distinct accessible icons where expected
+- live browser slow-tour proof across owner/admin, merchant inventory/orders, warehouse console, notifications, assistant, service accountability, and not-found states with specific before/after notes
+- proof that unread alert count has no ghost `1` behavior across zero, one, and multiple unread states
+- documentation update in [Frontend V15 audit](frontend-v15-audit.md) listing each slow-review rough edge and whether it was fixed, intentionally deferred, or promoted to V15.5/Pre-V16
+- `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` after the UI changes, plus publication-boundary proof that no new assets or copy introduce private context into `frontend/`
+
+### V15.5: Connected User Workflows, Alerts, And Handoff Semantics
+
+Planned scope:
+
+- make user-to-user connection visible through the product: merchant requests, warehouse responses, package handoffs, inbound receiving, fulfillment exceptions, service issues, and platform governance should feel connected rather than like isolated tables
+- strengthen alert semantics into relationship-aware work: who created the event, who needs to act next, what object it is tied to, and where the user should go
+- connect package and shipment states to notifications and detail views so warehouse handoff, merchant review, failed/returned delivery, and package evidence have understandable cross-role trails
+- connect merchant-warehouse relationships to first-run guidance, inbound stock, order allocation, service accountability, and alert surfaces so users understand why connection setup matters
+- add or refine event copy for operational handoffs without pretending provider-backed delivery is production-ready before Pre-V16/V16
+- define which connected-user alerts are required before the local AI agent can reliably suggest next actions, including package, relationship, inbound, fulfillment, exception, service, and account-lifecycle signals
+- keep all alert and handoff data tenant-scoped, role-scoped, audited where appropriate, and safe for the future public `backend/` and `frontend/` repository
+
+Completion proof expected for V15.5:
+
+- backend and frontend tests proving connected alert/event visibility is role-scoped and tenant-scoped across merchant, warehouse, and platform users
+- notification tests proving unread counts, alert severity, linked object navigation, and zero-state behavior across package, relationship, inbound, fulfillment, service, and account-lifecycle events
+- live browser proof walking a connected scenario from merchant setup through warehouse receiving/fulfillment/package handoff, alert review, service accountability, and detail recovery
+- documentation update explaining the connected-user alert model, what remains local/prototype-shaped, and what V16 must certify for production delivery
+- publication-boundary proof that connected alerts do not expose private data, credentials, provider endpoints, or cross-tenant records
+
 ### Pre-V16 Professionalization, Reliability, Stress, And Safety Gate
 
 Planned scope:

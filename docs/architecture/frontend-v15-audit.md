@@ -148,6 +148,18 @@ Slow live UX review before V15.2:
 - Assistant suggestions are useful enough for deterministic triage, but the prompt field starts with an editable prefilled prompt. Typing without clearing appends to the default text, which makes the assistant feel clunky.
 - Detail not-found states are intentionally safe, but the inventory not-found state is too bare: it shows the missing ID without a recovery action back to Stock or an explanation of likely causes.
 
+V15.4/V15.5 ownership for user-raised UX concerns:
+
+| Concern | Roadmap owner | Required outcome | Proof needed |
+| --- | --- | --- | --- |
+| No awkward-looking UI components | V15.4 | Daily surfaces, state components, tables, buttons, badges, not-found states, and action panels look intentional in desktop and narrow views. | Component tests, visual/live browser before-after notes, full route tour. |
+| No missing or confusing icons | V15.4 | Primary routes, empty/loading/error/not-found states, alerts, assistant, destructive actions, and workflow states use distinct accessible icons. | Component/app-shell tests plus live visual pass. |
+| No ghost alert badge or sticky `1` | V15.4 | Badge reflects actual unread count, hides/quiets at zero, and proves one/multiple/zero states. | Notification/AppLayout tests and live account-cycle proof. |
+| Assistant/agent is functionally sound | V15.4 for deterministic UX, V15.2 for local AI agent | Current assistant input and review flow feel usable; local AI agent later adds model runtime, tools, evals, and fallback. | Assistant page tests, model-off proof, agent evals once V15.2 implementation begins. |
+| Smooth overall user experience | V15.4 | Owner/admin, merchant, warehouse, notifications, assistant, service, and not-found pages have clearer hierarchy and fewer dense rough edges. | Slow-tour checklist, focused tests, broad `check.ps1` gate. |
+| New-user guidance and connection | V15.4 and V15.5 | Fresh users understand what to create, who to connect with, what waits on another role, and where handoffs appear. | Fresh-account proof plus connected workflow live scenario. |
+| Connected users through alerts, packages, relationships, and handoffs | V15.5 | Alerts and detail views connect merchant, warehouse, platform, package, relationship, inbound, fulfillment, exception, and service events. | Role/tenant-scoped backend/frontend tests and connected live workflow proof. |
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |
