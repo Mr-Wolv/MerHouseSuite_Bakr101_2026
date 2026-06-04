@@ -209,6 +209,14 @@ Sixth V15.4 slice:
 - Docker live proof checked the admin overview and inventory not-found state in desktop and narrow viewports with no horizontal overflow; the invalid inventory detail URL intentionally produces the API `404` that drives the recoverable not-found state.
 - Broad proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
 
+V15.4 closeout slice:
+
+- The final slow tour found and closed two user-facing version-residue gaps: assistant mutation-refusal responses no longer say `V14`, and the admin audit assistant filter guidance now says `summaries, suggestions, refusals, and review decisions` without version labeling.
+- Assistant interaction history now sanitizes old local history rows at render time so prior smoke-run text such as `V14 assistant` or `in V14` does not leak onto the daily assistant surface while the underlying audit record remains intact.
+- `.\scripts\quality\frontend-full-tour.ps1 -OutputPath .\reports\v15-4-closeout\route-tour-closeout.json` passed, covering 136 routed checks across public, owner/admin, support admin, auditor, merchant, warehouse, detail, desktop, and narrow surfaces.
+- Settled Docker slow-tour proof passed with 11 targeted V15.4 checks across `/admin`, `/admin/audit`, `/notifications`, `/assistant`, `/service-accountability`, `/merchant/inventory`, `/merchant/orders`, `/warehouse`, and inventory not-found. The report at `reports/v15-4-closeout/slow-tour/v15-4-slow-tour-settled.json` recorded 0 failures for expected hierarchy text, visible version/prototype residue, unnamed controls, icon-text button gaps, horizontal overflow, unexpected console errors, and recoverable not-found semantics.
+- Broad closeout proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |

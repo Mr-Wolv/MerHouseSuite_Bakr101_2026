@@ -674,7 +674,7 @@ describe('Admin audit review', () => {
     renderWithAuth(<AdminAuditPage />)
 
     expect(await screen.findByText('ASSISTANT SUMMARY')).toBeInTheDocument()
-    expect(screen.getByLabelText('Audit review lens')).toHaveTextContent('isolate V14 summaries')
+    expect(screen.getByLabelText('Audit review lens')).toHaveTextContent('isolate summaries')
     expect(screen.getByRole('status')).toHaveTextContent('Showing 3 audit events')
     expect(screen.getByLabelText('Scrollable admin audit table')).toHaveAttribute('tabIndex', '0')
     expect(screen.getByText('TENANT CREATED')).toBeInTheDocument()

@@ -198,15 +198,15 @@ export function AssistantPage() {
                 <div className="queue-card-body">
                   <div className="queue-card-section">
                     <h3>Request</h3>
-                    <p>{interaction.requestText}</p>
+                    <p>{displayAssistantText(interaction.requestText)}</p>
                   </div>
                   <div className="queue-card-section">
                     <h3>Response</h3>
-                    <p>{interaction.responseText}</p>
+                    <p>{displayAssistantText(interaction.responseText)}</p>
                   </div>
                   <div className="queue-card-section">
                     <h3>Audit</h3>
-                    <p>{interaction.decisionNote ?? 'No decision recorded yet'}</p>
+                    <p>{displayAssistantText(interaction.decisionNote ?? 'No decision recorded yet')}</p>
                     {interaction.decidedAt ? <span className="timestamp-cell">{new Date(interaction.decidedAt).toLocaleString()}</span> : null}
                   </div>
                 </div>
@@ -255,4 +255,14 @@ function GuidancePanel({ title, children }: { title: string; children: ReactNode
 
 function shortId(id: string) {
   return id.slice(0, 8)
+}
+
+function displayAssistantText(value: string) {
+  return value
+    .replace(/\bV14 assistant\b/gi, 'assistant')
+    .replace(/\bin V14\b/gi, '')
+    .replace(/\bV14\b/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+\./g, '.')
+    .trim()
 }

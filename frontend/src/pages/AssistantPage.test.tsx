@@ -64,10 +64,10 @@ describe('AssistantPage', () => {
         responseType: 'SUMMARY',
         actionStatus: 'NOT_APPLICABLE',
         requestText: 'Summarize my queues',
-        responseText: 'Merchant operations summary: 7 orders or workload items.',
+        responseText: 'Merchant operations summary: 7 orders or workload items in V14.',
         prototypeLocal: true,
         decidedByUserId: null,
-        decisionNote: null,
+        decisionNote: 'Smoke accepts V14 assistant review suggestion',
         decidedAt: null,
         metadata: {},
         createdAt: '2026-05-30T00:00:00Z',
@@ -133,10 +133,11 @@ describe('AssistantPage', () => {
     expect(screen.getByLabelText('Assistant review boundary')).toHaveTextContent('Suggestions stay review-only')
     expect(screen.getByText('Summarize my queues')).toBeInTheDocument()
     expect(screen.getByText('Merchant operations summary: 7 orders or workload items.')).toBeInTheDocument()
+    expect(screen.getByText('Smoke accepts assistant review suggestion')).toBeInTheDocument()
     expect(screen.getAllByText('Review record')).toHaveLength(1)
     expect(screen.queryByText(/prototype/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/V14/i)).not.toBeInTheDocument()
     expect(screen.getByText('Audit trail recorded')).toBeInTheDocument()
-    expect(screen.getByText('No decision recorded yet')).toBeInTheDocument()
     expect(apiMock.assistantInteractions).toHaveBeenCalledWith('assistant-token', 25)
   })
 

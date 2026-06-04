@@ -1206,7 +1206,7 @@ export function AdminAuditPage() {
       </section>
       <section className="table-section">
         <AdminGuidancePanel title="Audit review lens">
-          Use the assistant filter to isolate V14 summaries, suggestions, refusals, and review decisions without losing the broader privileged-action trail.
+          Use the assistant filter to isolate summaries, suggestions, refusals, and review decisions without losing the broader privileged-action trail.
         </AdminGuidancePanel>
         <div className="table-toolbar">
           <h2>Recent Privileged Actions</h2>
