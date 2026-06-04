@@ -1507,9 +1507,19 @@ tr:last-child td {
   align-items: center;
 }
 
-.state-loading svg {
-  animation: state-spin 0.9s linear infinite;
+.state-loading-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-muted);
   color: var(--accent-dark);
+}
+
+.state-loading-icon svg {
+  animation: state-spin 0.9s linear infinite;
 }
 
 @keyframes state-spin {
@@ -1578,9 +1588,8 @@ tr:last-child td {
   font-size: 18px;
 }
 
-.state-error span:not(.state-error-icon) {
-  display: block;
-  margin-top: 4px;
+.state-error p {
+  margin: 4px 0 0;
 }
 
 .stock-change {
@@ -1731,6 +1740,10 @@ tr:last-child td {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .empty-state-action {
+    grid-column: 1 / -1;
+  }
+
   .table-button {
     min-width: 0;
   }
@@ -1753,5 +1766,11 @@ tr:last-child td {
 
   .span-two-field {
     grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .state-loading-icon svg {
+    animation: none;
   }
 }

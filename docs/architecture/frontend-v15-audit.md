@@ -202,6 +202,13 @@ Fifth V15.4 slice:
 - Focused proof passed with `npm test -- --run AdminManagement`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and Playwright live-style checks of `/admin` in desktop and narrow viewports with no console errors or horizontal overflow.
 - Broad proof passed with `npm run test:e2e -- tests/e2e/full-tour.spec.ts -g "full frontend harmonic workflow proves admin merchant and warehouse coherence"` and `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
 
+Sixth V15.4 slice:
+
+- Shared loading, empty, and error states now have stronger component semantics: loading keeps a distinct stable icon treatment with reduced-motion handling, empty states render as named recoverable regions with accessible descriptions, and error states announce as alerts with named detail text.
+- Focused component proof covers the loading icon, workflow-specific empty-state icon selection, named empty-state regions, accessible guidance descriptions, and alert-style error semantics.
+- Docker live proof checked the admin overview and inventory not-found state in desktop and narrow viewports with no horizontal overflow; the invalid inventory detail URL intentionally produces the API `404` that drives the recoverable not-found state.
+- Broad proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |

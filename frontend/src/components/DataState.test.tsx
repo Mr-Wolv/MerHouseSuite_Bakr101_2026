@@ -3,12 +3,13 @@ import { EmptyState, ErrorState, LoadingState } from './DataState'
 
 describe('DataState', () => {
   it('renders loading state as an announced status', () => {
-    render(<LoadingState label="Loading warehouse work" />)
+    const { container } = render(<LoadingState label="Loading warehouse work" />)
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading warehouse work')
+    expect(container.querySelector('.state-loading-icon svg')).toHaveClass('lucide-loader-circle')
   })
 
-  it('selects workflow-specific empty-state icons while keeping guidance visible', () => {
+  it('selects workflow-specific empty-state icons while keeping guidance visible in a named region', () => {
     const { container, rerender } = render(
       <EmptyState
         label="No inventory items yet"
@@ -16,6 +17,8 @@ describe('DataState', () => {
       />,
     )
 
+    const emptyRegion = screen.getByRole('region', { name: 'No inventory items yet' })
+    expect(emptyRegion).toHaveAccessibleDescription('Create your first SKU, then connect it to inbound stock.')
     expect(screen.getByText('No inventory items yet')).toBeInTheDocument()
     expect(screen.getByText(/Create your first SKU/i)).toBeInTheDocument()
     expect(container.querySelector('.empty-state-icon svg')).toHaveClass('lucide-boxes')
@@ -28,6 +31,7 @@ describe('DataState', () => {
   it('renders errors with an alert icon and details', () => {
     const { container } = render(<ErrorState title="Unable to load route" details={['Try again.']} />)
 
+    expect(screen.getByRole('alert', { name: 'Unable to load route' })).toHaveAccessibleDescription('Try again.')
     expect(screen.getByText('Unable to load route')).toBeInTheDocument()
     expect(screen.getByText('Try again.')).toBeInTheDocument()
     expect(container.querySelector('.state-error-icon svg')).toHaveClass('lucide-triangle-alert')

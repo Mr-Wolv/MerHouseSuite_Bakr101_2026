@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react'
+import { useId } from 'react'
 import { LoaderCircle, TriangleAlert } from 'lucide-react'
 import { appIcons } from './AppIcons'
 
 export function LoadingState({ label = 'Loading' }: { label?: string }) {
   return (
     <div className="state-panel state-loading" role="status" aria-live="polite">
-      <LoaderCircle size={18} aria-hidden="true" />
+      <span className="state-loading-icon" aria-hidden="true">
+        <LoaderCircle size={18} />
+      </span>
       <span>{label}</span>
     </div>
   )
@@ -20,17 +23,23 @@ export function EmptyState({
   guidance?: string
   action?: ReactNode
 }) {
+  const titleId = useId()
+  const guidanceId = useId()
   return (
-    <div className="state-panel empty-state">
+    <section
+      className="state-panel empty-state"
+      aria-labelledby={titleId}
+      aria-describedby={guidance ? guidanceId : undefined}
+    >
       <span className="empty-state-icon" aria-hidden="true">
         <EmptyStateGlyph label={label} guidance={guidance} />
       </span>
       <div>
-        <strong>{label}</strong>
-        {guidance ? <p>{guidance}</p> : null}
+        <strong id={titleId}>{label}</strong>
+        {guidance ? <p id={guidanceId}>{guidance}</p> : null}
       </div>
       {action ? <div className="empty-state-action">{action}</div> : null}
-    </div>
+    </section>
   )
 }
 
@@ -43,14 +52,21 @@ export function ErrorState({
   details?: string[]
   pageTitle?: boolean
 }) {
+  const titleId = useId()
+  const detailsId = useId()
   return (
-    <div className="state-panel state-error">
+    <div
+      className="state-panel state-error"
+      role="alert"
+      aria-labelledby={titleId}
+      aria-describedby={details?.length ? detailsId : undefined}
+    >
       <span className="state-error-icon" aria-hidden="true">
         <TriangleAlert size={18} />
       </span>
       <div>
-        {pageTitle ? <h1>{title}</h1> : <strong>{title}</strong>}
-        {details?.length ? <span>{details.join(' ')}</span> : null}
+        {pageTitle ? <h1 id={titleId}>{title}</h1> : <strong id={titleId}>{title}</strong>}
+        {details?.length ? <p id={detailsId}>{details.join(' ')}</p> : null}
       </div>
     </div>
   )
