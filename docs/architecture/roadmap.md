@@ -274,6 +274,29 @@ Completion proof expected for V15.5:
 - documentation update explaining the connected-user alert model, what remains local/prototype-shaped, and what V16 must certify for production delivery
 - publication-boundary proof that connected alerts do not expose private data, credentials, provider endpoints, or cross-tenant records
 
+### V15.6: Performance, Indexing, And Operational Metrics
+
+Planned scope:
+
+- establish a measured local performance baseline before Pre-V16: backend endpoint latency, database query shape, frontend route load/render behavior, Docker resource use, and polling/background refresh pressure
+- review high-traffic and high-risk database access paths for orders, inventory, warehouse work, notifications, outbox, audit, assistant interactions, service accountability, relationship governance, and detail pages
+- add database indexes only where query plans and workload shape justify them; avoid speculative indexes that slow writes or complicate migrations without proof
+- inspect backend repository/service calls for avoidable N+1 patterns, repeated reads, oversized payloads, missing pagination/filtering, and expensive dashboard aggregation
+- review frontend performance for large tables/cards, route bundles, repeated polling, unnecessary re-renders, excessive DOM density, and slow first interaction on dense admin/merchant/warehouse routes
+- define practical local metrics for the current architecture: representative seed size, response-time targets, query-count/query-plan evidence, bundle size, route render time, memory/CPU observations, and polling interval behavior
+- decide whether any performance issue must be fixed before the local AI agent implementation, especially assistant context retrieval, connected alerts, and dashboard summaries that the agent may depend on
+- document limits honestly: V15.6 optimizes the local/private architecture and creates Pre-V16 baselines, but it does not claim production-scale SaaS capacity
+
+Completion proof expected for V15.6:
+
+- tracked performance baseline report covering representative backend endpoints, frontend routes, database query plans, Docker resource observations, and polling/background refresh behavior
+- backend tests or integration proof for any new indexes, pagination, query-shape changes, or service/repository optimizations
+- Flyway migration proof for added indexes, including safe names, rollback notes where relevant, and confirmation that indexes do not target private/sensitive columns
+- frontend tests or browser proof for route responsiveness, large-list rendering, no horizontal overflow/regression, and unchanged accessibility after performance-oriented UI changes
+- before/after proof for each optimization: measured problem, change made, metric improved or tradeoff documented
+- `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` plus any new performance proof script added under `scripts/quality/`
+- documentation update explaining which bottlenecks remain for Pre-V16 stress/load testing and which are already closed by V15.6
+
 ### Pre-V16 Professionalization, Reliability, Stress, And Safety Gate
 
 Planned scope:

@@ -159,6 +159,7 @@ V15.4/V15.5 ownership for user-raised UX concerns:
 | Smooth overall user experience | V15.4 | Owner/admin, merchant, warehouse, notifications, assistant, service, and not-found pages have clearer hierarchy and fewer dense rough edges. | Slow-tour checklist, focused tests, broad `check.ps1` gate. |
 | New-user guidance and connection | V15.4 and V15.5 | Fresh users understand what to create, who to connect with, what waits on another role, and where handoffs appear. | Fresh-account proof plus connected workflow live scenario. |
 | Connected users through alerts, packages, relationships, and handoffs | V15.5 | Alerts and detail views connect merchant, warehouse, platform, package, relationship, inbound, fulfillment, exception, and service events. | Role/tenant-scoped backend/frontend tests and connected live workflow proof. |
+| Performance, indexing, and metrics | V15.6 | Dense routes, backend endpoints, database access paths, polling, and Docker resource use have measured baselines and justified optimizations before Pre-V16. | Query-plan/baseline report, focused tests, browser route proof, and broad quality gate. |
 
 User-perspective V15.3 quality-of-life backlog:
 
