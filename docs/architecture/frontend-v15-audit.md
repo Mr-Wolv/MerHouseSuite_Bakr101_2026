@@ -188,6 +188,13 @@ Third V15.4 slice:
 - Focused proof passed with `npm test -- --run MerchantPages`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and Playwright live-style checks of `/merchant/orders` in desktop and narrow viewports with no console errors or horizontal overflow.
 - Broad proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` after hardening the Warehouse setup-path test so it checks the active-partner copy instead of a fixture-dependent ready-count.
 
+Fourth V15.4 slice:
+
+- Warehouse console now puts fulfillment queue work before receiving and ledger tables, with visible `Pick, pack, and ship first`, `Open partner and inbound work`, and `Review shipments, exceptions, and stock` anchors.
+- The slice keeps partner activation, inbound receiving, fulfillment actions, shipment evidence, exception review, and inventory adjustment behavior stable while adding focused Warehouse page coverage for the new hierarchy anchors.
+- Focused proof passed with `npm test -- --run WarehousePage`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and Playwright live-style checks of `/warehouse` in desktop and narrow viewports with no console errors or horizontal overflow.
+- Broad proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |

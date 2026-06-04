@@ -265,6 +265,11 @@ describe('WarehousePage', () => {
     expect(await screen.findByText('Warehouse Console')).toBeInTheDocument()
     expect(screen.getByText("Start with today's work")).toBeInTheDocument()
     expect(screen.getByLabelText('Warehouse setup path')).toHaveTextContent('2/4 ready')
+    expect(screen.getByText('Daily work')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Pick, pack, and ship first' })).toBeInTheDocument()
+    expect(screen.getByText('Start with active allocations, then move to receiving and records after the queue is under control.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Open partner and inbound work' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Review shipments, exceptions, and stock' })).toBeInTheDocument()
     expect(screen.getByText('Activate partner access')).toBeInTheDocument()
     expect(screen.getByText('Review requested partners first; active partners can send stock and orders.')).toBeInTheDocument()
     expect(screen.getByText('Available units')).toBeInTheDocument()
@@ -273,8 +278,9 @@ describe('WarehousePage', () => {
     expect(within(queueCard).getByText('Pick sheet needed')).toBeInTheDocument()
     expect(within(queueCard).getByText('Scan pending')).toBeInTheDocument()
     expect(await screen.findByText('Merchant Item')).toBeInTheDocument()
-    expect(screen.getAllByText('10')[0]).toHaveClass('quantity-cell', 'quantity-ready')
-    expect(screen.getAllByText('5')[0]).toHaveClass('quantity-cell', 'quantity-pending')
+    const inventoryRow = screen.getByRole('row', { name: /SKU-1 Merchant Item 10 2 8/i })
+    expect(within(inventoryRow).getByText('10')).toHaveClass('quantity-cell', 'quantity-ready')
+    expect(within(inventoryRow).getByText('2')).toHaveClass('quantity-cell', 'quantity-pending')
   })
 
   it('does not tell active partner accounts to wait for a request', async () => {

@@ -372,6 +372,12 @@ export function WarehousePage() {
             <Metric label="Stock risk" value={dashboard?.stockRisk ?? 0} />
           </div>
 
+          <WorkflowDivider
+            eyebrow="Daily work"
+            title="Pick, pack, and ship first"
+            description="Start with active allocations, then move to receiving and records after the queue is under control."
+          />
+
           <section className="table-section">
             <h2>Fulfillment Status</h2>
             <div className="status-row">
@@ -399,15 +405,6 @@ export function WarehousePage() {
           </div>
 
           {actionError ? <div className="inline-error">{actionError}</div> : null}
-          <RelationshipsTable relationships={relationships} onActivate={(relationship) => void activateRelationship(relationship)} />
-          <InboundRequestsTable
-            requests={warehouseInboundRequests}
-            onApprove={(request) => void approveInbound(request)}
-            onStart={(request) => void startReceiving(request)}
-            onReceive={(request) => void receiveAll(request)}
-            onReject={(request) => void rejectInbound(request)}
-          />
-          <RecentShipmentsPanel rows={recentShipments} />
           <AllocationsTable
             allocations={filteredAllocations}
             shipmentDraft={(allocation) => shipmentDraft(allocation)}
@@ -421,6 +418,29 @@ export function WarehousePage() {
             onWorkload={(allocation, patch) => void updateWorkload(allocation, patch)}
             onReportException={(allocation, reasonCode) => void reportException(allocation, reasonCode)}
           />
+
+          <WorkflowDivider
+            eyebrow="Receiving setup"
+            title="Open partner and inbound work"
+            description="Activate requested partners and receive inbound stock so merchants can keep orders moving."
+          />
+
+          <RelationshipsTable relationships={relationships} onActivate={(relationship) => void activateRelationship(relationship)} />
+          <InboundRequestsTable
+            requests={warehouseInboundRequests}
+            onApprove={(request) => void approveInbound(request)}
+            onStart={(request) => void startReceiving(request)}
+            onReceive={(request) => void receiveAll(request)}
+            onReject={(request) => void rejectInbound(request)}
+          />
+
+          <WorkflowDivider
+            eyebrow="Operational records"
+            title="Review shipments, exceptions, and stock"
+            description="Use these ledgers for follow-up evidence, exception review, and inventory adjustment after daily queue work."
+          />
+
+          <RecentShipmentsPanel rows={recentShipments} />
           <WarehouseExceptionsTable exceptions={exceptions.filter((exception) => exception.warehouseProviderId === selected?.tenantId || !selected?.tenantId)} />
           {inventoryLoading ? (
             <LoadingState label="Loading inventory" />
@@ -1030,6 +1050,24 @@ function GuidancePanel({ title, children }: { title: string; children: ReactNode
       <strong>{title}</strong>
       <p>{children}</p>
     </aside>
+  )
+}
+
+function WorkflowDivider({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string
+  title: string
+  description: string
+}) {
+  return (
+    <div className="workflow-divider">
+      <span className="eyebrow">{eyebrow}</span>
+      <h2>{title}</h2>
+      <p>{description}</p>
+    </div>
   )
 }
 
