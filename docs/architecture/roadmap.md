@@ -156,6 +156,16 @@ Completion proof expected for V15:
 - documentation updates for any changed routes, workflows, or runtime assumptions
 - publication-boundary proof that UI copy and frontend configuration remain safe for later public release
 
+V15 whole-version closeout gateway:
+
+- V15 cannot close until a full gap-coverage sweep confirms tracked docs, code, scripts, tests, and user-facing UI/UX describe and prove the same current app.
+- Documentation must describe the current application across `README.md`, `docs/index.md`, affected architecture/development docs, roadmap sections, and active V15 audit notes; stale version claims, outdated setup steps, and old behavior descriptions must be fixed or recorded as blockers.
+- Code must coincide with the promised V15 features and known intentional deferrals; any mismatch between roadmap scope, implemented behavior, and visible product behavior must be closed or explicitly assigned to V15.5, V15.6, Pre-V16, V16, or VInfinite with required proof.
+- Scripts must be current for the app they verify: local run helpers, seed/demo helpers, quality scripts, maintenance scripts, and documentation for those scripts must agree with the actual runtime and proof expectations.
+- Tests must be current and meaningful: newly added features, components, and flows need focused coverage plus integration or route proof where they interact with surrounding workflows; stale fixture assumptions and weak assertions must be updated before closeout.
+- UI/UX must pass a final professional review across the app: no awkward daily components, missing icons, ghost alerts, confusing empty states, inaccessible controls, clunky transitions, broken handoffs, incoherent overlap, misleading wording, or user-facing residue from earlier versions.
+- Each remaining V15 subversion should apply this gateway at its own scale before it is called closed, then the whole-version sweep repeats after V15.6 and before Pre-V16.
+
 ### V15.1: UI Signature, Human Empty States, And Alerting Polish
 
 Planned scope:

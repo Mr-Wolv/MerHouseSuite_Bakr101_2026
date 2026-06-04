@@ -17,6 +17,12 @@ Latest starting proof before V15 implementation:
 
 The baseline is healthy enough to begin V15, but it is not the V15 finish bar.
 
+## V15 Whole-Version Closeout Gateway
+
+After the current V15 subversions finish, V15 needs a full gap-coverage sweep before it can be called closed. The sweep must confirm that tracked docs describe the current app, implemented code matches the promised and accepted V15 features, local scripts remain up to date, tests cover new and changed behavior at the right layer, and the full user-facing experience is professional, accessible, coherent, and free of avoidable clunkiness or residue.
+
+Each remaining V15 subversion should apply the same gateway at its own scale before closeout, then the whole-app pass repeats after V15.6 and before Pre-V16.
+
 ## Audit Dimensions
 
 Every row below should be evaluated through these dimensions before V15 closes:
