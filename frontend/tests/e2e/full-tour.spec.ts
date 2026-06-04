@@ -846,7 +846,7 @@ test('full frontend harmonic workflow proves admin merchant and warehouse cohere
   const { context: adminContext, page: adminPage } = await newAuthedPageForAccount(browser, baseAccounts.owner, 'desktop')
   await adminPage.goto(`${APP_URL}/admin`, { waitUntil: 'networkidle' })
   await expect(adminPage.getByRole('heading', { name: 'Admin Overview' })).toBeVisible()
-  await expect(adminPage.getByText('Active relationships')).toBeVisible()
+  await expect(adminPage.getByText('Active relationships', { exact: true })).toBeVisible()
   await adminPage.goto(`${APP_URL}/admin/relationships`, { waitUntil: 'networkidle' })
   const relationshipRow = adminPage.locator('tr').filter({ hasText: fixture.merchant.name as string }).filter({
     hasText: fixture.provider.name as string,

@@ -64,9 +64,59 @@ export function AdminOverviewPage() {
   if (error) return <ErrorState title={error} />
   if (!data) return <EmptyState label="No admin data available" guidance="Create tenants, users, access requests, and service relationships to begin building the operating network." />
 
+  const serviceRisks = data.summary.openServiceDisputes + data.summary.openServiceClaims + data.summary.pendingServiceReviews
+  const failedDeliveryWork = data.summary.failedShipments + data.summary.returnedShipments
+  const suspendedGovernance = data.summary.suspendedTenants + data.summary.suspendedRelationships
+  const attentionTotal = data.summary.pendingAccessRequests
+    + data.summary.failedOutboxEvents
+    + data.summary.openFulfillmentExceptions
+    + serviceRisks
+    + failedDeliveryWork
+    + suspendedGovernance
+
   return (
     <div className="page-stack">
-      <PageHeading title="Admin Overview" subtitle="Platform-wide tenants, users, and order activity." />
+      <PageHeading title="Admin Overview" subtitle="Start with platform risks, onboarding, delivery failures, and service exceptions." />
+      <AdminGuidancePanel title="Platform attention queue">
+        Review the signals below first; broad tenant and order history stays lower on the page.
+      </AdminGuidancePanel>
+      <section className="table-section" aria-label="Platform attention signals">
+        <div className="section-heading-row">
+          <h2>Needs Attention First</h2>
+          <span>{attentionTotal} open signals</span>
+        </div>
+        <div className="status-row">
+          <Link aria-label={`Access requests ${data.summary.pendingAccessRequests}`} className="status-count text-link" to="/admin/access-requests">
+            <span>Access requests</span>
+            <strong>{data.summary.pendingAccessRequests}</strong>
+          </Link>
+          <Link aria-label={`Failed outbox ${data.summary.failedOutboxEvents}`} className="status-count text-link" to="/admin/outbox">
+            <span>Failed outbox</span>
+            <strong>{data.summary.failedOutboxEvents}</strong>
+          </Link>
+          <Link aria-label={`Service risks ${serviceRisks}`} className="status-count text-link" to="/service-accountability">
+            <span>Service risks</span>
+            <strong>{serviceRisks}</strong>
+          </Link>
+          <Link aria-label={`Suspended governance ${suspendedGovernance}`} className="status-count text-link" to="/admin/relationships">
+            <span>Suspended governance</span>
+            <strong>{suspendedGovernance}</strong>
+          </Link>
+          <Link aria-label={`Fulfillment exceptions ${data.summary.openFulfillmentExceptions}`} className="status-count text-link" to="/admin/audit">
+            <span>Fulfillment exceptions</span>
+            <strong>{data.summary.openFulfillmentExceptions}</strong>
+          </Link>
+          <Link aria-label={`Delivery failures ${failedDeliveryWork}`} className="status-count text-link" to="/admin/audit">
+            <span>Delivery failures</span>
+            <strong>{failedDeliveryWork}</strong>
+          </Link>
+        </div>
+      </section>
+      <WorkflowDivider
+        eyebrow="Platform health"
+        title="Network scale and readiness"
+        description="Use these totals after the attention queue to understand tenant coverage, active relationships, inbound work, and admin staffing."
+      />
       <div className="metric-grid">
         <Metric label="Tenants" value={data.summary.tenants} />
         <Metric label="Suspended tenants" value={data.summary.suspendedTenants} />
@@ -77,6 +127,11 @@ export function AdminOverviewPage() {
         <Metric label="Failed shipments" value={data.summary.failedShipments} />
         <Metric label="Service risks" value={data.summary.openServiceDisputes + data.summary.openServiceClaims + data.summary.pendingServiceReviews} />
       </div>
+      <WorkflowDivider
+        eyebrow="Operational ledgers"
+        title="Review order and tenant history"
+        description="Use these tables for context after the active governance and reliability signals are triaged."
+      />
       <section className="table-section">
         <h2>Order Status</h2>
         {orderCounts.length ? (
@@ -1334,6 +1389,24 @@ function AdminGuidancePanel({ title, children }: { title: string; children: Reac
       <strong>{title}</strong>
       <p>{children}</p>
     </aside>
+  )
+}
+
+function WorkflowDivider({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string
+  title: string
+  description: string
+}) {
+  return (
+    <div className="workflow-divider">
+      <span className="eyebrow">{eyebrow}</span>
+      <h2>{title}</h2>
+      <p>{description}</p>
+    </div>
   )
 }
 

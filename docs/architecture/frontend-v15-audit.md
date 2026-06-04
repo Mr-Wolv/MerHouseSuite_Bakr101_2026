@@ -195,6 +195,13 @@ Fourth V15.4 slice:
 - Focused proof passed with `npm test -- --run WarehousePage`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and Playwright live-style checks of `/warehouse` in desktop and narrow viewports with no console errors or horizontal overflow.
 - Broad proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
 
+Fifth V15.4 slice:
+
+- Admin overview now starts with a `Needs Attention First` queue for pending access requests, failed outbox work, service risks, suspended governance, fulfillment exceptions, and delivery failures before broad platform metrics and operational ledgers.
+- The slice keeps existing admin summary, order status, recent orders, and tenant health behavior stable while adding focused Admin Overview coverage for attention-first hierarchy and route links with clean accessible names.
+- Focused proof passed with `npm test -- --run AdminManagement`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and Playwright live-style checks of `/admin` in desktop and narrow viewports with no console errors or horizontal overflow.
+- Broad proof passed with `npm run test:e2e -- tests/e2e/full-tour.spec.ts -g "full frontend harmonic workflow proves admin merchant and warehouse coherence"` and `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |

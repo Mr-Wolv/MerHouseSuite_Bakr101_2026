@@ -1,10 +1,11 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
+import { MemoryRouter } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import type { AuthState } from '../auth/AuthContextValue'
 import { AuthContext } from '../auth/AuthContextValue'
-import { AdminAccessRequestsPage, AdminAuditPage, AdminRelationshipsPage, AdminTenantsPage, AdminUsersPage } from './AdminPages'
+import { AdminAccessRequestsPage, AdminAuditPage, AdminOverviewPage, AdminRelationshipsPage, AdminTenantsPage, AdminUsersPage } from './AdminPages'
 
 const apiMock = vi.hoisted(() => ({
   tenants: vi.fn(),
@@ -132,8 +133,90 @@ const relationships = [
 ]
 
 function renderWithAuth(element: ReactNode, state: AuthState = authState) {
-  return render(<AuthContext.Provider value={state}>{element}</AuthContext.Provider>)
+  return render(
+    <MemoryRouter>
+      <AuthContext.Provider value={state}>{element}</AuthContext.Provider>
+    </MemoryRouter>,
+  )
 }
+
+describe('Admin overview', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    apiMock.tenants.mockResolvedValue(tenants)
+    apiMock.users.mockResolvedValue(users)
+    apiMock.orders.mockResolvedValue([{
+      id: 'order-1',
+      merchantId: 'merchant-tenant',
+      customerAddress: 'Cairo Customer',
+      status: 'BACKORDERED',
+      items: [{ id: 'item-1', inventoryItemId: 'inventory-1', sku: 'SKU-1', itemName: 'Merchant Item', quantity: 2 }],
+      allocations: [],
+      backorders: [{
+        id: 'backorder-1',
+        inventoryItemId: 'inventory-1',
+        sku: 'SKU-1',
+        itemName: 'Merchant Item',
+        quantity: 1,
+        status: 'OPEN',
+        createdAt: '2026-05-17T00:00:00Z',
+      }],
+      createdAt: '2026-05-17T00:00:00Z',
+    }])
+    apiMock.adminSummary.mockResolvedValue({
+      tenants: 2,
+      suspendedTenants: 1,
+      users: 2,
+      enabledUsers: 2,
+      platformAdmins: 1,
+      pendingAccessRequests: 3,
+      activeRelationships: 1,
+      suspendedRelationships: 1,
+      openInboundRequests: 4,
+      openFulfillmentExceptions: 2,
+      failedShipments: 1,
+      returnedShipments: 1,
+      failedOutboxEvents: 5,
+      openServiceDisputes: 1,
+      openServiceClaims: 1,
+      pendingServiceReviews: 2,
+    })
+    apiMock.adminTenantHealth.mockResolvedValue([{
+      tenant: tenants[0],
+      tenantId: 'merchant-tenant',
+      users: 1,
+      relationships: 1,
+      warehouses: 0,
+      inventoryItems: 1,
+      inboundRequests: 2,
+      orders: 1,
+      fulfillmentAllocations: 1,
+      serviceStatements: 1,
+      openDisputes: 1,
+      openClaims: 0,
+      pendingReviews: 1,
+    }])
+  })
+
+  it('prioritizes attention-worthy admin work before platform ledgers', async () => {
+    renderWithAuth(<AdminOverviewPage />)
+
+    expect(await screen.findByRole('heading', { name: 'Admin Overview' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Platform attention queue')).toHaveTextContent('Review the signals below first')
+    expect(screen.getByRole('heading', { name: 'Needs Attention First' })).toBeInTheDocument()
+    expect(screen.getByText('18 open signals')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Access requests 3/i })).toHaveAttribute('href', '/admin/access-requests')
+    expect(screen.getByRole('link', { name: /Failed outbox 5/i })).toHaveAttribute('href', '/admin/outbox')
+    expect(screen.getByRole('link', { name: /Service risks 4/i })).toHaveAttribute('href', '/service-accountability')
+    expect(screen.getByRole('link', { name: /Suspended governance 2/i })).toHaveAttribute('href', '/admin/relationships')
+    expect(screen.getByRole('link', { name: /Fulfillment exceptions 2/i })).toHaveAttribute('href', '/admin/audit')
+    expect(screen.getByRole('link', { name: /Delivery failures 2/i })).toHaveAttribute('href', '/admin/audit')
+    expect(screen.getByRole('heading', { name: 'Network scale and readiness' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Review order and tenant history' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Recent Operational Orders' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tenant Health' })).toBeInTheDocument()
+  })
+})
 
 describe('Admin tenant management', () => {
   beforeEach(() => {
