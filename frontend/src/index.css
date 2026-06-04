@@ -636,6 +636,29 @@ select:focus-visible,
   letter-spacing: 0;
 }
 
+.workflow-divider {
+  display: grid;
+  gap: 6px;
+  border-block: 1px solid var(--border);
+  background: var(--surface-muted);
+  padding: 14px 16px;
+}
+
+.workflow-divider h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.workflow-divider p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .form-grid,
 .filter-row {
   display: grid;

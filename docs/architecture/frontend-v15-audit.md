@@ -169,6 +169,12 @@ First V15.4 slice:
 - Inventory detail not-found now uses a recoverable empty state with likely causes and a `Back to Stock` action instead of a bare missing-id page.
 - Focused proof passed with `npm test -- --run AssistantPage NotificationCenterPage WarehousePage OperationalDetailPages`, `npm test -- --run`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and in-app browser proof of assistant, notifications, warehouse, and inventory not-found surfaces with no captured console errors.
 
+Second V15.4 slice:
+
+- Merchant inventory now separates the setup workflow from operational records with visible `Create and connect` and `Review stock and history` anchors, so SKU creation, warehouse service requests, inbound stock, partner records, stock quantities, inbound history, and item history no longer compete in one uninterrupted surface.
+- The slice keeps existing form labels and actions stable while adding a focused Merchant Inventory test for the hierarchy anchors.
+- Proof passed with `npm test -- --run MerchantPages`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, Playwright live-style checks of `/merchant/inventory` in desktop and narrow viewports with no console errors or horizontal overflow, and a clean rerun of `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |

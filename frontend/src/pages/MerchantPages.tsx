@@ -329,6 +329,11 @@ export function MerchantInventoryPage() {
         <Metric label="Items" value={items.length} />
       </div>
       {error ? <div className="inline-error">{error}</div> : null}
+      <WorkflowDivider
+        eyebrow="Setup workflow"
+        title="Create and connect"
+        description="Work top to bottom: create the SKU, request warehouse service, then send stock only after the relationship is active."
+      />
       <form aria-label="Create inventory item form" className="panel-form" onSubmit={handleCreateItem}>
         <h2>Create Item</h2>
         <div className="form-grid">
@@ -447,6 +452,11 @@ export function MerchantInventoryPage() {
           </button>
         </div>
       </form>
+      <WorkflowDivider
+        eyebrow="Operational records"
+        title="Review stock and history"
+        description="Use these records to confirm partner access, warehouse quantities, inbound progress, and archived item state."
+      />
       <RelationshipsTable relationships={relationships} />
       <AuthorizedStockTable stockRows={authorizedStock} />
       <InboundRequestsTable
@@ -1220,6 +1230,24 @@ function GuidancePanel({ title, children }: { title: string; children: ReactNode
       <strong>{title}</strong>
       <p>{children}</p>
     </aside>
+  )
+}
+
+function WorkflowDivider({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string
+  title: string
+  description: string
+}) {
+  return (
+    <div className="workflow-divider">
+      <span className="eyebrow">{eyebrow}</span>
+      <h2>{title}</h2>
+      <p>{description}</p>
+    </div>
   )
 }
 
