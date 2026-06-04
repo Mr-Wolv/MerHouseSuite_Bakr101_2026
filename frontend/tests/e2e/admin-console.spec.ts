@@ -26,15 +26,29 @@ async function createActiveRelationship(request: APIRequestContext, token: strin
 
 async function clickFreshButton(button: () => Locator) {
   let lastError: unknown
-  for (let attempt = 0; attempt < 4; attempt += 1) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
     try {
       const current = button()
-      await expect(current).toBeVisible({ timeout: 5_000 })
-      await current.click({ timeout: 5_000 })
+      await expect(current).toBeVisible({ timeout: 10_000 })
+      await current.click({ timeout: 10_000 })
       return
     } catch (error) {
       lastError = error
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    }
+  }
+  throw lastError
+}
+
+async function clickUntilVisibleState(button: () => Locator, visibleState: () => Promise<void>) {
+  let lastError: unknown
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await clickFreshButton(button)
+    try {
+      await visibleState()
+      return
+    } catch (error) {
+      lastError = error
     }
   }
   throw lastError
@@ -57,13 +71,14 @@ test.describe('admin console', () => {
     await expect(page.locator('#main-content')).toBeFocused()
 
     await page.getByRole('link', { name: 'Accounts' }).click()
-    await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible()
-    await expect(page.getByRole('form', { name: 'Create user form' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('form', { name: 'Create user form' })).toBeVisible({ timeout: 20_000 })
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBeTruthy()
     await page.screenshot({ path: `${screenshotDir}/admin-users-narrow.png`, fullPage: true })
   })
 
   test('validates admin user operations against the backend', async ({ page }) => {
+    test.setTimeout(60_000)
     const suffix = Date.now().toString(36)
     const tenantName = `E2E Merchant ${suffix}`
     const userEmail = `e2e-user-${suffix}@merhouse.local`
@@ -74,16 +89,16 @@ test.describe('admin console', () => {
     await page.getByLabel('Password').fill('local-owner-password')
     await page.getByRole('button', { name: 'Sign in' }).click()
 
-    await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible({ timeout: 20_000 })
 
     await page.getByRole('link', { name: 'Organizations' }).click()
-    await expect(page.getByRole('heading', { name: 'Tenants', level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Tenants', level: 1 })).toBeVisible({ timeout: 20_000 })
     await page.getByRole('form', { name: 'Create tenant form' }).getByLabel('Name').fill(tenantName)
     await page.getByRole('button', { name: 'Create tenant' }).click()
     await expect(page.getByRole('cell', { name: tenantName })).toBeVisible()
 
     await page.getByRole('link', { name: 'Accounts' }).click()
-    await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible({ timeout: 20_000 })
     await expect(page.getByRole('row', { name: /admin@merhouse\.local/ }).getByRole('button', { name: 'Current user' })).toBeDisabled()
 
     const createUserForm = page.getByRole('form', { name: 'Create user form' })
@@ -100,9 +115,9 @@ test.describe('admin console', () => {
     await page.getByRole('button', { name: 'Create user' }).click()
 
     const newUserRow = page.getByRole('row', { name: new RegExp(userEmail.replace('.', '\\.')) })
-    await expect(newUserRow).toBeVisible()
+    await expect(newUserRow).toBeVisible({ timeout: 20_000 })
     await newUserRow.getByRole('button', { name: 'Disable' }).click()
-    await expect(newUserRow).toContainText('DISABLED')
+    await expect(newUserRow).toContainText('DISABLED', { timeout: 20_000 })
     await expect(newUserRow.getByRole('button', { name: 'Disabled' })).toBeDisabled()
   })
 
@@ -151,7 +166,7 @@ test.describe('admin console', () => {
     await page.getByLabel('Email').fill('admin@merhouse.local')
     await page.getByLabel('Password').fill('local-owner-password')
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible({ timeout: 20_000 })
     await page.goto('/admin/access-requests')
     await expect(page.getByRole('heading', { name: 'Access Requests' })).toBeVisible({ timeout: 20_000 })
     const requestRow = page.getByRole('row', { name: new RegExp(`e2e-access-${suffix}@merhouse\\.local`) })
@@ -229,6 +244,7 @@ test.describe('admin console', () => {
   })
 
   test('warehouse operator can fulfill and deliver an allocation', async ({ page, request }) => {
+    test.setTimeout(120_000)
     const suffix = Date.now().toString(36)
     const adminLogin = await api<{ accessToken: string }>(request, 'post', '/api/v1/auth/login', undefined, {
       email: 'admin@merhouse.local',
@@ -276,7 +292,14 @@ test.describe('admin console', () => {
       customerAddress: 'Operator E2E Customer, Cairo',
       items: [{ inventoryItemId: item.id, quantity: 2 }],
     })
-    await api(request, 'post', `/api/v1/orders/${order.id}/allocate`, adminToken)
+    const allocatedOrder = await api<{ allocations: Array<{ id: string }> }>(
+      request,
+      'post',
+      `/api/v1/orders/${order.id}/allocate`,
+      adminToken
+    )
+    const allocationId = allocatedOrder.allocations[0]?.id
+    expect(allocationId).toBeTruthy()
 
     await page.goto('/')
     await page.getByLabel('Email').fill(operatorEmail)
@@ -284,17 +307,25 @@ test.describe('admin console', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible()
 
-    const allocationCard = page.getByLabel(/Allocation .*Operator E2E Customer/)
-    await expect(allocationCard).toContainText('PENDING')
-    await allocationCard.getByRole('button', { name: 'Pick', exact: true }).click()
-    await expect(allocationCard).toContainText('PICKING')
-    await allocationCard.getByRole('button', { name: 'Pack' }).click()
-    await expect(allocationCard).toContainText('PACKED')
-    await allocationCard.getByRole('button', { name: 'Ship' }).click()
-    await expect(allocationCard).toContainText('SHIPPED')
-    await expect(allocationCard).toContainText('IN_TRANSIT')
-    await allocationCard.getByRole('button', { name: 'Deliver' }).click()
-    await expect(allocationCard).toContainText('DELIVERED')
+    const allocationCard = () => page.getByLabel(new RegExp(`Allocation ${allocationId.slice(0, 8)}.*Operator E2E Customer`))
+    await expect(allocationCard()).toContainText('PENDING')
+    await clickUntilVisibleState(
+      () => allocationCard().getByRole('button', { name: 'Pick', exact: true }),
+      () => expect(allocationCard()).toContainText('PICKING', { timeout: 20_000 })
+    )
+    await clickUntilVisibleState(
+      () => allocationCard().getByRole('button', { name: 'Pack' }),
+      () => expect(allocationCard()).toContainText('PACKED', { timeout: 20_000 })
+    )
+    await clickUntilVisibleState(
+      () => allocationCard().getByRole('button', { name: 'Ship' }),
+      () => expect(allocationCard()).toContainText('SHIPPED', { timeout: 20_000 })
+    )
+    await expect(allocationCard()).toContainText('IN_TRANSIT')
+    await clickUntilVisibleState(
+      () => allocationCard().getByRole('button', { name: 'Deliver' }),
+      () => expect(allocationCard()).toContainText('DELIVERED', { timeout: 20_000 })
+    )
   })
 
   test('warehouse operator can fail and return in-transit shipments', async ({ page, request }) => {

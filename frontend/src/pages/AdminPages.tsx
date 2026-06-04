@@ -172,13 +172,27 @@ export function AdminUsersPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    if (!data?.users) return
+    const loadedUsers = data.users
     queueMicrotask(() => {
-      setUsers(data?.users ?? [])
-      if (!tenantId && data?.tenants[0]) {
-        setTenantId(data.tenants[0].id)
-      }
+      setUsers((current) => {
+        const nextUsers = new Map(loadedUsers.map((user) => [user.id, user]))
+        current.forEach((user) => {
+          if (!nextUsers.has(user.id)) {
+            nextUsers.set(user.id, user)
+          }
+        })
+        return Array.from(nextUsers.values())
+      })
     })
-  }, [data?.tenants, data?.users, tenantId])
+  }, [data?.users])
+
+  useEffect(() => {
+    if (!tenantId && data?.tenants[0]) {
+      const defaultTenantId = data.tenants[0].id
+      queueMicrotask(() => setTenantId(defaultTenantId))
+    }
+  }, [data?.tenants, tenantId])
 
   const filteredUsers = users.filter((user) => {
     const normalizedSearch = userSearch.trim().toLowerCase()

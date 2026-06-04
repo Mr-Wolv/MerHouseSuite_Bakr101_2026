@@ -58,6 +58,7 @@ export function WarehousePage() {
 
   useEffect(() => {
     if (!token) return
+    let active = true
     Promise.all([
       api.warehouses(token),
       api.fulfillmentAllocations(token),
@@ -67,6 +68,7 @@ export function WarehousePage() {
       api.warehouseDashboard(token),
     ])
       .then(([nextWarehouses, nextAllocations, nextRelationships, nextInboundRequests, nextExceptions, nextDashboard]) => {
+        if (!active) return
         setWarehouses(nextWarehouses)
         setSelectedWarehouseId(nextWarehouses[0]?.id ?? '')
         setAllocations(nextAllocations)
@@ -76,20 +78,35 @@ export function WarehousePage() {
         setDashboard(nextDashboard)
       })
       .catch((caught) => {
+        if (!active) return
         setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load warehouse console.')
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
   }, [token])
 
   useEffect(() => {
     if (!token || !selectedWarehouseId) return
+    let active = true
     queueMicrotask(() => setInventoryLoading(true))
     api.warehouseInventory(token, selectedWarehouseId)
-      .then(setInventory)
+      .then((nextInventory) => {
+        if (active) setInventory(nextInventory)
+      })
       .catch((caught) => {
+        if (!active) return
         setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load warehouse inventory.')
       })
-      .finally(() => setInventoryLoading(false))
+      .finally(() => {
+        if (active) setInventoryLoading(false)
+      })
+    return () => {
+      active = false
+    }
   }, [selectedWarehouseId, token])
 
   const selected = warehouses.find((warehouse) => warehouse.id === selectedWarehouseId)

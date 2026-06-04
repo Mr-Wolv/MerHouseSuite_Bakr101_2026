@@ -198,7 +198,7 @@ describe('InventoryItemDetailPage', () => {
 
     renderWithRoute(<InventoryItemDetailPage />, '/inventory/items/missing-item', '/inventory/items/:inventoryItemId')
 
-    expect(await screen.findByText('Inventory item not found: missing-item')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Inventory item not found: missing-item' })).toBeInTheDocument()
     expect(screen.getByText(/archived, removed, or belongs to another merchant context/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back to Stock' })).toHaveAttribute('href', '/merchant/inventory')
   })

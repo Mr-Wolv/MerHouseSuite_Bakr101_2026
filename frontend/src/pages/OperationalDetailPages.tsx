@@ -382,6 +382,9 @@ function RecoverableDetailState({
 }) {
   return (
     <div className="page-stack">
+      <div className="page-heading">
+        <h1>{title}</h1>
+      </div>
       <EmptyState
         label={title}
         guidance={guidance}
