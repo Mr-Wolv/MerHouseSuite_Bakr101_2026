@@ -104,16 +104,16 @@ export function AssistantPage() {
       <div className="page-heading">
         <span className="eyebrow">Review assistant</span>
         <h1>Assistant</h1>
-        <p>Request scoped summaries and review-only suggestions for your MerHouse operations context.</p>
+        <p>Ask for a scoped second pass over operations risk.</p>
       </div>
       <GuidancePanel title="Assistant review boundary">
-        The assistant summarizes scoped data and records review-only suggestions. Decisions are audited, but operational records are not mutated by the assistant.
+        Suggestions stay review-only. Accepting one records a decision; it does not change operations.
       </GuidancePanel>
 
       {error ? <ErrorState title={error} /> : null}
 
       <div className="status-row">
-        <div className="status-count"><span>Local records</span><strong>{interactions.length}</strong></div>
+        <div className="status-count"><span>Review records</span><strong>{interactions.length}</strong></div>
         <div className="status-count"><span>Pending suggestions</span><strong>{pendingSuggestions}</strong></div>
         <div className="status-count"><span>Refusals</span><strong>{refusals}</strong></div>
         {canOpenAudit ? (
@@ -154,7 +154,7 @@ export function AssistantPage() {
         <section className="admin-action-panel" aria-label="Suggestion decision controls">
           <div className="admin-action-copy">
             <h2>Suggestion decision controls</h2>
-            <p>Accepting or rejecting a suggestion records an audited review decision only; it does not execute operational changes.</p>
+            <p>Decision buttons record review only; operations stay unchanged.</p>
           </div>
           <label className="compact-field" htmlFor="assistant-decision-reason">
             <span>Decision reason</span>
@@ -170,7 +170,7 @@ export function AssistantPage() {
       <section className="table-section">
         <div className="table-toolbar">
           <h2>Interaction History</h2>
-          <span>{interactions.length} local records</span>
+          <span>{interactions.length} review records</span>
         </div>
         {interactions.length ? (
           <div className="queue-list">
@@ -230,7 +230,7 @@ export function AssistantPage() {
         ) : (
           <EmptyState
             label="No assistant reviews yet"
-            guidance="Start with a scoped summary when you want a second pass over orders, warehouse work, service records, or platform risk. Suggestions stay review-only until a person records a decision."
+            guidance="Start with a scoped summary. Suggestions stay review-only until a person records a decision."
           />
         )}
       </section>

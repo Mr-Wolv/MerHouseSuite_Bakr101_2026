@@ -120,6 +120,15 @@ Third V15.3 slice:
 - Focused proof passed with `npm test -- --run StatusBadge NotificationCenterPage ServiceAccountabilityPage MerchantPages WarehousePage AdminManagement`, `npm run lint`, and `npm run build`.
 - Docker frontend rebuild and in-app browser proof verified status explanations on notifications, partner relationships, and service review with no captured browser console errors.
 
+Fourth V15.3 slice:
+
+- Merchant overview, inventory, orders, and empty states now use shorter action-first language instead of repeated allocation, relationship, and shipment-evidence explanations.
+- Warehouse console guidance now points operators to work queue and inbound receiving first; no-data states now name the missing operational prerequisite without retelling the whole workflow.
+- Service accountability now prioritizes open disputes, claims, and pending reviews before partner-review action; agreement, SLA, statement, import, and review empty states were shortened.
+- Assistant review copy now says suggestions are review-only once, replaces `Local records` with `Review records`, and trims decision-control language while keeping the no-mutation boundary visible.
+- Focused proof passed with `npm test -- --run MerchantPages WarehousePage ServiceAccountabilityPage AssistantPage`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and in-app browser merchant/service/assistant/warehouse copy proof with no captured console errors.
+- The first broad check caught one stale V15 empty-state E2E expectation for the old merchant guidance; the proof was updated to the new concise copy, `npm exec -- playwright test tests/e2e/v15-empty-state-live.spec.ts --project=chromium` passed, and `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` then passed.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |

@@ -179,7 +179,7 @@ describe('Merchant overview', () => {
     renderWithAuth(<MerchantOverviewPage />)
 
     expect(await screen.findByText('Merchant Overview')).toBeInTheDocument()
-    expect(screen.getByLabelText('Start with risk')).toHaveTextContent('Check stock risk')
+    expect(screen.getByLabelText('Start with risk')).toHaveTextContent('Open Orders when risk rises')
     expect(screen.getByText('Inventory items')).toBeInTheDocument()
     expect(screen.getByText('SKU-1 x2')).toBeInTheDocument()
   })
@@ -210,7 +210,7 @@ describe('Merchant inventory', () => {
     renderWithAuth(<MerchantInventoryPage />)
 
     const form = await screen.findByRole('form', { name: 'Create inventory item form' })
-    expect(screen.getByLabelText('Inventory and inbound readiness')).toHaveTextContent('active warehouse relationships')
+    expect(screen.getByLabelText('Inventory and inbound readiness')).toHaveTextContent('setup path')
     expect(screen.getByLabelText('Merchant setup path')).toHaveTextContent('4/4 ready')
     await user.type(within(form).getByLabelText('SKU'), 'SKU-2')
     await user.type(within(form).getByLabelText('Name'), 'New Merchant Item')
@@ -479,7 +479,7 @@ describe('Merchant orders', () => {
     renderWithAuth(<MerchantOrdersPage />)
 
     const form = await screen.findByRole('form', { name: 'Create order form' })
-    expect(screen.getByLabelText('Order queue controls')).toHaveTextContent('Backordered lines stay visible')
+    expect(screen.getByLabelText('Order queue controls')).toHaveTextContent('Add the customer order')
     await user.type(within(form).getByLabelText('Customer address'), 'Giza Customer')
     await user.clear(within(form).getByLabelText('Quantity'))
     await user.type(within(form).getByLabelText('Quantity'), '3')

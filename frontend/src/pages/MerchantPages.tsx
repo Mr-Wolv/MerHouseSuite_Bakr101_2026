@@ -64,9 +64,9 @@ export function MerchantOverviewPage() {
 
   return (
     <div className="page-stack">
-      <PageHeading title="Merchant Overview" subtitle="Inventory and order activity for the current merchant tenant." />
+      <PageHeading title="Merchant Overview" subtitle="Watch stock risk, backorders, and exceptions before opening the queue." />
       <GuidancePanel title="Start with risk">
-        Check stock risk, exceptions, and backorders first. Then open the order queue for allocation and shipment evidence.
+        Open Orders when risk rises; use Stock when a prerequisite is missing.
       </GuidancePanel>
       <div className="metric-grid">
         <Metric label="Inventory items" value={data.items.length} />
@@ -88,7 +88,7 @@ export function MerchantOverviewPage() {
             ))}
           </div>
         ) : (
-          <EmptyState label="No orders yet" guidance="Create an order once inventory and warehouse relationships are ready. Backorders, allocations, and shipment evidence will stay connected here." />
+          <EmptyState label="No orders yet" guidance="Create the first order once a SKU and active warehouse partner are ready." />
         )}
       </section>
       <RecentShipmentsPanel shipments={recentShipments} />
@@ -308,9 +308,9 @@ export function MerchantInventoryPage() {
 
   return (
     <div className="page-stack">
-      <PageHeading title="Inventory" subtitle="Create and review items owned by your merchant tenant." />
+      <PageHeading title="Inventory" subtitle="Create SKUs, connect warehouse partners, and send inbound stock." />
       <GuidancePanel title="Inventory and inbound readiness">
-        Inbound stock is tied to active warehouse relationships. The selected relationship controls which target warehouses are available for receiving.
+        Use the setup path below. Submit inbound only when a SKU and active partner are ready.
       </GuidancePanel>
       <FirstRunChecklist
         title="Merchant setup path"
@@ -655,7 +655,7 @@ export function MerchantOrdersPage() {
     <div className="page-stack">
       <PageHeading title="Orders" subtitle="Create orders, allocate available stock, and monitor backorders." />
       <GuidancePanel title="Order queue controls">
-        Allocate newly created orders when stock is ready. Backordered lines stay visible on the order card until they are fulfilled or cancelled.
+        Add the customer order, then allocate. Backorders stay on the order card until resolved.
       </GuidancePanel>
       {actionError ? <div className="inline-error">{actionError}</div> : null}
       {actionMessage ? <div className="inline-success">{actionMessage}</div> : null}
@@ -787,7 +787,7 @@ export function MerchantOrdersPage() {
             </table>
           </div>
         ) : (
-          <EmptyState label="No audited import batches yet" guidance="Submit an import batch when you need order intake evidence and validation feedback." />
+          <EmptyState label="No audited import batches yet" guidance="Submit an import batch for bulk order intake and validation feedback." />
         )}
       </section>
       <div className="filter-row">
@@ -819,7 +819,7 @@ export function MerchantOrdersPage() {
 
 function RecentShipmentsPanel({ shipments }: { shipments: Shipment[] }) {
   if (!shipments.length) {
-    return <EmptyState label="No recent shipments yet" guidance="Shipments appear after warehouse teams pick, pack, and hand off allocated orders." />
+    return <EmptyState label="No recent shipments yet" guidance="Shipments appear after warehouse teams hand off allocated orders." />
   }
 
   return (
@@ -857,7 +857,7 @@ function RecentShipmentsPanel({ shipments }: { shipments: Shipment[] }) {
 
 function InventoryTable({ items, onToggleArchive }: { items: InventoryItem[], onToggleArchive: (item: InventoryItem) => void }) {
   if (!items.length) {
-    return <EmptyState label="No inventory items yet" guidance="Create your first SKU, then connect it to inbound stock and warehouse relationships so orders can allocate cleanly." />
+    return <EmptyState label="No inventory items yet" guidance="Create your first SKU, then connect it to inbound stock and orders." />
   }
 
   return (
@@ -948,7 +948,7 @@ function MerchantExceptionsTable({
 
 function RelationshipsTable({ relationships }: { relationships: MerchantWarehouseRelationship[] }) {
   if (!relationships.length) {
-    return <EmptyState label="No warehouse service relationships yet" guidance="Request or activate a warehouse relationship before sending inbound stock or routing fulfillment work." />
+    return <EmptyState label="No warehouse service relationships yet" guidance="Request or activate a warehouse partner before sending stock or routing fulfillment." />
   }
 
   return (
@@ -984,7 +984,7 @@ function RelationshipsTable({ relationships }: { relationships: MerchantWarehous
 
 function AuthorizedStockTable({ stockRows }: { stockRows: MerchantAuthorizedStock[] }) {
   if (!stockRows.length) {
-    return <EmptyState label="No authorized warehouse stock yet" guidance="Authorized stock appears after inventory is received into a warehouse connected to this merchant." />
+    return <EmptyState label="No authorized warehouse stock yet" guidance="Authorized stock appears after a connected warehouse receives inventory." />
   }
 
   return (
@@ -1030,7 +1030,7 @@ function InboundRequestsTable({
   onCancel: (request: InboundStockRequest) => void
 }) {
   if (!requests.length) {
-    return <EmptyState label="No inbound stock requests yet" guidance="Create inbound stock once a warehouse relationship is active and the SKU is ready to receive." />
+    return <EmptyState label="No inbound stock requests yet" guidance="Create inbound stock once an active partner and SKU are ready." />
   }
 
   return (
@@ -1100,7 +1100,7 @@ function OrdersTable({
   onBackorder?: (orderId: string, backorderId: string, nextStatus: BackorderStatus) => void
 }) {
   if (!orders.length) {
-    return <EmptyState label="No orders yet" guidance="Create the first order to begin allocation, backorder, fulfillment, and shipment tracking." />
+    return <EmptyState label="No orders yet" guidance="Create the first order once inventory can allocate." />
   }
 
   return (

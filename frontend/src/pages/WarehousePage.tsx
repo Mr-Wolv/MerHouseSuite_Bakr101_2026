@@ -328,10 +328,10 @@ export function WarehousePage() {
     <div className="page-stack">
       <div className="page-heading">
         <h1>Warehouse Console</h1>
-        <p>Fulfillment queue, shipment actions, and inventory visibility for your warehouse tenant.</p>
+        <p>Pick, receive, ship, and resolve exceptions for the selected warehouse.</p>
       </div>
       <GuidancePanel title="Start with today's work">
-        Pick urgent allocations, receive inbound stock, then clear exceptions. Change warehouse only when you need a different queue.
+        Use Work queue for pick, pack, and ship. Use Inbound Receiving when stock arrives.
       </GuidancePanel>
 
       {warehouses.length ? (
@@ -350,8 +350,8 @@ export function WarehousePage() {
             items={[
               { label: 'Activate partner access', done: activeRelationships > 0, detail: requestedRelationships ? 'Review requested partners first; active partners can send stock and orders.' : 'Wait for a merchant or platform admin to request service.' },
               { label: 'Receive inbound stock', done: inventory.length > 0, detail: 'Approved inbound stock creates the stock rows that fulfillment uses.' },
-              { label: 'Work the queue', done: warehouseAllocations.length > 0, detail: 'Allocations appear after merchants create orders against available stock.' },
-              { label: 'Watch exceptions', done: !exceptions.some((exception) => exception.status === 'OPEN'), detail: 'Open exceptions show stock or shipment work that needs review.' },
+              { label: 'Work the queue', done: warehouseAllocations.length > 0, detail: 'Orders appear here after merchants allocate available stock.' },
+              { label: 'Watch exceptions', done: !exceptions.some((exception) => exception.status === 'OPEN'), detail: 'Open exceptions need review before the queue is clean.' },
             ]}
           />
 
@@ -547,7 +547,7 @@ function AllocationsTable({
   onReportException: (allocation: FulfillmentAllocation, reasonCode: string) => void
 }) {
   if (!allocations.length) {
-    return <EmptyState label="No fulfillment allocations for this warehouse" guidance="Allocations appear when merchant orders reserve stock in this warehouse. Start with active relationships, received inventory, and merchant demand." />
+    return <EmptyState label="No fulfillment allocations for this warehouse" guidance="No pick work yet. Confirm partner access, received stock, and merchant orders." />
   }
 
   return (
@@ -782,7 +782,7 @@ function RelationshipsTable({
   onActivate: (relationship: MerchantWarehouseRelationship) => void
 }) {
   if (!relationships.length) {
-    return <EmptyState label="No merchant service relationships yet" guidance="Service relationships connect merchants to warehouse work. Platform or merchant users can request and activate the relationship before operations begin." />
+    return <EmptyState label="No merchant service relationships yet" guidance="No partners yet. Activate requested partners here when they arrive." />
   }
 
   return (
@@ -845,7 +845,7 @@ function InboundRequestsTable({
   onReject: (request: InboundStockRequest) => void
 }) {
   if (!requests.length) {
-    return <EmptyState label="No inbound stock requests for this warehouse" guidance="Inbound requests appear when merchants send stock to this warehouse for receiving." />
+    return <EmptyState label="No inbound stock requests for this warehouse" guidance="No receiving work yet. Merchants create inbound requests after partner access is active." />
   }
 
   return (
@@ -941,7 +941,7 @@ function InventoryTable({
   onAdjust: (row: WarehouseInventory) => void
 }) {
   if (!inventory.length) {
-    return <EmptyState label="No stock rows for this warehouse" guidance="Stock rows appear after inbound receiving posts available, damaged, or reserved inventory." />
+    return <EmptyState label="No stock rows for this warehouse" guidance="Stock appears after inbound receiving is posted." />
   }
 
   return (

@@ -130,7 +130,7 @@ describe('AssistantPage', () => {
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Assistant' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Assistant review boundary')).toHaveTextContent('operational records are not mutated')
+    expect(screen.getByLabelText('Assistant review boundary')).toHaveTextContent('Suggestions stay review-only')
     expect(screen.getByText('Summarize my queues')).toBeInTheDocument()
     expect(screen.getByText('Merchant operations summary: 7 orders or workload items.')).toBeInTheDocument()
     expect(screen.getAllByText('Review record')).toHaveLength(1)

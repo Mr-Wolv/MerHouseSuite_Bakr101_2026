@@ -107,7 +107,7 @@ export function ServiceAccountabilityPage() {
 
   if (loading) return <LoadingState />
   if (error && !data) return <ErrorState title={error} />
-  if (!data) return <EmptyState label="No service-accountability data available" guidance="Create service agreements and operational records before reviewing statements, disputes, claims, and performance evidence." />
+  if (!data) return <EmptyState label="No service-accountability data available" guidance="Create service agreements before reviewing statements, SLA risk, or partner issues." />
 
   const openDisputes = data.disputes.filter((item) => item.status === 'OPEN').length
   const openClaims = data.claims.filter((item) => item.status === 'OPEN').length
@@ -118,11 +118,11 @@ export function ServiceAccountabilityPage() {
       <PageHeading
         title="Service Accountability"
         subtitle={canUseOrderImport
-          ? 'Merchant-provider terms, service records, SLA review, and order import history.'
-          : 'Merchant-provider terms, service records, and SLA review.'}
+          ? 'Review partner terms, SLA risk, statements, service issues, and imports.'
+          : 'Review partner terms, SLA risk, statements, and service issues.'}
       />
       <GuidancePanel title="Service accountability review">
-        Review agreements, SLA status, statements, disputes, claims, reviews, and import evidence together before requesting partner action.
+        Start with open disputes, claims, and pending reviews. Request partner review from the active agreement.
       </GuidancePanel>
       {error && <ErrorState title={error} />}
       {message ? <div className="inline-success">{message}</div> : null}
@@ -187,7 +187,7 @@ export function ServiceAccountabilityPage() {
             </table>
           </div>
         ) : (
-          <EmptyState label="No service agreements yet" guidance="Create or activate merchant-warehouse relationships, then record agreement terms so SLA and statement evidence have an operating basis." />
+          <EmptyState label="No service agreements yet" guidance="Create or activate a partner relationship, then record agreement terms." />
         )}
       </section>
 
@@ -204,7 +204,7 @@ export function ServiceAccountabilityPage() {
             ))}
           </div>
         ) : (
-          <EmptyState label="No SLA records for the selected agreement" guidance="SLA records appear as service windows are measured against the selected agreement." />
+          <EmptyState label="No SLA records for the selected agreement" guidance="SLA records appear after service work starts under this agreement." />
         )}
       </section>
 
@@ -238,7 +238,7 @@ export function ServiceAccountabilityPage() {
             </table>
           </div>
         ) : (
-          <EmptyState label="No service statements yet" guidance="Statements appear after service periods close and fees, exceptions, or adjustments are ready for review." />
+          <EmptyState label="No service statements yet" guidance="Statements appear after a service period closes." />
         )}
       </section>
 
@@ -276,7 +276,7 @@ export function ServiceAccountabilityPage() {
               </table>
             </div>
           ) : (
-            <EmptyState label="No import batches yet" guidance="Import batches appear when merchants submit order intake files for validation and audit review." />
+            <EmptyState label="No import batches yet" guidance="Import history appears after order-intake files are submitted." />
           )}
         </section>
       )}
@@ -328,7 +328,7 @@ function IssueTable({
       outcome: item.outcomeNote,
     })),
   ]
-  if (!rows.length) return <EmptyState label="No review records yet" guidance="Disputes, claims, and review requests will appear here when a service record needs partner attention." />
+  if (!rows.length) return <EmptyState label="No review records yet" guidance="Partner issues appear here when disputes, claims, or reviews are opened." />
 
   return (
     <div className="table-wrap">

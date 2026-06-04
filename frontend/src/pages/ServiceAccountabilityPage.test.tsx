@@ -210,7 +210,7 @@ describe('ServiceAccountabilityPage', () => {
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Service Accountability' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Service accountability review')).toHaveTextContent('disputes, claims, reviews, and import evidence')
+    expect(screen.getByLabelText('Service accountability review')).toHaveTextContent('Start with open disputes')
     expect(screen.getByText('Priority support for fragile orders.')).toHaveClass('note-cell')
     expect(screen.getByText('Mismatch in handoff count.')).toHaveClass('note-cell')
     expect(screen.getByText('Carrier dispatch shows one fewer package.')).toHaveClass('note-cell')
