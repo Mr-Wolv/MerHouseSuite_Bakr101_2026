@@ -669,6 +669,11 @@ export function MerchantOrdersPage() {
       </GuidancePanel>
       {actionError ? <div className="inline-error">{actionError}</div> : null}
       {actionMessage ? <div className="inline-success">{actionMessage}</div> : null}
+      <WorkflowDivider
+        eyebrow="Order setup"
+        title="Create customer demand"
+        description="Start with one customer order or build draft lines when a shipment needs multiple SKUs."
+      />
       <form aria-label="Create order form" className="panel-form" onSubmit={handleCreateOrder}>
         <h2>Create Order</h2>
         {createOrderBlocker ? <p className="field-help prerequisite-help">{createOrderBlocker}</p> : null}
@@ -749,6 +754,11 @@ export function MerchantOrdersPage() {
           {submitting ? 'Creating' : 'Create order'}
         </button>
       </form>
+      <WorkflowDivider
+        eyebrow="Bulk intake"
+        title="Audit imported rows"
+        description="Paste order rows when the merchant queue needs bulk intake, then review accepted and rejected rows before allocation."
+      />
       <section className="table-section">
         <h2>Audited Order Import</h2>
         <div className="panel-form">
@@ -800,6 +810,11 @@ export function MerchantOrdersPage() {
           <EmptyState label="No audited import batches yet" guidance="Submit an import batch for bulk order intake and validation feedback." />
         )}
       </section>
+      <WorkflowDivider
+        eyebrow="Active work"
+        title="Allocate, resolve, and follow shipments"
+        description="Filter the queue, resolve merchant-facing exceptions, and use shipment evidence to confirm warehouse handoffs."
+      />
       <div className="filter-row">
         <label htmlFor="merchant-order-status-filter">
           <span>Status</span>

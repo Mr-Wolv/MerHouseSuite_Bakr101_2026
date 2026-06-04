@@ -175,6 +175,13 @@ Second V15.4 slice:
 - The slice keeps existing form labels and actions stable while adding a focused Merchant Inventory test for the hierarchy anchors.
 - Proof passed with `npm test -- --run MerchantPages`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, Playwright live-style checks of `/merchant/inventory` in desktop and narrow viewports with no console errors or horizontal overflow, and a clean rerun of `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
 
+Third V15.4 slice:
+
+- Merchant orders now separates single-order setup, audited bulk intake, and active queue work with visible `Create customer demand`, `Audit imported rows`, and `Allocate, resolve, and follow shipments` anchors.
+- The slice keeps existing order form, import, filter, exception, and queue actions stable while adding focused Merchant Orders test coverage for the new hierarchy anchors.
+- Focused proof passed with `npm test -- --run MerchantPages`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and Playwright live-style checks of `/merchant/orders` in desktop and narrow viewports with no console errors or horizontal overflow.
+- Broad proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` after hardening the Warehouse setup-path test so it checks the active-partner copy instead of a fixture-dependent ready-count.
+
 User-perspective V15.3 quality-of-life backlog:
 
 | Change type | What to change | Why it matters |

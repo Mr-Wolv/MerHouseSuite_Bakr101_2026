@@ -484,6 +484,11 @@ describe('Merchant orders', () => {
 
     const form = await screen.findByRole('form', { name: 'Create order form' })
     expect(screen.getByLabelText('Order queue controls')).toHaveTextContent('Add the customer order')
+    expect(screen.getByText('Order setup')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Create customer demand' })).toBeInTheDocument()
+    expect(screen.getByText('Start with one customer order or build draft lines when a shipment needs multiple SKUs.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Audit imported rows' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Allocate, resolve, and follow shipments' })).toBeInTheDocument()
     await user.type(within(form).getByLabelText('Customer address'), 'Giza Customer')
     await user.clear(within(form).getByLabelText('Quantity'))
     await user.type(within(form).getByLabelText('Quantity'), '3')

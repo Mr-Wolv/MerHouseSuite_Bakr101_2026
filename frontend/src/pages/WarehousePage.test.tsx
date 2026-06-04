@@ -284,7 +284,7 @@ describe('WarehousePage', () => {
 
     renderWithAuth(<WarehousePage />)
 
-    expect(await screen.findByLabelText('Warehouse setup path')).toHaveTextContent('3/4 ready')
+    expect(await screen.findByLabelText('Warehouse setup path')).toHaveTextContent('Activate partner access')
     expect(screen.getByText('Active partners can send stock and orders.')).toBeInTheDocument()
     expect(screen.queryByText('Wait for a merchant or platform admin to request service.')).not.toBeInTheDocument()
   })
