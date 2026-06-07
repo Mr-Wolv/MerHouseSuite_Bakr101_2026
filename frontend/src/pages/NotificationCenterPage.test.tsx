@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import type { AuthState } from '../auth/AuthContextValue'
 import { AuthContext } from '../auth/AuthContextValue'
 import { notificationUnreadChangedEvent } from '../notifications/notificationEvents'
@@ -43,9 +44,11 @@ const authState: AuthState = {
 
 function renderPage() {
   render(
-    <AuthContext.Provider value={authState}>
-      <NotificationCenterPage />
-    </AuthContext.Provider>,
+    <MemoryRouter>
+      <AuthContext.Provider value={authState}>
+        <NotificationCenterPage />
+      </AuthContext.Provider>
+    </MemoryRouter>,
   )
 }
 
@@ -185,8 +188,43 @@ describe('NotificationCenterPage', () => {
     expect(screen.getByLabelText(/READY FOR PROVIDER: Ready for an external delivery provider/i)).toHaveClass('data-chip', 'warning-chip')
     expect(screen.getAllByText('Action needed').some((node) => node.classList.contains('severity-action'))).toBe(true)
     expect(screen.getByText('Shipment')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open source' })).toHaveAttribute('href', '/shipments/shipment-provider-ready')
     expect(screen.queryByText('Another user alert')).not.toBeInTheDocument()
     expect(screen.queryByText('delivery-current-user')).not.toBeInTheDocument()
+  })
+
+  it('links connected alert sources to their routed work surfaces', async () => {
+    apiMock.notificationDeliveries.mockResolvedValue([
+      deliveryFixture({
+        id: 'delivery-inbound',
+        topic: 'OPERATIONS',
+        title: 'Inbound stock received',
+        sourceType: 'InboundStockRequest',
+        sourceId: 'inbound-12345678',
+      }),
+      deliveryFixture({
+        id: 'delivery-service',
+        topic: 'SERVICE_ACCOUNTABILITY',
+        title: 'Service claim opened',
+        sourceType: 'ServiceClaim',
+        sourceId: 'claim-12345678',
+      }),
+      deliveryFixture({
+        id: 'delivery-outbox',
+        topic: 'OUTBOX_HEALTH',
+        title: 'Outbox event failed',
+        sourceType: 'Shipment',
+        sourceId: 'shipment-12345678',
+      }),
+    ])
+
+    renderPage()
+
+    expect(await screen.findByText('Inbound stock received')).toBeInTheDocument()
+    const sourceLinks = screen.getAllByRole('link', { name: 'Open source' })
+    expect(sourceLinks[0]).toHaveAttribute('href', '/inbound-stock-requests/inbound-12345678')
+    expect(sourceLinks[1]).toHaveAttribute('href', '/service-accountability')
+    expect(sourceLinks[2]).toHaveAttribute('href', '/admin/outbox')
   })
 
   it('separates critical, action, review, and resolved notification severity', async () => {

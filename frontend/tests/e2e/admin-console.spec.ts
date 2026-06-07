@@ -280,7 +280,15 @@ test.describe('admin console', () => {
       quantity: 4,
     })
     const operatorEmail = `e2e-operator-${suffix}@merhouse.local`
+    const merchantEmail = `e2e-operator-merchant-${suffix}@merhouse.local`
     const operatorPassword = 'operator-password'
+    const merchantPassword = 'merchant-password'
+    await api(request, 'post', '/api/v1/admin/users', adminToken, {
+      tenantId: merchant.id,
+      email: merchantEmail,
+      password: merchantPassword,
+      role: 'MERCHANT',
+    })
     await api(request, 'post', '/api/v1/admin/users', adminToken, {
       tenantId: warehouseTenant.id,
       email: operatorEmail,
@@ -326,6 +334,20 @@ test.describe('admin console', () => {
       () => allocationCard().getByRole('button', { name: 'Deliver' }),
       () => expect(allocationCard()).toContainText('DELIVERED', { timeout: 20_000 })
     )
+
+    await page.evaluate(() => window.localStorage.clear())
+    await page.goto('/login')
+    await page.getByLabel('Email').fill(merchantEmail)
+    await page.getByLabel('Password').fill(merchantPassword)
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page.getByRole('heading', { name: 'Merchant Overview' })).toBeVisible({ timeout: 20_000 })
+    await page.goto('/notifications')
+    await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText('Allocation picking started')).toBeVisible()
+    await expect(page.getByText('Allocation packed')).toBeVisible()
+    await expect(page.getByText('Shipment handed off')).toBeVisible()
+    await expect(page.getByText('Shipment delivered')).toBeVisible()
+    await expect(page.locator('.data-chip', { hasText: 'Shipment' }).first()).toBeVisible()
   })
 
   test('warehouse operator can fail and return in-transit shipments', async ({ page, request }) => {
@@ -556,6 +578,20 @@ test.describe('admin console', () => {
       name: `E2E V11 Warehouse ${suffix}`,
       type: 'WAREHOUSE_PROVIDER',
     })
+    const merchantEmail = `e2e-v11-merchant-${suffix}@merhouse.local`
+    const warehouseEmail = `e2e-v11-warehouse-${suffix}@merhouse.local`
+    await api(request, 'post', '/api/v1/admin/users', adminToken, {
+      tenantId: merchant.id,
+      email: merchantEmail,
+      password: 'merchant-password',
+      role: 'MERCHANT',
+    })
+    await api(request, 'post', '/api/v1/admin/users', adminToken, {
+      tenantId: warehouseTenant.id,
+      email: warehouseEmail,
+      password: 'operator-password',
+      role: 'WAREHOUSE_OPERATOR',
+    })
     const warehouse = await api<{ id: string }>(request, 'post', '/api/v1/warehouses', adminToken, {
       tenantId: warehouseTenant.id,
       name: `V11 Hub ${suffix}`,
@@ -651,13 +687,6 @@ test.describe('admin console', () => {
         },
       ],
     })
-    const merchantEmail = `e2e-v11-merchant-${suffix}@merhouse.local`
-    await api(request, 'post', '/api/v1/admin/users', adminToken, {
-      tenantId: merchant.id,
-      email: merchantEmail,
-      password: 'merchant-password',
-      role: 'MERCHANT',
-    })
 
     await page.goto('/login')
     await page.getByLabel('Email').fill(merchantEmail)
@@ -671,6 +700,21 @@ test.describe('admin console', () => {
     await expect(page.getByText('Playwright dispute review')).toBeVisible()
     await expect(page.getByText('RECEIVING REVIEW')).toBeVisible()
     await expect(page.getByText(`V11 Import ${suffix}`)).toBeVisible()
+    await page.goto('/notifications')
+    await expect(page.getByText('Service agreement active')).toBeVisible()
+    await expect(page.getByText('Service dispute opened')).toBeVisible()
+    await expect(page.getByText('Service claim opened')).toBeVisible()
+    await expect(page.getByText('Service review requested')).toBeVisible()
+    await expect(page.locator('.data-chip', { hasText: 'ServiceClaim' }).first()).toBeVisible()
+    await page.getByRole('button', { name: 'Logout' }).click()
+    await page.getByLabel('Email').fill(warehouseEmail)
+    await page.getByLabel('Password').fill('operator-password')
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible()
+    await page.goto('/notifications')
+    await expect(page.getByText('Service agreement proposed')).toBeVisible()
+    await expect(page.getByText('Service dispute opened')).toBeVisible()
+    await expect(page.locator('.data-chip', { hasText: 'ServiceAgreement' }).first()).toBeVisible()
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBeTruthy()
     await page.screenshot({ path: `../reports/v11/service-accountability-${suffix}.png`, fullPage: true })
   })

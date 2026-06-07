@@ -63,6 +63,7 @@ public class FulfillmentService {
     private final AppUserRepository appUserRepository;
     private final CustomerOrderRepository orderRepository;
     private final OutboxService outboxService;
+    private final OperationsAlertService operationsAlertService;
     private final CurrentUserService currentUserService;
     private final Clock clock;
 
@@ -75,6 +76,7 @@ public class FulfillmentService {
         AppUserRepository appUserRepository,
         CustomerOrderRepository orderRepository,
         OutboxService outboxService,
+        OperationsAlertService operationsAlertService,
         CurrentUserService currentUserService,
         Clock clock
     ) {
@@ -86,6 +88,7 @@ public class FulfillmentService {
         this.appUserRepository = appUserRepository;
         this.orderRepository = orderRepository;
         this.outboxService = outboxService;
+        this.operationsAlertService = operationsAlertService;
         this.currentUserService = currentUserService;
         this.clock = clock;
     }
@@ -112,6 +115,14 @@ public class FulfillmentService {
             "FulfillmentAllocation",
             saved.getId(),
             Map.of("allocationId", saved.getId().toString(), "status", saved.getStatus().name())
+        );
+        operationsAlertService.recordMerchantAlert(
+            saved.getOrder().getMerchant().getId(),
+            allocationTitle(saved.getStatus()),
+            saved.getWarehouse().getTenant().getName() + " moved order " + saved.getOrder().getId()
+                + " to " + saved.getStatus().name() + ".",
+            "FulfillmentAllocation",
+            saved.getId()
         );
         return response(saved);
     }
@@ -182,6 +193,15 @@ public class FulfillmentService {
                 "packageWeightKg", request.packageWeightKg().toPlainString(),
                 "serviceScope", "PICK_PACK_SHIP"
             )
+        );
+        operationsAlertService.recordMerchantAlert(
+            order.getMerchant().getId(),
+            "Shipment handed off",
+            saved.getCarrier() + " is carrying " + request.packageCount() + " package"
+                + plural(request.packageCount()) + " for order " + order.getId() + " with tracking "
+                + saved.getTrackingNumber() + ".",
+            "Shipment",
+            saved.getId()
         );
         return ShipmentResponse.from(saved);
     }
@@ -256,6 +276,14 @@ public class FulfillmentService {
             saved.getId(),
             Map.of("exceptionId", saved.getId().toString(), "reasonCode", saved.getReasonCode())
         );
+        operationsAlertService.recordMerchantAlert(
+            saved.getMerchant().getId(),
+            "Fulfillment exception needs review",
+            saved.getWarehouseProvider().getName() + " reported " + saved.getReasonCode()
+                + " for order " + saved.getAllocation().getOrder().getId() + ": " + saved.getDescription(),
+            "FulfillmentException",
+            saved.getId()
+        );
         return FulfillmentExceptionResponse.from(saved);
     }
 
@@ -276,6 +304,14 @@ public class FulfillmentService {
             "FulfillmentException",
             saved.getId(),
             Map.of("exceptionId", saved.getId().toString())
+        );
+        operationsAlertService.recordWarehouseProviderAlert(
+            saved.getWarehouseProvider().getId(),
+            "Fulfillment exception resolved",
+            saved.getMerchant().getName() + " resolved " + saved.getReasonCode()
+                + " for order " + saved.getAllocation().getOrder().getId() + ".",
+            "FulfillmentException",
+            saved.getId()
         );
         return FulfillmentExceptionResponse.from(saved);
     }
@@ -330,6 +366,14 @@ public class FulfillmentService {
                 "carrier", saved.getCarrier(),
                 "trackingNumber", saved.getTrackingNumber()
             )
+        );
+        operationsAlertService.recordMerchantAlert(
+            shipment.getAllocation().getOrder().getMerchant().getId(),
+            shipmentStatusTitle(nextStatus),
+            saved.getCarrier() + " marked tracking " + saved.getTrackingNumber()
+                + " as " + nextStatus.name() + ".",
+            "Shipment",
+            saved.getId()
         );
         return ShipmentResponse.from(saved);
     }
@@ -389,5 +433,28 @@ public class FulfillmentService {
             shipmentPackage.addEvent(handedOff);
             shipment.addPackage(shipmentPackage);
         }
+    }
+
+    private String allocationTitle(FulfillmentStatus status) {
+        if (status == FulfillmentStatus.PICKING) {
+            return "Allocation picking started";
+        }
+        if (status == FulfillmentStatus.PACKED) {
+            return "Allocation packed";
+        }
+        return "Allocation updated";
+    }
+
+    private String shipmentStatusTitle(ShipmentStatus status) {
+        return switch (status) {
+            case DELIVERED -> "Shipment delivered";
+            case FAILED -> "Shipment failed";
+            case RETURNED -> "Shipment returned";
+            case IN_TRANSIT -> "Shipment updated";
+        };
+    }
+
+    private String plural(int count) {
+        return count == 1 ? "" : "s";
     }
 }

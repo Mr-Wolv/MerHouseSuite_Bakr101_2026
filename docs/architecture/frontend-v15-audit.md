@@ -284,3 +284,56 @@ Responsive-interactivity acceptance means:
 First V15.7 proof seed:
 
 - The notification center now decrements the `Alerts` shell badge immediately after a successful `Mark read` click. Focused AppLayout and NotificationCenter tests cover the event contract, `tests/e2e/v15-notification-alerts-live.spec.ts` proves the badge moves from `3 unread alerts` to `2 unread alerts` on the same route, and a real-backend localhost proof confirmed a visible `2` to `1` badge/metric change without navigation or console warnings.
+
+## V15.5 Connected Workflow Start
+
+V15.5 starts from a healthy technical baseline: the full-tour harmonic workflow already proves that a merchant can submit inbound stock, a warehouse can approve and receive it, the merchant can create and allocate an order, the warehouse can move the allocation to picking, the merchant can inspect the allocation detail timeline, and an admin can observe the governed relationship afterward. The product gap is not that the chain is absent; the gap is that alerts, detail pages, and cross-role copy do not yet make the chain feel connected without knowing the test path.
+
+Connected-workflow acceptance means a user can answer:
+
+- who created this work
+- who needs to act next
+- which relationship, package, inbound request, order, allocation, shipment, service record, or outbox event it belongs to
+- which page explains the current state
+- what changed because another role acted
+- whether the record is action-needed, reviewable history, or resolved
+
+Initial V15.5 gap map:
+
+| Flow | Current proof/behavior | Gap to close | Owner | Proof needed |
+| --- | --- | --- | --- | --- |
+| Merchant requests warehouse service -> platform/warehouse relationship review | Relationship APIs, admin governance rows, merchant setup guidance, and relationship detail route exist. | The relationship request does not yet produce a connected alert trail that tells the other side who requested service and where to review it. | V15.5 | Backend/frontend tests for relationship alert recipients and role scoping; browser proof from merchant request to platform/warehouse alert/detail review. |
+| Merchant submits inbound stock -> warehouse receives -> merchant sees stock | Harmonic E2E proves submit, approve, receiving, receive, and merchant stock visibility. | Alerts and detail pages should connect the merchant request, warehouse action, quantities received/damaged, and next merchant state without requiring table hunting. | V15.5 | Inbound notification tests for merchant and warehouse recipients; detail-page proof showing linked relationship, item, warehouse, and timeline handoff. |
+| Merchant order allocation -> warehouse pick/pack/ship -> merchant observes detail | Full-tour and admin-console E2E prove allocation, picking, package/shipment evidence, and detail routes. | Package and shipment handoffs need clearer alert/source semantics and links so users know which object changed and who should act. | V15.5 | Notification tests for allocation/shipment/package events; Playwright proof from order allocation through warehouse action to merchant alert/detail trail. |
+| Shipment failure/return -> service/accountability review | Shipment failure/return workflows and service accountability records exist; notification severity fixtures model returned shipment language. | Failed/returned shipment alerts are currently fixture-proven, not generated as connected operational notifications tied to shipment/detail/service records. | V15.5 | Backend tests generating failure/return alerts; frontend proof that alert severity, source id, and detail navigation match the shipment/service context. |
+| Outbox dead-letter/retry -> admin/support diagnostics | Outbox diagnostics and assistant summaries can identify failed integration work; notification fixtures model dead-letter severity. | Outbox health alerts are not yet generated as connected user-facing work with clear retry/detail ownership. | V15.5, with V15.6 later measuring polling/load impact | Outbox notification tests, admin/support alert proof, and no cross-role leakage proof. |
+| Service accountability issue -> merchant/warehouse/platform follow-up | Service agreements, statements, disputes, claims, reviews, and route proof exist. | Service issues should connect back to the relationship, inbound/order/shipment source, responsible role, and next action in alert/detail language. | V15.5 | Service alert model tests and browser proof for cross-role service issue visibility and tenant scoping. |
+
+First implementation target:
+
+- Extend the local notification foundation from account-lifecycle records into connected operational records, starting with merchant-warehouse relationship and inbound handoff events. Keep delivery local and recipient-scoped, avoid provider-backed claims, and prove tenant/role isolation before adding broader package/shipment/service alert coverage.
+
+First V15.5 slice:
+
+- Relationship and inbound stock handoffs now create local, recipient-scoped in-app alerts. Warehouse operators receive merchant relationship requests and inbound-review work; merchant users receive relationship activation, inbound approval, receiving, received, and rejection updates; platform owner/admin/support-admin users receive relationship governance review alerts.
+- Alerts use `sourceType` and `sourceId` for `MerchantWarehouseRelationship` and `InboundStockRequest`, preserving a connected object trail without claiming provider-backed delivery.
+- Focused backend proof covers the recipient and source contract in `MerchantWarehouseServiceTest`; the harmonic workflow E2E now proves warehouse and merchant users see connected inbound handoff alerts in `/notifications` during the cross-role flow.
+- The first harmonic E2E rerun after a backend rebuild exposed a local readiness race: Docker reported the backend container as started before Spring was accepting login requests. The race is closed by `/api/v1/health`, `scripts/local/wait-backend.ps1`, and `frontend-check.ps1 -IncludeE2E` waiting for backend readiness before browser proof begins.
+
+Second V15.5 slice:
+
+- Fulfillment allocation, shipment, package-handoff, and exception transitions now create local, recipient-scoped in-app alerts. Merchant users receive allocation picking/packed updates, shipment handoff, delivered, failed, and returned updates, plus fulfillment-exception review alerts. Warehouse operators receive an alert when a merchant resolves a fulfillment exception.
+- Shipment handoff alerts name the carrier, tracking number, package count, and source `Shipment`; fulfillment exception alerts use source `FulfillmentException`; allocation progress uses source `FulfillmentAllocation`. This gives the notification center a connected object trail for package and fulfillment work without adding provider-backed delivery claims.
+- Focused backend proof covers the recipient, topic, title, body, and source contract in `FulfillmentServiceTest`; route proof in the admin-console E2E follows warehouse pick, pack, ship, deliver, and then proves the merchant inbox receives the connected allocation and shipment updates.
+
+Third V15.5 slice:
+
+- Outbox health transitions now create platform-recipient alerts. Processor failures alert owner/admin/support-admin users with the failed aggregate source; manual retry and dead-letter actions record follow-up alerts so diagnostic work has a visible platform trail.
+- Service accountability transitions now create local, recipient-scoped alerts between relationship parties. Warehouse operators receive proposed-agreement alerts; merchants receive accepted-agreement alerts; statements, disputes, claims, reviews, and resolution events notify the counterparty, while platform/admin actions notify both parties.
+- Focused backend proof covers outbox failure/retry/dead-letter and service agreement/statement alert contracts. Route proof in the admin-console service-accountability E2E now creates merchant and warehouse recipients before service events, then proves both users see connected service alerts in `/notifications`.
+
+V15.5 closeout pass:
+
+- The initial V15.5 gap map is now closed by three alert families: relationship/inbound, fulfillment/shipment/exception, and outbox/service-accountability. The remaining production delivery boundary stays Pre-V16/V16 because V15.5 deliberately records local in-app notifications only.
+- Notification cards now link connected sources to the relevant routed work surface when one exists: inbound stock, fulfillment allocations, inventory items, merchant-warehouse relationships, shipments, service accountability, and admin outbox health. Unknown or account-lifecycle-only sources remain chips instead of dead links.
+- Closeout proof covers source navigation with focused `NotificationCenterPage` tests, backend recipient/source contracts across the connected services, and browser route proof for inbound, shipment, and service-accountability alert visibility across merchant, warehouse, and platform-facing workflows.

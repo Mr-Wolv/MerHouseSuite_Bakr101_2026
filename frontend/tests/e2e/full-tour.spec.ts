@@ -42,10 +42,18 @@ type ApiEntity = {
   [key: string]: unknown
 }
 
-const baseAccounts: Record<'owner' | 'merchant' | 'warehouse', Account> = {
+const baseAccounts: Record<'owner' | 'supportAdmin' | 'auditor' | 'merchant' | 'warehouse', Account> = {
   owner: {
     email: process.env.FRONTEND_TOUR_ADMIN_EMAIL ?? 'admin@merhouse.local',
     password: process.env.FRONTEND_TOUR_ADMIN_PASSWORD ?? 'local-owner-password',
+  },
+  supportAdmin: {
+    email: process.env.FRONTEND_TOUR_SUPPORT_ADMIN_EMAIL ?? '',
+    password: process.env.FRONTEND_TOUR_SUPPORT_ADMIN_PASSWORD ?? '',
+  },
+  auditor: {
+    email: process.env.FRONTEND_TOUR_AUDITOR_EMAIL ?? '',
+    password: process.env.FRONTEND_TOUR_AUDITOR_PASSWORD ?? '',
   },
   merchant: {
     email: process.env.FRONTEND_TOUR_MERCHANT_EMAIL ?? 'review.merchant@merhouse.local',
@@ -269,8 +277,12 @@ async function createPlatformHierarchyFixture(request: APIRequestContext) {
     accounts: {
       owner: baseAccounts.owner,
       admin: await makeAccount('ADMIN'),
-      supportAdmin: await makeAccount('SUPPORT_ADMIN'),
-      auditor: await makeAccount('AUDITOR'),
+      supportAdmin: baseAccounts.supportAdmin.email && baseAccounts.supportAdmin.password
+        ? baseAccounts.supportAdmin
+        : await makeAccount('SUPPORT_ADMIN'),
+      auditor: baseAccounts.auditor.email && baseAccounts.auditor.password
+        ? baseAccounts.auditor
+        : await makeAccount('AUDITOR'),
       merchant: baseAccounts.merchant,
       warehouse: baseAccounts.warehouse,
     } satisfies Record<AuthenticatedRole, Account>,
@@ -595,9 +607,11 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   await expect(auditorPage.getByRole('link', { name: 'Access requests' })).toHaveCount(0)
   await auditorPage.goto(`${APP_URL}/assistant`, { waitUntil: 'networkidle' })
   await expect(auditorPage.getByRole('heading', { name: 'Assistant' })).toBeVisible()
-  await auditorPage.getByLabel('Prompt').fill('What should I review next?')
+  const auditorPrompt = `What should I review next for hierarchy ${hierarchy.suffix}?`
+  await auditorPage.getByLabel('Prompt').fill(auditorPrompt)
   await auditorPage.getByRole('button', { name: 'Run assistant' }).click()
-  await expect(auditorPage.getByText(/Suggested next step/)).toBeVisible()
+  const latestAssistantRecord = auditorPage.locator('article').filter({ hasText: auditorPrompt }).first()
+  await expect(latestAssistantRecord).toContainText(/Suggested next step/)
   await expect(auditorPage.getByRole('button', { name: 'Accept suggestion' })).toHaveCount(0)
   await expect(auditorPage.getByRole('button', { name: 'Reject suggestion' })).toHaveCount(0)
   await auditorPage.goto(`${APP_URL}/admin/audit`, { waitUntil: 'networkidle' })
@@ -793,6 +807,11 @@ test('full frontend harmonic workflow proves admin merchant and warehouse cohere
   await inboundRow.getByRole('button', { name: 'Receive all' }).click()
   await expect(inboundRow).toContainText('RECEIVED')
   records.push({ actor: 'warehouse', action: 'approved and received inbound stock', quantity: 5 })
+  await warehousePage.goto(`${APP_URL}/notifications`, { waitUntil: 'networkidle' })
+  await expect(warehousePage.getByText('Inbound stock needs review')).toBeVisible()
+  await expect(warehousePage.getByText(new RegExp(`${fixture.merchant.name as string} submitted 5 units`))).toBeVisible()
+  await expect(warehousePage.locator('.data-chip').filter({ hasText: 'InboundStockRequest' }).first()).toBeVisible()
+  records.push({ actor: 'warehouse', action: 'saw connected inbound review alert' })
   await warehouseContext.close()
 
   const { context: merchantOrderContext, page: merchantOrderPage } = await newAuthedPageForAccount(
@@ -841,6 +860,11 @@ test('full frontend harmonic workflow proves admin merchant and warehouse cohere
   await expect(merchantProofPage.locator('.status-badge').filter({ hasText: 'PICKING' }).first()).toBeVisible()
   await expect(merchantProofPage.getByText('Allocation picking', { exact: true })).toBeVisible()
   records.push({ actor: 'merchant', action: 'observed warehouse picking status and timeline' })
+  await merchantProofPage.goto(`${APP_URL}/notifications`, { waitUntil: 'networkidle' })
+  await expect(merchantProofPage.getByText('Inbound stock received')).toBeVisible()
+  await expect(merchantProofPage.getByText(new RegExp(`${fixture.provider.name as string} received 5 units`))).toBeVisible()
+  await expect(merchantProofPage.locator('.data-chip').filter({ hasText: 'InboundStockRequest' }).first()).toBeVisible()
+  records.push({ actor: 'merchant', action: 'saw connected inbound received alert' })
   await merchantProofContext.close()
 
   const { context: adminContext, page: adminPage } = await newAuthedPageForAccount(browser, baseAccounts.owner, 'desktop')

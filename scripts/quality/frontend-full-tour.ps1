@@ -7,7 +7,11 @@ param(
     [string]$MerchantEmail = "review.merchant@merhouse.local",
     [string]$MerchantPassword = "review-password",
     [string]$WarehouseEmail = "review.operator@merhouse.local",
-    [string]$WarehousePassword = "review-password"
+    [string]$WarehousePassword = "review-password",
+    [string]$SupportAdminEmail = "review.support@merhouse.local",
+    [string]$SupportAdminPassword = "review-password",
+    [string]$AuditorEmail = "review.auditor@merhouse.local",
+    [string]$AuditorPassword = "review-password"
 )
 
 $ErrorActionPreference = "Stop"
@@ -39,6 +43,10 @@ $previousMerchantEmail = $env:FRONTEND_TOUR_MERCHANT_EMAIL
 $previousMerchantPassword = $env:FRONTEND_TOUR_MERCHANT_PASSWORD
 $previousWarehouseEmail = $env:FRONTEND_TOUR_WAREHOUSE_EMAIL
 $previousWarehousePassword = $env:FRONTEND_TOUR_WAREHOUSE_PASSWORD
+$previousSupportAdminEmail = $env:FRONTEND_TOUR_SUPPORT_ADMIN_EMAIL
+$previousSupportAdminPassword = $env:FRONTEND_TOUR_SUPPORT_ADMIN_PASSWORD
+$previousAuditorEmail = $env:FRONTEND_TOUR_AUDITOR_EMAIL
+$previousAuditorPassword = $env:FRONTEND_TOUR_AUDITOR_PASSWORD
 
 Push-Location $frontendRoot
 try {
@@ -51,6 +59,10 @@ try {
     $env:FRONTEND_TOUR_MERCHANT_PASSWORD = $MerchantPassword
     $env:FRONTEND_TOUR_WAREHOUSE_EMAIL = $WarehouseEmail
     $env:FRONTEND_TOUR_WAREHOUSE_PASSWORD = $WarehousePassword
+    $env:FRONTEND_TOUR_SUPPORT_ADMIN_EMAIL = $SupportAdminEmail
+    $env:FRONTEND_TOUR_SUPPORT_ADMIN_PASSWORD = $SupportAdminPassword
+    $env:FRONTEND_TOUR_AUDITOR_EMAIL = $AuditorEmail
+    $env:FRONTEND_TOUR_AUDITOR_PASSWORD = $AuditorPassword
 
     Write-Host "Running full frontend route tour against $BaseUrl"
     npm exec -- playwright test tests/e2e/full-tour.spec.ts --project=chromium
@@ -67,6 +79,10 @@ try {
     $env:FRONTEND_TOUR_MERCHANT_PASSWORD = $previousMerchantPassword
     $env:FRONTEND_TOUR_WAREHOUSE_EMAIL = $previousWarehouseEmail
     $env:FRONTEND_TOUR_WAREHOUSE_PASSWORD = $previousWarehousePassword
+    $env:FRONTEND_TOUR_SUPPORT_ADMIN_EMAIL = $previousSupportAdminEmail
+    $env:FRONTEND_TOUR_SUPPORT_ADMIN_PASSWORD = $previousSupportAdminPassword
+    $env:FRONTEND_TOUR_AUDITOR_EMAIL = $previousAuditorEmail
+    $env:FRONTEND_TOUR_AUDITOR_PASSWORD = $previousAuditorPassword
     Pop-Location
 }
 

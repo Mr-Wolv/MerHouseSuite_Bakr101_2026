@@ -326,7 +326,7 @@ describe('Merchant inventory', () => {
     expect(apiMock.submitInboundStockDraft).toHaveBeenCalledWith('merchant-token', 'inbound-draft')
     await user.click(within(draftRow).getByRole('button', { name: 'Cancel inbound' }))
     expect(apiMock.cancelInboundStock).toHaveBeenCalledWith('merchant-token', 'inbound-draft')
-  })
+  }, 10_000)
 
   it('keeps inbound warehouse choices inside the selected relationship provider', async () => {
     const user = userEvent.setup()

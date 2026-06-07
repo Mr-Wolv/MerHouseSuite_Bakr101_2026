@@ -126,4 +126,5 @@ The backend reads configuration from environment variables. `.env.example` conta
 - [Architecture notes](docs/architecture/merchant-warehouse-operating-loop.md)
 - [Agentic operations assistance](docs/architecture/agentic-operations-assistance.md)
 - [Notifications](docs/architecture/notifications.md)
+- [Structural stabilization](docs/architecture/structural-stabilization.md)
 - [System diagrams](docs/architecture/system-diagrams.html)

@@ -34,6 +34,7 @@ MerHouse is prepared here as a private local development stack. Production SaaS 
 - [Role and tenant boundaries](architecture/role-tenant-boundaries.md)
 - [Service accountability](architecture/service-accountability.md)
 - [Shipment state machine](architecture/shipment-state-machine.md)
+- [Structural stabilization](architecture/structural-stabilization.md)
 - [System diagrams](architecture/system-diagrams.html)
 - [Transactional outbox](architecture/outbox.md)
 

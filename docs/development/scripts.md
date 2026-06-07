@@ -10,6 +10,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/local/stop.ps1` | Stop the local Docker Compose stack. |
 | `scripts/local/seed-demo.ps1` | Create deterministic local demo data for review workflows. |
 | `scripts/local/frontend-dev.ps1` | Start the Vite development server with a chosen host and port. |
+| `scripts/local/wait-backend.ps1` | Wait until the local backend readiness endpoint answers before browser/API proof starts. |
 | `scripts/quality/check.ps1` | Run backend, frontend, public-readiness, and Compose checks. |
 | `scripts/quality/backend-check.ps1` | Run backend Maven tests. |
 | `scripts/quality/frontend-check.ps1` | Run frontend lint, build, unit tests, and optional Playwright checks. |
@@ -28,6 +29,31 @@ Start the full stack:
 ```powershell
 .\scripts\local\start.ps1
 ```
+
+`start.ps1` waits for `http://localhost:8080/api/v1/health` before reporting the stack ready. Use the same readiness guard after rebuilding or restarting only the backend:
+
+```powershell
+docker compose up -d backend
+.\scripts\local\wait-backend.ps1
+```
+
+Seed local review data when a live browser tour needs stable fake accounts for every stakeholder:
+
+```powershell
+.\scripts\local\seed-demo.ps1 -CreateReviewAccounts
+```
+
+The review accounts are local-only fake credentials for browser proof:
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Owner | `admin@merhouse.local` | `local-owner-password` |
+| Merchant | `review.merchant@merhouse.local` | `review-password` |
+| Warehouse operator | `review.operator@merhouse.local` | `review-password` |
+| Support admin | `review.support@merhouse.local` | `review-password` |
+| Auditor | `review.auditor@merhouse.local` | `review-password` |
+
+Do not reuse these credentials outside the local demo stack.
 
 Run backend and frontend proof:
 

@@ -21,15 +21,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class OutboxAdminService {
     private final OutboxEventRepository outboxEventRepository;
     private final CarrierDispatchRepository carrierDispatchRepository;
+    private final OutboxAlertService outboxAlertService;
     private final int maxAttempts;
 
     public OutboxAdminService(
         OutboxEventRepository outboxEventRepository,
         CarrierDispatchRepository carrierDispatchRepository,
+        OutboxAlertService outboxAlertService,
         @Value("${warehouse.outbox.max-attempts:3}") int maxAttempts
     ) {
         this.outboxEventRepository = outboxEventRepository;
         this.carrierDispatchRepository = carrierDispatchRepository;
+        this.outboxAlertService = outboxAlertService;
         this.maxAttempts = maxAttempts;
     }
 
@@ -66,7 +69,14 @@ public class OutboxAdminService {
         event.setStatus(OutboxEventStatus.PENDING);
         event.setNextAttemptAt(Instant.now());
         event.setLastError(null);
-        return OutboxEventResponse.from(outboxEventRepository.save(event));
+        OutboxEvent saved = outboxEventRepository.save(event);
+        outboxAlertService.recordHealthAlert(
+            "Outbox retry queued",
+            saved.getEventType() + " was returned to the processing queue.",
+            saved.getAggregateType(),
+            saved.getAggregateId()
+        );
+        return OutboxEventResponse.from(saved);
     }
 
     @Transactional
@@ -77,7 +87,15 @@ public class OutboxAdminService {
         }
         event.setStatus(OutboxEventStatus.DEAD_LETTER);
         event.setLastError(trimToNull(reason));
-        return OutboxEventResponse.from(outboxEventRepository.save(event));
+        OutboxEvent saved = outboxEventRepository.save(event);
+        outboxAlertService.recordHealthAlert(
+            "Outbox event parked",
+            saved.getEventType() + " moved to dead-letter"
+                + (saved.getLastError() == null ? "." : ": " + saved.getLastError()),
+            saved.getAggregateType(),
+            saved.getAggregateId()
+        );
+        return OutboxEventResponse.from(saved);
     }
 
     private OutboxEvent getRequired(UUID eventId) {
@@ -95,4 +113,5 @@ public class OutboxAdminService {
         }
         return value.trim();
     }
+
 }

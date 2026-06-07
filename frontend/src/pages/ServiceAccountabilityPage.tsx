@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent } from 'react'
 import { api, ApiError } from '../api/client'
 import type {
   OrderImportBatch,
@@ -13,6 +13,7 @@ import type {
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
 import { Metric } from '../components/Metric'
+import { GuidancePanel, QuantityCell } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
 
 type ServiceData = {
@@ -284,15 +285,6 @@ export function ServiceAccountabilityPage() {
   )
 }
 
-function GuidancePanel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <aside className="admin-guidance-panel" aria-label={title}>
-      <strong>{title}</strong>
-      <p>{children}</p>
-    </aside>
-  )
-}
-
 function IssueTable({
   disputes,
   claims,
@@ -356,16 +348,6 @@ function IssueTable({
       </table>
     </div>
   )
-}
-
-function QuantityCell({
-  value,
-  tone = 'neutral',
-}: {
-  value: number
-  tone?: 'neutral' | 'ready' | 'pending' | 'risk'
-}) {
-  return <span className={`quantity-cell quantity-${tone}`}>{value}</span>
 }
 
 function PageHeading({ title, subtitle }: { title: string, subtitle: string }) {

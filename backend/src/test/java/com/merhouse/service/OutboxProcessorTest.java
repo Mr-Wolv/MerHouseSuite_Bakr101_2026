@@ -3,6 +3,7 @@ package com.merhouse.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 
 class OutboxProcessorTest {
     private final OutboxEventRepository outboxEventRepository = mock(OutboxEventRepository.class);
+    private final OutboxAlertService outboxAlertService = mock(OutboxAlertService.class);
 
     @Test
     void processBatchMarksHandledEventsProcessed() {
@@ -32,7 +34,13 @@ class OutboxProcessorTest {
         when(outboxEventRepository.countByStatus(OutboxEventStatus.PENDING)).thenReturn(0L);
         when(outboxEventRepository.countByStatusAndAttemptsLessThan(OutboxEventStatus.FAILED, 3)).thenReturn(0L);
 
-        OutboxProcessor processor = new OutboxProcessor(outboxEventRepository, List.of(handler), 3, true);
+        OutboxProcessor processor = new OutboxProcessor(
+            outboxEventRepository,
+            outboxAlertService,
+            List.of(handler),
+            3,
+            true
+        );
 
         OutboxProcessingResult result = processor.processBatch(10);
 
@@ -56,7 +64,13 @@ class OutboxProcessorTest {
         RuntimeException failure = new RuntimeException("carrier timeout");
         org.mockito.Mockito.doThrow(failure).when(handler).handle(event);
 
-        OutboxProcessor processor = new OutboxProcessor(outboxEventRepository, List.of(handler), 3, true);
+        OutboxProcessor processor = new OutboxProcessor(
+            outboxEventRepository,
+            outboxAlertService,
+            List.of(handler),
+            3,
+            true
+        );
 
         OutboxProcessingResult result = processor.processBatch(10);
 
@@ -65,6 +79,12 @@ class OutboxProcessorTest {
         assertEquals(1, event.getAttempts());
         assertEquals(OutboxEventStatus.FAILED, event.getStatusValue());
         assertEquals("carrier timeout", event.getLastError());
+        verify(outboxAlertService).recordHealthAlert(
+            eq("Outbox event failed"),
+            contains("carrier timeout"),
+            eq("TestAggregate"),
+            eq(event.getAggregateId())
+        );
     }
 
     @Test
@@ -75,7 +95,13 @@ class OutboxProcessorTest {
         when(outboxEventRepository.findProcessable(any(Instant.class), eq(3), any(Pageable.class)))
             .thenReturn(List.of(event));
 
-        OutboxProcessor processor = new OutboxProcessor(outboxEventRepository, List.of(handler), 3, true);
+        OutboxProcessor processor = new OutboxProcessor(
+            outboxEventRepository,
+            outboxAlertService,
+            List.of(handler),
+            3,
+            true
+        );
 
         OutboxProcessingResult result = processor.processBatch(10);
 

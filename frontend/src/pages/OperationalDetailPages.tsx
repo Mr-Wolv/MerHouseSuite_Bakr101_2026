@@ -13,7 +13,9 @@ import type {
 } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
+import { shortId } from '../components/format'
 import { Metric } from '../components/Metric'
+import { PageHeading, QuantityCell } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
 
 type DetailState<T> = {
@@ -505,16 +507,6 @@ function StockChange({ before, reserved }: { before: number; reserved: number })
   )
 }
 
-function QuantityCell({
-  value,
-  tone = 'neutral',
-}: {
-  value: number
-  tone?: 'neutral' | 'ready' | 'pending' | 'risk'
-}) {
-  return <span className={`quantity-cell quantity-${tone}`}>{value}</span>
-}
-
 function RelatedLinks({ rows }: { rows: Array<{ label: string; to: string; meta: string }> }) {
   if (!rows.length) return <EmptyState label="No linked operational records yet" guidance="Linked allocations, shipments, inbound requests, or relationship records appear when this workflow connects to downstream work." />
   return (
@@ -542,20 +534,7 @@ function EvidenceCounts({ audits = 0, dispatches = 0, outbox = 0 }: { audits?: n
   )
 }
 
-function PageHeading({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div className="page-heading">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-    </div>
-  )
-}
-
 function formatDate(value: string | null) {
   if (!value) return 'Not recorded'
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
-}
-
-function shortId(id: string) {
-  return id.slice(0, 8)
 }

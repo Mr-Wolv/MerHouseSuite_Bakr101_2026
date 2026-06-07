@@ -1,18 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import type {
-  CarrierDispatch,
   AccessRequest,
-  AdminAuditEvent,
   AdminPlatformSummary,
   AdminTenantHealth,
   MerchantWarehouseRelationship,
   Order,
-  OutboxEvent,
-  OutboxProcessResponse,
-  OutboxSummary,
   Tenant,
   TenantType,
   User,
@@ -20,8 +15,12 @@ import type {
 } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
+import { shortId } from '../components/format'
 import { Metric } from '../components/Metric'
+import { GuidancePanel as AdminGuidancePanel, PageHeading, WorkflowDivider } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
+export { AdminAuditPage } from '../features/admin/audit/AdminAuditPage'
+export { AdminOutboxPage } from '../features/admin/outbox/AdminOutboxPage'
 
 type AdminData = {
   tenants: Tenant[]
@@ -826,246 +825,6 @@ export function AdminAccessRequestsPage() {
   )
 }
 
-export function AdminOutboxPage() {
-  const { token, user: currentUser } = useAuth()
-  const [summary, setSummary] = useState<OutboxSummary | null>(null)
-  const [events, setEvents] = useState<OutboxEvent[]>([])
-  const [dispatches, setDispatches] = useState<CarrierDispatch[]>([])
-  const [result, setResult] = useState<OutboxProcessResponse | null>(null)
-  const [reason, setReason] = useState('Background work review')
-  const [loading, setLoading] = useState(false)
-  const [refreshing, setRefreshing] = useState(true)
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null)
-  const [error, setError] = useState('')
-  const canMutatePlatform = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN'
-
-  async function refreshOutbox() {
-    if (!token) return
-    setRefreshing(true)
-    setError('')
-    try {
-      const [nextSummary, nextEvents, nextDispatches] = await Promise.all([
-        api.outboxSummary(token),
-        api.outboxEvents(token),
-        api.carrierDispatches(token),
-      ])
-      setSummary(nextSummary)
-      setEvents(nextEvents)
-      setDispatches(nextDispatches)
-      setLastRefreshedAt(new Date().toISOString())
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load outbox data.')
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void refreshOutbox()
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
-
-  async function processOutbox() {
-    if (!token) return
-    setLoading(true)
-    setError('')
-    try {
-      setResult(await api.processOutbox(token))
-      await refreshOutbox()
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to process outbox.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function retryEvent(eventId: string) {
-    if (!token) return
-    setError('')
-    try {
-      const updated = await api.retryOutboxEvent(token, eventId)
-      setEvents((current) => current.map((event) => (event.id === updated.id ? updated : event)))
-      await refreshOutbox()
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to retry outbox event.')
-    }
-  }
-
-  async function deadLetterEvent(eventId: string) {
-    if (!token) return
-    setError('')
-    try {
-      const updated = await api.deadLetterOutboxEvent(token, eventId, { reason })
-      setEvents((current) => current.map((event) => (event.id === updated.id ? updated : event)))
-      await refreshOutbox()
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to move outbox event.')
-    }
-  }
-
-  return (
-    <div className="page-stack">
-      <PageHeading title="Outbox" subtitle="Monitor side-effect events, retries, and carrier dispatch records." />
-      <div className="admin-action-panel">
-        <div className="admin-action-copy">
-          <h2>Diagnostic actions</h2>
-          <p>Processing and dead-letter moves are local reliability controls. Dead-letter actions keep the reason below with the event trail.</p>
-        </div>
-        <div className="admin-action-controls">
-          <button className="primary-button fit-button" type="button" onClick={processOutbox} disabled={loading || !canMutatePlatform}>
-            {!canMutatePlatform ? 'Owner/admin only' : loading ? 'Processing' : 'Process outbox'}
-          </button>
-          <button className="icon-text-button" type="button" onClick={refreshOutbox} disabled={refreshing || loading}>
-            {refreshing ? 'Refreshing' : 'Refresh'}
-          </button>
-          <label className="inline-field" htmlFor="admin-outbox-action-reason">
-            <span>Reason</span>
-            <input id="admin-outbox-action-reason" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={1000} />
-          </label>
-        </div>
-      </div>
-      <div className="status-narration" role="status" aria-live="polite">
-        {refreshing ? 'Refreshing outbox data.' : lastRefreshedAt ? `Outbox data refreshed ${formatDate(lastRefreshedAt)}.` : 'Outbox data has not refreshed yet.'}
-      </div>
-      {error ? <ErrorState title={error} /> : null}
-      {summary ? (
-        <div className="metric-grid">
-          <Metric label="Pending" value={summary.pending} />
-          <Metric label="Processed" value={summary.processed} />
-          <Metric label="Failed" value={summary.failed} />
-          <Metric label="Retryable failed" value={summary.retryableFailed} />
-        </div>
-      ) : refreshing ? (
-        <LoadingState label="Loading outbox health" />
-      ) : null}
-      {summary ? (
-        <div className={summary.failed || summary.retryableFailed ? 'severity-panel risk-card' : 'severity-panel'} aria-label="Outbox severity hierarchy">
-          <strong>{summary.failed || summary.retryableFailed ? 'Attention required' : 'Outbox healthy'}</strong>
-          <span>{summary.retryableFailed} retryable failed events and {summary.failed} total failed events.</span>
-        </div>
-      ) : null}
-      {result ? (
-        <div className="state-panel">
-          Processed {result.processed} events with {result.failed} failures.
-        </div>
-      ) : null}
-      <OutboxEventsTable
-        events={events}
-        onRetry={canMutatePlatform ? retryEvent : undefined}
-        onDeadLetter={canMutatePlatform ? deadLetterEvent : undefined}
-      />
-      <CarrierDispatchesTable dispatches={dispatches} />
-    </div>
-  )
-}
-
-function OutboxEventsTable({
-  events,
-  onRetry,
-  onDeadLetter,
-}: {
-  events: OutboxEvent[]
-  onRetry?: (eventId: string) => void
-  onDeadLetter?: (eventId: string) => void
-}) {
-  return (
-    <section className="table-section">
-      <h2>Recent Events</h2>
-      {events.length ? (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Event</th>
-                <th>Aggregate</th>
-                <th>Status</th>
-                <th>Attempts</th>
-                <th>Failure detail</th>
-                <th>Created</th>
-                <th>Next attempt</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((event) => (
-                <tr key={event.id}>
-                  <td>{event.eventType}</td>
-                  <td>{event.aggregateType} <span className="mono-cell">{shortId(event.aggregateId)}</span></td>
-                  <td><StatusBadge value={event.status} /></td>
-                  <td><span className={event.attempts > 1 ? 'quantity-cell quantity-pending' : 'quantity-cell'}>{event.attempts}</span></td>
-                  <td className="note-cell">{event.lastError ?? 'No failure recorded'}</td>
-                  <td><TimestampCell value={event.createdAt} /></td>
-                  <td>{event.nextAttemptAt ? <TimestampCell value={event.nextAttemptAt} /> : 'Not scheduled'}</td>
-                  <td>
-                    <div className="action-row compact-actions">
-                      <button
-                        className="table-button"
-                        type="button"
-                        disabled={event.status !== 'FAILED' || !onRetry}
-                        onClick={() => onRetry?.(event.id)}
-                      >
-                        Retry
-                      </button>
-                      <button
-                        className="table-button destructive-button"
-                        type="button"
-                        disabled={event.status === 'PROCESSED' || event.status === 'DEAD_LETTER' || !onDeadLetter}
-                        onClick={() => onDeadLetter?.(event.id)}
-                      >
-                        Dead-letter
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <EmptyState label="No outbox events yet" guidance="Outbox events appear when operational changes need side-effect processing. Use this area to watch retries, failures, and dispatch handoffs." />
-      )}
-    </section>
-  )
-}
-
-function CarrierDispatchesTable({ dispatches }: { dispatches: CarrierDispatch[] }) {
-  return (
-    <section className="table-section">
-      <h2>Carrier Dispatches</h2>
-      {dispatches.length ? (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Event</th>
-                <th>Carrier</th>
-                <th>Tracking</th>
-                <th>Status</th>
-                <th>Reference</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dispatches.map((dispatch) => (
-                <tr key={dispatch.id}>
-                  <td>{dispatch.eventType}</td>
-                  <td>{dispatch.carrier ?? 'Unknown'}</td>
-                  <td>{dispatch.trackingNumber ?? 'None'}</td>
-                  <td><StatusBadge value={dispatch.status} /></td>
-                  <td className="mono-cell">{dispatch.externalReference}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <EmptyState label="No carrier dispatches yet" guidance="Carrier dispatch evidence appears after warehouse shipment handoff work begins." />
-      )}
-    </section>
-  )
-}
-
 export function AdminRelationshipsPage() {
   const { token, user: currentUser } = useAuth()
   const [relationships, setRelationships] = useState<MerchantWarehouseRelationship[]>([])
@@ -1174,94 +933,6 @@ export function AdminRelationshipsPage() {
           </div>
         ) : (
           <EmptyState label="No relationships yet" guidance="Create or approve merchant-warehouse relationships so inventory, inbound stock, fulfillment, and service accountability can connect across tenants." />
-        )}
-      </section>
-    </div>
-  )
-}
-
-export function AdminAuditPage() {
-  const { token } = useAuth()
-  const [events, setEvents] = useState<AdminAuditEvent[]>([])
-  const [filter, setFilter] = useState<'ALL' | 'ASSISTANT'>('ALL')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (!token) return
-    api.adminAuditEvents(token)
-      .then(setEvents)
-      .catch((caught) => setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load audit events.'))
-      .finally(() => setLoading(false))
-  }, [token])
-
-  if (loading) return <LoadingState label="Loading admin audit events" />
-
-  const assistantEvents = events.filter((event) => event.action.startsWith('ASSISTANT_'))
-  const assistantCounts = {
-    summaries: assistantEvents.filter((event) => event.action === 'ASSISTANT_SUMMARY').length,
-    suggestions: assistantEvents.filter((event) => event.action === 'ASSISTANT_SUGGESTION').length,
-    refusals: assistantEvents.filter((event) => event.action === 'ASSISTANT_REFUSAL').length,
-    accepted: assistantEvents.filter((event) => event.action === 'ASSISTANT_SUGGESTION_ACCEPTED').length,
-    rejected: assistantEvents.filter((event) => event.action === 'ASSISTANT_SUGGESTION_REJECTED').length,
-  }
-  const visibleEvents = filter === 'ASSISTANT' ? assistantEvents : events
-
-  return (
-    <div className="page-stack">
-      <PageHeading title="Admin Audit" subtitle="Review privileged platform actions, reasons, actors, and affected records." />
-      {error ? <ErrorState title={error} /> : null}
-      <section className="metric-grid" aria-label="Assistant audit summary">
-        <Metric label="Assistant summaries" value={assistantCounts.summaries} />
-        <Metric label="Assistant suggestions" value={assistantCounts.suggestions} />
-        <Metric label="Assistant refusals" value={assistantCounts.refusals} />
-        <Metric label="Suggestions accepted" value={assistantCounts.accepted} />
-        <Metric label="Suggestions rejected" value={assistantCounts.rejected} />
-      </section>
-      <section className="table-section">
-        <AdminGuidancePanel title="Audit review lens">
-          Use the assistant filter to isolate summaries, suggestions, refusals, and review decisions without losing the broader privileged-action trail.
-        </AdminGuidancePanel>
-        <div className="table-toolbar">
-          <h2>Recent Privileged Actions</h2>
-          <div className="compact-field">
-            <label htmlFor="admin-audit-filter">Audit filter</label>
-            <select id="admin-audit-filter" value={filter} onChange={(event) => setFilter(event.target.value as 'ALL' | 'ASSISTANT')}>
-              <option value="ALL">All events</option>
-              <option value="ASSISTANT">Assistant events</option>
-            </select>
-          </div>
-        </div>
-        <div className="status-narration" role="status" aria-live="polite">
-          Showing {visibleEvents.length} {filter === 'ASSISTANT' ? 'assistant audit' : 'audit'} events. Focus the table region to scroll dense records with the keyboard on narrow screens.
-        </div>
-        {visibleEvents.length ? (
-          <div className="table-wrap keyboard-scroll-region" tabIndex={0} aria-label="Scrollable admin audit table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Action</th>
-                  <th>Actor</th>
-                  <th>Record</th>
-                  <th>Reason</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleEvents.map((event) => (
-                  <tr key={event.id}>
-                    <td><StatusBadge value={event.action} /></td>
-                    <td>{event.actorEmail ?? 'System'}</td>
-                    <td>{event.aggregateType} <span className="mono-cell">{shortId(event.aggregateId)}</span></td>
-                    <td className="note-cell">{event.reason ?? 'No reason recorded'}</td>
-                    <td><TimestampCell value={event.createdAt} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState label="No admin audit events yet" guidance="Privileged account, tenant, relationship, assistant, and diagnostic actions will appear here for review." />
         )}
       </section>
     </div>
@@ -1388,42 +1059,6 @@ function TenantsTable({ tenants, onToggle }: { tenants: Tenant[]; onToggle?: (te
   )
 }
 
-function PageHeading({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div className="page-heading">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-    </div>
-  )
-}
-
-function AdminGuidancePanel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <aside className="admin-guidance-panel" aria-label={title}>
-      <strong>{title}</strong>
-      <p>{children}</p>
-    </aside>
-  )
-}
-
-function WorkflowDivider({
-  eyebrow,
-  title,
-  description,
-}: {
-  eyebrow: string
-  title: string
-  description: string
-}) {
-  return (
-    <div className="workflow-divider">
-      <span className="eyebrow">{eyebrow}</span>
-      <h2>{title}</h2>
-      <p>{description}</p>
-    </div>
-  )
-}
-
 function TimestampCell({ value }: { value: string }) {
   return (
     <time className="timestamp-cell" dateTime={value}>
@@ -1450,10 +1085,6 @@ function RelationshipLifecycleCell({ relationship }: { relationship: MerchantWar
       ))}
     </div>
   )
-}
-
-function shortId(id: string) {
-  return id.slice(0, 8)
 }
 
 function tenantName(tenants: Tenant[], tenantId: string) {

@@ -6,6 +6,8 @@ param(
     [switch]$CreateReviewAccounts,
     [string]$ReviewMerchantEmail = "review.merchant@merhouse.local",
     [string]$ReviewWarehouseEmail = "review.operator@merhouse.local",
+    [string]$ReviewSupportAdminEmail = "review.support@merhouse.local",
+    [string]$ReviewAuditorEmail = "review.auditor@merhouse.local",
     [string]$ReviewPassword = "review-password",
     [switch]$SuppressCredentialOutput
 )
@@ -513,9 +515,13 @@ Invoke-Api -Method Patch -Path "/api/v1/admin/users/$($disabledUser.id)/disable"
 
 $reviewMerchantUser = $null
 $reviewWarehouseUser = $null
+$reviewSupportAdminUser = $null
+$reviewAuditorUser = $null
 if ($CreateReviewAccounts) {
     $reviewMerchantUser = Ensure-ReviewUser -TenantId $merchant.id -Email $ReviewMerchantEmail -Role "MERCHANT"
     $reviewWarehouseUser = Ensure-ReviewUser -TenantId $warehouseProvider.id -Email $ReviewWarehouseEmail -Role "WAREHOUSE_OPERATOR"
+    $reviewSupportAdminUser = Ensure-ReviewUser -TenantId $merchant.id -Email $ReviewSupportAdminEmail -Role "SUPPORT_ADMIN"
+    $reviewAuditorUser = Ensure-ReviewUser -TenantId $merchant.id -Email $ReviewAuditorEmail -Role "AUDITOR"
 }
 
 $primaryContact = Invoke-Api -Method Post -Path "/api/v1/orders/customer-contacts" -Token $adminToken -Body @{
@@ -720,6 +726,8 @@ $summary = [ordered]@{
         enabled = [bool]$CreateReviewAccounts
         merchant = if ($reviewMerchantUser) { $reviewMerchantUser.email } else { $null }
         warehouse = if ($reviewWarehouseUser) { $reviewWarehouseUser.email } else { $null }
+        supportAdmin = if ($reviewSupportAdminUser) { $reviewSupportAdminUser.email } else { $null }
+        auditor = if ($reviewAuditorUser) { $reviewAuditorUser.email } else { $null }
         password = if ($CreateReviewAccounts -and -not $SuppressCredentialOutput) { $ReviewPassword } else { $null }
     }
 }
@@ -740,9 +748,13 @@ if ($CreateReviewAccounts) {
     if ($SuppressCredentialOutput) {
         Write-Host "Review merchant: $($reviewMerchantUser.email)"
         Write-Host "Review warehouse: $($reviewWarehouseUser.email)"
+        Write-Host "Review support admin: $($reviewSupportAdminUser.email)"
+        Write-Host "Review auditor: $($reviewAuditorUser.email)"
     } else {
         Write-Host "Review merchant: $($reviewMerchantUser.email) / $ReviewPassword"
         Write-Host "Review warehouse: $($reviewWarehouseUser.email) / $ReviewPassword"
+        Write-Host "Review support admin: $($reviewSupportAdminUser.email) / $ReviewPassword"
+        Write-Host "Review auditor: $($reviewAuditorUser.email) / $ReviewPassword"
     }
 }
 Write-Host ""

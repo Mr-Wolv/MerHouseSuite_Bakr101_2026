@@ -342,6 +342,28 @@ Completion proof expected for V15.7:
 - live browser slow-tour proof recording before/after state for each stakeholder and confirming no stale counts, ghost alerts, duplicate submissions, silent clicks, console warnings/errors, horizontal overflow, or inaccessible controls
 - broad `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` after the interaction hardening, plus documentation updates in [Frontend V15 audit](frontend-v15-audit.md)
 
+### V15.8: Structural Stabilization And Separability
+
+Planned scope:
+
+- make structural cleanup an explicit roadmap-owned phase before deeper product or productionization work continues
+- reduce large backend service pressure without changing public API behavior, starting with helper extraction around connected alerts, service-accountability workflows, fulfillment handoffs, operational details, and outbox diagnostics where tests already cover the contracts
+- split large frontend route files by stable page and feature ownership while preserving current route paths, visible behavior, role gates, and local rendering expectations
+- define clean feature boundaries for frontend modules, backend capability ownership, scripts, and docs using [Structural stabilization](structural-stabilization.md) as the source of truth
+- keep scripts separated by responsibility: local runtime helpers, quality gates, API scenarios, and maintenance tasks
+- make the current dirty-tree/work-in-progress state coherent before new roadmap work proceeds; finish, document, or deliberately park each active V15.5/V15.7 residue item
+- keep publication-boundary rules active during refactor: no private prompts, credentials, provider tokens, internal endpoints, customer data, generated sensitive reports, or misleading production-readiness claims inside `backend/` or `frontend/`
+
+Completion proof expected for V15.8:
+
+- a structural closeout note in [Structural stabilization](structural-stabilization.md) listing each moved/extracted boundary, what behavior stayed stable, and which proof closed it
+- backend tests for every service extraction or package move, plus `.\scripts\quality\backend-check.ps1`
+- frontend lint, build, and Vitest proof for every page/module split, plus Playwright proof when routed workflows or role gates are affected
+- script proof for any script split or runtime contract change, with updated [Scripts guide](../development/scripts.md)
+- docs alignment across `README.md`, `docs/index.md`, development guides, affected architecture docs, and active roadmap claims
+- `.\scripts\quality\markdown-check.ps1` and `.\scripts\quality\public-readiness.ps1`
+- broad `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` when a seeded local stack is available and routed workflows were affected
+
 ### Pre-V16 Professionalization, Reliability, Stress, And Safety Gate
 
 Planned scope:

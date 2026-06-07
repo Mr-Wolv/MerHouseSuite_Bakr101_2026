@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent } from 'react'
 import { Bot, RefreshCcw, Send } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import type { AssistantInteraction, AssistantScope } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
+import { shortId } from '../components/format'
+import { GuidancePanel } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
 
 const scopeLabels: Record<AssistantScope, string> = {
@@ -242,19 +244,6 @@ export function AssistantPage() {
       </section>
     </div>
   )
-}
-
-function GuidancePanel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <aside className="admin-guidance-panel" aria-label={title}>
-      <strong>{title}</strong>
-      <p>{children}</p>
-    </aside>
-  )
-}
-
-function shortId(id: string) {
-  return id.slice(0, 8)
 }
 
 function displayAssistantText(value: string) {

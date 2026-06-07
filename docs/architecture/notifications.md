@@ -49,6 +49,54 @@ Both hooks are deliberately worded and labeled as prototype-local. They provide 
 
 Both hooks currently store `deliveryStage=LOCAL_RECORDED`, `providerStatus=NOT_CONFIGURED`, and `prototypeLocal=true`. That gives future provider integration a stable slot while keeping V13 honest: reset links and account-ready messages are prepared as local delivery records only.
 
+## V15.5 Connected Alert Direction
+
+V15.5 extends the local notification foundation from account-lifecycle proof into connected operational handoff proof. The goal is still local, recipient-scoped alerting, not provider-backed delivery.
+
+Connected operational alerts should answer:
+
+- who created the event
+- who needs to act next
+- which object the event belongs to through `sourceType` and `sourceId`
+- where the recipient should inspect the current state
+- whether the event is action-needed, reviewable history, or resolved
+
+The first V15.5 implementation records local in-app alerts for merchant-warehouse relationship and inbound stock handoffs:
+
+- merchant requests warehouse service: warehouse operators for that provider receive an action alert, and platform owner/admin/support-admin users receive a governance review alert
+- warehouse activates service: merchant users receive a review alert that inbound and warehouse work can begin
+- merchant submits an inbound stock request or submits a draft: warehouse operators for that provider receive an action alert tied to the `InboundStockRequest`
+- merchant cancels an inbound request: warehouse operators receive a no-action-needed update
+- warehouse approves, starts receiving, receives, or rejects inbound stock: merchant users receive a review/action alert tied to the `InboundStockRequest`
+
+The second V15.5 implementation records local in-app alerts for fulfillment and shipment handoffs:
+
+- warehouse moves an allocation to picking or packed: merchant users receive progress alerts tied to the `FulfillmentAllocation`
+- warehouse creates a shipment and package evidence: merchant users receive a handoff alert tied to the `Shipment`, including carrier, tracking number, and package count
+- warehouse marks a shipment delivered, failed, or returned: merchant users receive a status alert tied to the `Shipment`
+- warehouse reports a fulfillment exception: merchant users receive a review alert tied to the `FulfillmentException`
+- merchant resolves a fulfillment exception: warehouse operators for that provider receive a resolved alert tied to the `FulfillmentException`
+
+The third V15.5 implementation records local in-app alerts for outbox diagnostics and service-accountability handoffs:
+
+- outbox processor failures: owner/admin/support-admin users receive an outbox-health alert tied to the failed aggregate source
+- outbox retry and dead-letter actions: owner/admin/support-admin users receive a follow-up alert tied to the aggregate source
+- merchant proposes a service agreement: warehouse operators receive a service-accountability alert tied to the `ServiceAgreement`
+- warehouse accepts a service agreement: merchant users receive a service-accountability alert tied to the `ServiceAgreement`
+- service statements, disputes, claims, reviews, and their resolution steps: the counterparty receives a service-accountability alert tied to the statement, dispute, claim, or review record; platform/admin actions alert both merchant and warehouse parties
+
+Every connected alert must remain tenant-scoped, role-appropriate, and safe for the future public `backend/` and `frontend/` source boundary.
+
+The V15.5 closeout pass adds source navigation for connected local alerts. When a delivery has a routed source, the notification card links to that work surface:
+
+- operational detail routes for `InboundStockRequest`, `FulfillmentAllocation`, `InventoryItem`, `MerchantWarehouseRelationship`, and `Shipment`
+- `/service-accountability` for service agreements, statements, disputes, claims, and reviews
+- `/admin/outbox` for outbox-health alerts
+
+Sources without a safe routed surface stay visible as source chips only; they should not render dead links.
+
+Provider-backed email, SMS, push, webhook, and realtime delivery remain Pre-V16/V16 work. V15.5 may add local in-app delivery records and UI source semantics, but it must not claim production delivery.
+
 ## API
 
 Authenticated users can access only their own notification records:

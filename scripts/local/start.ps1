@@ -83,6 +83,7 @@ try {
         $upArgs += "--no-build"
     }
     Invoke-Docker $upArgs
+    & (Join-Path $PSScriptRoot "wait-backend.ps1")
 
     Write-Host ""
     Write-Host "Deployment is running:"

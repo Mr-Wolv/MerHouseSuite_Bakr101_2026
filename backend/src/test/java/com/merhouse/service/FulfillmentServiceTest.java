@@ -3,12 +3,14 @@ package com.merhouse.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.merhouse.entity.AppUser;
 import com.merhouse.entity.CustomerOrder;
 import com.merhouse.entity.FulfillmentAllocation;
 import com.merhouse.entity.FulfillmentStatus;
@@ -19,6 +21,7 @@ import com.merhouse.entity.Shipment;
 import com.merhouse.entity.ShipmentStatus;
 import com.merhouse.entity.Tenant;
 import com.merhouse.entity.TenantType;
+import com.merhouse.entity.UserRole;
 import com.merhouse.entity.Warehouse;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.repository.CustomerOrderRepository;
@@ -55,6 +58,7 @@ class FulfillmentServiceTest {
     private final AppUserRepository appUserRepository = mock(AppUserRepository.class);
     private final CustomerOrderRepository orderRepository = mock(CustomerOrderRepository.class);
     private final OutboxService outboxService = mock(OutboxService.class);
+    private final OperationsAlertService operationsAlertService = mock(OperationsAlertService.class);
     private final CurrentUserService currentUserService = mock(CurrentUserService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-19T12:00:00Z"), ZoneOffset.UTC);
     private final FulfillmentService fulfillmentService = new FulfillmentService(
@@ -66,6 +70,7 @@ class FulfillmentServiceTest {
         appUserRepository,
         orderRepository,
         outboxService,
+        operationsAlertService,
         currentUserService,
         clock
     );
@@ -119,6 +124,13 @@ class FulfillmentServiceTest {
         assertEquals(actor.id().toString(), response.metadata().get("shippedByUserId"));
         assertEquals("2026-05-19T12:00:00Z", response.metadata().get("shippedAt"));
         verify(outboxService).publish(eq("ShipmentCreated"), eq("Shipment"), any(), any());
+        verify(operationsAlertService).recordMerchantAlert(
+            eq(allocation.getOrder().getMerchant().getId()),
+            eq("Shipment handed off"),
+            contains("FedEx is carrying 2 packages"),
+            eq("Shipment"),
+            eq(response.id())
+        );
     }
 
     @Test
@@ -168,6 +180,13 @@ class FulfillmentServiceTest {
         assertEquals(allocation.getWarehouse().getTenant().getId(), reported.warehouseProviderId());
         assertEquals("OPEN", reported.status());
         verify(outboxService).publish(eq("FulfillmentExceptionReported"), eq("FulfillmentException"), any(), any());
+        verify(operationsAlertService).recordMerchantAlert(
+            eq(allocation.getOrder().getMerchant().getId()),
+            eq("Fulfillment exception needs review"),
+            contains("SHORT_PICK"),
+            eq("FulfillmentException"),
+            eq(reported.id())
+        );
 
         FulfillmentException exception = new FulfillmentException();
         ReflectionTestUtils.setField(exception, "id", reported.id());
@@ -188,6 +207,13 @@ class FulfillmentServiceTest {
         assertEquals("Merchant accepted substitution and customer notification is ready.", resolved.resolutionNote());
         assertEquals(clock.instant(), resolved.resolvedAt());
         verify(outboxService).publish(eq("FulfillmentExceptionResolved"), eq("FulfillmentException"), eq(reported.id()), any());
+        verify(operationsAlertService).recordWarehouseProviderAlert(
+            eq(allocation.getWarehouse().getTenant().getId()),
+            eq("Fulfillment exception resolved"),
+            contains("SHORT_PICK"),
+            eq("FulfillmentException"),
+            eq(reported.id())
+        );
     }
 
     @Test
@@ -223,13 +249,19 @@ class FulfillmentServiceTest {
         Shipment shipment = shipment(shipmentId, ShipmentStatus.IN_TRANSIT);
         when(shipmentRepository.findWithDetailsById(shipmentId)).thenReturn(Optional.of(shipment));
         when(shipmentRepository.saveAndFlush(shipment)).thenReturn(shipment);
-
         fulfillmentService.advanceShipment(shipmentId, ShipmentStatus.FAILED);
 
         assertEquals(ShipmentStatus.FAILED, shipment.getStatus());
         assertEquals(OrderStatus.SHIPPED, shipment.getAllocation().getOrder().getStatus());
         verify(orderRepository, never()).save(any());
         verify(outboxService).publish(eq("ShipmentFailed"), eq("Shipment"), eq(shipmentId), any());
+        verify(operationsAlertService).recordMerchantAlert(
+            eq(shipment.getAllocation().getOrder().getMerchant().getId()),
+            eq("Shipment failed"),
+            contains("TRACK-1"),
+            eq("Shipment"),
+            eq(shipmentId)
+        );
     }
 
     @Test
@@ -266,13 +298,40 @@ class FulfillmentServiceTest {
         Shipment shipment = shipment(shipmentId, ShipmentStatus.IN_TRANSIT);
         when(shipmentRepository.findWithDetailsById(shipmentId)).thenReturn(Optional.of(shipment));
         when(shipmentRepository.saveAndFlush(shipment)).thenReturn(shipment);
-
         fulfillmentService.advanceShipment(shipmentId, ShipmentStatus.DELIVERED);
 
         assertEquals(ShipmentStatus.DELIVERED, shipment.getStatus());
         assertEquals(OrderStatus.DELIVERED, shipment.getAllocation().getOrder().getStatus());
         verify(orderRepository).save(shipment.getAllocation().getOrder());
         verify(outboxService).publish(eq("ShipmentDelivered"), eq("Shipment"), eq(shipmentId), any());
+        verify(operationsAlertService).recordMerchantAlert(
+            eq(shipment.getAllocation().getOrder().getMerchant().getId()),
+            eq("Shipment delivered"),
+            contains("TRACK-1"),
+            eq("Shipment"),
+            eq(shipmentId)
+        );
+    }
+
+    @Test
+    void advanceAllocationAlertsMerchantAboutPickAndPackProgress() {
+        Shipment baseShipment = shipment(UUID.randomUUID(), ShipmentStatus.IN_TRANSIT);
+        FulfillmentAllocation allocation = baseShipment.getAllocation();
+        allocation.setStatus(FulfillmentStatus.PENDING);
+        UUID allocationId = allocation.getId();
+        AppUser merchantUser = user(allocation.getOrder().getMerchant(), UserRole.MERCHANT);
+        when(allocationRepository.findWithDetailsById(allocationId)).thenReturn(Optional.of(allocation));
+        when(allocationRepository.saveAndFlush(allocation)).thenReturn(allocation);
+        fulfillmentService.advanceAllocation(allocationId, FulfillmentStatus.PICKING);
+
+        assertEquals(FulfillmentStatus.PICKING, allocation.getStatus());
+        verify(operationsAlertService).recordMerchantAlert(
+            eq(allocation.getOrder().getMerchant().getId()),
+            eq("Allocation picking started"),
+            contains("PICKING"),
+            eq("FulfillmentAllocation"),
+            eq(allocationId)
+        );
     }
 
     @Test
@@ -346,5 +405,16 @@ class FulfillmentServiceTest {
         shipment.setTrackingNumber("TRACK-1");
         shipment.setStatus(status);
         return shipment;
+    }
+
+    private AppUser user(Tenant tenant, UserRole role) {
+        AppUser user = new AppUser();
+        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+        user.setTenant(tenant);
+        user.setEmail(role.name().toLowerCase() + "@example.test");
+        user.setPasswordHash("hash");
+        user.setRole(role);
+        user.setEnabled(true);
+        return user;
     }
 }

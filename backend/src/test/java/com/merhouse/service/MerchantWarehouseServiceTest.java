@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import com.merhouse.dto.CreateInboundStockRequest;
 import com.merhouse.dto.CreateMerchantWarehouseRelationshipRequest;
 import com.merhouse.dto.ReceiveInboundStockRequest;
+import com.merhouse.entity.AppUser;
 import com.merhouse.entity.InboundStockRequest;
 import com.merhouse.entity.InboundStockRequestStatus;
 import com.merhouse.entity.InventoryItem;
@@ -46,6 +47,7 @@ class MerchantWarehouseServiceTest {
     private final InboundStockRequestRepository inboundRepository = mock(InboundStockRequestRepository.class);
     private final OutboxService outboxService = mock(OutboxService.class);
     private final CurrentUserService currentUserService = mock(CurrentUserService.class);
+    private final OperationsAlertService operationsAlertService = mock(OperationsAlertService.class);
     private final MerchantWarehouseService service = new MerchantWarehouseService(
         tenantService,
         warehouseService,
@@ -55,7 +57,8 @@ class MerchantWarehouseServiceTest {
         relationshipRepository,
         inboundRepository,
         outboxService,
-        currentUserService
+        currentUserService,
+        operationsAlertService
     );
 
     @Test
@@ -78,7 +81,9 @@ class MerchantWarehouseServiceTest {
     @Test
     void requestRelationshipCreatesRequestedRelationshipBetweenMerchantAndWarehouseProvider() {
         Tenant merchant = tenant(TenantType.MERCHANT);
+        merchant.setName("Merchant One");
         Tenant provider = tenant(TenantType.WAREHOUSE_PROVIDER);
+        provider.setName("Warehouse Partner");
         MerchantWarehouseRelationship saved = relationship(merchant, provider, MerchantWarehouseRelationshipStatus.REQUESTED);
 
         when(tenantService.getRequired(merchant.getId())).thenReturn(merchant);
@@ -100,6 +105,19 @@ class MerchantWarehouseServiceTest {
             eq("MerchantWarehouseRelationship"),
             eq(saved.getId()),
             any()
+        );
+        verify(operationsAlertService).recordWarehouseProviderAlert(
+            eq(provider.getId()),
+            eq("Warehouse service requested"),
+            eq("Merchant One requested warehouse service from Warehouse Partner. Review the relationship before inbound work can start."),
+            eq("MerchantWarehouseRelationship"),
+            eq(saved.getId())
+        );
+        verify(operationsAlertService).recordPlatformAlert(
+            eq("Relationship request ready"),
+            eq("Merchant One requested service from Warehouse Partner. Platform governance can review the relationship record."),
+            eq("MerchantWarehouseRelationship"),
+            eq(saved.getId())
         );
     }
 
@@ -124,7 +142,9 @@ class MerchantWarehouseServiceTest {
     @Test
     void activateRelationshipMovesRequestedRelationshipToActive() {
         Tenant merchant = tenant(TenantType.MERCHANT);
+        merchant.setName("Merchant One");
         Tenant provider = tenant(TenantType.WAREHOUSE_PROVIDER);
+        provider.setName("Warehouse Partner");
         MerchantWarehouseRelationship relationship = relationship(
             merchant,
             provider,
@@ -143,6 +163,13 @@ class MerchantWarehouseServiceTest {
             eq("MerchantWarehouseRelationship"),
             eq(relationship.getId()),
             any()
+        );
+        verify(operationsAlertService).recordMerchantAlert(
+            eq(merchant.getId()),
+            eq("Warehouse service active"),
+            eq("Warehouse Partner activated service for Merchant One. You can now submit inbound stock and allocate warehouse work."),
+            eq("MerchantWarehouseRelationship"),
+            eq(relationship.getId())
         );
     }
 
@@ -222,10 +249,14 @@ class MerchantWarehouseServiceTest {
     @Test
     void submitInboundRequiresActiveRelationshipAndMatchingWarehouseAndItem() {
         Tenant merchant = tenant(TenantType.MERCHANT);
+        merchant.setName("Merchant One");
         Tenant provider = tenant(TenantType.WAREHOUSE_PROVIDER);
+        provider.setName("Warehouse Partner");
         MerchantWarehouseRelationship relationship = relationship(merchant, provider, MerchantWarehouseRelationshipStatus.ACTIVE);
         Warehouse warehouse = warehouse(provider);
+        warehouse.setName("Main Hub");
         InventoryItem item = item(merchant);
+        item.setSku("SKU-ALERT");
         InboundStockRequest saved = inbound(relationship, warehouse, item, InboundStockRequestStatus.SUBMITTED);
 
         when(relationshipRepository.findWithDetailsById(relationship.getId())).thenReturn(Optional.of(relationship));
@@ -245,6 +276,13 @@ class MerchantWarehouseServiceTest {
         verify(currentUserService).requireAdminOrTenant(merchant.getId());
         verify(inboundRepository).saveAndFlush(any(InboundStockRequest.class));
         verify(outboxService).publish(eq("InboundStockSubmitted"), eq("InboundStockRequest"), eq(saved.getId()), any());
+        verify(operationsAlertService).recordWarehouseProviderAlert(
+            eq(provider.getId()),
+            eq("Inbound stock needs review"),
+            eq("Merchant One submitted 12 units of SKU-ALERT to Main Hub. Approve the inbound request to start receiving."),
+            eq("InboundStockRequest"),
+            eq(saved.getId())
+        );
     }
 
     @Test
@@ -272,6 +310,9 @@ class MerchantWarehouseServiceTest {
 
         verify(currentUserService).requireAdminOrTenant(merchant.getId());
         verify(outboxService).publish(eq("InboundStockDraftCreated"), eq("InboundStockRequest"), eq(saved.getId()), any());
+        verify(operationsAlertService, never()).recordWarehouseProviderAlert(any(), any(), any(), any(), any());
+        verify(operationsAlertService, never()).recordMerchantAlert(any(), any(), any(), any(), any());
+        verify(operationsAlertService, never()).recordPlatformAlert(any(), any(), any(), any());
     }
 
     @Test
@@ -328,10 +369,14 @@ class MerchantWarehouseServiceTest {
     @Test
     void receiveInboundStockAddsOnlyConfirmedQuantityToWarehouseInventory() {
         Tenant merchant = tenant(TenantType.MERCHANT);
+        merchant.setName("Merchant One");
         Tenant provider = tenant(TenantType.WAREHOUSE_PROVIDER);
+        provider.setName("Warehouse Partner");
         MerchantWarehouseRelationship relationship = relationship(merchant, provider, MerchantWarehouseRelationshipStatus.ACTIVE);
         Warehouse warehouse = warehouse(provider);
+        warehouse.setName("Main Hub");
         InventoryItem item = item(merchant);
+        item.setSku("SKU-ALERT");
         InboundStockRequest inbound = inbound(relationship, warehouse, item, InboundStockRequestStatus.RECEIVING);
         inbound.setRequestedQuantity(10);
 
@@ -346,6 +391,13 @@ class MerchantWarehouseServiceTest {
         verify(currentUserService).requireAdminOrTenant(provider.getId());
         verify(inventoryService).receiveStock(warehouse, item, 8);
         verify(outboxService).publish(eq("InboundStockReceived"), eq("InboundStockRequest"), eq(inbound.getId()), any());
+        verify(operationsAlertService).recordMerchantAlert(
+            eq(merchant.getId()),
+            eq("Inbound stock received"),
+            eq("Warehouse Partner received 8 units of SKU-ALERT at Main Hub with 1 damaged."),
+            eq("InboundStockRequest"),
+            eq(inbound.getId())
+        );
     }
 
     @Test
@@ -373,6 +425,17 @@ class MerchantWarehouseServiceTest {
         tenant.setName(type.name());
         tenant.setType(type);
         return tenant;
+    }
+
+    private AppUser user(Tenant tenant, UserRole role) {
+        AppUser user = new AppUser();
+        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+        user.setTenant(tenant);
+        user.setEmail(role.name().toLowerCase() + "@example.test");
+        user.setPasswordHash("hash");
+        user.setRole(role);
+        user.setEnabled(true);
+        return user;
     }
 
     private MerchantWarehouseRelationship relationship(
