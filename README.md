@@ -18,6 +18,19 @@ It models the operating relationship between a brand or merchant and a warehouse
 - Prototype-local notification action inbox for account lifecycle events, connected operational handoffs, service accountability updates, outbox health, per-user preferences, delivery history, and app-shell alert counts without external provider delivery.
 - REST API with validation, authorization, tenant-aware data access, Flyway migrations, PostgreSQL persistence, and OpenAPI metadata.
 
+## Local Workflow Truth
+
+The app has been verified as a local, role-aware fulfillment coordination system:
+
+- Platform owner/admin users review onboarding, govern tenants and relationships, manage accounts, inspect audit evidence, and monitor outbox reliability.
+- Support admins can review and recover supported platform work without owner-only governance powers.
+- Auditors can inspect governance, service, outbox, assistant, and audit evidence without mutation controls.
+- Merchants can move from first-run setup into active work by creating stock, connecting a warehouse provider, sending inbound stock, creating orders, reading attention signals, and reviewing service accountability.
+- Warehouse operators can move from first-run setup into active work by receiving inbound stock, picking/packing/shipping allocated orders, reporting exceptions, and reviewing service evidence.
+- Every signed-in role can use `/account` for account context and current-password-verified password changes.
+
+Fresh empty accounts and seeded active accounts are both expected states. Empty merchant and warehouse users should see guided first-run steps instead of blank panels; active users should see attention-first work queues before history, metrics, or diagnostics.
+
 ## Tech Stack
 
 - Java 21, Spring Boot, Spring Security, Spring Data JPA, Flyway
@@ -98,6 +111,12 @@ Deployment-ready local certification gate:
 .\scripts\quality\deployment-readiness.ps1 -IncludeE2E -SkipCompose
 ```
 
+Heavy local certification with API smoke:
+
+```powershell
+.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose
+```
+
 Start or stop the local stack:
 
 ```powershell
@@ -121,6 +140,39 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_AUTH_SEED_ADMIN_PASSWORD` | Initial owner password when seeding is enabled |
 | `MERHOUSE_SWAGGER_ENABLED` | Enables OpenAPI JSON and Swagger UI |
 | `MERHOUSE_DEPLOYMENT_PUBLIC` | Enables stricter startup validation for public deployment-shaped environments |
+
+## Local Mocks And Non-Deployed Boundaries
+
+V16 proves deployment readiness locally; it does not deploy MerHouse.
+
+- Notification delivery and password recovery delivery are local records, not real email, SMS, push, or webhook provider sends.
+- Carrier/provider handoff is represented by local outbox and carrier-dispatch records.
+- Assistant behavior is deterministic local review assistance, not provider-backed AI.
+- Health, backup/restore, dependency, and public-readiness proof are local/dry-run checks.
+- Secrets must be supplied through environment variables or external local files. Do not place `.env`, provider keys, production credentials, private prompts, customer data, database dumps, or internal endpoints inside `backend/` or `frontend/`.
+
+Future production activation is a separate later phase and must replace local mocks with real provider contracts, externalized secrets, monitoring, backup/restore operations, and deployment-specific proof.
+
+## Final Local QC Snapshot
+
+The final closeout pass on 2026-06-07 verified:
+
+- Live browser tour across public auth/recovery/access/reset, owner/admin, support-admin, auditor, merchant, warehouse, account settings, notifications, assistant, service accountability, outbox, audit, and operational detail routes.
+- Desktop and narrow viewport sweeps with no visible horizontal page overflow, clipped visible controls, missing accessible names, framework error residue, or confusing route fallback.
+- Fresh merchant and warehouse accounts from empty state into active relationship, inbound receiving, stock, order allocation, notifications, and detail-page workflows.
+- Account settings password change for a disposable user, including form clearing and login with the new password.
+- `.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose` passed, including backend tests, frontend lint/build/Vitest, Playwright E2E, markdown, public-readiness, and API smoke.
+
+Generated proof reports stay outside the future public app boundary.
+
+## Future Public Repository Boundary
+
+The intended future public repository should contain only:
+
+- `backend/`
+- `frontend/`
+
+This private workspace may also contain docs, scripts, notes, private references, generated reports, local environment files, and editor settings. Before any public publish, assemble or review the public surface so only developer/user-relevant application source is included and no private operational nuance or sensitive material is exposed.
 
 ## Documentation
 

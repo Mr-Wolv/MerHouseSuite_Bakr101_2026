@@ -563,6 +563,17 @@ Closeout proof must record:
 - public-boundary inventory showing what belongs in the future public repository and what remains private
 - merge target, source branch, commit id, and proof that `main` contains the closeout result
 
+Closeout proof recorded on 2026-06-07:
+
+- Live browser QC converged across public routes, owner/admin, support-admin, auditor, merchant, warehouse, shared review routes, account settings, operational detail routes, desktop viewport, narrow viewport, seeded active states, fresh empty states, empty-to-active workflow, and self password change.
+- Convergence fixes closed the authenticated route fallback residue, sticky table action reachability, and system-diagram route count drift.
+- Final heavy proof passed: `.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose`.
+- Extra proof passed: script parser over `scripts/**/*.ps1`, route/table/controller drift check, `git diff --check`, and markdown link check.
+- Cleanup used `.\scripts\maintenance\clean-reports.ps1 -KeepLatest 3` to remove older duplicate API smoke reports while keeping latest proof.
+- README sections changed after the tour: `Local Workflow Truth`, `Heavy local certification with API smoke`, `Local Mocks And Non-Deployed Boundaries`, `Final Local QC Snapshot`, and `Future Public Repository Boundary`.
+- Public boundary inventory: future public repository contains only `backend/` and `frontend/`; private notes, private references, generated reports, local `.env`, editor folders, and deployment-only local proof material stay outside that boundary.
+- Merge source branch: `codex/v15-8-structural-stabilization`; branch commit: `f595472`; merge target: `main`; merge commit: `aa19057`.
+
 ## Roadmap QC Rules
 
 These standing rules apply to every future phase, roadmap revision, and VInfinite backlog item.

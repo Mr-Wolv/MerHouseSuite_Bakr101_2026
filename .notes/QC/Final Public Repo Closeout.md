@@ -78,4 +78,14 @@ This note records the final goodbye gate so the work is not only a chat promise.
 
 ## Merge And README Follow-Up
 
-- Pending: commit closeout branch, merge `codex/v15-8-structural-stabilization` into `main`, then update `README.md` on `main` with the final live-tour truth and record the exact README sections changed.
+- Branch commit: `f595472` (`Finalize local certification closeout`).
+- Merge target: `main`.
+- Source branch: `codex/v15-8-structural-stabilization`.
+- Merge commit: `aa19057` (`Merge final local certification closeout`).
+- Post-merge README update on `main` added or updated:
+  - `Local Workflow Truth`
+  - `Heavy local certification with API smoke`
+  - `Local Mocks And Non-Deployed Boundaries`
+  - `Final Local QC Snapshot`
+  - `Future Public Repository Boundary`
+- Pending: commit the post-merge README evidence update and rerun markdown/public-readiness proof.
