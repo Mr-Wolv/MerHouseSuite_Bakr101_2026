@@ -84,7 +84,7 @@ Current progress:
 - lightweight polling added for notification summary, app-shell unread count, and notification page delivery refresh
 - production-shaped delivery fields added for local delivery stage and provider status
 - browser proof added for multi-role notification preference and delivery-state changes across merchant and warehouse contexts
-- provider-backed delivery remains intentionally out of scope until Pre-V16 and V16
+- provider-backed delivery remains intentionally out of scope until V16 local certification and V17 real activation
 
 Delivered V13 scope:
 
@@ -97,7 +97,7 @@ Delivered V13 scope:
 - explicit prototype labeling for any account lifecycle behavior that is not production-ready in V13
 - browser proof for multi-role state changes
 
-Any V13 prototype touching access requests, password reset, notification delivery, recovery delivery, or account lifecycle status must be carried forward as an explicit Pre-V16 and V16 certification item.
+Any V13 prototype touching access requests, password reset, notification delivery, recovery delivery, or account lifecycle status must be carried forward as an explicit Pre-V16, V16 local certification, or V17 production activation item.
 
 V13 completion proof:
 
@@ -156,11 +156,35 @@ Completion proof expected for V15:
 - documentation updates for any changed routes, workflows, or runtime assumptions
 - publication-boundary proof that UI copy and frontend configuration remain safe for later public release
 
+V15 whole-version closeout gateway:
+
+- V15 cannot close until a full gap-coverage sweep confirms tracked docs, code, scripts, tests, and user-facing UI/UX describe and prove the same current app.
+- Documentation must describe the current application across `README.md`, `docs/index.md`, affected architecture/development docs, roadmap sections, and active V15 audit notes; stale version claims, outdated setup steps, and old behavior descriptions must be fixed or recorded as blockers.
+- Code must coincide with the promised V15 features and known intentional deferrals; any mismatch between roadmap scope, implemented behavior, and visible product behavior must be closed or explicitly assigned to V15.5, V15.6, Pre-V16, V16, or VInfinite with required proof.
+- Scripts must be current for the app they verify: local run helpers, seed/demo helpers, quality scripts, maintenance scripts, and documentation for those scripts must agree with the actual runtime and proof expectations.
+- Tests must be current and meaningful: newly added features, components, and flows need focused coverage plus integration or route proof where they interact with surrounding workflows; stale fixture assumptions and weak assertions must be updated before closeout.
+- UI/UX must pass a final professional review across the app: no awkward daily components, missing icons, ghost alerts, confusing empty states, inaccessible controls, clunky transitions, broken handoffs, incoherent overlap, misleading wording, or user-facing residue from earlier versions.
+- Each remaining V15 subversion should apply this gateway at its own scale before it is called closed, then the whole-version sweep repeats after V15.6 and before Pre-V16.
+
+Program-wide gap discovery routine:
+
+- Treat unproven product unease as a valid signal, not as proof of correctness or proof of failure. Convert it into a repeatable gap-discovery pass before claiming any remaining V15 subversion is closed.
+- Walk the app by role, route, viewport, and action. For each surface, record what a fresh user is trying to do, what changed visibly after each action, what stayed stale, what felt over-explained or under-explained, what required hidden project knowledge, and what proof exists.
+- Walk the repository by coherence boundary too: code behavior, database migrations, tests, scripts, generated reports, tracked docs, private notes, and roadmap claims must describe the same current system. A pass in one layer does not excuse drift in another layer.
+- Classify each gap by owner before fixing or deferring it:
+  - V15.5 for connected-user workflow, alert, package, relationship, handoff, and cross-role comprehension gaps.
+  - V15.6 for latency, database, polling, rendering, large-list, Docker resource, and measurable performance gaps.
+  - V15.7 for responsive interaction, stale count, silent click, duplicate-submit, busy-state, rollback, app-shell synchronization, and action-feedback gaps.
+  - V15 whole-version closeout for code/docs/test/script/report/roadmap coherence gaps, stale proof, publication-boundary drift, and cases where the project cannot prove its own current behavior.
+  - Pre-V16, V16, or V17 only when the gap genuinely depends on external providers, stress/load certification, deployment, monitoring, backup/restore, SaaS readiness, local certification, or real production activation.
+- Every discovered gap needs a short record with the route, subsystem, or repository layer; the conflicting source of truth if any; why it matters to a real user or maintainer; the assigned version owner; the next action; and the proof that will close it.
+- Do not let a broad gap hunt reorder the roadmap by accident. Use it to feed the next correct subversion in sequence unless the finding is a blocker for the current subversion or a safety/publication-boundary issue.
+
 ### V15.1: UI Signature, Human Empty States, And Alerting Polish
 
 Planned scope:
 
-- remove customer-facing "prototype" framing from daily app surfaces and replace it with confident, production-shaped operational language while keeping release truth in roadmap, engineering docs, and guarded admin/release notes until Pre-V16 and V16 certify external delivery and SaaS readiness
+- remove customer-facing "prototype" framing from daily app surfaces and replace it with confident, production-shaped operational language while keeping release truth in roadmap, engineering docs, and guarded admin/release notes until V16 certifies local deployment readiness and V17 explicitly activates real production delivery
 - create a distinct MerHouse visual signature for the application shell, favicon/app mark, navigation, page headers, empty states, notification surfaces, and action icons without relying on default Vite assets, generic placeholder sprites, missing textures, remote visual assets, or clunky one-off icon choices
 - standardize an icon language across roles and workflows so platform governance, merchant operations, warehouse execution, service accountability, notifications, assistant review, destructive actions, warnings, successes, and empty states have recognizable, accessible, non-primitive symbols
 - make notification counts reflect the real unread total instead of a sticky placeholder value; hide or quiet the badge at zero, show the exact number when unread items exist, and prove the count changes with notification state
@@ -176,7 +200,7 @@ Completion proof expected for V15.1:
 - route-tour proof showing no unlabeled controls, empty interactive names, horizontal overflow, or console errors after icon and empty-state changes
 - live browser screenshots for first-run/empty merchant, warehouse, platform, notification, assistant, and service-accountability states
 - visual proof that the app shell and favicon/app mark use MerHouse-owned local assets and do not expose default Vite assets, missing textures, or remote visual dependencies
-- documentation update explaining which user-facing prototype wording was removed, where release-truth wording still lives, and why this does not claim SaaS production readiness before V16
+- documentation update explaining which user-facing prototype wording was removed, where release-truth wording still lives, and why this does not claim SaaS production readiness before a later real deployment activation phase
 - publication-boundary proof that new assets and UI copy are safe for the future public `backend/` and `frontend/` repository
 
 ### V15.2: Local AI Agent Architecture And Docker Runtime
@@ -202,6 +226,227 @@ Completion proof expected for V15.2:
 - model-runtime-off proof showing the app falls back to deterministic assistant behavior or a clear unavailable state without breaking core workflows
 - publication-boundary proof that local AI configuration, prompts, model settings, eval reports, and generated traces do not leak into the future public app source
 - roadmap decision recorded before Pre-V16 begins: implemented read-only local agent slice, architecture-only closeout, or explicit blocker with proof required
+
+### V15.3: Human Comprehension And Quality-Of-Life UI
+
+Planned scope:
+
+- make the app understandable to a capable first-time user who did not help build MerHouse, without relying on chat history, hidden docs, or developer explanation
+- replace shorthand navigation labels with plain workflow names where space allows, and keep icon choices distinct enough that users can tell governance, access, partners, service review, alerts, audit, assistant, inventory, orders, warehouse work, receiving, and shipments apart
+- reduce over-telling: keep page guidance short, move repeated explanatory text into concise helper panels, and let headings, table names, status labels, and primary actions carry more of the meaning
+- strengthen notification/alert semantics so critical work, action-needed work, reviewable history, and resolved history are visually and verbally distinct
+- make first-run paths obvious for fresh merchants and warehouse operators: what to create first, what prerequisite is missing, and which page starts the work
+- review quality-of-life details from a new user's perspective: unclear abbreviations, overly similar icons, noisy metrics, dead-end empty states, missing next actions, unclear disabled buttons, and status labels that require domain knowledge
+- keep professional restraint: no marketing-style onboarding, no walls of instructional text, no fake production claims, and no customer-facing prototype wording on daily surfaces
+
+Completion proof expected for V15.3:
+
+- route-by-route human-comprehension audit in [Frontend V15 audit](frontend-v15-audit.md), including what was deleted or shortened as well as what was added
+- focused tests for navigation labels/icon distinctions, alert severity language, and the first-run empty-state guidance that changed
+- live browser tour with at least owner, merchant, warehouse, fresh merchant, fresh warehouse, notifications, assistant, service accountability, and a not-found detail state, recording console warnings/errors, horizontal overflow, unlabeled controls, and missing expected copy
+- explicit note of any remaining UI/UX blocker that would still confuse a first-time user before moving into AI-agent or Pre-V16 work
+
+Carry-forward UX commitments from the slow live review:
+
+- no awkward-looking daily UI components may be treated as acceptable merely because they pass automated proof
+- no missing, generic, or visually confusing icons on primary route, action, state, alert, assistant, empty, loading, error, or not-found surfaces
+- no ghost alert count: the shell badge must reflect real unread work, hide or quiet at zero, and never appear as a sticky unexplained `1`
+- assistant entry points must feel functionally sound even before the local AI agent lands: no clunky prefilled prompt behavior, clear review-only boundaries, useful deterministic triage, and obvious audit linkage
+- the overall product experience should feel smooth: clear first action, fewer repeated destructive buttons, less seeded-data noise, better page hierarchy, and fewer walls of operational tables before priority work
+- new users must be guided into connection: what to create first, who they need to connect with, what waits on another role, and where the next visible handoff appears
+- future connected-user workflows must make relationships, package handoffs, inbound stock, fulfillment, service issues, and alerts feel linked across merchant, warehouse, and platform roles rather than isolated logs
+
+### V15.4: Smooth Professional UX And Component Quality Gate
+
+Planned scope:
+
+- close the slow-review UI rough edges before deeper agent work: awkward-looking components, harsh dense tables, repeated destructive controls, bare not-found states, and pages that combine too many unrelated jobs
+- rebalance owner/admin overview so platform users see attention-worthy work first and seeded/demo history does not dominate the first viewport
+- split or visually group merchant inventory and merchant order workflows so create/setup, active work, evidence/history, and exception handling have clearer hierarchy
+- make the warehouse console feel like a daily work queue first and a full operations ledger second, including a clearer single next item and less repetitive action noise
+- move notification inbox/alert work ahead of preference administration, while keeping preferences available as secondary settings
+- fix assistant input ergonomics so the prompt starts as a suggestion or placeholder instead of editable prefilled text that appends user input
+- make not-found states human and recoverable, with clear likely cause and a role-appropriate return action
+- recheck shared component quality: icons, buttons, tables, cards, badges, empty/loading/error/not-found surfaces, focus states, and narrow view behavior must look intentional rather than assembled
+
+Completion proof expected for V15.4:
+
+- focused frontend tests for assistant prompt ergonomics, notification inbox ordering, recoverable not-found states, and any split/grouped workflow surfaces
+- component-level proof that primary empty/loading/error/not-found states and action buttons use distinct accessible icons where expected
+- live browser slow-tour proof across owner/admin, merchant inventory/orders, warehouse console, notifications, assistant, service accountability, and not-found states with specific before/after notes
+- proof that unread alert count has no ghost `1` behavior across zero, one, and multiple unread states
+- documentation update in [Frontend V15 audit](frontend-v15-audit.md) listing each slow-review rough edge and whether it was fixed, intentionally deferred, or promoted to V15.5/Pre-V16
+- `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` after the UI changes, plus publication-boundary proof that no new assets or copy introduce private context into `frontend/`
+
+### V15.5: Connected User Workflows, Alerts, And Handoff Semantics
+
+Planned scope:
+
+- make user-to-user connection visible through the product: merchant requests, warehouse responses, package handoffs, inbound receiving, fulfillment exceptions, service issues, and platform governance should feel connected rather than like isolated tables
+- strengthen alert semantics into relationship-aware work: who created the event, who needs to act next, what object it is tied to, and where the user should go
+- connect package and shipment states to notifications and detail views so warehouse handoff, merchant review, failed/returned delivery, and package evidence have understandable cross-role trails
+- connect merchant-warehouse relationships to first-run guidance, inbound stock, order allocation, service accountability, and alert surfaces so users understand why connection setup matters
+- add or refine event copy for operational handoffs without pretending provider-backed delivery is production-ready before V16 local certification and later V17 real activation
+- define which connected-user alerts are required before the local AI agent can reliably suggest next actions, including package, relationship, inbound, fulfillment, exception, service, and account-lifecycle signals
+- keep all alert and handoff data tenant-scoped, role-scoped, audited where appropriate, and safe for the future public `backend/` and `frontend/` repository
+
+Completion proof expected for V15.5:
+
+- backend and frontend tests proving connected alert/event visibility is role-scoped and tenant-scoped across merchant, warehouse, and platform users
+- notification tests proving unread counts, alert severity, linked object navigation, and zero-state behavior across package, relationship, inbound, fulfillment, service, and account-lifecycle events
+- live browser proof walking a connected scenario from merchant setup through warehouse receiving/fulfillment/package handoff, alert review, service accountability, and detail recovery
+- documentation update explaining the connected-user alert model, what remains local/prototype-shaped, and what V16 must certify for production delivery
+- publication-boundary proof that connected alerts do not expose private data, credentials, provider endpoints, or cross-tenant records
+
+### V15.6: Performance, Indexing, And Operational Metrics
+
+Planned scope:
+
+- establish a measured local performance baseline before Pre-V16: backend endpoint latency, database query shape, frontend route load/render behavior, Docker resource use, and polling/background refresh pressure
+- review high-traffic and high-risk database access paths for orders, inventory, warehouse work, notifications, outbox, audit, assistant interactions, service accountability, relationship governance, and detail pages
+- add database indexes only where query plans and workload shape justify them; avoid speculative indexes that slow writes or complicate migrations without proof
+- inspect backend repository/service calls for avoidable N+1 patterns, repeated reads, oversized payloads, missing pagination/filtering, and expensive dashboard aggregation
+- review frontend performance for large tables/cards, route bundles, repeated polling, unnecessary re-renders, excessive DOM density, and slow first interaction on dense admin/merchant/warehouse routes
+- define practical local metrics for the current architecture: representative seed size, response-time targets, query-count/query-plan evidence, bundle size, route render time, memory/CPU observations, and polling interval behavior
+- decide whether any performance issue must be fixed before the local AI agent implementation, especially assistant context retrieval, connected alerts, and dashboard summaries that the agent may depend on
+- document limits honestly: V15.6 optimizes the local/private architecture and creates Pre-V16 baselines, but it does not claim production-scale SaaS capacity
+
+Completion proof expected for V15.6:
+
+- tracked performance baseline report covering representative backend endpoints, frontend routes, database query plans, Docker resource observations, and polling/background refresh behavior
+- backend tests or integration proof for any new indexes, pagination, query-shape changes, or service/repository optimizations
+- Flyway migration proof for added indexes, including safe names, rollback notes where relevant, and confirmation that indexes do not target private/sensitive columns
+- frontend tests or browser proof for route responsiveness, large-list rendering, no horizontal overflow/regression, and unchanged accessibility after performance-oriented UI changes
+- before/after proof for each optimization: measured problem, change made, metric improved or tradeoff documented
+- `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` plus any new performance proof script added under `scripts/quality/`
+- documentation update explaining which bottlenecks remain for Pre-V16 stress/load testing and which are already closed by V15.6
+
+### V15.7: Responsive App Interactivity And Action Feedback
+
+Planned scope:
+
+- audit the whole app for whether user actions feel immediately responsive after a click, submit, toggle, filter, navigation selection, refresh, mark-read, accept/reject, retry, create, update, cancel, or destructive action
+- make visible state update on the action that changed it, not only after leaving and returning to a route, waiting for a polling cycle, or relying on a later full reload
+- standardize optimistic or near-immediate UI feedback where safe: loading/busy states, disabled duplicate-submit protection, success/error announcements, count/badge updates, local row/card updates, focus return, and route-local refresh behavior
+- keep backend truth authoritative: optimistic UI must reconcile with API responses, roll back or explain failures clearly, and avoid showing cross-tenant, cross-role, or uncommitted data as durable truth
+- verify the app shell and page-local summaries stay synchronized for alerts, orders, inventory, inbound stock, warehouse work, service records, assistant suggestions, audit filters, outbox work, relationship actions, and account lifecycle flows
+- remove interaction dead zones where a user clicks a valid control and sees no state change, unclear waiting state, stale count, stale card, hidden error, duplicate row, or delayed confirmation
+- include accessible interaction proof: controls expose busy/disabled state where relevant, status changes are announced, focus remains predictable, keyboard users get the same immediate feedback, and reduced-motion users are not dependent on animation
+- document intentional exceptions where immediate local update is unsafe because of authorization, validation, concurrency, or workflow ownership, and show the user a clear pending or refresh state instead
+
+Completion proof expected for V15.7:
+
+- route/action matrix covering public auth/recovery, owner/admin governance, merchant inventory/orders/details, warehouse receiving/fulfillment/shipping/details, notifications, assistant, service accountability, outbox, audit, relationships, and not-found recovery
+- focused frontend tests for newly hardened interaction contracts, especially counters, badges, busy states, immediate card/row updates, error rollback, and app-shell/page-summary synchronization
+- Playwright proof that representative actions update visible UI immediately without route changes: notification read, assistant decision, relationship/request action, inventory or inbound submit, order state change, warehouse pick/pack/ship, outbox retry, audit filter, theme toggle, and recovery/auth status messages
+- live browser slow-tour proof recording before/after state for each stakeholder and confirming no stale counts, ghost alerts, duplicate submissions, silent clicks, console warnings/errors, horizontal overflow, or inaccessible controls
+- broad `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` after the interaction hardening, plus documentation updates in [Frontend V15 audit](frontend-v15-audit.md)
+
+### V15.8: Structural Stabilization And Separability
+
+Planned scope:
+
+- make structural cleanup an explicit roadmap-owned phase before deeper product or productionization work continues
+- reduce large backend service pressure without changing public API behavior, starting with helper extraction around connected alerts, service-accountability workflows, fulfillment handoffs, operational details, and outbox diagnostics where tests already cover the contracts
+- split large frontend route files by stable page and feature ownership while preserving current route paths, visible behavior, role gates, and local rendering expectations
+- define clean feature boundaries for frontend modules, backend capability ownership, scripts, and docs using [Structural stabilization](structural-stabilization.md) as the source of truth
+- keep scripts separated by responsibility: local runtime helpers, quality gates, API scenarios, and maintenance tasks
+- make the current dirty-tree/work-in-progress state coherent before new roadmap work proceeds; finish, document, or deliberately park each active V15.5/V15.7 residue item
+- keep publication-boundary rules active during refactor: no private prompts, credentials, provider tokens, internal endpoints, customer data, generated sensitive reports, or misleading production-readiness claims inside `backend/` or `frontend/`
+
+Completion proof expected for V15.8:
+
+- a structural closeout note in [Structural stabilization](structural-stabilization.md) listing each moved/extracted boundary, what behavior stayed stable, and which proof closed it
+- backend tests for every service extraction or package move, plus `.\scripts\quality\backend-check.ps1`
+- frontend lint, build, and Vitest proof for every page/module split, plus Playwright proof when routed workflows or role gates are affected
+- script proof for any script split or runtime contract change, with updated [Scripts guide](../development/scripts.md)
+- docs alignment across `README.md`, `docs/index.md`, development guides, affected architecture docs, and active roadmap claims
+- `.\scripts\quality\markdown-check.ps1` and `.\scripts\quality\public-readiness.ps1`
+- broad `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` when a seeded local stack is available and routed workflows were affected
+
+### V15.9: Product-Intent QA And Attention-First Workflows
+
+Planned scope:
+
+- make product-intent QA a roadmap-owned phase before Pre-V16 so MerHouse is judged by whether it expresses the intended merchant-warehouse coordination idea, not only by whether current pages render or existing tests pass
+- add a shared backend attention signal read model for role-scoped work that needs action, review, or reliability follow-up while preserving current API fields and authorization behavior
+- expose attention signals from existing admin, merchant, warehouse, outbox, notification, and service-accountability read paths where the underlying data already exists
+- redesign major daily surfaces so attention-worthy work appears before broad metrics, ledgers, audit history, diagnostic records, and preferences
+- separate platform governance, reliability diagnostics, operational exceptions, and audit history so admin users can tell what needs intervention versus what is supporting evidence
+- make merchant surfaces emphasize stock readiness, active partner status, inbound blockers, order/backorder risk, and fulfillment exceptions as next actions
+- make warehouse surfaces separate normal execution work from exception/reporting work, with receiving, pick, pack, ship, and service-impact actions visually distinct
+- split notifications into an action inbox and delivery/history/preferences so alerts answer what changed and where to act instead of reading like a delivery log
+- make service accountability at-risk-first by surfacing SLA risk, open disputes, claims, and pending reviews before agreements, statements, imports, and history
+- reframe the assistant as an operational review assistant tied to role, scope, object context, pending decisions, refusals, and audit trail rather than a generic assistant surface
+- remove stiff or redundant daily UI treatment found during the tour: repeated unavailable controls, confusing enum leakage without context, missing or weak icons, clunky action grouping, and panels that explain implementation proof instead of user work
+- keep production SaaS readiness, provider-backed delivery, realtime infrastructure, stress/load, monitoring, backup/restore, and real deployment activation reserved for V16 local certification and later V17 activation
+
+Completion proof expected for V15.9:
+
+- roadmap and V15 audit updates recording the product-intent gaps, route ownership, next action, and proof needed
+- backend tests proving attention signal severity, route/source metadata, resolved/history exclusion, tenant scoping, and role scoping across admin, merchant, warehouse, outbox, notifications, and service-accountability records
+- frontend tests proving the shared attention queue renders severity icons, owner labels, next-action links, empty states, and resolved/history dividers with accessible names
+- route tests for admin, merchant, warehouse, notifications, service accountability, assistant, and outbox proving attention-first hierarchy before metrics, ledgers, history, diagnostics, or preferences
+- browser proof for a connected merchant relationship/inbound/order through warehouse receiving/fulfillment, merchant/platform notification review, and service-accountability follow-up
+- desktop and narrow viewport proof that no route has horizontal overflow, clipped controls, missing icons, unnamed buttons, console errors, incoherent overlap, stiff empty states, or redundant disabled action clutter
+- `.\scripts\quality\markdown-check.ps1`, `.\scripts\quality\public-readiness.ps1`, and broad `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`
+
+V15.9 closeout proof:
+
+- Completed on 2026-06-07 as an attention-first product-intent refactor, not a SaaS production-readiness claim.
+- Backend attention signals are additive to the existing admin, merchant, warehouse, outbox, notification, and service-accountability read paths and preserve existing authorization boundaries.
+- Frontend attention-first surfaces are live for admin overview, merchant overview, warehouse console, service accountability, assistant, notifications, and outbox; audit remains evidence/history rather than the destination for resolving fulfillment or delivery exceptions.
+- `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` passed with backend tests, frontend lint/build/Vitest, Playwright E2E, markdown, and publication-readiness proof.
+- Follow-up live browser tour on 2026-06-07 covered owner/admin, merchant, warehouse, notifications, assistant, service accountability, outbox, audit, and representative operational detail routes. Desktop and narrow passes found no page-level horizontal overflow, no clipped attention blocks, no unnamed buttons, and no captured console errors. Cross-tenant merchant detail URLs correctly denied access before role-owned visible detail links were rechecked.
+
+### V15.10: Stakeholder Workflow Truth Audit
+
+Goal:
+
+- by the end of V15.10, MerHouse should be mature enough to enter the final Pre-V16 quality-control gate with its local product workflows understood, documented, role-owned, coherently implemented, tested, and supported by current scripts; V15.10 does not make the app deployment-ready, but it should remove product-intent uncertainty before Pre-V16 hardening begins
+
+Planned scope:
+
+- traverse every stakeholder individually and document what that stakeholder is meant to do, what routes they use, what objects they own, and what decisions they can make
+- map every stakeholder action to backend commands, persisted records, audits, outbox events, notifications, attention signals, and downstream stakeholder-visible changes
+- verify that implemented behavior matches the intended product model, not only the current UI behavior or existing tests
+- verify that tracked docs, local scripts, quality scripts, focused tests, browser proof, and roadmap claims agree with the actual workflow behavior before closeout
+- identify workflows that are technically implemented but practically unusable, ambiguous, one-sided, impossible to complete, missing a counterpart action, or aimed at the wrong stakeholder
+- separate true product gaps from polish gaps, test gaps, documentation gaps, and Pre-V16 production hardening gaps
+- preserve current authorization constraints: no cross-tenant visibility, no cross-role mutation, no provider delivery claims, no production readiness claims
+- create a durable stakeholder/action matrix in [Stakeholder workflow truth audit](stakeholder-workflow-truth-audit.md) before changing behavior
+
+Stakeholder traversal order:
+
+1. Public requester and recovery user: request access, password reset, and local account lifecycle expectations.
+2. Owner/platform admin: tenant governance, user governance, access requests, outbox reliability, audit review, service oversight, assistant review, and notification review.
+3. Admin and support admin: delegated platform operations, user/access support, service/accountability review, and limits compared with owner.
+4. Auditor: read-only evidence review, audit/event visibility, service/accountability visibility, assistant history, notifications, and detail access boundaries.
+5. Merchant: inventory creation, warehouse relationship request, inbound stock, order creation/import, allocation request, backorder resolution, exception follow-up, shipment/service review, notifications, and assistant review.
+6. Warehouse operator: relationship activation, inbound approval/receiving/rejection, pick/pack/ship, shipment failure/return/delivery, exception reporting, inventory adjustment, notifications, service review, and assistant review.
+7. System surfaces: notifications, outbox, audit trail, operational detail pages, attention signals, and assistant records as cross-stakeholder glue rather than standalone features.
+
+Completion proof expected for V15.10:
+
+- stakeholder/action matrix listing every stakeholder action, source route, backend command or read path, persisted object, downstream affected stakeholder, notification/attention/audit/outbox effect, expected UI feedback, and current proof status
+- browser live-tour notes for each stakeholder using seeded local accounts and newly created/fresh merchant and warehouse users, including what felt coherent, baffling, redundant, impossible, wrongly owned, or under-guided in empty states
+- fresh-user activation proof that takes empty merchant and warehouse users from no work to active operational participation: platform warehouse registration, SKU creation, relationship request/activation, inbound submission/receiving, merchant order allocation, warehouse pick/pack/ship/delivery, merchant shipment evidence, service-agreement draft/proposal/acceptance, and connected notifications
+- backend and frontend issue list split into fix-now product blockers, fix-now implementation bugs, test/documentation gaps, and deferred Pre-V16 hardening
+- documentation, script, and test inventory showing that setup docs, architecture docs, local seed/tour scripts, quality gates, backend tests, frontend tests, and browser/E2E proof are current with the stakeholder workflows
+- focused tests or explicit proof updates for any action whose contract changes during the audit
+- markdown proof for the audit record and roadmap updates, plus publication-boundary proof if any app-source or documentation changes touch the future public boundary
+- closeout note stating whether each stakeholder can complete their intended loop end to end, whether documentation, scripts, and tests are ready/up to date/coherent, whether the local product is mature enough for final Pre-V16 quality control, and which remaining gaps block moving into Pre-V16
+
+V15.10 closeout proof on 2026-06-07:
+
+- Completed as a stakeholder workflow truth audit for local product maturity before Pre-V16, not as a SaaS deployment-readiness claim.
+- The tracked stakeholder/action matrix in [Stakeholder workflow truth audit](stakeholder-workflow-truth-audit.md) documents public requester, recovery user, owner/admin, support admin, auditor, merchant, warehouse operator, notifications, outbox, audit, operational detail, attention-signal, and assistant loops.
+- Fresh empty merchant and warehouse users were taken from first-run state into active operations: platform warehouse registration, SKU creation, relationship request/activation, inbound submission/receiving, order allocation, warehouse pick/pack/ship/delivery, merchant shipment evidence, service-agreement draft/proposal/acceptance, and connected notifications.
+- Final residue fixes removed disabled-control clutter from support account and relationship governance; unavailable actions now render ownership/state chips and buttons render only for currently available actions.
+- The last in-app browser sweep after rebuilding the Docker frontend checked support user/relationship/access/outbox surfaces plus merchant, warehouse, service-accountability, and notification routes in desktop and narrow contexts. Checked routes had no old `Owner/admin only` residue, unnamed controls, page-level horizontal overflow, or captured console errors.
+- The final post-edit external browser sanity pass checked 30 owner, merchant, and warehouse route/viewport combinations on the running `localhost:3000` stack with 0 console errors, 0 page-level horizontal overflow, 0 unnamed buttons or links, 0 unlabeled form controls, and no targeted residue strings.
+- Proof passed with `npm test -- --run src/pages/AdminManagement.test.tsx`, `npm run test:e2e -- tests/e2e/admin-console.spec.ts --project=chromium`, and `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
+- Documentation, script guidance, focused tests, Playwright route proof, markdown checks, and publication-boundary checks now agree with the V15.10 workflow model. The local product is mature enough to enter Pre-V16 quality control; provider-backed delivery, realtime infrastructure, deployment, monitoring, stress/load, backup/restore, and SaaS certification remain V16 local certification or V17 real activation work.
 
 ### Pre-V16 Professionalization, Reliability, Stress, And Safety Gate
 
@@ -244,32 +489,79 @@ Pre-V16 CI todo:
 - Add dependency and container review automation.
 - Keep the backend Surefire Mockito Java-agent configuration covered by the normal backend test gate.
 - Add final publication-boundary and deployment-leakage certification for the future `backend/` and `frontend/` public repository.
-- Keep this release gate separate from the normal CI route until the project is ready to make it a blocking productionization requirement.
+- Keep this release gate separate from the normal CI route until the project is ready to make it a blocking production activation requirement.
 
-### V16: SaaS Productionization
+### V16: Deployment-Ready Local Certification
 
 Planned scope:
 
-- production deployment architecture
-- secret management
-- public-facing operational runbooks
-- monitoring and alerting
-- backup and rollback procedures
-- production-shaped authentication and recovery flows
-- production certification for access-request and password-reset delivery
-- final publication-without-leakage deployment review
-- final release validation
+- deployment-ready architecture without real deployment
+- local/mock contracts for provider delivery, password recovery delivery, carrier/provider handoff, assistant/model behavior, monitoring-style health, and backup/restore proof
+- secret-management and configuration boundary proof using fake/generated local values only
+- local readiness dossier and proof scripts
+- account settings after login with self-service current-password-verified password changes
+- publication-without-leakage deployment review for the future public `backend/` and `frontend/` repository
+- final deployment-ready local validation
 
-V16 is the first phase where MerHouse can be treated as a SaaS deployment candidate.
+V16 is the first phase where MerHouse can be treated as structurally deployment-ready. It does not deploy MerHouse, provision cloud infrastructure, activate provider-backed delivery, or claim SaaS production readiness.
 
 V16 exit criteria:
 
-- production deployment architecture is documented and matched by deployable configuration
-- secrets are managed by production-grade secret infrastructure, not app-source files
-- monitoring, alerting, logging, backups, rollback, incident response, and access recovery have runbooks and proof
-- public-facing documentation accurately describes production behavior
+- deployment-ready local certification dossier is tracked and current
+- local mocks or dry-run proof exist for every deployment-only dependency
+- account settings route and self-service password change are implemented and tested for every authenticated role
+- secrets remain externalized and no real provider/cloud credentials are embedded in app source
+- monitoring-style health, backup/restore dry-run path, API smoke, browser, docs, and publication-boundary proof are current
 - final publication-boundary certification passes for the separate public `backend/` and `frontend/` repository
-- final release validation passes without unresolved production blockers
+- final deployment-ready validation passes without unresolved local-readiness blockers
+
+V16 local certification closeout proof on 2026-06-07:
+
+- `.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -SkipCompose` passed with markdown, publication-boundary, backend, frontend, Vitest, build, and Playwright proof.
+- `.\scripts\quality\api-smoke.ps1` passed against the running local stack and wrote `reports/api-smoke-test-20260607-180359.summary.md`.
+- Live in-app browser QC checked 102 routed desktop/narrow records across public auth, owner/platform, support admin, auditor, merchant, warehouse, service review, assistant, notifications, account settings, and operational detail routes with no horizontal overflow, unnamed controls, unlabeled form controls, real app error states, or console errors.
+- Live action smoke created fresh local stakeholders and operating records, then proved a warehouse operator could move a fulfillment allocation to `PICKING` and approve an inbound request to `APPROVED` without UI residue or console errors.
+
+### V17: Production Deployment Activation
+
+Planned future scope:
+
+- real deployment architecture activation
+- production secret infrastructure
+- provider-backed notification, recovery, carrier, monitoring, backup, rollback, and incident-response operations
+- public-facing operational runbooks
+- final production release validation
+
+V17 is optional and should begin only when MerHouse is intentionally being deployed to real infrastructure.
+
+### Final Public-Repo Closeout Gate
+
+Goal:
+
+- before ending this private project workspace or publishing any public repository, complete one final convergence pass that proves the app is coherent for real users, the branch state is safely merged, the README reflects the toured product truth, and the repository contains only developer/user-relevant public material.
+
+This gate is not a new product-feature phase. It is a final acceptance and repository-publication-preparation pass after V16 local certification and before any optional public repository publish.
+
+Required sequence:
+
+1. Run a whole-app live browser QC tour across every role and every route: public requester, recovery user, owner, admin, support admin, auditor, merchant, warehouse operator, account settings, notifications, assistant, service accountability, outbox, audit, and operational detail routes.
+2. Cover both seeded/busy states and fresh/empty stakeholders, including first-run merchant and warehouse paths that become active participants in the workflow.
+3. Cover desktop and narrow viewports. Anything a real-world user would see as clunky, confusing, misleading, inaccessible, stiff, secret-leaky, redundant, or not product-realistic must be fixed before convergence is declared.
+4. Iterate browser findings, code, docs, scripts, and tests until the live tour and automated proof agree that there are no remaining closeout blockers.
+5. Run final proof: backend tests, frontend lint/build/Vitest, Playwright E2E, API smoke, markdown check, public-readiness, deployment-readiness, script parser, and any route/table/controller drift checks introduced during closeout.
+6. Only after the live tour and proof pass, inspect the working tree and merge the completed branch into `main` intentionally.
+7. After merge, update `README.md` from the final browser-tour truth: what MerHouse is, what works locally, what roles exist, how to run and test it, what is mocked, and what is intentionally not deployed.
+8. Delete files only when they are clearly obsolete, duplicate, generated, unrelated, or no longer useful. Do not delete private notes or references merely because they are outside the public boundary unless the cleanup decision is explicit.
+9. Prepare the public repository boundary so the future public surface shows only developer/user-relevant material and no private nuance, secrets, credentials, generated sensitive reports, private prompts, internal endpoints, or deployment-only assumptions.
+
+Closeout proof must record:
+
+- live browser route/role/viewport coverage and fixes made during convergence
+- final command results and generated reports
+- exact README sections changed after the tour
+- deletion inventory with why each file was removed
+- public-boundary inventory showing what belongs in the future public repository and what remains private
+- merge target, source branch, commit id, and proof that `main` contains the closeout result
 
 ## Roadmap QC Rules
 
@@ -282,9 +574,10 @@ These standing rules apply to every future phase, roadmap revision, and VInfinit
 - Keep markdown connected: new or changed markdown should have a clear purpose, useful links, and passing local link proof unless it is intentionally isolated and the reason is documented.
 - Close gaps before expanding scope: when work reveals stale docs, weak proof, boundary risk, inconsistent terminology, or conflicting behavior, fix it in the same change when practical. Otherwise record the blocker with owner, risk, and required proof before moving on.
 - Write down deferred decisions: when a task says something is for "later", "future", "Pre-V16", "V16", "VInfinite", or a deliberate follow-up, record it in the proper durable place before closing the conversation. Use the active architecture doc for design choices, this roadmap for phase/version ownership, and an active `.notes/` page for working context that links back to the durable source. Do not leave future work only in chat.
-- Any prototype touching authentication, authorization, password reset, access requests, notification delivery, tenant boundaries, data isolation, operational automation, payments, or production deployment must be labeled as prototype-local until Pre-V16 and V16 certify it as production-ready.
+- Any prototype touching authentication, authorization, password reset, access requests, notification delivery, tenant boundaries, data isolation, operational automation, payments, or production deployment must be labeled as prototype-local until V16 certifies the local boundary and V17 explicitly activates real production behavior.
 - Every phase must close documentation gaps against the actual code before being marked complete.
 - Every phase must include proof matching its risk: backend tests, frontend tests, Playwright evidence, migration proof, script validation, stress/load proof, backup/restore proof, dependency/container review, or public-readiness checks as appropriate.
+- Tests must evolve with the product: every newly added or materially changed feature needs focused automated coverage at the right layer, such as backend unit/integration tests, frontend unit/component tests, integration tests, or route-level Playwright proof. Coverage must prove the feature works with the surrounding components, flows, permissions, states, and visible UI without clunky transitions, broken handoffs, console errors, inaccessible controls, or confusing user-facing states. Update stale tests to assert the new durable behavior and user-facing contract instead of preserving obsolete fixture counts, incidental ordering, or implementation timing.
 - CI intended for publication must be treated as production-shaped proof. The GitHub Actions workflow and visible run title must use the stable name `MerHouse Quality Gate`, not commit-message-as-process naming; CI must use generated masked credentials, keep password-reset token echo disabled, redact auth material from generated reports, avoid publishing raw proof artifacts, and expose only non-sensitive job flow, status, and proof identifiers in logs.
 - Pre-V16 is the hard gate for full-system professionalization, stress testing, safety review, dependency/container review, backup/restore proof, publication-boundary leakage review, and release-blocker closure.
 - VInfinite may collect future ideas, but backlog items do not override QC rules and do not imply production readiness.
@@ -295,6 +588,7 @@ Every meaningful change needs matching proof:
 
 - backend changes: run backend tests and add focused tests when behavior changes
 - frontend changes: run lint, build, Vitest, and Playwright when routed workflows change
+- feature changes: add or update focused tests for the newly added behavior, including unit/component coverage where practical and integration or route proof when the behavior touches a flow; revise existing tests so they check the current invariant rather than stale fixture details
 - database changes: prove Flyway migrations from an empty database
 - script changes: parse scripts and update script documentation
 - documentation changes: keep `README.md`, `docs/index.md`, affected docs, and active Obsidian notes aligned; run markdown link proof
@@ -317,6 +611,6 @@ Use Playwright E2E proof when the local stack is running and seeded:
 
 ## VInfinite: Continuous Backlog
 
-Future expansion ideas belong here only when they have a named owner, future phase, or accepted backlog reason. Advanced payments, banking, tax, accounting, carrier integrations, marketplace features, and compliance-heavy workflows remain outside V1-V16 unless the roadmap is deliberately revised.
+Future expansion ideas belong here only when they have a named owner, future phase, or accepted backlog reason. Advanced payments, banking, tax, accounting, carrier integrations, marketplace features, and compliance-heavy workflows remain outside V1-V17 unless the roadmap is deliberately revised.
 
 VInfinite is continuous backlog, not hidden scope. Items parked here must still obey the Roadmap QC Rules before they can move into a numbered phase or production plan.

@@ -192,7 +192,7 @@ test('fresh accounts see guided first-run empty states', async ({ browser, reque
     merchantPage,
     'merchant',
     '/merchant',
-    'Create an order once inventory and warehouse relationships are ready',
+    'Create the first order once a SKU and active warehouse partner are ready',
     screenshotDir,
   ))
   records.push(await inspectEmptyState(
@@ -213,7 +213,7 @@ test('fresh accounts see guided first-run empty states', async ({ browser, reque
     merchantPage,
     'merchant',
     '/service-accountability',
-    'Create or activate merchant-warehouse relationships',
+    'Create or activate a partner relationship',
     screenshotDir,
   ))
   records.push(await inspectEmptyState(
@@ -227,7 +227,7 @@ test('fresh accounts see guided first-run empty states', async ({ browser, reque
     merchantPage,
     'merchant',
     '/notifications',
-    'they will appear here with severity',
+    'will appear here',
     screenshotDir,
   ))
   await merchantContext.close()
@@ -237,14 +237,14 @@ test('fresh accounts see guided first-run empty states', async ({ browser, reque
     warehousePage,
     'warehouse',
     '/warehouse',
-    'Allocations appear when merchant orders reserve stock',
+    'No pick work yet. Confirm partner access, received stock, and merchant orders',
     screenshotDir,
   ))
   records.push(await inspectEmptyState(
     warehousePage,
     'warehouse',
     '/service-accountability',
-    'Create or activate merchant-warehouse relationships',
+    'Create or activate a partner relationship',
     screenshotDir,
   ))
   records.push(await inspectEmptyState(
@@ -258,7 +258,7 @@ test('fresh accounts see guided first-run empty states', async ({ browser, reque
     warehousePage,
     'warehouse',
     '/notifications',
-    'they will appear here with severity',
+    'will appear here',
     screenshotDir,
   ))
   await warehouseContext.close()

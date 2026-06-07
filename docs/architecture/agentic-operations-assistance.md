@@ -16,7 +16,7 @@ A pending suggestion can be accepted or rejected by the same authenticated actor
 
 ## Intelligence Boundary
 
-The V14 assistant is prototype-local until Pre-V16 and V16 certification. The app source must not contain private prompts, provider keys, customer data snapshots, internal endpoints, or production deployment assumptions. Current responses are generated from existing local application services and stored in `assistant_interactions` with `prototype_local=true`. Suggestion decisions are stored on the same row as `action_status`, `decision_note`, `decided_by_user_id`, and `decided_at`.
+The V14 assistant is prototype-local until V16 certifies the local/mock boundary and a later V17 activation explicitly introduces real provider-backed behavior. The app source must not contain private prompts, provider keys, customer data snapshots, internal endpoints, or production deployment assumptions. Current responses are generated from existing local application services and stored in `assistant_interactions` with `prototype_local=true`. Suggestion decisions are stored on the same row as `action_status`, `decision_note`, `decided_by_user_id`, and `decided_at`.
 
 The assistant is expected to be useful within that boundary: it should not merely repeat counters when the user asks what comes next. It should choose a scoped queue, explain why that queue comes before lower-risk work, and refuse mutation requests instead of taking action.
 

@@ -2,6 +2,7 @@ package com.merhouse.service;
 
 import com.merhouse.dto.NotificationPreferenceUpdateRequest;
 import com.merhouse.dto.NotificationSummaryResponse;
+import com.merhouse.dto.AttentionSeverity;
 import com.merhouse.entity.AppUser;
 import com.merhouse.entity.NotificationChannel;
 import com.merhouse.entity.NotificationDelivery;
@@ -106,9 +107,29 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public NotificationSummaryResponse summaryForUser(UUID userId) {
+        AppUser user = userRepository.findWithTenantById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        long unreadCount = deliveryRepository.countByRecipientIdAndStatus(userId, NotificationDeliveryStatus.RECORDED);
         return new NotificationSummaryResponse(
-            deliveryRepository.countByRecipientIdAndStatus(userId, NotificationDeliveryStatus.RECORDED),
-            deliveryRepository.findLatestCreatedAtByRecipientId(userId)
+            unreadCount,
+            deliveryRepository.findLatestCreatedAtByRecipientId(userId),
+            unreadCount > 0
+                ? deliveryRepository.findByRecipientIdOrderByCreatedAtDesc(userId, PageRequest.of(0, 5)).stream()
+                    .filter(delivery -> delivery.getStatus() == NotificationDeliveryStatus.RECORDED)
+                    .map(delivery -> AttentionSignalFactory.signal(
+                        "notification-" + delivery.getId(),
+                        delivery.getTopic() == NotificationTopic.OUTBOX_HEALTH ? AttentionSeverity.CRITICAL : AttentionSeverity.ACTION_NEEDED,
+                        delivery.getTitle(),
+                        delivery.getBody(),
+                        user.getRole(),
+                        "Open alert",
+                        notificationRoute(delivery),
+                        delivery.getSourceType(),
+                        delivery.getSourceId(),
+                        delivery.getCreatedAt()
+                    ))
+                    .toList()
+                : List.of()
         );
     }
 
@@ -151,5 +172,27 @@ public class NotificationService {
         delivery.setSourceId(sourceId);
         delivery.setPrototypeLocal(true);
         return deliveryRepository.save(delivery);
+    }
+
+    private String notificationRoute(NotificationDelivery delivery) {
+        if (delivery.getSourceType() == null || delivery.getSourceId() == null) {
+            return "/notifications";
+        }
+        if (delivery.getTopic() == NotificationTopic.OUTBOX_HEALTH) {
+            return "/admin/outbox";
+        }
+        return switch (delivery.getSourceType()) {
+            case "InboundStockRequest" -> "/inbound-stock-requests/" + delivery.getSourceId();
+            case "FulfillmentAllocation" -> "/fulfillment-allocations/" + delivery.getSourceId();
+            case "InventoryItem" -> "/inventory/items/" + delivery.getSourceId();
+            case "MerchantWarehouseRelationship" -> "/merchant-warehouse/relationships/" + delivery.getSourceId();
+            case "CustomerOrder" -> "/orders/" + delivery.getSourceId();
+            case "Shipment" -> "/shipments/" + delivery.getSourceId();
+            case "BackorderItem" -> "/merchant/orders";
+            case "FulfillmentException" -> "/service-accountability";
+            case "OutboxEvent" -> "/admin/outbox";
+            case "ServiceAgreement", "ServiceStatement", "ServiceDispute", "ServiceClaim", "ServiceReviewRequest" -> "/service-accountability";
+            default -> "/notifications";
+        };
     }
 }

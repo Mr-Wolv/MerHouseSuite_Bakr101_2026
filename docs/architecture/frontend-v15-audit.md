@@ -4,7 +4,7 @@
 
 This document is the tracked V15 frontend audit record. It converts the V15 roadmap into route-by-route work so frontend polish, accessibility, responsive behavior, theme support, and proof do not live only in chat or private notes.
 
-V15 should make the local MerHouse console feel professional, accessible, predictable, and efficient for repeated operational work. It is not a production SaaS phase; production deployment, monitoring, backups, and external-provider certification remain V16 work.
+V15 should make the local MerHouse console feel professional, accessible, predictable, and efficient for repeated operational work. It is not a production SaaS phase; V16 owns deployment-ready local certification, while real production deployment, monitoring, backups, and external-provider activation remain later V17 work.
 
 ## Baseline Proof
 
@@ -16,6 +16,30 @@ Latest starting proof before V15 implementation:
 - `reports/api-smoke-test-20260530-142704.summary.md` passed after V14 live testing, including assistant API, audit, history scoping, refusal, auditor read-only behavior, and 12 concurrent assistant requests with 0 failures.
 
 The baseline is healthy enough to begin V15, but it is not the V15 finish bar.
+
+## V15 Whole-Version Closeout Gateway
+
+After the current V15 subversions finish, V15 needs a full gap-coverage sweep before it can be called closed. The sweep must confirm that tracked docs describe the current app, implemented code matches the promised and accepted V15 features, local scripts remain up to date, tests cover new and changed behavior at the right layer, and the full user-facing experience is professional, accessible, coherent, and free of avoidable clunkiness or residue.
+
+Each remaining V15 subversion should apply the same gateway at its own scale before closeout, then the whole-app pass repeats after V15.6 and before Pre-V16.
+
+## Program-Wide Gap Radar
+
+The owner review raised a valid concern: the app can pass automated checks while still hiding program-wide gaps that are hard to prove from instinct alone. V15 will treat that concern as a standing discovery routine, not as a reason to abandon the planned sequence.
+
+For each remaining V15 pass, use this gap radar before closeout:
+
+| Lens | Question | Owner when gap is found |
+| --- | --- | --- |
+| Fresh human comprehension | Can a capable new user understand what this screen is for, what to do first, and what waits on another role? | V15.5 for connected workflow confusion; V15 closeout for broad docs/copy contradiction. |
+| Connected workflow continuity | Do relationships, packages, inbound work, fulfillment, service issues, alerts, and detail pages explain how users affect each other? | V15.5. |
+| Immediate interaction feedback | Does the current screen respond after the click, submit, toggle, filter, retry, or decision without requiring navigation or polling to feel correct? | V15.7. |
+| Performance and scale feel | Does the route feel slow, dense, polling-heavy, over-rendered, or database-expensive under realistic local data? | V15.6. |
+| Accessibility and professional polish | Are labels, focus, busy states, announcements, icons, empty/error states, and narrow layouts coherent for real use? | Current subversion if touched; otherwise V15 closeout. |
+| Code/docs/tests/scripts coherence | Do code behavior, database migrations, tests, scripts, generated reports, tracked docs, private notes, and roadmap claims describe the same current system? | V15 whole-version closeout, unless the gap blocks the current subversion or belongs to Pre-V16 professionalization, V16 local certification, or V17 production activation. |
+| Safety and publication boundary | Could the behavior, copy, config, report, or source leak private context or imply production readiness too early? | Immediate blocker; V16 for local certification, V17 for real production activation. |
+
+Each gap record should name the route, subsystem, or repository layer; the user-visible or maintainer-visible symptom; the conflicting source of truth if any; why it matters; the assigned owner version; the next action; and the proof that will close it.
 
 ## Audit Dimensions
 
@@ -33,20 +57,20 @@ Every row below should be evaluated through these dimensions before V15 closes:
 | Surface | Roles | Routes | Workflow criticality | Current automated baseline | V15 audit status |
 | --- | --- | --- | --- | --- | --- |
 | Public auth and recovery | Public | `/login`, `/forgot-password`, `/reset-password`, `/request-access` | High: entry, recovery, onboarding | Full-tour proof passes in desktop and narrow viewports | Shared public-auth panel now gives consistent heading hierarchy, light/dark theme control, prototype-local recovery and delivery guardrails, labeled forms, status/error announcements, safe note guidance, and icon-backed primary actions. Focused tests cover the public guardrails and live proof is recorded in `reports/v15-public-auth-polish/public-auth-live-check.json`. |
-| Platform overview | Owner, admin, support admin, auditor | `/admin` | High: platform scan and triage | Full-tour proof passes in desktop and narrow viewports | In progress: shared shell/sidebar tokens, metric/table surface polish, row hover states, and light/dark screenshot proof captured under `reports/v15-admin-polish/` |
-| Tenant governance | Owner, admin | `/admin/tenants` | High: privileged tenant state changes | Full-tour proof passes in desktop and narrow viewports | In progress: privileged-action guidance, suspension reason scanability, warning styling for suspension actions, and narrow light/dark browser proof recorded under `reports/v15-admin-polish/admin-guidance-live-check.json` |
+| Platform overview | Owner, admin, support admin, auditor | `/admin` | High: platform scan and triage | Full-tour proof passes in desktop and narrow viewports | Current: attention-first platform triage, shared shell/sidebar tokens, metric/table surface polish, row hover states, and light/dark screenshot proof are captured under `reports/v15-admin-polish/` and the V15.9/V15.10 live sweeps. |
+| Tenant governance | Owner, admin | `/admin/tenants` | High: privileged tenant state changes | Full-tour proof passes in desktop and narrow viewports | Current: privileged-action guidance, warehouse registration, suspension reason scanability, warning styling for suspension actions, and narrow light/dark browser proof are recorded under `reports/v15-admin-polish/admin-guidance-live-check.json` and the V15.10 fresh-user activation proof. |
 | User governance | Owner, admin, support admin | `/admin/users` | High: account lifecycle and role safety | Full-tour and admin-console proof pass | Shared table/form/theme polish, privileged-action guidance, pagination framing, reset readiness narration, protected-action cues, warning/destructive styling, and narrow light/dark action proof are recorded under `reports/v15-admin-residue-polish/admin-residue-live-check.json`. |
 | Access requests | Owner, admin, support admin | `/admin/access-requests` | High: onboarding control | Full-tour and admin-console proof pass | Shared table/form/theme polish, onboarding review guidance, note scanability, status narration, review/conversion timeline, narrow action review, and light/dark proof are recorded under `reports/v15-admin-residue-polish/admin-residue-live-check.json`. |
-| Relationship governance | Owner, admin, support admin, auditor | `/admin/relationships` | High: merchant-provider operating boundary | Full-tour proof passes in desktop and narrow viewports | In progress: operating-boundary guidance, lifecycle timestamp scanability, support/auditor read-only cueing, distinct suspend/end action styling, and narrow light/dark browser proof recorded under `reports/v15-admin-polish/admin-guidance-live-check.json` |
+| Relationship governance | Owner, admin, support admin, auditor | `/admin/relationships` | High: merchant-provider operating boundary | Full-tour proof passes in desktop and narrow viewports | Current: operating-boundary guidance, lifecycle timestamp scanability, support/auditor read-only cueing, state chips instead of unavailable mutation controls, distinct suspend/end action styling, and narrow light/dark browser proof are recorded under `reports/v15-admin-polish/admin-guidance-live-check.json` and this final residue sweep. |
 | Outbox diagnostics | Owner, admin, support admin, auditor | `/admin/outbox` | Medium-high: local reliability diagnostics | Full-tour and admin-console proof pass | Shared metric/table/theme polish, diagnostic action grouping, dead-letter reason guidance, timestamp cells, failure details, retry schedules, severity hierarchy, live refresh feedback, and narrow light/dark proof are recorded under `reports/v15-admin-residue-polish/admin-residue-live-check.json`. |
 | Audit explorer | Owner, admin, support admin, auditor | `/admin/audit` | High: privileged action review | Full-tour proof passes; V14 live assistant filtering passed | Shared metric/table/theme polish, audit filter guidance, live event-count narration, note/timestamp scanability, focusable keyboard table region, and narrow light/dark proof are recorded under `reports/v15-admin-residue-polish/admin-residue-live-check.json`. |
-| Merchant overview | Merchant | `/merchant` | High: merchant operations scan | Full-tour proof passes in desktop and narrow viewports | In progress: operations-scan guidance, backorder/stock-risk emphasis, and narrow light/dark live proof captured under `reports/v15-merchant-polish/`; remaining work is detail-route review |
-| Merchant inventory | Merchant | `/merchant/inventory`, `/inventory/items/:inventoryItemId` | High: stock and item operations | Full-tour proof passes in desktop and narrow viewports | In progress: inbound-readiness guidance, stock quantity chips, relationship note scanability, archive/cancel action styling, inventory-detail evidence guidance, and narrow light/dark live proof captured under `reports/v15-merchant-polish/` |
-| Merchant orders | Merchant | `/merchant/orders`, `/orders/:orderId` | High: order lifecycle | Full-tour proof passes in desktop and narrow viewports | In progress: order-queue guidance, backorder risk card emphasis, warning treatment for cancel actions, quantity/status scanability, order-detail lifecycle guidance, and narrow light/dark live proof captured under `reports/v15-merchant-polish/` |
-| Warehouse operations | Warehouse operator | `/warehouse`, `/shipments/:shipmentId`, `/fulfillment-allocations/:allocationId`, `/inbound-stock-requests/:inboundStockRequestId` | High: receiving, pick/pack/ship, exceptions | Full-tour and admin-console proof pass | In progress: warehouse-console execution guidance, scan/pick-sheet evidence chips, receiving and inventory quantity chips, exception note scanability, warning/destructive action styling, inbound receiving evidence, shipment handoff/package evidence, and allocation pick/ship evidence now have focused tests and narrow light/dark proof under `reports/v15-warehouse-polish/`. |
-| Service accountability | Owner, admin, support admin, auditor, merchant, warehouse operator | `/service-accountability` | High: agreements, statements, disputes, claims, reviews, imports | Full-tour and admin-console proof pass | In progress: accountability guidance, clearer risk metrics, SLA breach emphasis, agreement scope/SLA chips, statement/import quantity chips, issue evidence table, review-request coverage, and narrow light/dark live proof are recorded under `reports/v15-service-accountability-polish/`. |
-| Assistant | Owner, admin, support admin, auditor, merchant, warehouse operator | `/assistant` | Medium-high: V14 review-only operations assistance | Full-tour and V14 live proof pass | In progress: prototype-local review boundary guidance, local-record/pending/refusal counts, role-aware audit trail link or cue, safer suggestion decision controls, pending-card emphasis, scan-friendly request/response/audit sections, and owner/merchant/warehouse/auditor narrow light/dark proof are recorded under `reports/v15-assistant-polish/`. |
-| Notifications | Owner, admin, support admin, auditor, merchant, warehouse operator | `/notifications` | Medium-high: delivery state review | Full-tour and notification E2E proof pass | In progress: prototype-local delivery-boundary guidance, enabled/provider-ready summary metrics, preference timestamps and warning disable actions, unread delivery emphasis, provider-ready warning chips, source id chips, note-cell delivery bodies, and merchant/warehouse narrow light/dark delivery-card proof are recorded under `reports/v15-notifications-polish/`. |
+| Merchant overview | Merchant | `/merchant` | High: merchant operations scan | Full-tour proof passes in desktop and narrow viewports | Current: attention-first operations scan, stock readiness, relationship state, inbound/order blockers, fulfillment exceptions, backorder risk emphasis, and narrow light/dark live proof are captured under `reports/v15-merchant-polish/` plus V15.9/V15.10 connected-workflow proof. |
+| Merchant inventory | Merchant | `/merchant/inventory`, `/inventory/items/:inventoryItemId` | High: stock and item operations | Full-tour proof passes in desktop and narrow viewports | Current: setup/stock/history hierarchy, inbound-readiness guidance, stock quantity chips, relationship note scanability, archive/cancel action styling, recoverable inventory detail states, and narrow light/dark proof are captured under `reports/v15-merchant-polish/` and V15.10 fresh-user activation proof. |
+| Merchant orders | Merchant | `/merchant/orders`, `/orders/:orderId` | High: order lifecycle | Full-tour proof passes in desktop and narrow viewports | Current: create/audit/active-queue hierarchy, attention-first blockers, backorder risk emphasis, warning treatment for cancel actions, prerequisite chips instead of unavailable optional controls, quantity/status scanability, order-detail lifecycle guidance, and narrow light/dark proof are captured under `reports/v15-merchant-polish/`. |
+| Warehouse operations | Warehouse operator | `/warehouse`, `/shipments/:shipmentId`, `/fulfillment-allocations/:allocationId`, `/inbound-stock-requests/:inboundStockRequestId` | High: receiving, pick/pack/ship, exceptions | Full-tour and admin-console proof pass | Current: attention-first execution, separate receiving/fulfillment/exception ownership, scan/pick-sheet evidence chips, receiving and inventory quantity chips, exception note scanability, warning/destructive action styling, inbound receiving evidence, shipment handoff/package evidence, refreshed attention state after mutations, and allocation pick/ship evidence have focused tests and narrow light/dark proof under `reports/v15-warehouse-polish/`. |
+| Service accountability | Owner, admin, support admin, auditor, merchant, warehouse operator | `/service-accountability` | High: agreements, statements, disputes, claims, reviews, imports | Full-tour and admin-console proof pass | Current: at-risk SLA, open disputes, claims, pending reviews, agreement setup/proposal/acceptance, clearer risk metrics, agreement scope/SLA chips, statement/import quantity chips, issue evidence table, review-request coverage, and narrow light/dark live proof are recorded under `reports/v15-service-accountability-polish/` and V15.10 fresh-user proof. |
+| Assistant | Owner, admin, support admin, auditor, merchant, warehouse operator | `/assistant` | Medium-high: V14 review-only operations assistance | Full-tour and V14 live proof pass | Current: operational-review framing, attention-first pending/refusal cues, review boundary guidance, role-aware audit trail link or cue, safer suggestion decision controls, scan-friendly request/response/audit sections, and owner/merchant/warehouse/auditor narrow light/dark proof are recorded under `reports/v15-assistant-polish/`. |
+| Notifications | Owner, admin, support admin, auditor, merchant, warehouse operator | `/notifications` | Medium-high: delivery state review | Full-tour and notification E2E proof pass | Current: action inbox before delivery history and preferences, delivery-boundary guidance, enabled/provider-ready summary metrics, preference timestamps and warning disable actions, unread delivery emphasis, provider-ready warning chips, source id chips, note-cell delivery bodies, and merchant/warehouse narrow light/dark delivery-card proof are recorded under `reports/v15-notifications-polish/`. |
 | Relationship details | Owner, admin, support admin, auditor, merchant, warehouse operator | `/merchant-warehouse/relationships/:relationshipId` | Medium-high: operating boundary detail | Full-tour detail-path proof passes | Relationship-boundary guidance, merchant/provider cues, service-note scanability, lifecycle timestamps, activation warnings, richer linked inbound/allocation metadata, timeline, and outbox evidence counts now have focused tests and narrow light/dark live proof in `reports/v15-relationship-detail-polish/relationship-detail-live-check.json`. |
 
 ## Initial V15 Gap List
@@ -54,10 +78,10 @@ Every row below should be evaluated through these dimensions before V15 closes:
 | ID | Gap | Why it matters | First action | Proof needed |
 | --- | --- | --- | --- | --- |
 | V15-FE-001 | No real light/dark theme system exists yet. | V15 explicitly requires professional theme support with persistent preference and contrast proof. | Closed for V15: theme provider, document `data-theme`, localStorage persistence, system preference default, theme tokens, visible controls, route-level dark-mode polish, and representative screenshots are in place. | `npm run lint`, `npm run build`, `npm test -- --run`, the full route-tour E2E, and `npm run test:e2e -- tests/e2e/v15-accessibility-closeout.spec.ts` pass. Closeout proof records persistent theme preference plus light/dark token contrast in `reports/v15-closeout/v15-accessibility-proof.json`; representative dense light/dark screenshots are referenced through the V15 proof bundle. |
-| V15-FE-002 | The visual system is mostly one large stylesheet with many page-specific classes and hard-coded colors. | Professional polish is difficult to apply consistently when colors, status tones, spacing, and surfaces are not fully tokenized. | In progress: sidebar, brand, nav, status, error, row-hover, table, metric, field, and theme tokens were expanded; admin dense routes received the first shared surface polish. Remaining work is broader page-specific hard-coded color cleanup and component extraction where useful. | `npm run lint`, `npm run build`, `npm test -- --run`, and the full route-tour E2E passed after the admin polish slice. Browser screenshots were captured in light/dark for `/admin`, `/admin/audit`, `/admin/users`, `/admin/access-requests`, and `/admin/outbox`. |
+| V15-FE-002 | The visual system began as one large stylesheet with many page-specific classes and hard-coded colors. | Professional polish is difficult to apply consistently when colors, status tones, spacing, and surfaces are not fully tokenized. | Closed for V15 local quality: sidebar, brand, nav, status, error, row-hover, table, metric, field, and theme tokens were expanded; dense admin, merchant, warehouse, notification, assistant, service, public-auth, and detail surfaces now use shared primitives where they affect visible workflow quality. Further component extraction is maintenance work, not a V15 blocker. | `npm run lint`, `npm run build`, `npm test -- --run`, full route-tour E2E, V15 evidence reports, and V15.9/V15.10 live sweeps passed after the polish slices. |
 | V15-FE-003 | Current E2E proves labels and overflow, but not contrast, focus order depth, live-region behavior, reduced motion, or theme regressions. | V15 accessibility acceptance requires more than the current route-tour checks. | Closed for V15: targeted accessibility closeout now covers keyboard focus visibility, persistent theme preference, light/dark token contrast, public recovery live-region announcements, reduced-motion audit rendering, and focusable dense audit table reachability. | `npm run test:e2e -- tests/e2e/v15-accessibility-closeout.spec.ts` writes `reports/v15-closeout/v15-accessibility-proof.json` and `.summary.md`; latest run passed with focus outline, live-region, reduced-motion, and contrast checks. |
-| V15-FE-004 | Dense operational pages pass mechanically, but need human UX review for scanability and repeated-use efficiency. | MerHouse is an operations console; professional quality depends on fast scanning, predictable action grouping, and clear status hierarchy. | In progress: admin users, access requests, tenants, relationships, outbox, audit, merchant overview/inventory/orders/detail evidence views, warehouse console, warehouse detail workflows, service accountability, assistant, notifications, relationship details, and public auth/recovery now have visible guidance, clearer action grouping, and scan-friendly note/timestamp/quantity/evidence treatment. Continue through final V15 proof bundle and accessibility closeout rows. | Route-by-route audit rows updated with before/after notes and screenshots for desktop and narrow viewports; focused admin, merchant, warehouse, service-accountability, assistant, notification, relationship-detail, and public-auth tests passed for the guidance/action grouping slices; live narrow light/dark route checks are recorded in `reports/v15-admin-polish/admin-guidance-live-check.json`, `reports/v15-admin-residue-polish/admin-residue-live-check.json`, `reports/v15-merchant-polish/merchant-live-check.json`, `reports/v15-merchant-polish/merchant-detail-live-check.json`, `reports/v15-warehouse-polish/warehouse-live-check.json`, `reports/v15-warehouse-polish/warehouse-detail-live-check.json`, `reports/v15-service-accountability-polish/service-accountability-live-check.json`, `reports/v15-assistant-polish/assistant-live-check.json`, `reports/v15-assistant-polish/assistant-auditor-live-check.json`, `reports/v15-notifications-polish/notifications-live-check.json`, `reports/v15-relationship-detail-polish/relationship-detail-live-check.json`, and `reports/v15-public-auth-polish/public-auth-live-check.json`. |
-| V15-FE-005 | Assistant UX is functionally proven but still prototype-shaped. | V14 behavior is safe, but V15 should make review-only assistant interactions easier to trust and audit. | In progress: assistant review-boundary guidance, pending suggestion emphasis, decision reason framing, role-aware audit link/cue, request/response/audit card sections, and deterministic risk-ranked suggestion copy are implemented. | `.\mvnw.cmd -Dtest=AssistantServiceTest clean test` from `backend/`, `npm test -- --run src/pages/AssistantPage.test.tsx`, full frontend proof, and owner/merchant/warehouse/auditor narrow light/dark browser proof passed under `reports/v15-assistant-polish/`. |
+| V15-FE-004 | Dense operational pages could pass mechanically while still needing human UX review for scanability and repeated-use efficiency. | MerHouse is an operations console; professional quality depends on fast scanning, predictable action grouping, and clear status hierarchy. | Closed for V15 local quality: admin users, access requests, tenants, relationships, outbox, audit, merchant overview/inventory/orders/detail evidence views, warehouse console, warehouse detail workflows, service accountability, assistant, notifications, relationship details, and public auth/recovery now have visible guidance, attention-first hierarchy, clearer action grouping, and scan-friendly note/timestamp/quantity/evidence treatment. | Route-by-route audit rows are current; focused admin, merchant, warehouse, service-accountability, assistant, notification, relationship-detail, and public-auth tests passed; live narrow light/dark route checks are recorded in `reports/v15-admin-polish/admin-guidance-live-check.json`, `reports/v15-admin-residue-polish/admin-residue-live-check.json`, `reports/v15-merchant-polish/merchant-live-check.json`, `reports/v15-merchant-polish/merchant-detail-live-check.json`, `reports/v15-warehouse-polish/warehouse-live-check.json`, `reports/v15-warehouse-polish/warehouse-detail-live-check.json`, `reports/v15-service-accountability-polish/service-accountability-live-check.json`, `reports/v15-assistant-polish/assistant-live-check.json`, `reports/v15-assistant-polish/assistant-auditor-live-check.json`, `reports/v15-notifications-polish/notifications-live-check.json`, `reports/v15-relationship-detail-polish/relationship-detail-live-check.json`, and `reports/v15-public-auth-polish/public-auth-live-check.json`. |
+| V15-FE-005 | Assistant UX was functionally proven but initially prototype-shaped. | V14 behavior is safe, but V15 should make review-only assistant interactions easier to trust and audit. | Closed for V15 local quality: assistant review-boundary guidance, pending suggestion emphasis, decision reason framing, role-aware audit link/cue, request/response/audit card sections, deterministic risk-ranked suggestion copy, and V15.9 operational-review attention framing are implemented. | `.\mvnw.cmd -Dtest=AssistantServiceTest clean test` from `backend/`, `npm test -- --run src/pages/AssistantPage.test.tsx`, full frontend proof, and owner/merchant/warehouse/auditor narrow light/dark browser proof passed under `reports/v15-assistant-polish/`. |
 | V15-FE-006 | Screenshot proof exists in scattered reports, not a V15-specific evidence set. | V15 closeout needs a deliberate professional-frontend proof bundle. | Closed for V15: `reports/v15-closeout/v15-accessibility-proof.json` references the generated V15 evidence set under `reports/v15-*`, verifies each referenced report exists, and proves the bundle stays outside the future public app source boundary. | `reports/v15-closeout/v15-accessibility-proof.summary.md` lists the V15 closeout checks, while the JSON report records every referenced screenshot/report path for admin, merchant, warehouse, service accountability, assistant, notifications, relationship detail, and public auth/recovery proof. |
 
 ## Working Order
@@ -73,6 +97,194 @@ Every row below should be evaluated through these dimensions before V15 closes:
 
 V15 frontend finish is ready for owner acceptance. The route matrix, theme infrastructure, dense workflow polish, public auth/recovery polish, targeted accessibility proof, and V15 generated evidence bundle are now tracked here. The roadmap quality gate passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`, and the final live acceptance sweep is recorded in `reports/v15-closeout/final-live/v15-final-live-acceptance.json` with 11 routes, 0 unexpected console errors, 0 horizontal overflow failures, 0 unlabeled controls, 0 unnamed buttons, 0 horizontally offscreen controls outside intentional scroll regions, and 0 missing expected-content checks before moving into Pre-V16.
 
+## V15.9 Product-Intent QA Matrix
+
+V15.9 records the owner QA finding that MerHouse can pass route and function checks while still failing the product-intent question: whether the app clearly coordinates merchant, warehouse, platform, service, alert, and assistant work in the way it is meant to. The phase owner is V15.9, after structural stabilization and before Pre-V16.
+
+| Surface | Product-intent gap | Required edit | Proof needed |
+| --- | --- | --- | --- |
+| Admin overview | Platform attention can blur governance, reliability, operational exceptions, delivery failure, and audit history. | Use backend attention signals before broad metrics; route fulfillment and delivery risks to service/operational review instead of audit as a catch-all. | Admin route test and browser proof that attention signals appear before platform health and link to the right work surface. |
+| Merchant overview | Merchant risk exists, but backorders, inbound blockers, stock readiness, and fulfillment exceptions need a stronger next-action hierarchy. | Consume merchant dashboard attention signals above metrics and ledgers. | Merchant route test proving attention appears before order status and leads to orders, inbound detail, or service review. |
+| Warehouse console | Execution actions and exception/reporting actions can feel like one dense control panel. | Consume warehouse attention signals before setup/metrics and visually keep daily execution separate from receiving and exception work. | Warehouse route test and browser proof for attention-first queue, no missing icons, no clunky action grouping. |
+| Notifications | Alerts can read like delivery history and preferences rather than an operational action inbox. | Split action inbox from delivery history and keep preferences below both. | Notification tests proving unread/action records lead, history follows, source links remain available, and mark-read still updates counts. |
+| Service accountability | Agreements and statements can dominate before the user sees at-risk SLA, claims, disputes, or reviews. | Surface SLA attention signals, open disputes, claims, and pending reviews before agreements and statements. | Service route test proving at-risk/open records appear before agreement terms. |
+| Assistant | The assistant can feel generic instead of tied to operational review decisions. | Surface pending suggestions and refusals as attention signals; keep audit linkage visible. | Assistant test proving pending/refusal attention appears before history and decisions remain review-only. |
+| Outbox diagnostics | Processed rows and unavailable row actions can create diagnostic noise before failed/retryable work. | Show outbox attention signals before controls and sort failed work ahead of processed history. | Outbox test proving failed/retryable work appears first and processed rows are supporting history. |
+| Audit explorer | Audit is evidence, not the primary destination for resolving fulfillment or delivery exceptions. | Keep audit framed as evidence/history; do not use it as the main attention destination for service-impacting work. | Admin/audit route proof that audit remains review/evidence while service-impacting links land elsewhere. |
+| Operational details | Detail routes can explain timelines, but they should also support source recovery from attention links. | Preserve routed source links for inbound, allocation, shipment, inventory, relationship, and service records. | Connected workflow browser proof from alert/attention source to detail page with no broken handoff. |
+
+V15.9 closeout proof on 2026-06-07:
+
+- Owner/admin live tour confirmed admin overview leads with separated service, fulfillment, and delivery attention signals; those signals route to service accountability instead of using audit as a catch-all. Admin outbox leads with reliability attention before diagnostics, notifications lead with the action inbox, assistant leads with review attention, and audit stays evidence/history.
+- Merchant live tour confirmed merchant overview leads with fulfillment exception and backorder attention before order metrics/history. Notifications split actionable unread records from delivery history, and service accountability leads with open dispute, claim, and pending review work.
+- Warehouse live tour confirmed the console leads with exception, allocation, and inbound work before setup/metrics/history, with allocation and inbound next-action links landing on operational detail pages.
+- Operational detail proof covered allocation, inbound stock, order, shipment, relationship, and inventory detail routes. A deliberately mismatched merchant detail pair correctly produced cross-tenant denial before visible merchant-owned links were rechecked.
+- Desktop and narrow viewport passes across owner, merchant, and warehouse surfaces found no page-level horizontal overflow, clipped attention blocks, unnamed buttons, missing attention-first hierarchy, or captured console errors.
+- The broad proof remains `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`, plus `.\scripts\quality\markdown-check.ps1` and `.\scripts\quality\public-readiness.ps1`. V15.9 remains local-development/product-intent readiness only; V16 handles deployment-ready local certification, and production SaaS delivery, realtime infrastructure, monitoring, stress/load, backup/restore activation, and provider rollout remain later V17 work.
+
+Final V15.10 residue sweep on 2026-06-07:
+
+- Support account governance and relationship governance no longer render unavailable owner/admin actions as disabled buttons. User creation, account mutation, protected account, reset prerequisite, role-change, and read-only relationship states use chips until a real action is available.
+- The final browser sweep after the rebuilt Docker frontend checked support user/relationship/access/outbox surfaces, merchant overview/inventory/orders/service/notifications, warehouse console/service/notifications, and representative narrow layouts. The checked routes had no old owner/admin-only residue, unnamed controls, page-level horizontal overflow, or captured console errors.
+- After the last documentation reconciliation, an external browser route sanity pass checked 30 owner, merchant, and warehouse route/viewport combinations on `localhost:3000` and found no console errors, page-level horizontal overflow, unnamed buttons or links, unlabeled form controls, or targeted residue strings.
+- `npm test -- --run src/pages/AdminManagement.test.tsx`, `npm run test:e2e -- tests/e2e/admin-console.spec.ts --project=chromium`, and `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` passed after the final residue edits.
+
+## V15.3 Human Comprehension Gate
+
+The 2026-05-31 live owner review found a real product-quality gap: MerHouse can pass route, accessibility, and workflow checks while still feeling difficult for a fresh human to understand. V15.3 owns that gap before AI-agent or Pre-V16 expansion.
+
+Human-comprehension acceptance means a first-time but capable user can tell:
+
+- which role mode they are in
+- what each navigation item means without decoding internal shorthand
+- which alerts require action and which are only history
+- which empty state blocks progress and what prerequisite comes next
+- which copy is essential guidance and which copy should be shortened or removed
+- which icons identify different workflows rather than repeating one visual metaphor
+
+Quality-of-life actions from the live review:
+
+| ID | User-facing problem | Action | Proof needed |
+| --- | --- | --- | --- |
+| V15.3-HC-001 | Navigation labels such as `Relations` and `Service` are too insider-ish for new users. | Replace shorthand with plain workflow labels and keep visible labels aligned with role tasks. | App layout tests and live route tour. |
+| V15.3-HC-002 | Some guidance panels over-tell while some empty states still under-guide. | Shorten repeated explanation, keep one concrete next step, and avoid long boundary language on daily surfaces. | Focused page tests and fresh-account browser proof. |
+| V15.3-HC-003 | Service accountability and partner relationships share too much icon language. | Split service review, partner relationship, access, and governance icons into distinct visual meanings. | Component/app-shell tests and visual live pass. |
+| V15.3-HC-004 | Alert severity reads improved but still needs sharper action language. | Use critical, action-needed, review, and cleared language consistently in summary metrics and cards. | Notification tests and live notification proof. |
+| V15.3-HC-005 | The app needs a new-user quality-of-life audit, not just engineering proof. | Maintain a route-by-route add/delete/change list before closing V15.3. | Updated audit row plus live closeout report. |
+
+First V15.3 slice proof on 2026-05-31:
+
+- `npm test -- --run AppLayout NotificationCenterPage MerchantPages WarehousePage`
+- `npm run lint`
+- `npm run build`
+- `.\scripts\quality\markdown-check.ps1`
+- Docker frontend rebuild and in-app browser role cycle across owner, merchant, and warehouse accounts. The pass verified the new navigation labels, notification wording, no visible notification `prototype` wording, merchant `Start with risk` guidance, warehouse `Work queue` label, and no captured browser console errors. One exact text assertion for `Start with today's work` was rechecked by visible DOM excerpt because apostrophe serialization made the first automated boolean too brittle.
+- `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` passed after aligning Playwright expectations with the new human-facing labels and notification severity names.
+
+Second V15.3 slice:
+
+- Merchant inventory now shows a compact `Merchant setup path` checklist for first SKU, warehouse partner, inbound stock, and first order readiness.
+- Merchant inbound and order forms now explain missing prerequisites beside disabled actions instead of relying only on disabled button state.
+- Warehouse console now shows a compact `Warehouse setup path` checklist for partner access, inbound receiving, queue work, and exceptions.
+- Warehouse relationship and inbound rows now explain why actions are locked after activation, receipt, cancellation, rejection, or draft-only states.
+- Focused proof passed with `npm test -- --run MerchantPages WarehousePage`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, and an in-app browser proof of the merchant and warehouse checklist surfaces after rebuilding the Docker frontend.
+
+Third V15.3 slice:
+
+- Shared status language now adds plain-language accessible labels and hover titles to compact status badges without adding table noise.
+- Notification delivery-stage and provider-status chips now use the same explanation language for `PREPARED`, `LOCAL_RECORDED`, `SKIPPED_BY_PREFERENCE`, `NOT_CONFIGURED`, and `READY_FOR_PROVIDER`.
+- Focused proof passed with `npm test -- --run StatusBadge NotificationCenterPage ServiceAccountabilityPage MerchantPages WarehousePage AdminManagement`, `npm run lint`, and `npm run build`.
+- Docker frontend rebuild and in-app browser proof verified status explanations on notifications, partner relationships, and service review with no captured browser console errors.
+
+Fourth V15.3 slice:
+
+- Merchant overview, inventory, orders, and empty states now use shorter action-first language instead of repeated allocation, relationship, and shipment-evidence explanations.
+- Warehouse console guidance now points operators to work queue and inbound receiving first; no-data states now name the missing operational prerequisite without retelling the whole workflow.
+- Service accountability now prioritizes open disputes, claims, and pending reviews before partner-review action; agreement, SLA, statement, import, and review empty states were shortened.
+- Assistant review copy now says suggestions are review-only once, replaces `Local records` with `Review records`, and trims decision-control language while keeping the no-mutation boundary visible.
+- Focused proof passed with `npm test -- --run MerchantPages WarehousePage ServiceAccountabilityPage AssistantPage`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and in-app browser merchant/service/assistant/warehouse copy proof with no captured console errors.
+- The first broad check caught one stale V15 empty-state E2E expectation for the old merchant guidance; the proof was updated to the new concise copy, `npm exec -- playwright test tests/e2e/v15-empty-state-live.spec.ts --project=chromium` passed, and `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` then passed.
+
+V15.3 closeout proof:
+
+- `.\scripts\quality\frontend-full-tour.ps1 -OutputPath .\reports\v15-3-human-comprehension\route-tour-closeout.json` passed. The report covered 136 routed checks across public, owner, admin, support admin, auditor, merchant, warehouse, detail, desktop, and narrow surfaces with 0 horizontal-overflow records, 0 console-error records, 0 empty interactive-name records, and 0 unlabeled form-control records.
+- `V15_EMPTY_STATE_REPORT=..\reports\v15-3-human-comprehension\empty-state-closeout.json npm exec -- playwright test tests/e2e/v15-empty-state-live.spec.ts --project=chromium` passed for 10 fresh merchant and warehouse empty-state routes, with screenshots saved under `reports/v15-3-human-comprehension/`.
+- The in-app browser spot check covered owner overview/audit/notifications/assistant, merchant overview/inventory/orders/service/assistant/notifications, warehouse console/service/assistant/notifications, and merchant inventory not-found detail state. The pass confirmed expected V15.3 copy, no horizontal overflow, and no captured console errors on the checked surfaces.
+- The only closeout caveats were tooling/session mechanics, not app regressions: the in-app browser hit its known virtual-clipboard limitation during scripted login fill, and one owner overview attempt reused a merchant session until a direct visible logout/login corrected it.
+- No remaining V15.3 UI/UX blocker was found that should stop movement into local AI-agent planning or Pre-V16 review. Remaining polish belongs to V15.2 AI-agent architecture and the Pre-V16 professionalization gate.
+
+Slow live UX review before V15.2:
+
+- Owner/admin overview works without overflow or console errors, but it still feels database-heavy for a fresh human because seeded/test-looking tenants, IDs, and long operational tables appear before a clear "what needs attention now" work queue.
+- Admin governance tables expose repeated destructive or privileged actions (`Suspend`, `End`, `Retry`, `Dead-letter`, `Reset`) across dense rows. The controls are protected, but the visual rhythm feels harsher than a professional review queue.
+- Merchant inventory is doing too many jobs at once: SKU creation, partner request, inbound stock, relationships, authorized stock, inbound history, and item history all compete in one vertical surface.
+- Merchant orders combines create-order, contact capture, CSV/import intake, exception resolution, shipments, and order cards. It works, but a first-time user may not know which panel matters first.
+- Warehouse console is operationally useful but action-heavy. The setup checklist can say a step is `Ready` while its detail still says to wait for a merchant/platform request, which reads contradictory.
+- Notifications put preference administration before the alert inbox, so the actual "what needs my attention?" item sits below settings. The visible account-lifecycle alert also still reads like delivery-history plumbing rather than a user-action cue.
+- Assistant suggestions are useful enough for deterministic triage, but the prompt field starts with an editable prefilled prompt. Typing without clearing appends to the default text, which makes the assistant feel clunky.
+- Detail not-found states are intentionally safe, but the inventory not-found state is too bare: it shows the missing ID without a recovery action back to Stock or an explanation of likely causes.
+
+V15.4/V15.5 ownership for user-raised UX concerns:
+
+| Concern | Roadmap owner | Required outcome | Proof needed |
+| --- | --- | --- | --- |
+| No awkward-looking UI components | V15.4 | Daily surfaces, state components, tables, buttons, badges, not-found states, and action panels look intentional in desktop and narrow views. | Component tests, visual/live browser before-after notes, full route tour. |
+| No missing or confusing icons | V15.4 | Primary routes, empty/loading/error/not-found states, alerts, assistant, destructive actions, and workflow states use distinct accessible icons. | Component/app-shell tests plus live visual pass. |
+| No ghost alert badge or sticky `1` | V15.4 | Badge reflects actual unread count, hides/quiets at zero, and proves one/multiple/zero states. | Notification/AppLayout tests and live account-cycle proof. |
+| Assistant/agent is functionally sound | V15.4 for deterministic UX, V15.2 for local AI agent | Current assistant input and review flow feel usable; local AI agent later adds model runtime, tools, evals, and fallback. | Assistant page tests, model-off proof, agent evals once V15.2 implementation begins. |
+| Smooth overall user experience | V15.4 | Owner/admin, merchant, warehouse, notifications, assistant, service, and not-found pages have clearer hierarchy and fewer dense rough edges. | Slow-tour checklist, focused tests, broad `check.ps1` gate. |
+| New-user guidance and connection | V15.4 and V15.5 | Fresh users understand what to create, who to connect with, what waits on another role, and where handoffs appear. | Fresh-account proof plus connected workflow live scenario. |
+| Connected users through alerts, packages, relationships, and handoffs | V15.5 | Alerts and detail views connect merchant, warehouse, platform, package, relationship, inbound, fulfillment, exception, and service events. | Role/tenant-scoped backend/frontend tests and connected live workflow proof. |
+| Performance, indexing, and metrics | V15.6 | Dense routes, backend endpoints, database access paths, polling, and Docker resource use have measured baselines and justified optimizations before Pre-V16. | Query-plan/baseline report, focused tests, browser route proof, and broad quality gate. |
+| Responsive app interactivity | V15.7 | Clicks, submits, toggles, filters, mark-read actions, assistant decisions, retries, creates, updates, and destructive actions visibly respond on the current screen without requiring route changes or polling to feel correct. | Route/action matrix, focused interaction tests, before/after Playwright proof, live slow-tour proof, and broad quality gate. |
+
+First V15.4 slice:
+
+- Assistant prompt ergonomics now use an empty text area with a prompt suggestion as placeholder, so user input no longer appends to editable default text.
+- Notifications now put `Alert inbox` before `Preferences`; channel settings remain available below the work queue.
+- Warehouse setup guidance now changes partner-access detail based on actual state, avoiding the `Ready` plus "wait for request" contradiction.
+- Inventory detail not-found now uses a recoverable empty state with likely causes and a `Back to Stock` action instead of a bare missing-id page.
+- Focused proof passed with `npm test -- --run AssistantPage NotificationCenterPage WarehousePage OperationalDetailPages`, `npm test -- --run`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and in-app browser proof of assistant, notifications, warehouse, and inventory not-found surfaces with no captured console errors.
+
+Second V15.4 slice:
+
+- Merchant inventory now separates the setup workflow from operational records with visible `Create and connect` and `Review stock and history` anchors, so SKU creation, warehouse service requests, inbound stock, partner records, stock quantities, inbound history, and item history no longer compete in one uninterrupted surface.
+- The slice keeps existing form labels and actions stable while adding a focused Merchant Inventory test for the hierarchy anchors.
+- Proof passed with `npm test -- --run MerchantPages`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, Playwright live-style checks of `/merchant/inventory` in desktop and narrow viewports with no console errors or horizontal overflow, and a clean rerun of `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
+
+Third V15.4 slice:
+
+- Merchant orders now separates single-order setup, audited bulk intake, and active queue work with visible `Create customer demand`, `Audit imported rows`, and `Allocate, resolve, and follow shipments` anchors.
+- The slice keeps existing order form, import, filter, exception, and queue actions stable while adding focused Merchant Orders test coverage for the new hierarchy anchors.
+- Focused proof passed with `npm test -- --run MerchantPages`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and Playwright live-style checks of `/merchant/orders` in desktop and narrow viewports with no console errors or horizontal overflow.
+- Broad proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` after hardening the Warehouse setup-path test so it checks the active-partner copy instead of a fixture-dependent ready-count.
+
+Fourth V15.4 slice:
+
+- Warehouse console now puts fulfillment queue work before receiving and ledger tables, with visible `Pick, pack, and ship first`, `Open partner and inbound work`, and `Review shipments, exceptions, and stock` anchors.
+- The slice keeps partner activation, inbound receiving, fulfillment actions, shipment evidence, exception review, and inventory adjustment behavior stable while adding focused Warehouse page coverage for the new hierarchy anchors.
+- Focused proof passed with `npm test -- --run WarehousePage`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and Playwright live-style checks of `/warehouse` in desktop and narrow viewports with no console errors or horizontal overflow.
+- Broad proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
+
+Fifth V15.4 slice:
+
+- Admin overview now starts with a `Needs Attention First` queue for pending access requests, failed outbox work, service risks, suspended governance, fulfillment exceptions, and delivery failures before broad platform metrics and operational ledgers.
+- The slice keeps existing admin summary, order status, recent orders, and tenant health behavior stable while adding focused Admin Overview coverage for attention-first hierarchy and route links with clean accessible names.
+- Focused proof passed with `npm test -- --run AdminManagement`, `npm run lint`, `npm run build`, `.\scripts\quality\markdown-check.ps1`, Docker frontend rebuild, and Playwright live-style checks of `/admin` in desktop and narrow viewports with no console errors or horizontal overflow.
+- Broad proof passed with `npm run test:e2e -- tests/e2e/full-tour.spec.ts -g "full frontend harmonic workflow proves admin merchant and warehouse coherence"` and `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
+
+Sixth V15.4 slice:
+
+- Shared loading, empty, and error states now have stronger component semantics: loading keeps a distinct stable icon treatment with reduced-motion handling, empty states render as named recoverable regions with accessible descriptions, and error states announce as alerts with named detail text.
+- Focused component proof covers the loading icon, workflow-specific empty-state icon selection, named empty-state regions, accessible guidance descriptions, and alert-style error semantics.
+- Docker live proof checked the admin overview and inventory not-found state in desktop and narrow viewports with no horizontal overflow; the invalid inventory detail URL intentionally produces the API `404` that drives the recoverable not-found state.
+- Broad proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
+
+V15.4 closeout slice:
+
+- The final slow tour found and closed two user-facing version-residue gaps: assistant mutation-refusal responses no longer say `V14`, and the admin audit assistant filter guidance now says `summaries, suggestions, refusals, and review decisions` without version labeling.
+- Assistant interaction history now sanitizes old local history rows at render time so prior smoke-run text such as `V14 assistant` or `in V14` does not leak onto the daily assistant surface while the underlying audit record remains intact.
+- The final route/action proof found and closed an admin user-table state regression where late loaded user snapshots could replace a newly created and filtered local user before a disable action landed. The page now merges loaded users with locally created/updated rows instead of dropping rows that are already visible in the current workflow.
+- The warehouse fulfillment proof found and closed a React dev StrictMode stale-load race where an older initial warehouse load could overwrite a newer pick/pack state. Warehouse console load effects now ignore stale Promise results after cleanup, and the E2E proof follows the exact allocation id through pick, pack, ship, and deliver visible states.
+- Recoverable operational detail not-found states now expose a semantic page heading before the empty-state recovery action, closing the final live-tour heading gap found on the owner inventory not-found route.
+- `.\scripts\quality\frontend-full-tour.ps1 -OutputPath .\reports\v15-4-closeout\route-tour-closeout.json` passed, covering 136 routed checks across public, owner/admin, support admin, auditor, merchant, warehouse, detail, desktop, and narrow surfaces.
+- Settled Docker slow-tour proof passed with 11 targeted V15.4 checks across `/admin`, `/admin/audit`, `/notifications`, `/assistant`, `/service-accountability`, `/merchant/inventory`, `/merchant/orders`, `/warehouse`, and inventory not-found. The report at `reports/v15-4-closeout/slow-tour/v15-4-slow-tour-settled.json` recorded 0 failures for expected hierarchy text, visible version/prototype residue, unnamed controls, icon-text button gaps, horizontal overflow, unexpected console errors, and recoverable not-found semantics.
+- Final production live tour proof on `localhost:3000` covered 54 public, owner, admin, support admin, auditor, merchant, warehouse, notification, assistant, service-accountability, and not-found route-role combinations. The report at `reports/v15-4-live-tour/live-tour-summary.json` recorded 0 unexpected failures for page headings, horizontal overflow, unlabeled controls, default Vite asset residue, and unexpected console errors; intentional invalid detail routes still produce the API `404` used to render recoverable not-found states.
+- Notification read actions now publish an immediate unread-count change to the app shell, so clicking `Mark read` on `/notifications` decrements the `Alerts` badge without requiring a route change or waiting for the next summary poll. The summary poll remains the correction path if a later backend refresh disagrees.
+- Broad closeout proof passed with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`.
+
+User-perspective V15.3 quality-of-life backlog:
+
+| Change type | What to change | Why it matters |
+| --- | --- | --- |
+| Add | A first-run checklist per role: merchant should see stock, partner, inbound, and order prerequisites; warehouse should see partner activation, receiving, queue, and exception prerequisites. | Empty accounts need momentum without requiring a builder's knowledge of the system. |
+| Add | Stronger page-local action hierarchy: one primary next action, secondary utilities, and disabled-button reasons near the blocked action. | New users should not scan every table to infer what to do next. |
+| Add | Plain-language status glossary in compact tooltips or inline help for domain-heavy states like `REQUESTED`, `PREPARED`, `LOCAL_RECORDED`, and service review types. | Operational status names are necessary, but they should not feel like backend enum leakage. |
+| Delete | Repeated boundary/proof copy from daily workflow pages once the user has enough context. | Over-telling makes the console feel less professional and slows repeated use. |
+| Delete | Duplicate visual metaphors where unrelated workflows share the same icon or severity styling. | Icons should help recognition; repeated symbols make the app feel unfinished. |
+| Change | Rename insider shorthand in visible navigation and headings before deeper feature expansion. | Navigation is the user's mental model; unclear labels make every page feel harder. |
+| Change | Treat alert severity as a work queue, not a delivery log: critical, action needed, review, and cleared. | The notification center must tell users what deserves attention now. |
+
 ## V15.1 UI Signature Start
 
 The V15.1 pass begins with shared user-facing polish before deeper Pre-V16 hardening. The first slice removes customer-facing "prototype" wording from public auth, assistant, and notification surfaces while keeping release-boundary truth in the roadmap and engineering documentation; replaces the default favicon with a MerHouse-owned local mark; upgrades the shell brand mark and alert icon behavior; gives notification cards severity language; and expands shared empty states into role-aware next-step guidance instead of dead-end blank panels.
@@ -81,10 +293,79 @@ The first proof set is focused frontend coverage for app-shell unread badge beha
 
 The first-run empty-state proof is now tracked in `reports/v15-1-ui-signature/empty-state-live-check.json`. It creates fresh merchant and warehouse accounts with no operational history, then proves guided empty states for merchant overview, inventory, orders, service accountability, assistant, notifications, warehouse console, and warehouse service/assistant/notification surfaces. Screenshot evidence lives beside the report under `reports/v15-1-ui-signature/`.
 
-Notification alerting is now split into distinct critical, needs-action, for-review, and resolved visual lanes instead of a single broad warning treatment. The focused proof covers unread count behavior, severity rendering, resolved/read quieting, and a live notification-center route with realistic delivery records; evidence is tracked in `reports/v15-1-ui-signature/notification-alert-live-check.json` with screenshots in the same report folder.
+Notification alerting is now split into distinct critical, needs-action, for-review, and resolved visual lanes instead of a single broad warning treatment. The focused proof covers unread count behavior, immediate shell-badge decrement after a read action, severity rendering, resolved/read quieting, and a live notification-center route with realistic delivery records; evidence is tracked in `reports/v15-1-ui-signature/notification-alert-live-check.json` with screenshots in the same report folder.
 
 The icon and state consistency sweep now centralizes MerHouse's shared icon language for navigation, auth, workflow states, alerts, assistant, inventory, orders, warehouse execution, service, audit, and not-found cases. Shared loading, error, and empty states now render accessible, purpose-specific symbols instead of a single generic state treatment, with focused component proof in `frontend/src/components/DataState.test.tsx`.
 
 V15.1 closeout proof passed on 2026-05-31 with `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose`. The gate covered backend tests, frontend lint, frontend build, Vitest, the full Playwright suite, markdown links, publication-boundary checks, CI naming, sensitive-file checks, and sensitive-pattern scans. During closeout the Playwright suite was made serial at the worker level because these E2E tests intentionally share one seeded local stack; this avoids connection-refused cascades and state races while preserving the route-tour and workflow proof.
 
 The final live browser sweep checked `/login`, `/admin`, `/assistant`, `/notifications`, `/service-accountability`, and a stale inventory-detail URL. The authenticated routes showed the shared icon language, no visible customer-facing "prototype" wording, no stuck loading state, and real unread alert labeling; the stale inventory-detail URL landed in the intentional error/not-found treatment instead of a broken page.
+
+## V15.7 Responsive App Interactivity Gate
+
+The notification read/badge issue exposed a broader acceptance question: the app should feel responsive on the action itself, not only after route changes, polling refreshes, or manual reloads. V15.7 owns the final app-wide interaction pass before Pre-V16.
+
+Responsive-interactivity acceptance means:
+
+- a successful click, submit, toggle, filter, refresh, mark-read, accept/reject, retry, create, update, cancel, or destructive action changes the visible current screen as soon as the backend confirms it or enters a clear pending state while waiting
+- app-shell badges, page metrics, row/card state, disabled buttons, success/error messages, and visible lists stay synchronized after the action
+- failures roll back or explain the failed state without leaving stale success-looking UI behind
+- repeated clicks are protected with busy/disabled states where duplicate actions would be unsafe
+- keyboard and screen-reader users get the same state feedback through focus, labels, disabled/busy state, and live status announcements
+
+First V15.7 proof seed:
+
+- The notification center now decrements the `Alerts` shell badge immediately after a successful `Mark read` click. Focused AppLayout and NotificationCenter tests cover the event contract, `tests/e2e/v15-notification-alerts-live.spec.ts` proves the badge moves from `3 unread alerts` to `2 unread alerts` on the same route, and a real-backend localhost proof confirmed a visible `2` to `1` badge/metric change without navigation or console warnings.
+
+## V15.5 Connected Workflow Start
+
+V15.5 starts from a healthy technical baseline: the full-tour harmonic workflow already proves that a merchant can submit inbound stock, a warehouse can approve and receive it, the merchant can create and allocate an order, the warehouse can move the allocation to picking, the merchant can inspect the allocation detail timeline, and an admin can observe the governed relationship afterward. The product gap is not that the chain is absent; the gap is that alerts, detail pages, and cross-role copy do not yet make the chain feel connected without knowing the test path.
+
+Connected-workflow acceptance means a user can answer:
+
+- who created this work
+- who needs to act next
+- which relationship, package, inbound request, order, allocation, shipment, service record, or outbox event it belongs to
+- which page explains the current state
+- what changed because another role acted
+- whether the record is action-needed, reviewable history, or resolved
+
+Initial V15.5 gap map:
+
+| Flow | Current proof/behavior | Gap to close | Owner | Proof needed |
+| --- | --- | --- | --- | --- |
+| Merchant requests warehouse service -> platform/warehouse relationship review | Relationship APIs, admin governance rows, merchant setup guidance, and relationship detail route exist. | The relationship request does not yet produce a connected alert trail that tells the other side who requested service and where to review it. | V15.5 | Backend/frontend tests for relationship alert recipients and role scoping; browser proof from merchant request to platform/warehouse alert/detail review. |
+| Merchant submits inbound stock -> warehouse receives -> merchant sees stock | Harmonic E2E proves submit, approve, receiving, receive, and merchant stock visibility. | Alerts and detail pages should connect the merchant request, warehouse action, quantities received/damaged, and next merchant state without requiring table hunting. | V15.5 | Inbound notification tests for merchant and warehouse recipients; detail-page proof showing linked relationship, item, warehouse, and timeline handoff. |
+| Merchant order allocation -> warehouse pick/pack/ship -> merchant observes detail | Full-tour and admin-console E2E prove allocation, picking, package/shipment evidence, and detail routes. | Package and shipment handoffs need clearer alert/source semantics and links so users know which object changed and who should act. | V15.5 | Notification tests for allocation/shipment/package events; Playwright proof from order allocation through warehouse action to merchant alert/detail trail. |
+| Shipment failure/return -> service/accountability review | Shipment failure/return workflows and service accountability records exist; notification severity fixtures model returned shipment language. | Failed/returned shipment alerts are currently fixture-proven, not generated as connected operational notifications tied to shipment/detail/service records. | V15.5 | Backend tests generating failure/return alerts; frontend proof that alert severity, source id, and detail navigation match the shipment/service context. |
+| Outbox dead-letter/retry -> admin/support diagnostics | Outbox diagnostics and assistant summaries can identify failed integration work; notification fixtures model dead-letter severity. | Outbox health alerts are not yet generated as connected user-facing work with clear retry/detail ownership. | V15.5, with V15.6 later measuring polling/load impact | Outbox notification tests, admin/support alert proof, and no cross-role leakage proof. |
+| Service accountability issue -> merchant/warehouse/platform follow-up | Service agreements, statements, disputes, claims, reviews, and route proof exist. | Service issues should connect back to the relationship, inbound/order/shipment source, responsible role, and next action in alert/detail language. | V15.5 | Service alert model tests and browser proof for cross-role service issue visibility and tenant scoping. |
+
+First implementation target:
+
+- Extend the local notification foundation from account-lifecycle records into connected operational records, starting with merchant-warehouse relationship and inbound handoff events. Keep delivery local and recipient-scoped, avoid provider-backed claims, and prove tenant/role isolation before adding broader package/shipment/service alert coverage.
+
+First V15.5 slice:
+
+- Relationship and inbound stock handoffs now create local, recipient-scoped in-app alerts. Warehouse operators receive merchant relationship requests and inbound-review work; merchant users receive relationship activation, inbound approval, receiving, received, and rejection updates; platform owner/admin/support-admin users receive relationship governance review alerts.
+- Alerts use `sourceType` and `sourceId` for `MerchantWarehouseRelationship` and `InboundStockRequest`, preserving a connected object trail without claiming provider-backed delivery.
+- Focused backend proof covers the recipient and source contract in `MerchantWarehouseServiceTest`; the harmonic workflow E2E now proves warehouse and merchant users see connected inbound handoff alerts in `/notifications` during the cross-role flow.
+- The first harmonic E2E rerun after a backend rebuild exposed a local readiness race: Docker reported the backend container as started before Spring was accepting login requests. The race is closed by `/api/v1/health`, `scripts/local/wait-backend.ps1`, and `frontend-check.ps1 -IncludeE2E` waiting for backend readiness before browser proof begins.
+
+Second V15.5 slice:
+
+- Fulfillment allocation, shipment, package-handoff, and exception transitions now create local, recipient-scoped in-app alerts. Merchant users receive allocation picking/packed updates, shipment handoff, delivered, failed, and returned updates, plus fulfillment-exception review alerts. Warehouse operators receive an alert when a merchant resolves a fulfillment exception.
+- Shipment handoff alerts name the carrier, tracking number, package count, and source `Shipment`; fulfillment exception alerts use source `FulfillmentException`; allocation progress uses source `FulfillmentAllocation`. This gives the notification center a connected object trail for package and fulfillment work without adding provider-backed delivery claims.
+- Focused backend proof covers the recipient, topic, title, body, and source contract in `FulfillmentServiceTest`; route proof in the admin-console E2E follows warehouse pick, pack, ship, deliver, and then proves the merchant inbox receives the connected allocation and shipment updates.
+
+Third V15.5 slice:
+
+- Outbox health transitions now create platform-recipient alerts. Processor failures alert owner/admin/support-admin users with the failed aggregate source; manual retry and dead-letter actions record follow-up alerts so diagnostic work has a visible platform trail.
+- Service accountability transitions now create local, recipient-scoped alerts between relationship parties. Warehouse operators receive proposed-agreement alerts; merchants receive accepted-agreement alerts; statements, disputes, claims, reviews, and resolution events notify the counterparty, while platform/admin actions notify both parties.
+- Focused backend proof covers outbox failure/retry/dead-letter and service agreement/statement alert contracts. Route proof in the admin-console service-accountability E2E now creates merchant and warehouse recipients before service events, then proves both users see connected service alerts in `/notifications`.
+
+V15.5 closeout pass:
+
+- The initial V15.5 gap map is now closed by three alert families: relationship/inbound, fulfillment/shipment/exception, and outbox/service-accountability. The remaining delivery boundary stays V16 for local certification and V17 for real provider activation because V15.5 deliberately records local in-app notifications only.
+- Notification cards now link connected sources to the relevant routed work surface when one exists: inbound stock, fulfillment allocations, inventory items, merchant-warehouse relationships, shipments, service accountability, and admin outbox health. Unknown or account-lifecycle-only sources remain chips instead of dead links.
+- Closeout proof covers source navigation with focused `NotificationCenterPage` tests, backend recipient/source contracts across the connected services, and browser route proof for inbound, shipment, and service-accountability alert visibility across merchant, warehouse, and platform-facing workflows.

@@ -164,6 +164,7 @@ describe('WarehousePage', () => {
       inboundOpen: 1,
       stockRisk: 0,
       openExceptions: 0,
+      attentionSignals: [],
     })
     apiMock.activateMerchantWarehouseRelationship.mockResolvedValue({
       ...relationships[0],
@@ -263,15 +264,36 @@ describe('WarehousePage', () => {
     renderWithAuth(<WarehousePage />)
 
     expect(await screen.findByText('Warehouse Console')).toBeInTheDocument()
-    expect(screen.getByText('Warehouse execution focus')).toBeInTheDocument()
+    expect(screen.getByText("Start with today's work")).toBeInTheDocument()
+    expect(screen.getByLabelText('Warehouse setup path')).toHaveTextContent('2/4 ready')
+    expect(screen.getByText('Daily work')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Pick, pack, and ship first' })).toBeInTheDocument()
+    expect(screen.getByText('Start with active allocations, then move to receiving and records after the queue is under control.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Open partner and inbound work' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Review shipments, exceptions, and stock' })).toBeInTheDocument()
+    expect(screen.getByText('Activate partner access')).toBeInTheDocument()
+    expect(screen.getByText('Review requested partners first; active partners can send stock and orders.')).toBeInTheDocument()
     expect(screen.getByText('Available units')).toBeInTheDocument()
     const queueCard = screen.getByLabelText(/Allocation allocati Adidas Merchant PENDING/i)
     expect(queueCard).toBeInTheDocument()
     expect(within(queueCard).getByText('Pick sheet needed')).toBeInTheDocument()
     expect(within(queueCard).getByText('Scan pending')).toBeInTheDocument()
     expect(await screen.findByText('Merchant Item')).toBeInTheDocument()
-    expect(screen.getAllByText('10')[0]).toHaveClass('quantity-cell', 'quantity-ready')
-    expect(screen.getAllByText('5')[0]).toHaveClass('quantity-cell', 'quantity-pending')
+    const inventoryRow = screen.getByRole('row', { name: /SKU-1 Merchant Item 10 2 8/i })
+    expect(within(inventoryRow).getByText('10')).toHaveClass('quantity-cell', 'quantity-ready')
+    expect(within(inventoryRow).getByText('2')).toHaveClass('quantity-cell', 'quantity-pending')
+  })
+
+  it('does not tell active partner accounts to wait for a request', async () => {
+    apiMock.merchantWarehouseRelationships.mockResolvedValue([
+      { ...relationships[0], status: 'ACTIVE', approvedAt: '2026-05-17T00:05:00Z' },
+    ])
+
+    renderWithAuth(<WarehousePage />)
+
+    expect(await screen.findByLabelText('Warehouse setup path')).toHaveTextContent('Activate partner access')
+    expect(screen.getByText('Active partners can send stock and orders.')).toBeInTheDocument()
+    expect(screen.queryByText('Wait for a merchant or platform admin to request service.')).not.toBeInTheDocument()
   })
 
   it('advances a pending allocation to picking', async () => {
@@ -296,6 +318,10 @@ describe('WarehousePage', () => {
 
     expect(apiMock.activateMerchantWarehouseRelationship).toHaveBeenCalledWith('operator-token', 'relationship-1')
     expect(await within(relationshipRow).findByText('ACTIVE')).toBeInTheDocument()
+    expect(await within(relationshipRow).findByText('Active partner')).toHaveClass('data-chip')
+    expect(within(relationshipRow).queryByRole('button', { name: 'Active' })).not.toBeInTheDocument()
+    expect(within(relationshipRow).queryByRole('button', { name: 'Activate' })).not.toBeInTheDocument()
+    expect(await within(relationshipRow).findByText('This partner is already active.')).toBeInTheDocument()
 
     const inboundRow = await screen.findByRole('row', { name: /Approve/i })
     await user.click(within(inboundRow).getByRole('button', { name: 'Approve' }))
@@ -313,6 +339,84 @@ describe('WarehousePage', () => {
       receivingNote: 'Received from warehouse console',
     })
     expect(await within(inboundRow).findByText('RECEIVED')).toBeInTheDocument()
+    expect(await within(inboundRow).findByText('This inbound request has already been received.')).toBeInTheDocument()
+  })
+
+  it('refreshes attention after inbound receiving changes the real work state', async () => {
+    const user = userEvent.setup()
+    apiMock.warehouseDashboard
+      .mockResolvedValueOnce({
+        orders: 1,
+        openBackorders: 0,
+        deliveredShipments: 0,
+        inboundOpen: 1,
+        stockRisk: 0,
+        openExceptions: 0,
+        attentionSignals: [{
+          id: 'warehouse-inbound-inbound-1',
+          severity: 'ACTION_NEEDED',
+          title: 'Inbound request needs review',
+          body: 'SKU-1 from Adidas Merchant is SUBMITTED.',
+          ownerRole: 'WAREHOUSE_OPERATOR',
+          nextActionLabel: 'Open inbound detail',
+          route: '/inbound-stock-requests/inbound-1',
+          sourceType: 'InboundStockRequest',
+          sourceId: 'inbound-1',
+          createdAt: '2026-05-17T00:00:00Z',
+          resolved: false,
+        }],
+      })
+      .mockResolvedValueOnce({
+        orders: 0,
+        openBackorders: 0,
+        deliveredShipments: 0,
+        inboundOpen: 1,
+        stockRisk: 0,
+        openExceptions: 0,
+        attentionSignals: [{
+          id: 'warehouse-inbound-inbound-1',
+          severity: 'REVIEW',
+          title: 'Inbound stock needs receiving',
+          body: 'SKU-1 from Adidas Merchant is APPROVED.',
+          ownerRole: 'WAREHOUSE_OPERATOR',
+          nextActionLabel: 'Open inbound detail',
+          route: '/inbound-stock-requests/inbound-1',
+          sourceType: 'InboundStockRequest',
+          sourceId: 'inbound-1',
+          createdAt: '2026-05-17T00:01:00Z',
+          resolved: false,
+        }],
+      })
+      .mockResolvedValueOnce({
+        orders: 0,
+        openBackorders: 0,
+        deliveredShipments: 0,
+        inboundOpen: 0,
+        stockRisk: 0,
+        openExceptions: 0,
+        attentionSignals: [],
+      })
+    renderWithAuth(<WarehousePage />)
+
+    expect(await screen.findByText('Inbound request needs review')).toBeInTheDocument()
+    const inboundRow = (await screen.findAllByRole('row'))
+      .find((row) => within(row).queryByRole('button', { name: 'Approve' }))
+    expect(inboundRow).toBeDefined()
+
+    await user.click(within(inboundRow!).getByRole('button', { name: 'Approve' }))
+    expect(await screen.findByText('Inbound stock needs receiving')).toBeInTheDocument()
+    expect(screen.queryByText('Inbound request needs review')).not.toBeInTheDocument()
+
+    await user.click(within(inboundRow!).getByRole('button', { name: 'Receive all' }))
+
+    expect(apiMock.receiveInboundStock).toHaveBeenCalledWith('operator-token', 'inbound-1', {
+      receivedQuantity: 5,
+      damagedQuantity: 0,
+      receivingNote: 'Received from warehouse console',
+    })
+    expect(await screen.findByText('No warehouse work is blocked')).toBeInTheDocument()
+    expect(screen.queryByText('Inbound stock needs receiving')).not.toBeInTheDocument()
+    expect(apiMock.warehouseDashboard).toHaveBeenCalledTimes(3)
   })
 
   it('creates and delivers a shipment for a packed allocation', async () => {
@@ -341,6 +445,63 @@ describe('WarehousePage', () => {
     await user.click(within(card).getByRole('button', { name: 'Deliver' }))
     expect(apiMock.markShipmentDelivered).toHaveBeenCalledWith('operator-token', 'shipment-1')
     expect(await within(card).findByText(/DELIVERED/)).toBeInTheDocument()
+  })
+
+  it('clears allocation attention immediately after shipping leaves the active work state', async () => {
+    const user = userEvent.setup()
+    apiMock.fulfillmentAllocations.mockResolvedValue([{ ...allocations[0], status: 'PACKED' }])
+    apiMock.warehouseDashboard
+      .mockResolvedValueOnce({
+        orders: 1,
+        openBackorders: 0,
+        deliveredShipments: 0,
+        inboundOpen: 0,
+        stockRisk: 0,
+        openExceptions: 0,
+        attentionSignals: [{
+          id: 'warehouse-allocation-allocation-1',
+          severity: 'ACTION_NEEDED',
+          title: 'Fulfillment work is waiting',
+          body: 'Order order-1 is PACKED.',
+          ownerRole: 'WAREHOUSE_OPERATOR',
+          nextActionLabel: 'Open allocation detail',
+          route: '/fulfillment-allocations/allocation-1',
+          sourceType: 'FulfillmentAllocation',
+          sourceId: null,
+          createdAt: '2026-05-17T00:00:00Z',
+          resolved: false,
+        }],
+      })
+      .mockResolvedValueOnce({
+        orders: 1,
+        openBackorders: 0,
+        deliveredShipments: 0,
+        inboundOpen: 0,
+        stockRisk: 0,
+        openExceptions: 0,
+        attentionSignals: [{
+          id: 'warehouse-allocation-allocation-1',
+          severity: 'ACTION_NEEDED',
+          title: 'Fulfillment work is waiting',
+          body: 'Order order-1 is PACKED.',
+          ownerRole: 'WAREHOUSE_OPERATOR',
+          nextActionLabel: 'Open allocation detail',
+          route: '/fulfillment-allocations/allocation-1',
+          sourceType: 'FulfillmentAllocation',
+          sourceId: null,
+          createdAt: '2026-05-17T00:00:00Z',
+          resolved: false,
+        }],
+      })
+    renderWithAuth(<WarehousePage />)
+
+    expect(await screen.findByText('Order order-1 is PACKED.')).toBeInTheDocument()
+    const card = await screen.findByLabelText(/Allocation allocati Adidas Merchant PACKED/i)
+    await user.click(within(card).getByRole('button', { name: 'Ship' }))
+
+    expect(await within(card).findByText(/IN_TRANSIT/)).toBeInTheDocument()
+    expect(await screen.findByText('No warehouse work is blocked')).toBeInTheDocument()
+    expect(screen.queryByText('Order order-1 is PACKED.')).not.toBeInTheDocument()
   })
 
   it('can fail or return an in-transit shipment', async () => {

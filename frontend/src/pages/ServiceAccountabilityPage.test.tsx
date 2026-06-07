@@ -6,12 +6,16 @@ import { ServiceAccountabilityPage } from './ServiceAccountabilityPage'
 
 const apiMock = vi.hoisted(() => ({
   serviceAgreements: vi.fn(),
+  merchantWarehouseRelationships: vi.fn(),
   serviceStatements: vi.fn(),
   serviceDisputes: vi.fn(),
   serviceClaims: vi.fn(),
   serviceReviews: vi.fn(),
   serviceSlaStatuses: vi.fn(),
   orderImports: vi.fn(),
+  createServiceAgreement: vi.fn(),
+  proposeServiceAgreement: vi.fn(),
+  acceptServiceAgreement: vi.fn(),
   createServiceReview: vi.fn(),
 }))
 
@@ -52,48 +56,66 @@ function renderPage(state = merchantAuth) {
   )
 }
 
+function serviceAgreementFixture(status = 'ACTIVE') {
+  return {
+    id: 'agreement-1',
+    relationshipId: 'relationship-1',
+    merchantId: 'merchant-tenant',
+    merchantName: 'Merchant Tenant',
+    warehouseProviderId: 'warehouse-tenant',
+    warehouseProviderName: 'Cairo Hub',
+    status,
+    title: 'Cairo fulfillment terms',
+    versionNumber: 2,
+    effectiveDate: '2026-05-01',
+    renewalReviewDate: '2026-06-01',
+    cancellationWindowDays: 14,
+    serviceScopes: ['INBOUND_RECEIVING', 'PICK_PACK_SHIP'],
+    serviceNotes: 'Priority support for fragile orders.',
+    supersedesAgreementId: null,
+    rateCard: {
+      coordinationFeePercent: 3,
+      fixedCoordinationFee: 10,
+      inboundReceivingFeePerUnit: 1,
+      storageFeePerUnitPerMonth: 2,
+      pickPackFeePerOrder: 4,
+      shipmentHandlingFeePerPackage: 5,
+      returnProcessingFeePerUnit: 1,
+      minimumMonthlyServiceCharge: 50,
+    },
+    slaPolicy: {
+      receivingSlaHours: 24,
+      pickPackSlaHours: 12,
+      shipmentHandoffSlaHours: 6,
+      exceptionResponseSlaHours: 4,
+      pauseRuleNotes: null,
+    },
+    createdAt: '2026-05-17T00:00:00Z',
+    proposedAt: status === 'DRAFT' ? null : '2026-05-17T00:00:00Z',
+    acceptedAt: status === 'ACTIVE' ? '2026-05-17T00:00:00Z' : null,
+    activatedAt: status === 'ACTIVE' ? '2026-05-17T00:00:00Z' : null,
+    suspendedAt: null,
+    endedAt: null,
+  }
+}
+
 describe('ServiceAccountabilityPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    apiMock.serviceAgreements.mockResolvedValue([{
-      id: 'agreement-1',
-      relationshipId: 'relationship-1',
+    apiMock.serviceAgreements.mockResolvedValue([serviceAgreementFixture()])
+    apiMock.merchantWarehouseRelationships.mockResolvedValue([{
+      id: 'relationship-1',
       merchantId: 'merchant-tenant',
       merchantName: 'Merchant Tenant',
       warehouseProviderId: 'warehouse-tenant',
       warehouseProviderName: 'Cairo Hub',
       status: 'ACTIVE',
-      title: 'Cairo fulfillment terms',
-      versionNumber: 2,
-      effectiveDate: '2026-05-01',
-      renewalReviewDate: '2026-06-01',
-      cancellationWindowDays: 14,
-      serviceScopes: ['INBOUND_RECEIVING', 'PICK_PACK_SHIP'],
-      serviceNotes: 'Priority support for fragile orders.',
-      supersedesAgreementId: null,
-      rateCard: {
-        coordinationFeePercent: 3,
-        fixedCoordinationFee: 10,
-        inboundReceivingFeePerUnit: 1,
-        storageFeePerUnitPerMonth: 2,
-        pickPackFeePerOrder: 4,
-        shipmentHandlingFeePerPackage: 5,
-        returnProcessingFeePerUnit: 1,
-        minimumMonthlyServiceCharge: 50,
-      },
-      slaPolicy: {
-        receivingSlaHours: 24,
-        pickPackSlaHours: 12,
-        shipmentHandoffSlaHours: 6,
-        exceptionResponseSlaHours: 4,
-        pauseRuleNotes: null,
-      },
+      serviceNotes: 'Daily fulfillment',
       createdAt: '2026-05-17T00:00:00Z',
-      proposedAt: null,
-      acceptedAt: null,
-      activatedAt: '2026-05-17T00:00:00Z',
+      approvedAt: '2026-05-17T00:00:00Z',
       suspendedAt: null,
       endedAt: null,
+      statusReason: null,
     }])
     apiMock.serviceStatements.mockResolvedValue([{
       id: 'statement-1',
@@ -204,13 +226,55 @@ describe('ServiceAccountabilityPage', () => {
       createdAt: '2026-05-31T00:06:00Z',
       reviewedAt: null,
     })
+    apiMock.createServiceAgreement.mockResolvedValue({
+      id: 'agreement-2',
+      relationshipId: 'relationship-1',
+      merchantId: 'merchant-tenant',
+      merchantName: 'Merchant Tenant',
+      warehouseProviderId: 'warehouse-tenant',
+      warehouseProviderName: 'Cairo Hub',
+      status: 'DRAFT',
+      title: 'Standard fulfillment terms',
+      versionNumber: 3,
+      effectiveDate: '2026-06-07',
+      renewalReviewDate: null,
+      cancellationWindowDays: 30,
+      serviceScopes: ['INBOUND_RECEIVING', 'STORAGE', 'PICK_PACK', 'SHIPMENT_HANDOFF'],
+      serviceNotes: 'Receiving, storage, pick-pack, and shipment handoff terms for connected fulfillment work.',
+      supersedesAgreementId: null,
+      rateCard: {
+        coordinationFeePercent: 3,
+        fixedCoordinationFee: 0,
+      },
+      slaPolicy: {
+        receivingSlaHours: 24,
+        pickPackSlaHours: 24,
+        shipmentHandoffSlaHours: 24,
+        exceptionResponseSlaHours: 24,
+        pauseRuleNotes: null,
+      },
+      createdAt: '2026-06-07T00:00:00Z',
+      proposedAt: null,
+      acceptedAt: null,
+      activatedAt: null,
+      suspendedAt: null,
+      endedAt: null,
+    })
+    apiMock.proposeServiceAgreement.mockResolvedValue({
+      id: 'agreement-1',
+      status: 'PROPOSED',
+    })
+    apiMock.acceptServiceAgreement.mockResolvedValue({
+      id: 'agreement-1',
+      status: 'ACTIVE',
+    })
   })
 
   it('renders service accountability guidance, severity, and dense evidence tables', async () => {
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Service Accountability' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Service accountability review')).toHaveTextContent('disputes, claims, reviews, and import evidence')
+    expect(screen.getByLabelText('Service accountability review')).toHaveTextContent('Start with open disputes')
     expect(screen.getByText('Priority support for fragile orders.')).toHaveClass('note-cell')
     expect(screen.getByText('Mismatch in handoff count.')).toHaveClass('note-cell')
     expect(screen.getByText('Carrier dispatch shows one fewer package.')).toHaveClass('note-cell')
@@ -233,5 +297,77 @@ describe('ServiceAccountabilityPage', () => {
       evidenceNote: 'Created from the service accountability page.',
     })
     expect(await screen.findByText('Review request created.')).toBeInTheDocument()
+  })
+
+  it('lets merchants draft and propose agreement terms for an active relationship', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    expect(await screen.findByRole('form', { name: 'Create service agreement form' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Create agreement draft' }))
+
+    expect(apiMock.createServiceAgreement).toHaveBeenCalledWith('service-token', expect.objectContaining({
+      relationshipId: 'relationship-1',
+      title: 'Standard fulfillment terms',
+      serviceScopes: ['INBOUND_RECEIVING', 'STORAGE', 'PICK_PACK', 'SHIPMENT_HANDOFF'],
+      slaPolicy: expect.objectContaining({
+        receivingSlaHours: 24,
+        pickPackSlaHours: 24,
+        shipmentHandoffSlaHours: 24,
+      }),
+    }))
+    expect(await screen.findByText('Agreement draft created.')).toBeInTheDocument()
+  })
+
+  it('lets merchants propose drafted agreement terms to the warehouse partner', async () => {
+    const user = userEvent.setup()
+    apiMock.serviceAgreements.mockResolvedValue([serviceAgreementFixture('DRAFT')])
+    renderPage()
+
+    expect(await screen.findByRole('button', { name: 'Propose terms' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Request review' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Propose terms' }))
+
+    expect(apiMock.proposeServiceAgreement).toHaveBeenCalledWith('service-token', 'agreement-1')
+    expect(await screen.findByText('Agreement proposed to the warehouse partner.')).toBeInTheDocument()
+  })
+
+  it('keeps auditors in read-only service evidence review mode', async () => {
+    renderPage({
+      ...merchantAuth,
+      user: {
+        ...merchantAuth.user!,
+        id: 'auditor-user',
+        role: 'AUDITOR',
+      },
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Service Accountability' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Service accountability review')).toHaveTextContent('reviews evidence without creating partner review work')
+    expect(screen.getByText('Read-only evidence review')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Request review' })).not.toBeInTheDocument()
+    expect(apiMock.createServiceReview).not.toHaveBeenCalled()
+    expect(apiMock.orderImports).not.toHaveBeenCalled()
+  })
+
+  it('shows agreement prerequisites instead of a disabled review action for fresh stakeholders', async () => {
+    apiMock.serviceAgreements.mockResolvedValue([])
+    apiMock.serviceStatements.mockResolvedValue([])
+    apiMock.serviceDisputes.mockResolvedValue([])
+    apiMock.serviceClaims.mockResolvedValue([])
+    apiMock.serviceReviews.mockResolvedValue([])
+    apiMock.serviceSlaStatuses.mockResolvedValue([])
+    apiMock.orderImports.mockResolvedValue([])
+    apiMock.merchantWarehouseRelationships.mockResolvedValue([])
+
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Service Accountability' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Service accountability review')).toHaveTextContent('Start by creating or activating a service agreement')
+    expect(screen.getByText('No service accountability risks are active')).toBeInTheDocument()
+    expect(screen.getByText('Agreement required')).toHaveClass('data-chip')
+    expect(screen.getByText('No service agreements yet')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Request review' })).not.toBeInTheDocument()
+    expect(apiMock.createServiceReview).not.toHaveBeenCalled()
   })
 })

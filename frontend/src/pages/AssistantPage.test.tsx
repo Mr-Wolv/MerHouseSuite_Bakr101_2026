@@ -64,10 +64,10 @@ describe('AssistantPage', () => {
         responseType: 'SUMMARY',
         actionStatus: 'NOT_APPLICABLE',
         requestText: 'Summarize my queues',
-        responseText: 'Merchant operations summary: 7 orders or workload items.',
+        responseText: 'Merchant operations summary: 7 orders or workload items in V14.',
         prototypeLocal: true,
         decidedByUserId: null,
-        decisionNote: null,
+        decisionNote: 'Smoke accepts V14 assistant review suggestion',
         decidedAt: null,
         metadata: {},
         createdAt: '2026-05-30T00:00:00Z',
@@ -129,14 +129,15 @@ describe('AssistantPage', () => {
   it('loads assistant history with review-ready language', async () => {
     renderPage()
 
-    expect(await screen.findByRole('heading', { name: 'Assistant' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Assistant review boundary')).toHaveTextContent('operational records are not mutated')
+    expect(await screen.findByRole('heading', { name: 'Operational Review Assistant' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Assistant review boundary')).toHaveTextContent('Suggestions stay review-only')
     expect(screen.getByText('Summarize my queues')).toBeInTheDocument()
     expect(screen.getByText('Merchant operations summary: 7 orders or workload items.')).toBeInTheDocument()
+    expect(screen.getByText('Smoke accepts assistant review suggestion')).toBeInTheDocument()
     expect(screen.getAllByText('Review record')).toHaveLength(1)
     expect(screen.queryByText(/prototype/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/V14/i)).not.toBeInTheDocument()
     expect(screen.getByText('Audit trail recorded')).toBeInTheDocument()
-    expect(screen.getByText('No decision recorded yet')).toBeInTheDocument()
     expect(apiMock.assistantInteractions).toHaveBeenCalledWith('assistant-token', 25)
   })
 
@@ -145,7 +146,8 @@ describe('AssistantPage', () => {
     renderPage()
 
     const prompt = await screen.findByLabelText('Prompt')
-    await user.clear(prompt)
+    expect(prompt).toHaveAttribute('placeholder', 'Summarize what needs review next')
+    expect(prompt).toHaveValue('')
     await user.type(prompt, 'Suggest what needs review')
     await user.click(screen.getByRole('button', { name: 'Run assistant' }))
 
@@ -228,6 +230,8 @@ describe('AssistantPage', () => {
     })
 
     expect(await screen.findByText('Suggested next step: review failed outbox events.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Review suggestion' })).toHaveAttribute('href', '/assistant')
+    expect(screen.queryByRole('link', { name: 'Decide suggestion' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Decision reason')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Accept suggestion' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Reject suggestion' })).not.toBeInTheDocument()

@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import type {
@@ -15,8 +14,11 @@ import type {
 } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
+import { shortId } from '../components/format'
 import { Metric } from '../components/Metric'
+import { FirstRunChecklist, GuidancePanel, QuantityCell, WorkflowDivider } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
+import { AttentionQueue } from '../components/AttentionQueue'
 
 type ShipmentDraft = {
   carrier: string
@@ -55,9 +57,11 @@ export function WarehousePage() {
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
+  const dashboardRefreshVersion = useRef(0)
 
   useEffect(() => {
     if (!token) return
+    let active = true
     Promise.all([
       api.warehouses(token),
       api.fulfillmentAllocations(token),
@@ -67,6 +71,7 @@ export function WarehousePage() {
       api.warehouseDashboard(token),
     ])
       .then(([nextWarehouses, nextAllocations, nextRelationships, nextInboundRequests, nextExceptions, nextDashboard]) => {
+        if (!active) return
         setWarehouses(nextWarehouses)
         setSelectedWarehouseId(nextWarehouses[0]?.id ?? '')
         setAllocations(nextAllocations)
@@ -76,20 +81,35 @@ export function WarehousePage() {
         setDashboard(nextDashboard)
       })
       .catch((caught) => {
+        if (!active) return
         setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load warehouse console.')
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
   }, [token])
 
   useEffect(() => {
     if (!token || !selectedWarehouseId) return
+    let active = true
     queueMicrotask(() => setInventoryLoading(true))
     api.warehouseInventory(token, selectedWarehouseId)
-      .then(setInventory)
+      .then((nextInventory) => {
+        if (active) setInventory(nextInventory)
+      })
       .catch((caught) => {
+        if (!active) return
         setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load warehouse inventory.')
       })
-      .finally(() => setInventoryLoading(false))
+      .finally(() => {
+        if (active) setInventoryLoading(false)
+      })
+    return () => {
+      active = false
+    }
   }, [selectedWarehouseId, token])
 
   const selected = warehouses.find((warehouse) => warehouse.id === selectedWarehouseId)
@@ -106,12 +126,55 @@ export function WarehousePage() {
     return next
   }, [warehouseAllocations])
 
+  async function refreshDashboard() {
+    if (!token) return
+    const version = dashboardRefreshVersion.current + 1
+    dashboardRefreshVersion.current = version
+    const nextDashboard = await api.warehouseDashboard(token)
+    if (version === dashboardRefreshVersion.current) {
+      setDashboard(nextDashboard)
+    }
+  }
+
+  function syncAllocationAttention(allocation: FulfillmentAllocation) {
+    setDashboard((current) => {
+      if (!current) return current
+      const remainingSignals = current.attentionSignals.filter((signal) => (
+        signal.sourceType !== 'FulfillmentAllocation'
+          || (
+            signal.sourceId !== allocation.id
+            && signal.id !== `warehouse-allocation-${allocation.id}`
+            && signal.route !== `/fulfillment-allocations/${allocation.id}`
+          )
+      ))
+      if (allocation.status !== 'PENDING' && allocation.status !== 'PICKING' && allocation.status !== 'PACKED') {
+        return { ...current, attentionSignals: remainingSignals }
+      }
+      const nextSignal = {
+        id: `warehouse-allocation-${allocation.id}`,
+        severity: 'ACTION_NEEDED' as const,
+        title: 'Fulfillment work is waiting',
+        body: `Order ${shortId(allocation.orderId)} is ${allocation.status}.`,
+        ownerRole: 'WAREHOUSE_OPERATOR' as const,
+        nextActionLabel: 'Open allocation detail',
+        route: `/fulfillment-allocations/${allocation.id}`,
+        sourceType: 'FulfillmentAllocation',
+        sourceId: allocation.id,
+        createdAt: allocation.createdAt,
+        resolved: false,
+      }
+      return { ...current, attentionSignals: [nextSignal, ...remainingSignals] }
+    })
+  }
+
   async function advance(allocation: FulfillmentAllocation, nextStatus: FulfillmentStatus) {
     if (!token) return
     setActionError('')
     try {
       const updated = await api.advanceAllocation(token, allocation.id, { nextStatus })
       setAllocations((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      await refreshDashboard()
+      syncAllocationAttention(updated)
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to advance allocation.')
     }
@@ -123,6 +186,7 @@ export function WarehousePage() {
     try {
       const updated = await api.activateMerchantWarehouseRelationship(token, relationship.id)
       setRelationships((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to activate relationship.')
     }
@@ -134,6 +198,7 @@ export function WarehousePage() {
     try {
       const updated = await api.startReceivingInboundStock(token, request.id)
       setInboundRequests((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to start receiving.')
     }
@@ -153,6 +218,7 @@ export function WarehousePage() {
         const nextInventory = await api.warehouseInventory(token, selectedWarehouseId)
         setInventory(nextInventory)
       }
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to receive inbound stock.')
     }
@@ -166,6 +232,7 @@ export function WarehousePage() {
         rejectionReason: 'Rejected from warehouse console',
       })
       setInboundRequests((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to reject inbound stock.')
     }
@@ -181,6 +248,7 @@ export function WarehousePage() {
     try {
       const updated = await api.approveInboundStock(token, request.id)
       setInboundRequests((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to approve inbound stock.')
     }
@@ -216,6 +284,8 @@ export function WarehousePage() {
       setAllocations((current) => current.map((item) => (
         item.id === allocation.id ? { ...item, status: 'SHIPPED', shipment } : item
       )))
+      await refreshDashboard()
+      syncAllocationAttention({ ...allocation, status: 'SHIPPED', shipment })
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to create shipment.')
     }
@@ -235,6 +305,7 @@ export function WarehousePage() {
       setAllocations((current) => current.map((item) => (
         item.id === allocation.id ? { ...item, shipment } : item
       )))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to mark shipment delivered.')
     }
@@ -258,6 +329,7 @@ export function WarehousePage() {
             }
           : item
       )))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to update workload.')
     }
@@ -274,6 +346,7 @@ export function WarehousePage() {
         description: `${reasonCode} reported from warehouse console for allocation ${shortId(allocation.id)}.`,
       })
       setExceptions((current) => [created, ...current])
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to report exception.')
     }
@@ -298,6 +371,7 @@ export function WarehousePage() {
         ...current,
         [row.inventoryItemId]: defaultAdjustmentDraft(updated),
       }))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to adjust stock.')
     }
@@ -321,15 +395,17 @@ export function WarehousePage() {
   if (error) return <ErrorState title={error} />
 
   const totalAvailable = inventory.reduce((sum, row) => sum + row.availableQuantity, 0)
+  const requestedRelationships = relationships.filter((relationship) => relationship.status === 'REQUESTED').length
+  const activeRelationships = relationships.filter((relationship) => relationship.status === 'ACTIVE').length
 
   return (
     <div className="page-stack">
       <div className="page-heading">
         <h1>Warehouse Console</h1>
-        <p>Fulfillment queue, shipment actions, and inventory visibility for your warehouse tenant.</p>
+        <p>Pick, receive, ship, and resolve exceptions for the selected warehouse.</p>
       </div>
-      <GuidancePanel title="Warehouse execution focus">
-        Prioritize pick, pack, ship, inbound receiving, exceptions, and stock adjustments for the selected warehouse.
+      <GuidancePanel title="Start with today's work">
+        Use Work queue for pick, pack, and ship. Use Inbound Receiving when stock arrives.
       </GuidancePanel>
 
       {warehouses.length ? (
@@ -343,6 +419,30 @@ export function WarehousePage() {
             </select>
           </label>
 
+          <AttentionQueue
+            signals={dashboard?.attentionSignals ?? []}
+            description="Receiving, fulfillment, and exception signals are shown before metrics and history."
+            emptyLabel="No warehouse work is blocked"
+          />
+
+          <FirstRunChecklist
+            title="Warehouse setup path"
+            items={[
+              {
+                label: 'Activate partner access',
+                done: activeRelationships > 0,
+                detail: activeRelationships > 0
+                  ? 'Active partners can send stock and orders.'
+                  : requestedRelationships
+                    ? 'Review requested partners first; active partners can send stock and orders.'
+                    : 'Wait for a merchant or platform admin to request service.',
+              },
+              { label: 'Receive inbound stock', done: inventory.length > 0, detail: 'Approved inbound stock creates the stock rows that fulfillment uses.' },
+              { label: 'Work the queue', done: warehouseAllocations.length > 0, detail: 'Orders appear here after merchants allocate available stock.' },
+              { label: 'Watch exceptions', done: !exceptions.some((exception) => exception.status === 'OPEN'), detail: 'Open exceptions need review before the queue is clean.' },
+            ]}
+          />
+
           <div className="metric-grid">
             <Metric label="Capacity" value={selected?.capacity ?? 0} />
             <Metric label="Queue" value={warehouseAllocations.length} />
@@ -351,6 +451,12 @@ export function WarehousePage() {
             <Metric label="Open exceptions" value={dashboard?.openExceptions ?? exceptions.filter((item) => item.status === 'OPEN').length} />
             <Metric label="Stock risk" value={dashboard?.stockRisk ?? 0} />
           </div>
+
+          <WorkflowDivider
+            eyebrow="Daily work"
+            title="Pick, pack, and ship first"
+            description="Start with active allocations, then move to receiving and records after the queue is under control."
+          />
 
           <section className="table-section">
             <h2>Fulfillment Status</h2>
@@ -379,15 +485,6 @@ export function WarehousePage() {
           </div>
 
           {actionError ? <div className="inline-error">{actionError}</div> : null}
-          <RelationshipsTable relationships={relationships} onActivate={(relationship) => void activateRelationship(relationship)} />
-          <InboundRequestsTable
-            requests={warehouseInboundRequests}
-            onApprove={(request) => void approveInbound(request)}
-            onStart={(request) => void startReceiving(request)}
-            onReceive={(request) => void receiveAll(request)}
-            onReject={(request) => void rejectInbound(request)}
-          />
-          <RecentShipmentsPanel rows={recentShipments} />
           <AllocationsTable
             allocations={filteredAllocations}
             shipmentDraft={(allocation) => shipmentDraft(allocation)}
@@ -401,6 +498,29 @@ export function WarehousePage() {
             onWorkload={(allocation, patch) => void updateWorkload(allocation, patch)}
             onReportException={(allocation, reasonCode) => void reportException(allocation, reasonCode)}
           />
+
+          <WorkflowDivider
+            eyebrow="Receiving setup"
+            title="Open partner and inbound work"
+            description="Activate requested partners and receive inbound stock so merchants can keep orders moving."
+          />
+
+          <RelationshipsTable relationships={relationships} onActivate={(relationship) => void activateRelationship(relationship)} />
+          <InboundRequestsTable
+            requests={warehouseInboundRequests}
+            onApprove={(request) => void approveInbound(request)}
+            onStart={(request) => void startReceiving(request)}
+            onReceive={(request) => void receiveAll(request)}
+            onReject={(request) => void rejectInbound(request)}
+          />
+
+          <WorkflowDivider
+            eyebrow="Operational records"
+            title="Review shipments, exceptions, and stock"
+            description="Use these ledgers for follow-up evidence, exception review, and inventory adjustment after daily queue work."
+          />
+
+          <RecentShipmentsPanel rows={recentShipments} />
           <WarehouseExceptionsTable exceptions={exceptions.filter((exception) => exception.warehouseProviderId === selected?.tenantId || !selected?.tenantId)} />
           {inventoryLoading ? (
             <LoadingState label="Loading inventory" />
@@ -535,7 +655,7 @@ function AllocationsTable({
   onReportException: (allocation: FulfillmentAllocation, reasonCode: string) => void
 }) {
   if (!allocations.length) {
-    return <EmptyState label="No fulfillment allocations for this warehouse" guidance="Allocations appear when merchant orders reserve stock in this warehouse. Start with active relationships, received inventory, and merchant demand." />
+    return <EmptyState label="No fulfillment allocations for this warehouse" guidance="No pick work yet. Confirm partner access, received stock, and merchant orders." />
   }
 
   return (
@@ -770,7 +890,7 @@ function RelationshipsTable({
   onActivate: (relationship: MerchantWarehouseRelationship) => void
 }) {
   if (!relationships.length) {
-    return <EmptyState label="No merchant service relationships yet" guidance="Service relationships connect merchants to warehouse work. Platform or merchant users can request and activate the relationship before operations begin." />
+    return <EmptyState label="No merchant service relationships yet" guidance="No partners yet. Activate requested partners here when they arrive." />
   }
 
   return (
@@ -789,6 +909,11 @@ function RelationshipsTable({
           <tbody>
             {relationships.map((relationship) => {
               const canActivate = relationship.status === 'REQUESTED'
+              const actionHint = canActivate
+                ? 'Activate this partner so inbound stock and fulfillment work can begin.'
+                : relationship.status === 'ACTIVE'
+                  ? 'This partner is already active.'
+                  : `Status ${relationship.status} cannot be activated from the warehouse queue.`
               return (
                 <tr key={relationship.id}>
                   <td className="name-cell">
@@ -799,9 +924,14 @@ function RelationshipsTable({
                   <td><StatusBadge value={relationship.status} /></td>
                   <td className="note-cell">{relationship.serviceNotes ?? 'None'}</td>
                   <td>
-                    <button className="table-button" type="button" disabled={!canActivate} onClick={() => onActivate(relationship)}>
-                      {canActivate ? 'Activate' : relationship.status === 'ACTIVE' ? 'Active' : 'Locked'}
-                    </button>
+                    {canActivate ? (
+                      <button className="table-button" type="button" title={actionHint} onClick={() => onActivate(relationship)}>
+                        Activate
+                      </button>
+                    ) : (
+                      <span className="data-chip">{relationship.status === 'ACTIVE' ? 'Active partner' : 'No warehouse action'}</span>
+                    )}
+                    {!canActivate ? <p className="field-help prerequisite-help">{actionHint}</p> : null}
                   </td>
                 </tr>
               )
@@ -827,7 +957,7 @@ function InboundRequestsTable({
   onReject: (request: InboundStockRequest) => void
 }) {
   if (!requests.length) {
-    return <EmptyState label="No inbound stock requests for this warehouse" guidance="Inbound requests appear when merchants send stock to this warehouse for receiving." />
+    return <EmptyState label="No inbound stock requests for this warehouse" guidance="No receiving work yet. Merchants create inbound requests after partner access is active." />
   }
 
   return (
@@ -850,6 +980,13 @@ function InboundRequestsTable({
               const canApprove = request.status === 'SUBMITTED'
               const canStart = request.status === 'APPROVED'
               const canResolve = request.status === 'APPROVED' || request.status === 'RECEIVING'
+              const inboundActionHint = request.status === 'DRAFT'
+                ? 'Merchant still needs to submit this draft.'
+                : request.status === 'RECEIVED'
+                  ? 'This inbound request has already been received.'
+                  : request.status === 'REJECTED' || request.status === 'CANCELLED'
+                    ? `This inbound request is ${request.status.toLowerCase()} and has no warehouse action.`
+                    : ''
               return (
                 <tr key={request.id}>
                   <td className="name-cell">
@@ -883,7 +1020,12 @@ function InboundRequestsTable({
                           </button>
                         </>
                       ) : null}
-                      {!canApprove && !canStart && !canResolve ? <span className="data-chip">No warehouse action</span> : null}
+                      {!canApprove && !canStart && !canResolve ? (
+                        <>
+                          <span className="data-chip">No warehouse action</span>
+                          {inboundActionHint ? <p className="field-help prerequisite-help">{inboundActionHint}</p> : null}
+                        </>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -911,7 +1053,7 @@ function InventoryTable({
   onAdjust: (row: WarehouseInventory) => void
 }) {
   if (!inventory.length) {
-    return <EmptyState label="No stock rows for this warehouse" guidance="Stock rows appear after inbound receiving posts available, damaged, or reserved inventory." />
+    return <EmptyState label="No stock rows for this warehouse" guidance="Stock appears after inbound receiving is posted." />
   }
 
   return (
@@ -984,29 +1126,6 @@ function InventoryTable({
       </div>
     </section>
   )
-}
-
-function GuidancePanel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <aside className="admin-guidance-panel" aria-label={title}>
-      <strong>{title}</strong>
-      <p>{children}</p>
-    </aside>
-  )
-}
-
-function QuantityCell({
-  value,
-  tone = 'neutral',
-}: {
-  value: number
-  tone?: 'neutral' | 'ready' | 'pending' | 'risk'
-}) {
-  return <span className={`quantity-cell quantity-${tone}`}>{value}</span>
-}
-
-function shortId(id: string) {
-  return id.slice(0, 8)
 }
 
 function defaultShipmentDraft(allocation: FulfillmentAllocation): ShipmentDraft {

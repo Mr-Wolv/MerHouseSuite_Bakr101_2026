@@ -22,8 +22,18 @@ Order import endpoints live under `/api/v1/orders/imports` because they create m
 
 ## Frontend Surface
 
-The shared `/service-accountability` route exposes agreement terms, SLA status, service statement totals, review records, and order import history according to user role and tenant.
+The shared `/service-accountability` route is attention-first. At-risk SLA work, open disputes, claims, and pending reviews appear before agreement, statement, and import history so each role can see what needs action or review before reading ledgers.
+
+Merchant and platform roles can draft service-agreement terms against an active merchant-warehouse relationship and propose those terms for warehouse acceptance. Warehouse and platform roles can accept proposed terms. Review requests stay locked until an agreement is active, and fresh stakeholders see agreement-required guidance instead of a dead-end review action.
+
+The route also exposes agreement terms, SLA status, service statement totals, review records, claims, disputes, and order import history according to user role and tenant.
 
 ## Role Boundaries
 
 Platform roles can inspect records across tenants. Merchant users work with records for their merchant relationships. Warehouse operators work with records for their provider relationships.
+
+Service-accountability alerts are local and recipient-scoped. Agreement proposals, acceptances, statement/dispute/claim/review events, and resolution steps notify the counterparty or involved parties without claiming provider-backed delivery.
+
+## Proof
+
+Focused backend and frontend tests cover agreement draft/propose/accept flow, active-agreement review gating, role/tenant scoping, attention-first service signals, and fresh-stakeholder empty states. The V15.10 live browser proof moved fresh merchant and warehouse users from no service records to active agreement terms, then verified the counterparty notification and the service-accountability route without disabled dead-end review controls.

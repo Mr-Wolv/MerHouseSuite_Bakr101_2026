@@ -13,7 +13,7 @@ The working repository is private. The intended future public release boundary i
 - [Scripts guide](development/scripts.md): local helper scripts and when to use them.
 - [Knowledge system](development/knowledge-system.md): tracked docs, private Obsidian notes, publication boundary, and markdown proof.
 
-MerHouse is prepared here as a private local development stack. Production SaaS deployment is intentionally reserved for the V16 productionization phase.
+MerHouse is prepared here as a private local development stack and future deployment-ready codebase. V16 uses local mocks, dry-run proof, and publication-boundary checks; actual production deployment is deferred to a later optional phase.
 
 ## Architecture
 
@@ -24,6 +24,7 @@ MerHouse is prepared here as a private local development stack. Production SaaS 
 - [API documentation](architecture/api-documentation.md)
 - [Cancellation workflow](architecture/cancellation-workflow.md)
 - [Frontend V15 audit](architecture/frontend-v15-audit.md)
+- [Deployment-ready local certification](architecture/deployment-ready-local-certification.md)
 - [Idempotency](architecture/idempotency.md)
 - [Inventory locking](architecture/inventory-locking.md)
 - [Merchant-warehouse operating loop](architecture/merchant-warehouse-operating-loop.md)
@@ -34,6 +35,8 @@ MerHouse is prepared here as a private local development stack. Production SaaS 
 - [Role and tenant boundaries](architecture/role-tenant-boundaries.md)
 - [Service accountability](architecture/service-accountability.md)
 - [Shipment state machine](architecture/shipment-state-machine.md)
+- [Stakeholder workflow truth audit](architecture/stakeholder-workflow-truth-audit.md)
+- [Structural stabilization](architecture/structural-stabilization.md)
 - [System diagrams](architecture/system-diagrams.html)
 - [Transactional outbox](architecture/outbox.md)
 

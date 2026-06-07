@@ -15,17 +15,20 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OutboxProcessor {
     private final OutboxEventRepository outboxEventRepository;
+    private final OutboxAlertService outboxAlertService;
     private final List<OutboxEventHandler> handlers;
     private final int maxAttempts;
     private final boolean pollerEnabled;
 
     public OutboxProcessor(
         OutboxEventRepository outboxEventRepository,
+        OutboxAlertService outboxAlertService,
         List<OutboxEventHandler> handlers,
         @Value("${warehouse.outbox.max-attempts:3}") int maxAttempts,
         @Value("${warehouse.outbox.poller.enabled:true}") boolean pollerEnabled
     ) {
         this.outboxEventRepository = outboxEventRepository;
+        this.outboxAlertService = outboxAlertService;
         this.handlers = handlers;
         this.maxAttempts = maxAttempts;
         this.pollerEnabled = pollerEnabled;
@@ -65,6 +68,13 @@ public class OutboxProcessor {
                 event.setStatus(OutboxEventStatus.FAILED);
                 event.setLastError(exception.getMessage());
                 event.setNextAttemptAt(nextAttemptAt(event.getAttempts()));
+                outboxAlertService.recordHealthAlert(
+                    "Outbox event failed",
+                    event.getEventType() + " failed on attempt " + event.getAttempts()
+                        + ": " + exception.getMessage(),
+                    event.getAggregateType(),
+                    event.getAggregateId()
+                );
                 failed++;
             }
         }
@@ -88,4 +98,5 @@ public class OutboxProcessor {
         long delaySeconds = (long) Math.pow(2, Math.max(0, attempts - 1)) * 30L;
         return Instant.now().plus(delaySeconds, ChronoUnit.SECONDS);
     }
+
 }

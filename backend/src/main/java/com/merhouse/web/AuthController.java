@@ -7,15 +7,18 @@ import com.merhouse.dto.MessageResponse;
 import com.merhouse.dto.PasswordResetConfirmRequest;
 import com.merhouse.dto.PasswordResetRequest;
 import com.merhouse.dto.PasswordResetRequestResponse;
+import com.merhouse.dto.SelfPasswordChangeRequest;
 import com.merhouse.dto.UserResponse;
 import com.merhouse.entity.AppUser;
 import com.merhouse.security.UserPrincipal;
 import com.merhouse.service.AuthRecoveryService;
 import com.merhouse.service.AuthService;
 import com.merhouse.service.CurrentUserService;
+import com.merhouse.service.AdminAuditService;
 import com.merhouse.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,17 +31,20 @@ public class AuthController {
     private final AuthRecoveryService authRecoveryService;
     private final CurrentUserService currentUserService;
     private final UserService userService;
+    private final AdminAuditService adminAuditService;
 
     public AuthController(
         AuthService authService,
         AuthRecoveryService authRecoveryService,
         CurrentUserService currentUserService,
-        UserService userService
+        UserService userService,
+        AdminAuditService adminAuditService
     ) {
         this.authService = authService;
         this.authRecoveryService = authRecoveryService;
         this.currentUserService = currentUserService;
         this.userService = userService;
+        this.adminAuditService = adminAuditService;
     }
 
     @PostMapping("/login")
@@ -61,5 +67,19 @@ public class AuthController {
         UserPrincipal principal = currentUserService.required();
         AppUser user = userService.getRequired(principal.id());
         return new CurrentUserResponse(UserResponse.from(user));
+    }
+
+    @PatchMapping("/me/password")
+    public MessageResponse changeOwnPassword(@Valid @RequestBody SelfPasswordChangeRequest request) {
+        UserPrincipal principal = currentUserService.required();
+        userService.changeOwnPassword(principal.id(), request.currentPassword(), request.newPassword());
+        adminAuditService.record(
+            principal.id(),
+            "USER_PASSWORD_CHANGED",
+            "AppUser",
+            principal.id(),
+            "Self-service account password change"
+        );
+        return new MessageResponse("Password changed.");
     }
 }

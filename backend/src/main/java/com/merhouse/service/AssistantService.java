@@ -179,7 +179,7 @@ public class AssistantService {
     ) {
         if (asksForMutation(prompt)) {
             return refusal(
-                "I can summarize and suggest next review steps, but I cannot perform mutations or approve operational changes in V14.",
+                "I can summarize and suggest next review steps, but I cannot perform mutations or approve operational changes.",
                 scope,
                 "Refused mutation request"
             );

@@ -9,6 +9,17 @@ public record SlaStatusResponse(
     String status,
     Integer targetHours,
     Long elapsedHours,
-    String label
+    String label,
+    AttentionSignalResponse attentionSignal
 ) {
+    public SlaStatusResponse(
+        ServiceSourceType sourceType,
+        UUID sourceId,
+        String status,
+        Integer targetHours,
+        Long elapsedHours,
+        String label
+    ) {
+        this(sourceType, sourceId, status, targetHours, elapsedHours, label, null);
+    }
 }

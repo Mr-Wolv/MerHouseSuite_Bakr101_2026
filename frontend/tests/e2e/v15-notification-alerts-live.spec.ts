@@ -212,21 +212,23 @@ test('notification center renders alert severity lanes and quiets a read critica
 
   await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible()
   await expect(page.locator('.severity-critical', { hasText: 'Critical' })).toBeVisible()
-  await expect(page.locator('.severity-attention', { hasText: 'Needs action' })).toBeVisible()
-  await expect(page.locator('.severity-info', { hasText: 'For review' })).toBeVisible()
-  await expect(page.locator('.severity-resolved', { hasText: 'Resolved' })).toBeVisible()
+  await expect(page.locator('.severity-action', { hasText: 'Action needed' })).toBeVisible()
+  await expect(page.locator('.severity-review', { hasText: 'Review' })).toBeVisible()
+  await expect(page.locator('.severity-cleared', { hasText: 'Cleared' })).toBeVisible()
   await expect(page.locator('.notification-critical').filter({ hasText: 'Outbox dead-lettered' })).toBeVisible()
-  await expect(page.locator('.notification-attention').filter({ hasText: 'Returned shipment' })).toBeVisible()
-  await expect(page.locator('.notification-info').filter({ hasText: 'Preference recorded' })).toBeVisible()
-  await expect(page.locator('.notification-resolved').filter({ hasText: 'Failed event resolved' })).toBeVisible()
+  await expect(page.locator('.notification-action').filter({ hasText: 'Returned shipment' })).toBeVisible()
+  await expect(page.locator('.notification-review').filter({ hasText: 'Preference recorded' })).toBeVisible()
+  await expect(page.locator('.notification-cleared').filter({ hasText: 'Failed event resolved' })).toBeVisible()
   await expect(page.locator('[aria-label="3 unread alerts"]')).toBeVisible()
 
   const firstScreenshot = 'notification-alert-spectrum.png'
   await page.screenshot({ path: resolve(screenshotDir, firstScreenshot), fullPage: true })
 
   await page.locator('.notification-critical').filter({ hasText: 'Outbox dead-lettered' }).getByRole('button', { name: /Mark read/ }).click()
-  await expect(page.locator('.notification-resolved').filter({ hasText: 'Outbox dead-lettered' })).toBeVisible()
+  await expect(page.locator('.notification-cleared').filter({ hasText: 'Outbox dead-lettered' })).toBeVisible()
   await expect(page.locator('.notification-critical').filter({ hasText: 'Outbox dead-lettered' })).toHaveCount(0)
+  await expect(page.locator('[aria-label="2 unread alerts"]')).toBeVisible()
+  await expect(page.locator('[aria-label="3 unread alerts"]')).toHaveCount(0)
 
   const resolvedScreenshot = 'notification-alert-after-read.png'
   await page.screenshot({ path: resolve(screenshotDir, resolvedScreenshot), fullPage: true })
@@ -237,7 +239,8 @@ test('notification center renders alert severity lanes and quiets a read critica
     checkedAt: new Date().toISOString(),
     route: '/notifications',
     acceptanceStandard:
-      'Notification cards display distinct critical, action, review, and resolved lanes, with read critical alerts settling into resolved treatment.',
+      'Notification cards display distinct critical, action, review, and resolved lanes, with read critical alerts settling into resolved treatment and the shell unread badge decrementing immediately after the read click.',
+    unreadBeforeRead: 3,
     unreadAfterRead: fixture.deliveries().filter((item) => item.status === 'RECORDED' && !item.readAt).length,
     screenshots: [firstScreenshot, resolvedScreenshot],
     consoleErrors,

@@ -1,27 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import type {
-  CarrierDispatch,
   AccessRequest,
-  AdminAuditEvent,
   AdminPlatformSummary,
   AdminTenantHealth,
   MerchantWarehouseRelationship,
   Order,
-  OutboxEvent,
-  OutboxProcessResponse,
-  OutboxSummary,
   Tenant,
   TenantType,
   User,
   UserRole,
+  AttentionSignal,
+  Warehouse,
 } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
+import { shortId } from '../components/format'
 import { Metric } from '../components/Metric'
+import { GuidancePanel as AdminGuidancePanel, PageHeading, WorkflowDivider } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
+import { AttentionQueue } from '../components/AttentionQueue'
+export { AdminAuditPage } from '../features/admin/audit/AdminAuditPage'
+export { AdminOutboxPage } from '../features/admin/outbox/AdminOutboxPage'
 
 type AdminData = {
   tenants: Tenant[]
@@ -53,6 +55,7 @@ function useAdminData() {
 }
 
 export function AdminOverviewPage() {
+  const { user } = useAuth()
   const { data, loading, error } = useAdminData()
   const orderCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -64,9 +67,25 @@ export function AdminOverviewPage() {
   if (error) return <ErrorState title={error} />
   if (!data) return <EmptyState label="No admin data available" guidance="Create tenants, users, access requests, and service relationships to begin building the operating network." />
 
+  const adminAttentionSignals = data.summary.attentionSignals?.length
+    ? data.summary.attentionSignals
+    : adminSummarySignals(data.summary, user?.role)
+
   return (
     <div className="page-stack">
-      <PageHeading title="Admin Overview" subtitle="Platform-wide tenants, users, and order activity." />
+      <PageHeading title="Admin Overview" subtitle="Start with platform risks, onboarding, delivery failures, and service exceptions." />
+      <AdminGuidancePanel title="Platform attention queue">
+        Review the signals below first; broad tenant and order history stays lower on the page.
+      </AdminGuidancePanel>
+      <AttentionQueue
+        signals={adminAttentionSignals}
+        description="Governance, reliability, fulfillment, delivery, and service risks are separated here before broad platform health."
+      />
+      <WorkflowDivider
+        eyebrow="Platform health"
+        title="Network scale and readiness"
+        description="Use these totals after the attention queue to understand tenant coverage, active relationships, inbound work, and admin staffing."
+      />
       <div className="metric-grid">
         <Metric label="Tenants" value={data.summary.tenants} />
         <Metric label="Suspended tenants" value={data.summary.suspendedTenants} />
@@ -77,6 +96,11 @@ export function AdminOverviewPage() {
         <Metric label="Failed shipments" value={data.summary.failedShipments} />
         <Metric label="Service risks" value={data.summary.openServiceDisputes + data.summary.openServiceClaims + data.summary.pendingServiceReviews} />
       </div>
+      <WorkflowDivider
+        eyebrow="Operational ledgers"
+        title="Review order and tenant history"
+        description="Use these tables for context after the active governance and reliability signals are triaged."
+      />
       <section className="table-section">
         <h2>Order Status</h2>
         {orderCounts.length ? (
@@ -98,6 +122,78 @@ export function AdminOverviewPage() {
   )
 }
 
+function adminSummarySignals(summary: AdminPlatformSummary, role: UserRole = 'ADMIN'): AttentionSignal[] {
+  const serviceRisks = summary.openServiceDisputes + summary.openServiceClaims + summary.pendingServiceReviews
+  const suspendedGovernance = summary.suspendedTenants + summary.suspendedRelationships
+  const deliveryFailures = summary.failedShipments + summary.returnedShipments
+  const createdAt = new Date().toISOString()
+  const canMutatePlatform = role === 'OWNER' || role === 'ADMIN'
+  return [
+    role === 'AUDITOR'
+      ? null
+      : countSignal(
+        summary.pendingAccessRequests,
+        'admin-access-requests',
+        canMutatePlatform ? 'ACTION_NEEDED' : 'REVIEW',
+        'Access requests need review',
+        canMutatePlatform
+          ? 'Pending onboarding requests are waiting on platform approval.'
+          : 'Pending onboarding requests are waiting on owner/admin approval; support can review context and escalate.',
+        canMutatePlatform ? 'Review requests' : 'Review and escalate',
+        '/admin/access-requests',
+        'AccessRequest',
+        createdAt,
+        canMutatePlatform ? 'ADMIN' : role,
+      ),
+    countSignal(
+      summary.failedOutboxEvents,
+      'admin-failed-outbox',
+      'CRITICAL',
+      'Outbox failures need reliability review',
+      canMutatePlatform
+        ? 'Failed integration work is waiting for retry or dead-letter handling.'
+        : 'Failed integration work needs owner/admin retry or dead-letter handling; review diagnostics before escalation.',
+      canMutatePlatform ? 'Open outbox diagnostics' : 'Review diagnostics',
+      '/admin/outbox',
+      'OutboxEvent',
+      createdAt,
+      canMutatePlatform ? 'ADMIN' : role,
+    ),
+    countSignal(serviceRisks, 'admin-service-risks', 'ACTION_NEEDED', 'Service accountability risks are open', 'Open disputes, claims, or pending reviews need a decision trail.', 'Open service review', '/service-accountability', 'ServiceAccountability', createdAt, role),
+    countSignal(suspendedGovernance, 'admin-suspended-governance', 'REVIEW', 'Suspended governance needs context', 'Suspended tenants or relationships should be reviewed before daily operators depend on them.', 'Review relationships', '/admin/relationships', 'MerchantWarehouseRelationship', createdAt, role),
+    countSignal(summary.openFulfillmentExceptions, 'admin-fulfillment-exceptions', 'CRITICAL', 'Fulfillment exceptions need operational follow-up', 'Open exceptions should be resolved through service review, not hidden in audit history.', 'Open service review', '/service-accountability', 'FulfillmentException', createdAt, role),
+    countSignal(deliveryFailures, 'admin-delivery-failures', 'CRITICAL', 'Delivery failures need service follow-up', 'Failed or returned shipments should be inspected through operational detail and service accountability.', 'Open service review', '/service-accountability', 'Shipment', createdAt, role),
+  ].filter((signal): signal is AttentionSignal => Boolean(signal))
+}
+
+function countSignal(
+  count: number,
+  id: string,
+  severity: AttentionSignal['severity'],
+  title: string,
+  body: string,
+  nextActionLabel: string,
+  route: string,
+  sourceType: string,
+  createdAt: string,
+  ownerRole: UserRole = 'ADMIN',
+): AttentionSignal | null {
+  if (count <= 0) return null
+  return {
+    id,
+    severity,
+    title,
+    body: `${count} ${body}`,
+    ownerRole,
+    nextActionLabel,
+    route,
+    sourceType,
+    sourceId: null,
+    createdAt,
+    resolved: false,
+  }
+}
+
 export function AdminUsersPage() {
   const { token, user: currentUser } = useAuth()
   const { data, loading, error } = useAdminData()
@@ -117,13 +213,27 @@ export function AdminUsersPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    if (!data?.users) return
+    const loadedUsers = data.users
     queueMicrotask(() => {
-      setUsers(data?.users ?? [])
-      if (!tenantId && data?.tenants[0]) {
-        setTenantId(data.tenants[0].id)
-      }
+      setUsers((current) => {
+        const nextUsers = new Map(loadedUsers.map((user) => [user.id, user]))
+        current.forEach((user) => {
+          if (!nextUsers.has(user.id)) {
+            nextUsers.set(user.id, user)
+          }
+        })
+        return Array.from(nextUsers.values())
+      })
     })
-  }, [data?.tenants, data?.users, tenantId])
+  }, [data?.users])
+
+  useEffect(() => {
+    if (!tenantId && data?.tenants[0]) {
+      const defaultTenantId = data.tenants[0].id
+      queueMicrotask(() => setTenantId(defaultTenantId))
+    }
+  }, [data?.tenants, tenantId])
 
   const filteredUsers = users.filter((user) => {
     const normalizedSearch = userSearch.trim().toLowerCase()
@@ -285,9 +395,13 @@ export function AdminUsersPage() {
           </label>
         </div>
         {actionError ? <div className="inline-error">{actionError}</div> : null}
-        <button className="primary-button fit-button" type="submit" disabled={submitting || !canMutateUsers}>
-          {!canMutateUsers ? 'Owner/admin only' : submitting ? 'Creating' : 'Create user'}
-        </button>
+        {canMutateUsers ? (
+          <button className="primary-button fit-button" type="submit" disabled={submitting}>
+            {submitting ? 'Creating' : 'Create user'}
+          </button>
+        ) : (
+          <span className="data-chip warning-chip">Owner/admin account creation</span>
+        )}
       </form>
       <form aria-label="Admin action context" className="panel-form">
         <h2>Action Context</h2>
@@ -413,48 +527,57 @@ export function AdminUsersPage() {
                     const isCurrentUser = user.id === currentUser?.id
                     const isLastEnabledOwner = user.role === 'OWNER' && user.enabled && enabledOwnerCount <= 1
                     const protectedAdmin = isAdminRole(user.role) && !canAssignAdminRoles
-                    const disableLabel = !user.enabled ? 'Disabled' : isCurrentUser ? 'Current user' : isLastEnabledOwner ? 'Last owner' : 'Disable'
+                    const unavailableMutationLabel = !canMutateUsers
+                      ? 'Owner/admin action'
+                      : isCurrentUser
+                          ? 'Current user'
+                          : isLastEnabledOwner
+                            ? 'Last owner'
+                            : protectedAdmin
+                              ? 'Protected admin'
+                              : 'Disabled account'
+                    const canDisableUser = canMutateUsers && user.enabled && !isCurrentUser && !isLastEnabledOwner && !protectedAdmin
+                    const canEnableUser = canMutateUsers && !user.enabled && !protectedAdmin
+                    const canResetUser = canSupportUsers && !protectedAdmin && temporaryPassword.length >= 8
+                    const canChangeRole = canMutateUsers && !isCurrentUser && !protectedAdmin
 
                     return (
                       <div className="action-row compact-actions">
-                        <button
-                          className="table-button destructive-button"
-                          type="button"
-                          disabled={!canMutateUsers || !user.enabled || isCurrentUser || isLastEnabledOwner || protectedAdmin}
-                          onClick={() => void handleDisableUser(user.id)}
-                        >
-                          {disableLabel}
-                        </button>
-                        <button
-                          className="table-button"
-                          type="button"
-                          disabled={!canMutateUsers || user.enabled || protectedAdmin}
-                          onClick={() => void handleEnableUser(user.id)}
-                        >
-                          Enable
-                        </button>
-                        <button
-                          className="table-button"
-                          type="button"
-                          disabled={!canSupportUsers || protectedAdmin || temporaryPassword.length < 8}
-                          onClick={() => void handleResetPassword(user.id)}
-                        >
-                          Reset
-                        </button>
-                        <select
-                          aria-label={`Change role for ${user.email}`}
-                          value={user.role}
-                          disabled={!canMutateUsers || isCurrentUser || protectedAdmin}
-                          onChange={(event) => void handleRoleChange(user.id, event.target.value as UserRole)}
-                        >
-                          {!canAssignAdminRoles && isAdminRole(user.role) ? <option value={user.role}>{user.role.replaceAll('_', ' ')}</option> : null}
-                          {canAssignAdminRoles ? <option value="OWNER">Owner</option> : null}
-                          {canAssignAdminRoles ? <option value="ADMIN">Admin</option> : null}
-                          {canAssignAdminRoles ? <option value="SUPPORT_ADMIN">Support admin</option> : null}
-                          {canAssignAdminRoles ? <option value="AUDITOR">Auditor</option> : null}
-                          <option value="MERCHANT">Merchant</option>
-                          <option value="WAREHOUSE_OPERATOR">Warehouse operator</option>
-                        </select>
+                        {canDisableUser ? (
+                          <button className="table-button destructive-button" type="button" onClick={() => void handleDisableUser(user.id)}>
+                            Disable
+                          </button>
+                        ) : null}
+                        {canEnableUser ? (
+                          <button className="table-button" type="button" onClick={() => void handleEnableUser(user.id)}>
+                            Enable
+                          </button>
+                        ) : null}
+                        {!canDisableUser && !canEnableUser ? <span className="data-chip warning-chip">{unavailableMutationLabel}</span> : null}
+                        {canResetUser ? (
+                          <button className="table-button" type="button" onClick={() => void handleResetPassword(user.id)}>
+                            Reset
+                          </button>
+                        ) : (
+                          <span className="data-chip">{protectedAdmin ? 'Protected reset' : canSupportUsers ? 'Enter reset password' : 'Reset locked'}</span>
+                        )}
+                        {canChangeRole ? (
+                          <select
+                            aria-label={`Change role for ${user.email}`}
+                            value={user.role}
+                            onChange={(event) => void handleRoleChange(user.id, event.target.value as UserRole)}
+                          >
+                            {!canAssignAdminRoles && isAdminRole(user.role) ? <option value={user.role}>{user.role.replaceAll('_', ' ')}</option> : null}
+                            {canAssignAdminRoles ? <option value="OWNER">Owner</option> : null}
+                            {canAssignAdminRoles ? <option value="ADMIN">Admin</option> : null}
+                            {canAssignAdminRoles ? <option value="SUPPORT_ADMIN">Support admin</option> : null}
+                            {canAssignAdminRoles ? <option value="AUDITOR">Auditor</option> : null}
+                            <option value="MERCHANT">Merchant</option>
+                            <option value="WAREHOUSE_OPERATOR">Warehouse operator</option>
+                          </select>
+                        ) : (
+                          <span className="data-chip">{isCurrentUser ? 'Current role locked' : protectedAdmin ? 'Admin role locked' : 'Role change locked'}</span>
+                        )}
                       </div>
                     )
                   })()}
@@ -471,8 +594,13 @@ export function AdminUsersPage() {
 export function AdminTenantsPage() {
   const { token } = useAuth()
   const [tenants, setTenants] = useState<Tenant[]>([])
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([])
   const [name, setName] = useState('')
   const [type, setType] = useState<TenantType>('MERCHANT')
+  const [warehouseTenantId, setWarehouseTenantId] = useState('')
+  const [warehouseName, setWarehouseName] = useState('')
+  const [warehouseAddress, setWarehouseAddress] = useState('')
+  const [warehouseCapacity, setWarehouseCapacity] = useState(100)
   const [filter, setFilter] = useState<'ALL' | TenantType>('ALL')
   const [reason, setReason] = useState('Tenant governance review')
   const [loading, setLoading] = useState(true)
@@ -481,8 +609,12 @@ export function AdminTenantsPage() {
 
   useEffect(() => {
     if (!token) return
-    api.tenants(token)
-      .then(setTenants)
+    Promise.all([api.tenants(token), api.warehouses(token)])
+      .then(([nextTenants, nextWarehouses]) => {
+        setTenants(nextTenants)
+        setWarehouses(nextWarehouses)
+        setWarehouseTenantId(nextTenants.find((tenant) => tenant.type === 'WAREHOUSE_PROVIDER' && tenant.active)?.id ?? '')
+      })
       .catch((caught) => {
         setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load tenants.')
       })
@@ -490,6 +622,12 @@ export function AdminTenantsPage() {
   }, [token])
 
   const filteredTenants = tenants.filter((tenant) => filter === 'ALL' || tenant.type === filter)
+  const warehouseProviderTenants = tenants.filter((tenant) => tenant.type === 'WAREHOUSE_PROVIDER' && tenant.active)
+  const warehouseCountsByTenant = useMemo(() => {
+    const counts = new Map<string, number>()
+    warehouses.forEach((warehouse) => counts.set(warehouse.tenantId, (counts.get(warehouse.tenantId) ?? 0) + 1))
+    return counts
+  }, [warehouses])
 
   async function handleCreateTenant(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -502,6 +640,29 @@ export function AdminTenantsPage() {
       setName('')
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to create tenant.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleCreateWarehouse(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!token) return
+    setSubmitting(true)
+    setError('')
+    try {
+      const created = await api.createWarehouse(token, {
+        tenantId: warehouseTenantId,
+        name: warehouseName,
+        address: warehouseAddress,
+        capacity: warehouseCapacity,
+      })
+      setWarehouses((current) => [...current, created])
+      setWarehouseName('')
+      setWarehouseAddress('')
+      setWarehouseCapacity(100)
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to register warehouse location.')
     } finally {
       setSubmitting(false)
     }
@@ -546,6 +707,42 @@ export function AdminTenantsPage() {
         {error ? <div className="inline-error">{error}</div> : null}
         <button className="primary-button fit-button" type="submit" disabled={submitting}>
           {submitting ? 'Creating' : 'Create tenant'}
+        </button>
+      </form>
+      <form aria-label="Register warehouse location form" className="panel-form" onSubmit={handleCreateWarehouse}>
+        <h2>Register Warehouse Location</h2>
+        <p className="form-helper">Create at least one physical warehouse for each warehouse-provider tenant before operators can receive inbound stock or fulfill orders.</p>
+        <div className="form-grid">
+          <label htmlFor="admin-warehouse-tenant">
+            <span>Provider tenant</span>
+            <select
+              id="admin-warehouse-tenant"
+              value={warehouseTenantId}
+              onChange={(event) => setWarehouseTenantId(event.target.value)}
+              disabled={!warehouseProviderTenants.length}
+            >
+              {warehouseProviderTenants.length ? warehouseProviderTenants.map((tenant) => (
+                <option key={tenant.id} value={tenant.id}>
+                  {tenant.name} ({warehouseCountsByTenant.get(tenant.id) ?? 0} warehouses)
+                </option>
+              )) : <option value="">Create a warehouse provider tenant first</option>}
+            </select>
+          </label>
+          <label htmlFor="admin-warehouse-name">
+            <span>Warehouse name</span>
+            <input id="admin-warehouse-name" value={warehouseName} onChange={(event) => setWarehouseName(event.target.value)} maxLength={160} required />
+          </label>
+          <label className="span-two-field" htmlFor="admin-warehouse-address">
+            <span>Address</span>
+            <input id="admin-warehouse-address" value={warehouseAddress} onChange={(event) => setWarehouseAddress(event.target.value)} required />
+          </label>
+          <label htmlFor="admin-warehouse-capacity">
+            <span>Capacity</span>
+            <input id="admin-warehouse-capacity" type="number" min={0} value={warehouseCapacity} onChange={(event) => setWarehouseCapacity(Number(event.target.value))} />
+          </label>
+        </div>
+        <button className="primary-button fit-button" type="submit" disabled={submitting || !warehouseProviderTenants.length || !warehouseTenantId}>
+          {submitting ? 'Registering' : 'Register warehouse'}
         </button>
       </form>
       <div className="filter-row">
@@ -700,8 +897,10 @@ export function AdminAccessRequestsPage() {
               <tbody>
                 {requests.map((request) => {
                   const pending = request.status === 'PENDING'
-                  const approveLabel = request.status === 'APPROVED' ? 'Approved' : pending ? 'Approve' : 'Approval closed'
-                  const rejectLabel = request.status === 'REJECTED' ? 'Rejected' : pending ? 'Reject' : 'Rejection closed'
+                  const approved = request.status === 'APPROVED'
+                  const rejected = request.status === 'REJECTED'
+                  const converted = Boolean(request.convertedAt)
+                  const conversionReady = approved && !converted && temporaryPassword.length >= 8
                   return (
                     <tr key={request.id}>
                       <td>{request.organizationName}</td>
@@ -716,32 +915,52 @@ export function AdminAccessRequestsPage() {
                       </td>
                       <td className="note-cell">{request.reviewNote ?? request.notes ?? 'No notes'}</td>
                       <td>
-                        <div className="action-row compact-actions">
-                          <button
-                            className="table-button"
-                            type="button"
-                            disabled={!canMutatePlatform || !pending || actionId === request.id}
-                            onClick={() => void reviewAccessRequest(request.id, 'approve')}
-                          >
-                            {canMutatePlatform ? approveLabel : 'Owner/admin only'}
-                          </button>
-                          <button
-                            className="table-button destructive-button"
-                            type="button"
-                            disabled={!canMutatePlatform || !pending || actionId === request.id}
-                            onClick={() => void reviewAccessRequest(request.id, 'reject')}
-                          >
-                            {rejectLabel}
-                          </button>
-                          <button
-                            className="table-button"
-                            type="button"
-                            disabled={!canMutatePlatform || request.status !== 'APPROVED' || Boolean(request.convertedAt) || actionId === request.id || temporaryPassword.length < 8}
-                            onClick={() => void convertAccessRequest(request)}
-                          >
-                            {request.convertedAt ? 'Converted' : 'Convert'}
-                          </button>
-                        </div>
+                        {canMutatePlatform ? (
+                          <div className="action-row compact-actions">
+                            {pending ? (
+                              <>
+                                <button
+                                  className="table-button"
+                                  type="button"
+                                  disabled={actionId === request.id}
+                                  onClick={() => void reviewAccessRequest(request.id, 'approve')}
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  className="table-button destructive-button"
+                                  type="button"
+                                  disabled={actionId === request.id}
+                                  onClick={() => void reviewAccessRequest(request.id, 'reject')}
+                                >
+                                  Reject
+                                </button>
+                                <span className="data-chip">Convert after approval</span>
+                              </>
+                            ) : null}
+                            {approved && !converted ? (
+                              <>
+                                <span className="data-chip">Approval recorded</span>
+                                {conversionReady ? (
+                                  <button
+                                    className="table-button"
+                                    type="button"
+                                    disabled={actionId === request.id}
+                                    onClick={() => void convertAccessRequest(request)}
+                                  >
+                                    Convert
+                                  </button>
+                                ) : (
+                                  <span className="data-chip warning-chip">Enter setup password</span>
+                                )}
+                              </>
+                            ) : null}
+                            {rejected ? <span className="data-chip warning-chip">Rejected request</span> : null}
+                            {converted ? <span className="data-chip">Account created</span> : null}
+                          </div>
+                        ) : (
+                          <span className="data-chip">Review and escalate</span>
+                        )}
                       </td>
                     </tr>
                   )
@@ -754,246 +973,6 @@ export function AdminAccessRequestsPage() {
         )}
       </section>
     </div>
-  )
-}
-
-export function AdminOutboxPage() {
-  const { token, user: currentUser } = useAuth()
-  const [summary, setSummary] = useState<OutboxSummary | null>(null)
-  const [events, setEvents] = useState<OutboxEvent[]>([])
-  const [dispatches, setDispatches] = useState<CarrierDispatch[]>([])
-  const [result, setResult] = useState<OutboxProcessResponse | null>(null)
-  const [reason, setReason] = useState('Background work review')
-  const [loading, setLoading] = useState(false)
-  const [refreshing, setRefreshing] = useState(true)
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null)
-  const [error, setError] = useState('')
-  const canMutatePlatform = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN'
-
-  async function refreshOutbox() {
-    if (!token) return
-    setRefreshing(true)
-    setError('')
-    try {
-      const [nextSummary, nextEvents, nextDispatches] = await Promise.all([
-        api.outboxSummary(token),
-        api.outboxEvents(token),
-        api.carrierDispatches(token),
-      ])
-      setSummary(nextSummary)
-      setEvents(nextEvents)
-      setDispatches(nextDispatches)
-      setLastRefreshedAt(new Date().toISOString())
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load outbox data.')
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void refreshOutbox()
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
-
-  async function processOutbox() {
-    if (!token) return
-    setLoading(true)
-    setError('')
-    try {
-      setResult(await api.processOutbox(token))
-      await refreshOutbox()
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to process outbox.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function retryEvent(eventId: string) {
-    if (!token) return
-    setError('')
-    try {
-      const updated = await api.retryOutboxEvent(token, eventId)
-      setEvents((current) => current.map((event) => (event.id === updated.id ? updated : event)))
-      await refreshOutbox()
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to retry outbox event.')
-    }
-  }
-
-  async function deadLetterEvent(eventId: string) {
-    if (!token) return
-    setError('')
-    try {
-      const updated = await api.deadLetterOutboxEvent(token, eventId, { reason })
-      setEvents((current) => current.map((event) => (event.id === updated.id ? updated : event)))
-      await refreshOutbox()
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to move outbox event.')
-    }
-  }
-
-  return (
-    <div className="page-stack">
-      <PageHeading title="Outbox" subtitle="Monitor side-effect events, retries, and carrier dispatch records." />
-      <div className="admin-action-panel">
-        <div className="admin-action-copy">
-          <h2>Diagnostic actions</h2>
-          <p>Processing and dead-letter moves are local reliability controls. Dead-letter actions keep the reason below with the event trail.</p>
-        </div>
-        <div className="admin-action-controls">
-          <button className="primary-button fit-button" type="button" onClick={processOutbox} disabled={loading || !canMutatePlatform}>
-            {!canMutatePlatform ? 'Owner/admin only' : loading ? 'Processing' : 'Process outbox'}
-          </button>
-          <button className="icon-text-button" type="button" onClick={refreshOutbox} disabled={refreshing || loading}>
-            {refreshing ? 'Refreshing' : 'Refresh'}
-          </button>
-          <label className="inline-field" htmlFor="admin-outbox-action-reason">
-            <span>Reason</span>
-            <input id="admin-outbox-action-reason" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={1000} />
-          </label>
-        </div>
-      </div>
-      <div className="status-narration" role="status" aria-live="polite">
-        {refreshing ? 'Refreshing outbox data.' : lastRefreshedAt ? `Outbox data refreshed ${formatDate(lastRefreshedAt)}.` : 'Outbox data has not refreshed yet.'}
-      </div>
-      {error ? <ErrorState title={error} /> : null}
-      {summary ? (
-        <div className="metric-grid">
-          <Metric label="Pending" value={summary.pending} />
-          <Metric label="Processed" value={summary.processed} />
-          <Metric label="Failed" value={summary.failed} />
-          <Metric label="Retryable failed" value={summary.retryableFailed} />
-        </div>
-      ) : refreshing ? (
-        <LoadingState label="Loading outbox health" />
-      ) : null}
-      {summary ? (
-        <div className={summary.failed || summary.retryableFailed ? 'severity-panel risk-card' : 'severity-panel'} aria-label="Outbox severity hierarchy">
-          <strong>{summary.failed || summary.retryableFailed ? 'Attention required' : 'Outbox healthy'}</strong>
-          <span>{summary.retryableFailed} retryable failed events and {summary.failed} total failed events.</span>
-        </div>
-      ) : null}
-      {result ? (
-        <div className="state-panel">
-          Processed {result.processed} events with {result.failed} failures.
-        </div>
-      ) : null}
-      <OutboxEventsTable
-        events={events}
-        onRetry={canMutatePlatform ? retryEvent : undefined}
-        onDeadLetter={canMutatePlatform ? deadLetterEvent : undefined}
-      />
-      <CarrierDispatchesTable dispatches={dispatches} />
-    </div>
-  )
-}
-
-function OutboxEventsTable({
-  events,
-  onRetry,
-  onDeadLetter,
-}: {
-  events: OutboxEvent[]
-  onRetry?: (eventId: string) => void
-  onDeadLetter?: (eventId: string) => void
-}) {
-  return (
-    <section className="table-section">
-      <h2>Recent Events</h2>
-      {events.length ? (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Event</th>
-                <th>Aggregate</th>
-                <th>Status</th>
-                <th>Attempts</th>
-                <th>Failure detail</th>
-                <th>Created</th>
-                <th>Next attempt</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((event) => (
-                <tr key={event.id}>
-                  <td>{event.eventType}</td>
-                  <td>{event.aggregateType} <span className="mono-cell">{shortId(event.aggregateId)}</span></td>
-                  <td><StatusBadge value={event.status} /></td>
-                  <td><span className={event.attempts > 1 ? 'quantity-cell quantity-pending' : 'quantity-cell'}>{event.attempts}</span></td>
-                  <td className="note-cell">{event.lastError ?? 'No failure recorded'}</td>
-                  <td><TimestampCell value={event.createdAt} /></td>
-                  <td>{event.nextAttemptAt ? <TimestampCell value={event.nextAttemptAt} /> : 'Not scheduled'}</td>
-                  <td>
-                    <div className="action-row compact-actions">
-                      <button
-                        className="table-button"
-                        type="button"
-                        disabled={event.status !== 'FAILED' || !onRetry}
-                        onClick={() => onRetry?.(event.id)}
-                      >
-                        Retry
-                      </button>
-                      <button
-                        className="table-button destructive-button"
-                        type="button"
-                        disabled={event.status === 'PROCESSED' || event.status === 'DEAD_LETTER' || !onDeadLetter}
-                        onClick={() => onDeadLetter?.(event.id)}
-                      >
-                        Dead-letter
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <EmptyState label="No outbox events yet" guidance="Outbox events appear when operational changes need side-effect processing. Use this area to watch retries, failures, and dispatch handoffs." />
-      )}
-    </section>
-  )
-}
-
-function CarrierDispatchesTable({ dispatches }: { dispatches: CarrierDispatch[] }) {
-  return (
-    <section className="table-section">
-      <h2>Carrier Dispatches</h2>
-      {dispatches.length ? (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Event</th>
-                <th>Carrier</th>
-                <th>Tracking</th>
-                <th>Status</th>
-                <th>Reference</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dispatches.map((dispatch) => (
-                <tr key={dispatch.id}>
-                  <td>{dispatch.eventType}</td>
-                  <td>{dispatch.carrier ?? 'Unknown'}</td>
-                  <td>{dispatch.trackingNumber ?? 'None'}</td>
-                  <td><StatusBadge value={dispatch.status} /></td>
-                  <td className="mono-cell">{dispatch.externalReference}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <EmptyState label="No carrier dispatches yet" guidance="Carrier dispatch evidence appears after warehouse shipment handoff work begins." />
-      )}
-    </section>
   )
 }
 
@@ -1072,30 +1051,23 @@ export function AdminRelationshipsPage() {
                     <td className="note-cell">{relationship.statusReason ?? relationship.serviceNotes ?? 'No reason recorded'}</td>
                     <td>
                       <div className="action-row compact-actions">
-                        <button
-                          className="table-button warning-button"
-                          type="button"
-                          disabled={!canMutatePlatform || relationship.status !== 'ACTIVE'}
-                          onClick={() => void updateRelationship(relationship, 'suspend')}
-                        >
-                          {canMutatePlatform ? 'Suspend' : 'Owner/admin only'}
-                        </button>
-                        <button
-                          className="table-button"
-                          type="button"
-                          disabled={!canMutatePlatform || relationship.status !== 'SUSPENDED'}
-                          onClick={() => void updateRelationship(relationship, 'reactivate')}
-                        >
-                          Reactivate
-                        </button>
-                        <button
-                          className="table-button destructive-button"
-                          type="button"
-                          disabled={!canMutatePlatform || relationship.status === 'ENDED'}
-                          onClick={() => void updateRelationship(relationship, 'end')}
-                        >
-                          End
-                        </button>
+                        {!canMutatePlatform ? <span className="data-chip">Read-only relationship review</span> : null}
+                        {canMutatePlatform && relationship.status === 'ACTIVE' ? (
+                          <button className="table-button warning-button" type="button" onClick={() => void updateRelationship(relationship, 'suspend')}>
+                            Suspend
+                          </button>
+                        ) : null}
+                        {canMutatePlatform && relationship.status === 'SUSPENDED' ? (
+                          <button className="table-button" type="button" onClick={() => void updateRelationship(relationship, 'reactivate')}>
+                            Reactivate
+                          </button>
+                        ) : null}
+                        {canMutatePlatform && relationship.status !== 'ENDED' ? (
+                          <button className="table-button destructive-button" type="button" onClick={() => void updateRelationship(relationship, 'end')}>
+                            End
+                          </button>
+                        ) : null}
+                        {canMutatePlatform && relationship.status === 'ENDED' ? <span className="data-chip">Ended relationship</span> : null}
                       </div>
                     </td>
                   </tr>
@@ -1105,94 +1077,6 @@ export function AdminRelationshipsPage() {
           </div>
         ) : (
           <EmptyState label="No relationships yet" guidance="Create or approve merchant-warehouse relationships so inventory, inbound stock, fulfillment, and service accountability can connect across tenants." />
-        )}
-      </section>
-    </div>
-  )
-}
-
-export function AdminAuditPage() {
-  const { token } = useAuth()
-  const [events, setEvents] = useState<AdminAuditEvent[]>([])
-  const [filter, setFilter] = useState<'ALL' | 'ASSISTANT'>('ALL')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (!token) return
-    api.adminAuditEvents(token)
-      .then(setEvents)
-      .catch((caught) => setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load audit events.'))
-      .finally(() => setLoading(false))
-  }, [token])
-
-  if (loading) return <LoadingState label="Loading admin audit events" />
-
-  const assistantEvents = events.filter((event) => event.action.startsWith('ASSISTANT_'))
-  const assistantCounts = {
-    summaries: assistantEvents.filter((event) => event.action === 'ASSISTANT_SUMMARY').length,
-    suggestions: assistantEvents.filter((event) => event.action === 'ASSISTANT_SUGGESTION').length,
-    refusals: assistantEvents.filter((event) => event.action === 'ASSISTANT_REFUSAL').length,
-    accepted: assistantEvents.filter((event) => event.action === 'ASSISTANT_SUGGESTION_ACCEPTED').length,
-    rejected: assistantEvents.filter((event) => event.action === 'ASSISTANT_SUGGESTION_REJECTED').length,
-  }
-  const visibleEvents = filter === 'ASSISTANT' ? assistantEvents : events
-
-  return (
-    <div className="page-stack">
-      <PageHeading title="Admin Audit" subtitle="Review privileged platform actions, reasons, actors, and affected records." />
-      {error ? <ErrorState title={error} /> : null}
-      <section className="metric-grid" aria-label="Assistant audit summary">
-        <Metric label="Assistant summaries" value={assistantCounts.summaries} />
-        <Metric label="Assistant suggestions" value={assistantCounts.suggestions} />
-        <Metric label="Assistant refusals" value={assistantCounts.refusals} />
-        <Metric label="Suggestions accepted" value={assistantCounts.accepted} />
-        <Metric label="Suggestions rejected" value={assistantCounts.rejected} />
-      </section>
-      <section className="table-section">
-        <AdminGuidancePanel title="Audit review lens">
-          Use the assistant filter to isolate V14 summaries, suggestions, refusals, and review decisions without losing the broader privileged-action trail.
-        </AdminGuidancePanel>
-        <div className="table-toolbar">
-          <h2>Recent Privileged Actions</h2>
-          <div className="compact-field">
-            <label htmlFor="admin-audit-filter">Audit filter</label>
-            <select id="admin-audit-filter" value={filter} onChange={(event) => setFilter(event.target.value as 'ALL' | 'ASSISTANT')}>
-              <option value="ALL">All events</option>
-              <option value="ASSISTANT">Assistant events</option>
-            </select>
-          </div>
-        </div>
-        <div className="status-narration" role="status" aria-live="polite">
-          Showing {visibleEvents.length} {filter === 'ASSISTANT' ? 'assistant audit' : 'audit'} events. Focus the table region to scroll dense records with the keyboard on narrow screens.
-        </div>
-        {visibleEvents.length ? (
-          <div className="table-wrap keyboard-scroll-region" tabIndex={0} aria-label="Scrollable admin audit table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Action</th>
-                  <th>Actor</th>
-                  <th>Record</th>
-                  <th>Reason</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleEvents.map((event) => (
-                  <tr key={event.id}>
-                    <td><StatusBadge value={event.action} /></td>
-                    <td>{event.actorEmail ?? 'System'}</td>
-                    <td>{event.aggregateType} <span className="mono-cell">{shortId(event.aggregateId)}</span></td>
-                    <td className="note-cell">{event.reason ?? 'No reason recorded'}</td>
-                    <td><TimestampCell value={event.createdAt} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState label="No admin audit events yet" guidance="Privileged account, tenant, relationship, assistant, and diagnostic actions will appear here for review." />
         )}
       </section>
     </div>
@@ -1319,24 +1203,6 @@ function TenantsTable({ tenants, onToggle }: { tenants: Tenant[]; onToggle?: (te
   )
 }
 
-function PageHeading({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div className="page-heading">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-    </div>
-  )
-}
-
-function AdminGuidancePanel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <aside className="admin-guidance-panel" aria-label={title}>
-      <strong>{title}</strong>
-      <p>{children}</p>
-    </aside>
-  )
-}
-
 function TimestampCell({ value }: { value: string }) {
   return (
     <time className="timestamp-cell" dateTime={value}>
@@ -1363,10 +1229,6 @@ function RelationshipLifecycleCell({ relationship }: { relationship: MerchantWar
       ))}
     </div>
   )
-}
-
-function shortId(id: string) {
-  return id.slice(0, 8)
 }
 
 function tenantName(tenants: Tenant[], tenantId: string) {

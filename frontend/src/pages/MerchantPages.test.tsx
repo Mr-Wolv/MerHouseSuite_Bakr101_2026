@@ -179,7 +179,7 @@ describe('Merchant overview', () => {
     renderWithAuth(<MerchantOverviewPage />)
 
     expect(await screen.findByText('Merchant Overview')).toBeInTheDocument()
-    expect(screen.getByLabelText('Merchant operations scan')).toHaveTextContent('Watch stock risk')
+    expect(screen.getByLabelText('Start with risk')).toHaveTextContent('Open Orders when risk rises')
     expect(screen.getByText('Inventory items')).toBeInTheDocument()
     expect(screen.getByText('SKU-1 x2')).toBeInTheDocument()
   })
@@ -210,7 +210,12 @@ describe('Merchant inventory', () => {
     renderWithAuth(<MerchantInventoryPage />)
 
     const form = await screen.findByRole('form', { name: 'Create inventory item form' })
-    expect(screen.getByLabelText('Inventory and inbound readiness')).toHaveTextContent('active warehouse relationships')
+    expect(screen.getByLabelText('Inventory and inbound readiness')).toHaveTextContent('setup path')
+    expect(screen.getByLabelText('Merchant setup path')).toHaveTextContent('4/4 ready')
+    expect(screen.getByText('Setup workflow')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Create and connect' })).toBeInTheDocument()
+    expect(screen.getByText('Work top to bottom: create the SKU, request warehouse service, then send stock only after the relationship is active.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Review stock and history' })).toBeInTheDocument()
     await user.type(within(form).getByLabelText('SKU'), 'SKU-2')
     await user.type(within(form).getByLabelText('Name'), 'New Merchant Item')
     await user.click(within(form).getByRole('button', { name: 'Create item' }))
@@ -319,8 +324,43 @@ describe('Merchant inventory', () => {
     const draftRow = await screen.findByRole('row', { name: /ASN-DRAFT Cairo Hub SKU-1 4 0 0 DRAFT/i })
     await user.click(within(draftRow).getByRole('button', { name: 'Submit draft' }))
     expect(apiMock.submitInboundStockDraft).toHaveBeenCalledWith('merchant-token', 'inbound-draft')
+    expect(await within(draftRow).findByText('SUBMITTED')).toBeInTheDocument()
+    expect(within(draftRow).queryByRole('button', { name: 'Submit draft' })).not.toBeInTheDocument()
+    expect(within(draftRow).getByRole('button', { name: 'Cancel inbound' })).toBeEnabled()
     await user.click(within(draftRow).getByRole('button', { name: 'Cancel inbound' }))
     expect(apiMock.cancelInboundStock).toHaveBeenCalledWith('merchant-token', 'inbound-draft')
+    expect(await within(draftRow).findByText('Cancelled')).toHaveClass('data-chip')
+    expect(within(draftRow).queryByRole('button', { name: 'Cancel inbound' })).not.toBeInTheDocument()
+  }, 10_000)
+
+  it('shows settled inbound states as history chips instead of disabled controls', async () => {
+    apiMock.inboundStockRequests.mockResolvedValue([
+      {
+        ...inboundRequests[0],
+        id: 'inbound-received',
+        merchantReference: 'ASN-RECEIVED',
+        status: 'RECEIVED',
+        receivedQuantity: 5,
+        shortageQuantity: 0,
+        receivedAt: '2026-05-17T00:10:00Z',
+      },
+      {
+        ...inboundRequests[0],
+        id: 'inbound-cancelled',
+        merchantReference: 'ASN-CANCELLED',
+        status: 'CANCELLED',
+      },
+    ])
+
+    renderWithAuth(<MerchantInventoryPage />)
+
+    const receivedRow = await screen.findByRole('row', { name: /ASN-RECEIVED/i })
+    expect(within(receivedRow).getByText('Received by warehouse')).toHaveClass('data-chip')
+    expect(within(receivedRow).queryByRole('button')).not.toBeInTheDocument()
+
+    const cancelledRow = screen.getByRole('row', { name: /ASN-CANCELLED/i })
+    expect(within(cancelledRow).getByText('Cancelled')).toHaveClass('data-chip')
+    expect(within(cancelledRow).queryByRole('button')).not.toBeInTheDocument()
   })
 
   it('keeps inbound warehouse choices inside the selected relationship provider', async () => {
@@ -362,7 +402,7 @@ describe('Merchant inventory', () => {
 
     expect(within(inboundForm).getByLabelText('Target warehouse')).toHaveValue('warehouse-2')
     expect(within(inboundForm).queryByRole('option', { name: 'Cairo Hub' })).not.toBeInTheDocument()
-    expect(screen.getByText('Warehouses are limited to the selected active service relationship.')).toBeInTheDocument()
+    expect(screen.getByText('Ready to send stock to the selected warehouse.')).toBeInTheDocument()
 
     await user.clear(within(inboundForm).getByLabelText('Quantity'))
     await user.type(within(inboundForm).getByLabelText('Quantity'), '2')
@@ -478,7 +518,12 @@ describe('Merchant orders', () => {
     renderWithAuth(<MerchantOrdersPage />)
 
     const form = await screen.findByRole('form', { name: 'Create order form' })
-    expect(screen.getByLabelText('Order queue controls')).toHaveTextContent('Backordered lines stay visible')
+    expect(screen.getByLabelText('Order queue controls')).toHaveTextContent('Add the customer order')
+    expect(screen.getByText('Order setup')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Create customer demand' })).toBeInTheDocument()
+    expect(screen.getByText('Start with one customer order or build draft lines when a shipment needs multiple SKUs.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Audit imported rows' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Allocate, resolve, and follow shipments' })).toBeInTheDocument()
     await user.type(within(form).getByLabelText('Customer address'), 'Giza Customer')
     await user.clear(within(form).getByLabelText('Quantity'))
     await user.type(within(form).getByLabelText('Quantity'), '3')
@@ -583,6 +628,33 @@ describe('Merchant orders', () => {
     expect(screen.getByText('Unknown SKU for this merchant.')).toBeInTheDocument()
   })
 
+  it('shows resolved fulfillment exceptions as state instead of disabled action buttons', async () => {
+    apiMock.fulfillmentExceptions.mockResolvedValue([
+      {
+        id: 'exception-resolved',
+        allocationId: 'allocation-1',
+        orderId: 'order-1',
+        merchantId: 'merchant-tenant',
+        merchantName: 'Merchant Tenant',
+        warehouseProviderId: 'warehouse-tenant',
+        warehouseProviderName: 'FedEx Cairo',
+        reasonCode: 'SHORT_PICK',
+        description: 'Short pick was already reviewed.',
+        resolutionNote: 'Merchant accepted split shipment.',
+        status: 'RESOLVED',
+        createdAt: '2026-05-17T00:00:00Z',
+        resolvedAt: '2026-05-17T00:05:00Z',
+      },
+    ])
+
+    renderWithAuth(<MerchantOrdersPage />)
+
+    const row = await screen.findByRole('row', { name: /Short pick was already reviewed/i })
+    expect(within(row).getByText('Resolved')).toHaveClass('data-chip')
+    expect(within(row).queryByRole('button', { name: 'Resolved' })).not.toBeInTheDocument()
+    expect(within(row).queryByRole('button', { name: 'Resolve and notify-ready' })).not.toBeInTheDocument()
+  })
+
   it('disables order creation when no inventory items exist', async () => {
     apiMock.inventoryItems.mockResolvedValue([])
     apiMock.orders.mockResolvedValue([])
@@ -590,6 +662,7 @@ describe('Merchant orders', () => {
 
     const form = await screen.findByRole('form', { name: 'Create order form' })
 
+    expect(within(form).getByText('Create a stock item before creating an order.')).toBeInTheDocument()
     expect(within(form).getByRole('button', { name: 'Create order' })).toBeDisabled()
   })
 

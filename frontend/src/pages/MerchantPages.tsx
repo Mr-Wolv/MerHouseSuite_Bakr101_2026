@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import type {
@@ -19,8 +19,11 @@ import type {
 } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
+import { shortId } from '../components/format'
 import { Metric } from '../components/Metric'
+import { FirstRunChecklist, GuidancePanel, PageHeading, QuantityCell, WorkflowDivider } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
+import { AttentionQueue } from '../components/AttentionQueue'
 
 type MerchantData = {
   items: InventoryItem[]
@@ -64,10 +67,15 @@ export function MerchantOverviewPage() {
 
   return (
     <div className="page-stack">
-      <PageHeading title="Merchant Overview" subtitle="Inventory and order activity for the current merchant tenant." />
-      <GuidancePanel title="Merchant operations scan">
-        Watch stock risk, open exceptions, and backordered units first. The order queue below keeps allocations, backorders, and shipment evidence together for daily triage.
+      <PageHeading title="Merchant Overview" subtitle="Watch stock risk, backorders, and exceptions before opening the queue." />
+      <GuidancePanel title="Start with risk">
+        Open Orders when risk rises; use Stock when a prerequisite is missing.
       </GuidancePanel>
+      <AttentionQueue
+        signals={data.dashboard?.attentionSignals ?? []}
+        description="Backorders, inbound blockers, and fulfillment exceptions appear here before order history."
+        emptyLabel="No merchant blockers are active"
+      />
       <div className="metric-grid">
         <Metric label="Inventory items" value={data.items.length} />
         <Metric label="Orders" value={data.orders.length} />
@@ -88,7 +96,7 @@ export function MerchantOverviewPage() {
             ))}
           </div>
         ) : (
-          <EmptyState label="No orders yet" guidance="Create an order once inventory and warehouse relationships are ready. Backorders, allocations, and shipment evidence will stay connected here." />
+          <EmptyState label="No orders yet" guidance="Create the first order once a SKU and active warehouse partner are ready." />
         )}
       </section>
       <RecentShipmentsPanel shipments={recentShipments} />
@@ -168,13 +176,19 @@ export function MerchantInventoryPage() {
   const selectedWarehouse = inboundWarehouseOptions.find((option) => option.warehouseId === warehouseId)
   const warehouseMatchesRelationship = Boolean(selectedRelationship && selectedWarehouse)
   const canCreateInbound = activeRelationships.length > 0 && items.length > 0 && Boolean(inventoryItemId) && warehouseMatchesRelationship
-  const inboundReadinessMessage = !activeRelationships.length
+  const inboundBlocker = !activeRelationships.length
     ? 'Create or activate a warehouse relationship before submitting inbound stock.'
     : !items.length
       ? 'Create an inventory item before submitting inbound stock.'
       : !inboundWarehouseOptions.length
         ? 'The selected relationship has no warehouse available for inbound stock.'
-        : 'Warehouses are limited to the selected active service relationship.'
+        : !warehouseMatchesRelationship
+          ? 'Choose a warehouse that belongs to the selected active service relationship.'
+          : ''
+  const inboundReadinessMessage = inboundBlocker || 'Ready to send stock to the selected warehouse.'
+  const providerBlocker = providerOptions.length === 0
+    ? 'No warehouse providers are available yet. Ask a platform admin to create a warehouse provider first.'
+    : ''
 
   function handleRelationshipChange(nextRelationshipId: string) {
     const nextRelationship = relationships.find((relationship) => relationship.id === nextRelationshipId)
@@ -302,10 +316,19 @@ export function MerchantInventoryPage() {
 
   return (
     <div className="page-stack">
-      <PageHeading title="Inventory" subtitle="Create and review items owned by your merchant tenant." />
+      <PageHeading title="Inventory" subtitle="Create SKUs, connect warehouse partners, and send inbound stock." />
       <GuidancePanel title="Inventory and inbound readiness">
-        Inbound stock is tied to active warehouse relationships. The selected relationship controls which target warehouses are available for receiving.
+        Use the setup path below. Submit inbound only when a SKU and active partner are ready.
       </GuidancePanel>
+      <FirstRunChecklist
+        title="Merchant setup path"
+        items={[
+          { label: 'Create a SKU', done: items.length > 0, detail: 'Start with the item the warehouse will receive or allocate.' },
+          { label: 'Connect a warehouse partner', done: activeRelationships.length > 0, detail: 'Request service, then wait for activation before inbound stock can move.' },
+          { label: 'Send inbound stock', done: inboundRequests.length > 0, detail: 'Submit stock against an active relationship and target warehouse.' },
+          { label: 'Create the first order', done: authorizedStock.some((row) => row.availableQuantity > 0), detail: 'Orders allocate cleanly after stock is available in a connected warehouse.' },
+        ]}
+      />
       <div className="metric-grid">
         <Metric label="Service providers" value={relationships.length} />
         <Metric label="Active relationships" value={activeRelationships.length} />
@@ -314,6 +337,11 @@ export function MerchantInventoryPage() {
         <Metric label="Items" value={items.length} />
       </div>
       {error ? <div className="inline-error">{error}</div> : null}
+      <WorkflowDivider
+        eyebrow="Setup workflow"
+        title="Create and connect"
+        description="Work top to bottom: create the SKU, request warehouse service, then send stock only after the relationship is active."
+      />
       <form aria-label="Create inventory item form" className="panel-form" onSubmit={handleCreateItem}>
         <h2>Create Item</h2>
         <div className="form-grid">
@@ -332,6 +360,7 @@ export function MerchantInventoryPage() {
       </form>
       <form aria-label="Request warehouse service form" className="panel-form" onSubmit={handleRequestRelationship}>
         <h2>Request Warehouse Service</h2>
+        {providerBlocker ? <p className="field-help prerequisite-help">{providerBlocker}</p> : null}
         <div className="form-grid">
           <label htmlFor="merchant-service-provider">
             <span>Warehouse provider</span>
@@ -353,7 +382,7 @@ export function MerchantInventoryPage() {
             <input id="merchant-service-notes" value={relationshipNote} onChange={(event) => setRelationshipNote(event.target.value)} />
           </label>
         </div>
-        <button className="primary-button fit-button" type="submit" disabled={submitting || providerOptions.length === 0}>
+        <button className="primary-button fit-button" type="submit" disabled={submitting || providerOptions.length === 0} title={providerBlocker || undefined}>
           Request service
         </button>
       </form>
@@ -416,19 +445,26 @@ export function MerchantInventoryPage() {
           </label>
         </div>
         <div className="form-actions">
+          {inboundBlocker ? <p className="field-help prerequisite-help">{inboundBlocker}</p> : null}
           <button
             className="secondary-button fit-button"
             type="button"
             disabled={submitting || !canCreateInbound}
+            title={inboundBlocker || undefined}
             onClick={() => void createInboundRequest('draft')}
           >
             Save draft
           </button>
-          <button className="primary-button fit-button" type="submit" disabled={submitting || !canCreateInbound}>
+          <button className="primary-button fit-button" type="submit" disabled={submitting || !canCreateInbound} title={inboundBlocker || undefined}>
             Submit inbound
           </button>
         </div>
       </form>
+      <WorkflowDivider
+        eyebrow="Operational records"
+        title="Review stock and history"
+        description="Use these records to confirm partner access, warehouse quantities, inbound progress, and archived item state."
+      />
       <RelationshipsTable relationships={relationships} />
       <AuthorizedStockTable stockRows={authorizedStock} />
       <InboundRequestsTable
@@ -631,16 +667,27 @@ export function MerchantOrdersPage() {
   if (error) return <ErrorState title={error} />
   if (!data) return <EmptyState label="No merchant orders available" guidance="Add inventory, confirm stock availability, then create the first customer order from this page." />
 
+  const createOrderBlocker = data.items.length === 0 ? 'Create a stock item before creating an order.' : ''
+  const canAddDraftLine = Boolean(inventoryItemId) && quantity >= 1
+  const canSaveContact = Boolean(customerAddress && contactLabel && contactName)
+  const canImportRows = Boolean(csvText.trim()) && !submitting
+
   return (
     <div className="page-stack">
       <PageHeading title="Orders" subtitle="Create orders, allocate available stock, and monitor backorders." />
       <GuidancePanel title="Order queue controls">
-        Allocate newly created orders when stock is ready. Backordered lines stay visible on the order card until they are fulfilled or cancelled.
+        Add the customer order, then allocate. Backorders stay on the order card until resolved.
       </GuidancePanel>
       {actionError ? <div className="inline-error">{actionError}</div> : null}
       {actionMessage ? <div className="inline-success">{actionMessage}</div> : null}
+      <WorkflowDivider
+        eyebrow="Order setup"
+        title="Create customer demand"
+        description="Start with one customer order or build draft lines when a shipment needs multiple SKUs."
+      />
       <form aria-label="Create order form" className="panel-form" onSubmit={handleCreateOrder}>
         <h2>Create Order</h2>
+        {createOrderBlocker ? <p className="field-help prerequisite-help">{createOrderBlocker}</p> : null}
         <div className="form-grid">
           <label htmlFor="merchant-order-item">
             <span>Item</span>
@@ -692,12 +739,20 @@ export function MerchantOrdersPage() {
           </label>
         </div>
         <div className="table-actions">
-          <button className="secondary-button fit-button" type="button" disabled={!inventoryItemId || quantity < 1} onClick={addDraftLine}>
-            Add line
-          </button>
-          <button className="secondary-button fit-button" type="button" disabled={!customerAddress || !contactLabel || !contactName} onClick={() => void createContact()}>
-            Save contact
-          </button>
+          {canAddDraftLine ? (
+            <button className="secondary-button fit-button" type="button" onClick={addDraftLine}>
+              Add line
+            </button>
+          ) : (
+            <span className="data-chip warning-chip">Choose an item and quantity before adding a line.</span>
+          )}
+          {canSaveContact ? (
+            <button className="secondary-button fit-button" type="button" onClick={() => void createContact()}>
+              Save contact
+            </button>
+          ) : (
+            <span className="data-chip warning-chip">Address, label, and contact name save a reusable contact.</span>
+          )}
         </div>
         {draftItems.length ? (
           <div className="status-row" aria-label="Draft order lines">
@@ -714,10 +769,15 @@ export function MerchantOrdersPage() {
             })}
           </div>
         ) : null}
-        <button className="primary-button fit-button" type="submit" disabled={submitting || data.items.length === 0}>
+        <button className="primary-button fit-button" type="submit" disabled={submitting || data.items.length === 0} title={createOrderBlocker || undefined}>
           {submitting ? 'Creating' : 'Create order'}
         </button>
       </form>
+      <WorkflowDivider
+        eyebrow="Bulk intake"
+        title="Audit imported rows"
+        description="Paste order rows when the merchant queue needs bulk intake, then review accepted and rejected rows before allocation."
+      />
       <section className="table-section">
         <h2>Audited Order Import</h2>
         <div className="panel-form">
@@ -730,9 +790,13 @@ export function MerchantOrdersPage() {
               placeholder="Customer address,SKU,Quantity,Customer name,Customer phone"
             />
           </label>
-          <button className="secondary-button fit-button" type="button" disabled={!csvText.trim() || submitting} onClick={() => void importCsvOrders()}>
-            {submitting ? 'Submitting import' : 'Submit import batch'}
-          </button>
+          {canImportRows ? (
+            <button className="secondary-button fit-button" type="button" onClick={() => void importCsvOrders()}>
+              Submit import batch
+            </button>
+          ) : (
+            <span className="data-chip warning-chip">Paste one or more rows to submit an import batch.</span>
+          )}
         </div>
         {importBatches.length ? (
           <div className="table-wrap">
@@ -766,9 +830,14 @@ export function MerchantOrdersPage() {
             </table>
           </div>
         ) : (
-          <EmptyState label="No audited import batches yet" guidance="Submit an import batch when you need order intake evidence and validation feedback." />
+          <EmptyState label="No audited import batches yet" guidance="Submit an import batch for bulk order intake and validation feedback." />
         )}
       </section>
+      <WorkflowDivider
+        eyebrow="Active work"
+        title="Allocate, resolve, and follow shipments"
+        description="Filter the queue, resolve merchant-facing exceptions, and use shipment evidence to confirm warehouse handoffs."
+      />
       <div className="filter-row">
         <label htmlFor="merchant-order-status-filter">
           <span>Status</span>
@@ -798,7 +867,7 @@ export function MerchantOrdersPage() {
 
 function RecentShipmentsPanel({ shipments }: { shipments: Shipment[] }) {
   if (!shipments.length) {
-    return <EmptyState label="No recent shipments yet" guidance="Shipments appear after warehouse teams pick, pack, and hand off allocated orders." />
+    return <EmptyState label="No recent shipments yet" guidance="Shipments appear after warehouse teams hand off allocated orders." />
   }
 
   return (
@@ -836,7 +905,7 @@ function RecentShipmentsPanel({ shipments }: { shipments: Shipment[] }) {
 
 function InventoryTable({ items, onToggleArchive }: { items: InventoryItem[], onToggleArchive: (item: InventoryItem) => void }) {
   if (!items.length) {
-    return <EmptyState label="No inventory items yet" guidance="Create your first SKU, then connect it to inbound stock and warehouse relationships so orders can allocate cleanly." />
+    return <EmptyState label="No inventory items yet" guidance="Create your first SKU, then connect it to inbound stock and orders." />
   }
 
   return (
@@ -911,9 +980,13 @@ function MerchantExceptionsTable({
                   <td>{exception.description}</td>
                   <td><StatusBadge value={exception.status} /></td>
                   <td>
-                    <button className="table-button" type="button" disabled={!open} onClick={() => onResolve(exception.id)}>
-                      {open ? 'Resolve and notify-ready' : 'Resolved'}
-                    </button>
+                    {open ? (
+                      <button className="table-button" type="button" onClick={() => onResolve(exception.id)}>
+                        Resolve and notify-ready
+                      </button>
+                    ) : (
+                      <span className="data-chip">Resolved</span>
+                    )}
                   </td>
                 </tr>
               )
@@ -927,7 +1000,7 @@ function MerchantExceptionsTable({
 
 function RelationshipsTable({ relationships }: { relationships: MerchantWarehouseRelationship[] }) {
   if (!relationships.length) {
-    return <EmptyState label="No warehouse service relationships yet" guidance="Request or activate a warehouse relationship before sending inbound stock or routing fulfillment work." />
+    return <EmptyState label="No warehouse service relationships yet" guidance="Request or activate a warehouse partner before sending stock or routing fulfillment." />
   }
 
   return (
@@ -963,7 +1036,7 @@ function RelationshipsTable({ relationships }: { relationships: MerchantWarehous
 
 function AuthorizedStockTable({ stockRows }: { stockRows: MerchantAuthorizedStock[] }) {
   if (!stockRows.length) {
-    return <EmptyState label="No authorized warehouse stock yet" guidance="Authorized stock appears after inventory is received into a warehouse connected to this merchant." />
+    return <EmptyState label="No authorized warehouse stock yet" guidance="Authorized stock appears after a connected warehouse receives inventory." />
   }
 
   return (
@@ -1009,7 +1082,7 @@ function InboundRequestsTable({
   onCancel: (request: InboundStockRequest) => void
 }) {
   if (!requests.length) {
-    return <EmptyState label="No inbound stock requests yet" guidance="Create inbound stock once a warehouse relationship is active and the SKU is ready to receive." />
+    return <EmptyState label="No inbound stock requests yet" guidance="Create inbound stock once an active partner and SKU are ready." />
   }
 
   return (
@@ -1033,7 +1106,7 @@ function InboundRequestsTable({
             {requests.map((request) => {
               const canSubmit = request.status === 'DRAFT'
               const canCancel = request.status === 'DRAFT' || request.status === 'SUBMITTED' || request.status === 'APPROVED'
-              const submitLabel = request.status === 'DRAFT' ? 'Submit draft' : inboundClosedLabel(request.status)
+              const hasAction = canSubmit || canCancel
               return (
                 <tr key={request.id}>
                   <td>
@@ -1049,12 +1122,17 @@ function InboundRequestsTable({
                   <td><StatusBadge value={request.status} /></td>
                   <td>
                     <div className="table-actions">
-                      <button className="table-button" type="button" disabled={!canSubmit} onClick={() => onSubmit(request)}>
-                        {submitLabel}
-                      </button>
-                      <button className="table-button warning-button" type="button" disabled={!canCancel} onClick={() => onCancel(request)}>
-                        {canCancel ? 'Cancel inbound' : 'Closed'}
-                      </button>
+                      {canSubmit ? (
+                        <button className="table-button" type="button" onClick={() => onSubmit(request)}>
+                          Submit draft
+                        </button>
+                      ) : null}
+                      {canCancel ? (
+                        <button className="table-button warning-button" type="button" onClick={() => onCancel(request)}>
+                          Cancel inbound
+                        </button>
+                      ) : null}
+                      {!hasAction ? <span className="data-chip">{inboundClosedLabel(request.status)}</span> : null}
                     </div>
                   </td>
                 </tr>
@@ -1079,7 +1157,7 @@ function OrdersTable({
   onBackorder?: (orderId: string, backorderId: string, nextStatus: BackorderStatus) => void
 }) {
   if (!orders.length) {
-    return <EmptyState label="No orders yet" guidance="Create the first order to begin allocation, backorder, fulfillment, and shipment tracking." />
+    return <EmptyState label="No orders yet" guidance="Create the first order once inventory can allocate." />
   }
 
   return (
@@ -1184,44 +1262,18 @@ function OrdersTable({
   )
 }
 
-function PageHeading({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div className="page-heading">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-    </div>
-  )
-}
-
-function GuidancePanel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <aside className="admin-guidance-panel" aria-label={title}>
-      <strong>{title}</strong>
-      <p>{children}</p>
-    </aside>
-  )
-}
-
-function QuantityCell({ value, tone = 'neutral' }: { value: number; tone?: 'neutral' | 'ready' | 'pending' | 'risk' }) {
-  return <span className={`quantity-cell quantity-${tone}`}>{value}</span>
-}
-
-function shortId(id: string) {
-  return id.slice(0, 8)
-}
-
 function inboundClosedLabel(status: InboundStockRequest['status']) {
   switch (status) {
     case 'SUBMITTED':
-      return 'Submitted'
+      return 'Submitted to warehouse'
     case 'APPROVED':
-      return 'Approved'
+      return 'Warehouse approved'
     case 'RECEIVING':
-      return 'Receiving'
+      return 'Receiving in progress'
     case 'RECEIVED':
-      return 'Received'
+      return 'Received by warehouse'
     case 'REJECTED':
-      return 'Rejected'
+      return 'Rejected by warehouse'
     case 'CANCELLED':
       return 'Cancelled'
     default:

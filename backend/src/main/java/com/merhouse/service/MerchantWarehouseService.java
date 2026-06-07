@@ -44,6 +44,7 @@ public class MerchantWarehouseService {
     private final InboundStockRequestRepository inboundRepository;
     private final OutboxService outboxService;
     private final CurrentUserService currentUserService;
+    private final OperationsAlertService operationsAlertService;
 
     public MerchantWarehouseService(
         TenantService tenantService,
@@ -54,7 +55,8 @@ public class MerchantWarehouseService {
         MerchantWarehouseRelationshipRepository relationshipRepository,
         InboundStockRequestRepository inboundRepository,
         OutboxService outboxService,
-        CurrentUserService currentUserService
+        CurrentUserService currentUserService,
+        OperationsAlertService operationsAlertService
     ) {
         this.tenantService = tenantService;
         this.warehouseService = warehouseService;
@@ -65,6 +67,7 @@ public class MerchantWarehouseService {
         this.inboundRepository = inboundRepository;
         this.outboxService = outboxService;
         this.currentUserService = currentUserService;
+        this.operationsAlertService = operationsAlertService;
     }
 
     @Transactional(readOnly = true)
@@ -116,6 +119,21 @@ public class MerchantWarehouseService {
                 "merchantId", merchant.getId().toString(),
                 "warehouseProviderId", warehouseProvider.getId().toString()
             )
+        );
+        operationsAlertService.recordWarehouseProviderAlert(
+            warehouseProvider.getId(),
+            "Warehouse service requested",
+            merchant.getName() + " requested warehouse service from " + warehouseProvider.getName()
+                + ". Review the relationship before inbound work can start.",
+            "MerchantWarehouseRelationship",
+            saved.getId()
+        );
+        operationsAlertService.recordPlatformAlert(
+            "Relationship request ready",
+            merchant.getName() + " requested service from " + warehouseProvider.getName()
+                + ". Platform governance can review the relationship record.",
+            "MerchantWarehouseRelationship",
+            saved.getId()
         );
         return MerchantWarehouseRelationshipResponse.from(saved);
     }
@@ -206,6 +224,14 @@ public class MerchantWarehouseService {
             "MerchantWarehouseRelationship",
             saved.getId(),
             Map.of("relationshipId", saved.getId().toString())
+        );
+        operationsAlertService.recordMerchantAlert(
+            relationship.getMerchant().getId(),
+            "Warehouse service active",
+            relationship.getWarehouseProvider().getName() + " activated service for " + relationship.getMerchant().getName()
+                + ". You can now submit inbound stock and allocate warehouse work.",
+            "MerchantWarehouseRelationship",
+            saved.getId()
         );
         return MerchantWarehouseRelationshipResponse.from(saved);
     }
@@ -331,6 +357,17 @@ public class MerchantWarehouseService {
                 "status", status.name()
             )
         );
+        if (status == InboundStockRequestStatus.SUBMITTED) {
+            operationsAlertService.recordWarehouseProviderAlert(
+                relationship.getWarehouseProvider().getId(),
+                "Inbound stock needs review",
+                relationship.getMerchant().getName() + " submitted " + request.requestedQuantity()
+                    + " units of " + item.getSku() + " to " + warehouse.getName()
+                    + ". Approve the inbound request to start receiving.",
+                "InboundStockRequest",
+                saved.getId()
+            );
+        }
         return InboundStockRequestResponse.from(saved);
     }
 
@@ -370,6 +407,15 @@ public class MerchantWarehouseService {
             saved.getId(),
             Map.of("inboundStockRequestId", saved.getId().toString())
         );
+        operationsAlertService.recordWarehouseProviderAlert(
+            inbound.getWarehouseProvider().getId(),
+            "Inbound stock needs review",
+            inbound.getMerchant().getName() + " submitted " + inbound.getRequestedQuantity()
+                + " units of " + inbound.getInventoryItem().getSku() + " to " + inbound.getWarehouse().getName()
+                + ". Approve the inbound request to start receiving.",
+            "InboundStockRequest",
+            saved.getId()
+        );
         return InboundStockRequestResponse.from(saved);
     }
 
@@ -388,6 +434,15 @@ public class MerchantWarehouseService {
             "InboundStockRequest",
             saved.getId(),
             Map.of("inboundStockRequestId", saved.getId().toString())
+        );
+        operationsAlertService.recordMerchantAlert(
+            inbound.getMerchant().getId(),
+            "Inbound stock approved",
+            inbound.getWarehouseProvider().getName() + " approved " + inbound.getRequestedQuantity()
+                + " units of " + inbound.getInventoryItem().getSku() + " for receiving at "
+                + inbound.getWarehouse().getName() + ".",
+            "InboundStockRequest",
+            saved.getId()
         );
         return InboundStockRequestResponse.from(saved);
     }
@@ -410,6 +465,14 @@ public class MerchantWarehouseService {
             saved.getId(),
             Map.of("inboundStockRequestId", saved.getId().toString())
         );
+        operationsAlertService.recordWarehouseProviderAlert(
+            inbound.getWarehouseProvider().getId(),
+            "Inbound stock cancelled",
+            inbound.getMerchant().getName() + " cancelled the inbound request for "
+                + inbound.getInventoryItem().getSku() + ". No warehouse receiving action is needed.",
+            "InboundStockRequest",
+            saved.getId()
+        );
         return InboundStockRequestResponse.from(saved);
     }
 
@@ -428,6 +491,14 @@ public class MerchantWarehouseService {
             "InboundStockRequest",
             saved.getId(),
             Map.of("inboundStockRequestId", saved.getId().toString())
+        );
+        operationsAlertService.recordMerchantAlert(
+            inbound.getMerchant().getId(),
+            "Inbound receiving started",
+            inbound.getWarehouseProvider().getName() + " started receiving " + inbound.getInventoryItem().getSku()
+                + " at " + inbound.getWarehouse().getName() + ".",
+            "InboundStockRequest",
+            saved.getId()
         );
         return InboundStockRequestResponse.from(saved);
     }
@@ -467,6 +538,15 @@ public class MerchantWarehouseService {
                 "damagedQuantity", request.damagedQuantity()
             )
         );
+        operationsAlertService.recordMerchantAlert(
+            inbound.getMerchant().getId(),
+            "Inbound stock received",
+            inbound.getWarehouseProvider().getName() + " received " + request.receivedQuantity()
+                + " units of " + inbound.getInventoryItem().getSku() + " at " + inbound.getWarehouse().getName()
+                + damagedText(request.damagedQuantity()) + ".",
+            "InboundStockRequest",
+            saved.getId()
+        );
         return InboundStockRequestResponse.from(saved);
     }
 
@@ -488,6 +568,14 @@ public class MerchantWarehouseService {
             "InboundStockRequest",
             saved.getId(),
             Map.of("inboundStockRequestId", saved.getId().toString())
+        );
+        operationsAlertService.recordMerchantAlert(
+            inbound.getMerchant().getId(),
+            "Inbound stock rejected",
+            inbound.getWarehouseProvider().getName() + " rejected the inbound request for "
+                + inbound.getInventoryItem().getSku() + ": " + request.rejectionReason().trim(),
+            "InboundStockRequest",
+            saved.getId()
         );
         return InboundStockRequestResponse.from(saved);
     }
@@ -552,6 +640,13 @@ public class MerchantWarehouseService {
             return null;
         }
         return value.trim();
+    }
+
+    private String damagedText(int damagedQuantity) {
+        if (damagedQuantity <= 0) {
+            return "";
+        }
+        return " with " + damagedQuantity + " damaged";
     }
 
     private record StockKey(UUID relationshipId, UUID warehouseId, UUID inventoryItemId) {

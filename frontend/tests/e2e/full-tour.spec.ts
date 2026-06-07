@@ -42,10 +42,18 @@ type ApiEntity = {
   [key: string]: unknown
 }
 
-const baseAccounts: Record<'owner' | 'merchant' | 'warehouse', Account> = {
+const baseAccounts: Record<'owner' | 'supportAdmin' | 'auditor' | 'merchant' | 'warehouse', Account> = {
   owner: {
     email: process.env.FRONTEND_TOUR_ADMIN_EMAIL ?? 'admin@merhouse.local',
     password: process.env.FRONTEND_TOUR_ADMIN_PASSWORD ?? 'local-owner-password',
+  },
+  supportAdmin: {
+    email: process.env.FRONTEND_TOUR_SUPPORT_ADMIN_EMAIL ?? '',
+    password: process.env.FRONTEND_TOUR_SUPPORT_ADMIN_PASSWORD ?? '',
+  },
+  auditor: {
+    email: process.env.FRONTEND_TOUR_AUDITOR_EMAIL ?? '',
+    password: process.env.FRONTEND_TOUR_AUDITOR_PASSWORD ?? '',
   },
   merchant: {
     email: process.env.FRONTEND_TOUR_MERCHANT_EMAIL ?? 'review.merchant@merhouse.local',
@@ -70,6 +78,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/service-accountability',
     '/assistant',
     '/notifications',
+    '/account',
   ],
   admin: [
     '/admin',
@@ -82,6 +91,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/service-accountability',
     '/assistant',
     '/notifications',
+    '/account',
   ],
   supportAdmin: [
     '/admin',
@@ -93,6 +103,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/service-accountability',
     '/assistant',
     '/notifications',
+    '/account',
   ],
   auditor: [
     '/admin',
@@ -102,9 +113,10 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/service-accountability',
     '/assistant',
     '/notifications',
+    '/account',
   ],
-  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/assistant', '/notifications'],
-  warehouse: ['/warehouse', '/service-accountability', '/assistant', '/notifications'],
+  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/assistant', '/notifications', '/account'],
+  warehouse: ['/warehouse', '/service-accountability', '/assistant', '/notifications', '/account'],
 }
 
 const viewports = {
@@ -269,8 +281,12 @@ async function createPlatformHierarchyFixture(request: APIRequestContext) {
     accounts: {
       owner: baseAccounts.owner,
       admin: await makeAccount('ADMIN'),
-      supportAdmin: await makeAccount('SUPPORT_ADMIN'),
-      auditor: await makeAccount('AUDITOR'),
+      supportAdmin: baseAccounts.supportAdmin.email && baseAccounts.supportAdmin.password
+        ? baseAccounts.supportAdmin
+        : await makeAccount('SUPPORT_ADMIN'),
+      auditor: baseAccounts.auditor.email && baseAccounts.auditor.password
+        ? baseAccounts.auditor
+        : await makeAccount('AUDITOR'),
       merchant: baseAccounts.merchant,
       warehouse: baseAccounts.warehouse,
     } satisfies Record<AuthenticatedRole, Account>,
@@ -565,21 +581,25 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   )
   await supportPage.goto(`${APP_URL}/admin/users`, { waitUntil: 'networkidle' })
   await expect(supportPage.getByRole('heading', { name: 'Users' })).toBeVisible()
-  await expect(supportPage.getByRole('link', { name: 'Tenants' })).toHaveCount(0)
-  await expect(supportPage.getByRole('button', { name: 'Owner/admin only' })).toBeDisabled()
+  await expect(supportPage.getByRole('link', { name: 'Organizations' })).toHaveCount(0)
+  await expect(supportPage.getByText('Owner/admin account creation')).toBeVisible()
   await supportPage.getByLabel('Email search').fill(hierarchy.ordinaryMerchant.email)
   const ordinaryUserRow = supportPage.locator('tr').filter({ hasText: hierarchy.ordinaryMerchant.email }).first()
   await expect(ordinaryUserRow).toBeVisible()
-  await expect(ordinaryUserRow.getByRole('button', { name: 'Disable' })).toBeDisabled()
+  await expect(ordinaryUserRow.getByText('Owner/admin action')).toBeVisible()
+  await expect(ordinaryUserRow.getByRole('button', { name: 'Disable' })).toHaveCount(0)
   await supportPage.getByLabel('Temporary reset password').fill('support-reset-password')
   await ordinaryUserRow.getByRole('button', { name: 'Reset' }).click()
   await expect(supportPage.locator('.inline-error')).toHaveCount(0)
-  records.push({ role: 'supportAdmin', action: 'reset ordinary user while account mutation stayed disabled' })
+  records.push({ role: 'supportAdmin', action: 'reset ordinary user while account mutation ownership stayed explicit' })
 
   await supportPage.goto(`${APP_URL}/admin/access-requests`, { waitUntil: 'networkidle' })
   await expect(supportPage.getByRole('heading', { name: 'Access Requests' })).toBeVisible()
   await expect(supportPage.getByText(`Hierarchy Access ${hierarchy.suffix}`)).toBeVisible()
-  await expect(supportPage.getByRole('button', { name: 'Owner/admin only' }).first()).toBeDisabled()
+  await expect(supportPage.getByText('Review and escalate').first()).toBeVisible()
+  await expect(supportPage.getByRole('button', { name: 'Approve' })).toHaveCount(0)
+  await expect(supportPage.getByRole('button', { name: 'Reject' })).toHaveCount(0)
+  await expect(supportPage.getByRole('button', { name: 'Convert' })).toHaveCount(0)
   records.push({ role: 'supportAdmin', action: 'viewed access queue without approval power' })
   await supportContext.close()
 
@@ -590,14 +610,16 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   )
   await auditorPage.goto(`${APP_URL}/admin/audit`, { waitUntil: 'networkidle' })
   await expect(auditorPage.getByRole('heading', { name: 'Admin Audit' })).toBeVisible()
-  await expect(auditorPage.getByRole('link', { name: 'Tenants' })).toHaveCount(0)
-  await expect(auditorPage.getByRole('link', { name: 'Users' })).toHaveCount(0)
-  await expect(auditorPage.getByRole('link', { name: 'Access' })).toHaveCount(0)
+  await expect(auditorPage.getByRole('link', { name: 'Organizations' })).toHaveCount(0)
+  await expect(auditorPage.getByRole('link', { name: 'Accounts' })).toHaveCount(0)
+  await expect(auditorPage.getByRole('link', { name: 'Access requests' })).toHaveCount(0)
   await auditorPage.goto(`${APP_URL}/assistant`, { waitUntil: 'networkidle' })
-  await expect(auditorPage.getByRole('heading', { name: 'Assistant' })).toBeVisible()
-  await auditorPage.getByLabel('Prompt').fill('What should I review next?')
+  await expect(auditorPage.getByRole('heading', { name: 'Operational Review Assistant' })).toBeVisible()
+  const auditorPrompt = `What should I review next for hierarchy ${hierarchy.suffix}?`
+  await auditorPage.getByLabel('Prompt').fill(auditorPrompt)
   await auditorPage.getByRole('button', { name: 'Run assistant' }).click()
-  await expect(auditorPage.getByText(/Suggested next step/)).toBeVisible()
+  const latestAssistantRecord = auditorPage.locator('article').filter({ hasText: auditorPrompt }).first()
+  await expect(latestAssistantRecord).toContainText(/Suggested next step/)
   await expect(auditorPage.getByRole('button', { name: 'Accept suggestion' })).toHaveCount(0)
   await expect(auditorPage.getByRole('button', { name: 'Reject suggestion' })).toHaveCount(0)
   await auditorPage.goto(`${APP_URL}/admin/audit`, { waitUntil: 'networkidle' })
@@ -606,7 +628,9 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   await auditorPage.goto(`${APP_URL}/admin/users`, { waitUntil: 'networkidle' })
   await expect(auditorPage.getByRole('heading', { name: 'Admin Overview' })).toBeVisible()
   await auditorPage.goto(`${APP_URL}/admin/outbox`, { waitUntil: 'networkidle' })
-  await expect(auditorPage.getByRole('button', { name: 'Owner/admin only' })).toBeDisabled()
+  await expect(auditorPage.getByText('Read-only diagnostics').first()).toBeVisible()
+  await expect(auditorPage.getByRole('button', { name: 'Retry' })).toHaveCount(0)
+  await expect(auditorPage.getByRole('button', { name: 'Dead-letter' })).toHaveCount(0)
   records.push({ role: 'auditor', action: 'reviewed assistant audit records without suggestion decision controls' })
   await auditorContext.close()
 
@@ -729,7 +753,8 @@ test('notification preferences change visible delivery state across merchant and
     email: fixture.merchantAccount.email,
   })
   await merchantPage.reload({ waitUntil: 'domcontentloaded' })
-  await expect(merchantPage.getByText('2 local records')).toBeVisible()
+  await expect(merchantPage.getByText('1 active')).toBeVisible()
+  await expect(merchantPage.getByText('1 records')).toBeVisible()
   await expect(merchantPage.getByText('Skipped by preference', { exact: true })).toBeVisible()
   await expect(merchantPage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
   await expect(merchantPage.locator('[aria-label="2 unread alerts"]')).toHaveCount(0)
@@ -741,7 +766,7 @@ test('notification preferences change visible delivery state across merchant and
   await expect(warehousePage.getByText('Password reset prepared')).toBeVisible()
   await expect(warehousePage.getByText('Local recorded')).toBeVisible()
   await expect(warehousePage.getByText('Channel recorded')).toBeVisible()
-  await expect(warehousePage.getByText('1 local records')).toBeVisible()
+  await expect(warehousePage.getByText('1 active')).toBeVisible()
   await expect(warehousePage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
 
   await merchantContext.close()
@@ -793,6 +818,11 @@ test('full frontend harmonic workflow proves admin merchant and warehouse cohere
   await inboundRow.getByRole('button', { name: 'Receive all' }).click()
   await expect(inboundRow).toContainText('RECEIVED')
   records.push({ actor: 'warehouse', action: 'approved and received inbound stock', quantity: 5 })
+  await warehousePage.goto(`${APP_URL}/notifications`, { waitUntil: 'networkidle' })
+  await expect(warehousePage.getByText('Inbound stock needs review')).toBeVisible()
+  await expect(warehousePage.getByText(new RegExp(`${fixture.merchant.name as string} submitted 5 units`))).toBeVisible()
+  await expect(warehousePage.locator('.data-chip').filter({ hasText: 'InboundStockRequest' }).first()).toBeVisible()
+  records.push({ actor: 'warehouse', action: 'saw connected inbound review alert' })
   await warehouseContext.close()
 
   const { context: merchantOrderContext, page: merchantOrderPage } = await newAuthedPageForAccount(
@@ -841,12 +871,17 @@ test('full frontend harmonic workflow proves admin merchant and warehouse cohere
   await expect(merchantProofPage.locator('.status-badge').filter({ hasText: 'PICKING' }).first()).toBeVisible()
   await expect(merchantProofPage.getByText('Allocation picking', { exact: true })).toBeVisible()
   records.push({ actor: 'merchant', action: 'observed warehouse picking status and timeline' })
+  await merchantProofPage.goto(`${APP_URL}/notifications`, { waitUntil: 'networkidle' })
+  await expect(merchantProofPage.getByText('Inbound stock received')).toBeVisible()
+  await expect(merchantProofPage.getByText(new RegExp(`${fixture.provider.name as string} received 5 units`))).toBeVisible()
+  await expect(merchantProofPage.locator('.data-chip').filter({ hasText: 'InboundStockRequest' }).first()).toBeVisible()
+  records.push({ actor: 'merchant', action: 'saw connected inbound received alert' })
   await merchantProofContext.close()
 
   const { context: adminContext, page: adminPage } = await newAuthedPageForAccount(browser, baseAccounts.owner, 'desktop')
   await adminPage.goto(`${APP_URL}/admin`, { waitUntil: 'networkidle' })
   await expect(adminPage.getByRole('heading', { name: 'Admin Overview' })).toBeVisible()
-  await expect(adminPage.getByText('Active relationships')).toBeVisible()
+  await expect(adminPage.getByText('Active relationships', { exact: true })).toBeVisible()
   await adminPage.goto(`${APP_URL}/admin/relationships`, { waitUntil: 'networkidle' })
   const relationshipRow = adminPage.locator('tr').filter({ hasText: fixture.merchant.name as string }).filter({
     hasText: fixture.provider.name as string,

@@ -30,4 +30,10 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
     long countByEnabledTrue();
 
     long countByTenantId(UUID tenantId);
+
+    @EntityGraph(attributePaths = "tenant")
+    List<AppUser> findByTenantIdAndRoleAndEnabledTrue(UUID tenantId, UserRole role);
+
+    @EntityGraph(attributePaths = "tenant")
+    List<AppUser> findByRoleInAndEnabledTrue(Iterable<UserRole> roles);
 }

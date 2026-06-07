@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -119,6 +120,16 @@ public class UserService {
         AppUser actor = getRequired(actorId);
         AppUser user = getRequired(id);
         ensureCanSupportTarget(actor, user);
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public AppUser changeOwnPassword(UUID actorId, String currentPassword, String newPassword) {
+        AppUser user = getRequired(actorId);
+        if (!user.isEnabled() || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new BadCredentialsException("Invalid current password.");
+        }
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         return userRepository.save(user);
     }

@@ -14,10 +14,12 @@ import {
 } from './pages/AdminPages'
 import { ForgotPasswordPage, RequestAccessPage, ResetPasswordPage } from './pages/AuthRecoveryPages'
 import { AssistantPage } from './pages/AssistantPage'
+import { AccountPage } from './pages/AccountPage'
 import { HomeRedirect } from './pages/HomeRedirect'
 import { LoginPage } from './pages/LoginPage'
 import { MerchantInventoryPage, MerchantOrdersPage, MerchantOverviewPage } from './pages/MerchantPages'
 import { NotificationCenterPage } from './pages/NotificationCenterPage'
+import { NotFoundPage, RouteErrorPage } from './pages/NotFoundPage'
 import { ServiceAccountabilityPage } from './pages/ServiceAccountabilityPage'
 import {
   FulfillmentAllocationDetailPage,
@@ -35,10 +37,13 @@ const router = createBrowserRouter([
   { path: '/reset-password', element: <ResetPasswordPage /> },
   { path: '/request-access', element: <RequestAccessPage /> },
   {
+    path: '/',
     element: <RequireAuth />,
+    errorElement: <RouteErrorPage />,
     children: [
       {
         element: <AppLayout />,
+        errorElement: <RouteErrorPage />,
         children: [
           { index: true, element: <HomeRedirect /> },
           {
@@ -81,6 +86,7 @@ const router = createBrowserRouter([
               { path: '/service-accountability', element: <ServiceAccountabilityPage /> },
               { path: '/assistant', element: <AssistantPage /> },
               { path: '/notifications', element: <NotificationCenterPage /> },
+              { path: '/account', element: <AccountPage /> },
               { path: '/orders/:orderId', element: <OrderDetailPage /> },
               { path: '/inbound-stock-requests/:inboundStockRequestId', element: <InboundStockRequestDetailPage /> },
               { path: '/shipments/:shipmentId', element: <ShipmentDetailPage /> },
@@ -94,6 +100,7 @@ const router = createBrowserRouter([
               { path: '/inventory/items/:inventoryItemId', element: <InventoryItemDetailPage /> },
             ],
           },
+          { path: '*', element: <NotFoundPage /> },
         ],
       },
     ],

@@ -1,28 +1,36 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent } from 'react'
 import { api, ApiError } from '../api/client'
 import type {
+  AttentionSignal,
   OrderImportBatch,
   ServiceAgreement,
   ServiceClaim,
   ServiceDispute,
+  MerchantWarehouseRelationship,
   ServiceReview,
+  ServiceScope,
   ServiceStatement,
   SlaStatus,
 } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
 import { Metric } from '../components/Metric'
+import { GuidancePanel, QuantityCell } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
+import { AttentionQueue } from '../components/AttentionQueue'
 
 type ServiceData = {
   agreements: ServiceAgreement[]
+  relationships: MerchantWarehouseRelationship[]
   statements: ServiceStatement[]
   disputes: ServiceDispute[]
   claims: ServiceClaim[]
   reviews: ServiceReview[]
   imports: OrderImportBatch[]
 }
+
+const defaultAgreementScopes: ServiceScope[] = ['INBOUND_RECEIVING', 'STORAGE', 'PICK_PACK', 'SHIPMENT_HANDOFF']
 
 export function ServiceAccountabilityPage() {
   const { token, user } = useAuth()
@@ -32,10 +40,17 @@ export function ServiceAccountabilityPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [agreementRelationshipId, setAgreementRelationshipId] = useState('')
+  const [agreementTitle, setAgreementTitle] = useState('Standard fulfillment terms')
+  const [agreementEffectiveDate, setAgreementEffectiveDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [agreementNotes, setAgreementNotes] = useState('Receiving, storage, pick-pack, and shipment handoff terms for connected fulfillment work.')
   const canUseOrderImport = user?.role === 'MERCHANT'
+  const canRequestReview = user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'MERCHANT' || user?.role === 'WAREHOUSE_OPERATOR'
+  const canDraftAgreement = user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'MERCHANT'
+  const canAcceptAgreement = user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'WAREHOUSE_OPERATOR'
 
   const activeAgreement = useMemo(() => (
-    data?.agreements.find((agreement) => agreement.status === 'ACTIVE') ?? data?.agreements[0]
+    data?.agreements.find((agreement) => agreement.status === 'ACTIVE') ?? null
   ), [data?.agreements])
 
   const load = useCallback(async () => {
@@ -44,8 +59,9 @@ export function ServiceAccountabilityPage() {
     setLoading(true)
     setError('')
     try {
-      const [agreements, statements, disputes, claims, reviews, imports] = await Promise.all([
+      const [agreements, relationships, statements, disputes, claims, reviews, imports] = await Promise.all([
         api.serviceAgreements(token),
+        api.merchantWarehouseRelationships(token),
         api.serviceStatements(token),
         api.serviceDisputes(token),
         api.serviceClaims(token),
@@ -54,7 +70,8 @@ export function ServiceAccountabilityPage() {
       ])
       const nextActiveAgreement = agreements.find((agreement) => agreement.status === 'ACTIVE') ?? agreements[0]
       const nextSlaStatuses = nextActiveAgreement ? await api.serviceSlaStatuses(token, nextActiveAgreement.id) : []
-      setData({ agreements, statements, disputes, claims, reviews, imports })
+      setData({ agreements, relationships, statements, disputes, claims, reviews, imports })
+      setAgreementRelationshipId((current) => current || (relationships.find((relationship) => relationship.status === 'ACTIVE')?.id ?? ''))
       setSlaStatuses(nextSlaStatuses)
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load service accountability.')
@@ -67,16 +84,18 @@ export function ServiceAccountabilityPage() {
     if (!token || !user) return
     Promise.all([
       api.serviceAgreements(token),
+      api.merchantWarehouseRelationships(token),
       api.serviceStatements(token),
       api.serviceDisputes(token),
       api.serviceClaims(token),
       api.serviceReviews(token),
       canUseOrderImport ? api.orderImports(token, user.tenantId) : Promise.resolve([]),
     ])
-      .then(async ([agreements, statements, disputes, claims, reviews, imports]) => {
+      .then(async ([agreements, relationships, statements, disputes, claims, reviews, imports]) => {
         const nextActiveAgreement = agreements.find((agreement) => agreement.status === 'ACTIVE') ?? agreements[0]
         const nextSlaStatuses = nextActiveAgreement ? await api.serviceSlaStatuses(token, nextActiveAgreement.id) : []
-        setData({ agreements, statements, disputes, claims, reviews, imports })
+        setData({ agreements, relationships, statements, disputes, claims, reviews, imports })
+        setAgreementRelationshipId((current) => current || (relationships.find((relationship) => relationship.status === 'ACTIVE')?.id ?? ''))
         setSlaStatuses(nextSlaStatuses)
       })
       .catch((caught) => {
@@ -105,25 +124,123 @@ export function ServiceAccountabilityPage() {
     }
   }
 
+  async function handleCreateAgreement(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!token || !agreementRelationshipId) return
+    setSubmitting(true)
+    setError('')
+    setMessage('')
+    try {
+      await api.createServiceAgreement(token, {
+        relationshipId: agreementRelationshipId,
+        title: agreementTitle,
+        effectiveDate: agreementEffectiveDate,
+        renewalReviewDate: null,
+        cancellationWindowDays: 30,
+        serviceScopes: defaultAgreementScopes,
+        serviceNotes: agreementNotes,
+        rateCard: {
+          coordinationFeePercent: 3,
+          fixedCoordinationFee: 0,
+        },
+        slaPolicy: {
+          receivingSlaHours: 24,
+          pickPackSlaHours: 24,
+          shipmentHandoffSlaHours: 24,
+          exceptionResponseSlaHours: 24,
+        },
+      })
+      setMessage('Agreement draft created.')
+      await load()
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to create service agreement.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function updateAgreementStatus(agreement: ServiceAgreement, action: 'propose' | 'accept') {
+    if (!token) return
+    setSubmitting(true)
+    setError('')
+    setMessage('')
+    try {
+      if (action === 'propose') {
+        await api.proposeServiceAgreement(token, agreement.id)
+        setMessage('Agreement proposed to the warehouse partner.')
+      } else {
+        await api.acceptServiceAgreement(token, agreement.id)
+        setMessage('Agreement accepted and activated.')
+      }
+      await load()
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to update service agreement.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   if (loading) return <LoadingState />
   if (error && !data) return <ErrorState title={error} />
-  if (!data) return <EmptyState label="No service-accountability data available" guidance="Create service agreements and operational records before reviewing statements, disputes, claims, and performance evidence." />
+  if (!data) return <EmptyState label="No service-accountability data available" guidance="Create service agreements before reviewing statements, SLA risk, or partner issues." />
 
   const openDisputes = data.disputes.filter((item) => item.status === 'OPEN').length
   const openClaims = data.claims.filter((item) => item.status === 'OPEN').length
   const pendingReviews = data.reviews.filter((item) => item.status === 'PENDING').length
+  const activeRelationships = data.relationships.filter((relationship) => relationship.status === 'ACTIVE')
+  const canCreateReview = canRequestReview && Boolean(activeAgreement)
+  const canCreateAgreement = canDraftAgreement && activeRelationships.length > 0 && Boolean(agreementRelationshipId)
+  const serviceAttentionSignals = [
+    ...slaStatuses.map((status) => status.attentionSignal).filter((signal): signal is AttentionSignal => Boolean(signal)),
+    ...data.disputes.filter((item) => item.status === 'OPEN').map((item) => serviceSignal(
+      `service-dispute-${item.id}`,
+      'ACTION_NEEDED',
+      'Open service dispute',
+      'A dispute is waiting for partner review and supporting evidence.',
+      'ServiceDispute',
+      item.id,
+      item.createdAt,
+    )),
+    ...data.claims.filter((item) => item.status === 'OPEN').map((item) => serviceSignal(
+      `service-claim-${item.id}`,
+      'ACTION_NEEDED',
+      'Open service claim',
+      `${item.claimType.replaceAll('_', ' ')} claim is waiting for partner review.`,
+      'ServiceClaim',
+      item.id,
+      item.createdAt,
+    )),
+    ...data.reviews.filter((item) => item.status === 'PENDING').map((item) => serviceSignal(
+      `service-review-${item.id}`,
+      'REVIEW',
+      'Pending service review',
+      `${item.reviewType.replaceAll('_', ' ')} review is waiting for a decision.`,
+      'ServiceReviewRequest',
+      item.id,
+      item.createdAt,
+    )),
+  ]
 
   return (
     <div className="page-stack">
       <PageHeading
         title="Service Accountability"
         subtitle={canUseOrderImport
-          ? 'Merchant-provider terms, service records, SLA review, and order import history.'
-          : 'Merchant-provider terms, service records, and SLA review.'}
+          ? 'Review partner terms, SLA risk, statements, service issues, and imports.'
+          : 'Review partner terms, SLA risk, statements, and service issues.'}
       />
       <GuidancePanel title="Service accountability review">
-        Review agreements, SLA status, statements, disputes, claims, reviews, and import evidence together before requesting partner action.
+        {canRequestReview && activeAgreement
+          ? 'Start with open disputes, claims, and pending reviews. Request partner review from the active agreement.'
+          : canRequestReview
+            ? 'Start by creating or activating a service agreement; disputes, claims, reviews, and SLA records appear after partner work begins.'
+          : 'Start with open disputes, claims, and pending reviews. This role reviews evidence without creating partner review work.'}
       </GuidancePanel>
+      <AttentionQueue
+        signals={serviceAttentionSignals}
+        description="At-risk SLA records and unresolved service issues lead this page; agreements and statements remain below as supporting history."
+        emptyLabel="No service accountability risks are active"
+      />
       {error && <ErrorState title={error} />}
       {message ? <div className="inline-success">{message}</div> : null}
 
@@ -139,12 +256,79 @@ export function ServiceAccountabilityPage() {
       <section className="table-section">
         <div className="section-header">
           <h2>Agreement Terms</h2>
-          <form onSubmit={handleRequestReview}>
-            <button className="primary-button warning-button" type="submit" disabled={!activeAgreement || submitting}>
-              Request review
-            </button>
-          </form>
+          {canCreateReview ? (
+            <form onSubmit={handleRequestReview}>
+              <button className="primary-button warning-button" type="submit" disabled={submitting}>
+                Request review
+              </button>
+            </form>
+          ) : canRequestReview ? (
+            <span className="data-chip warning-chip">Agreement required</span>
+          ) : (
+            <span className="data-chip">Read-only evidence review</span>
+          )}
         </div>
+        {canDraftAgreement ? (
+          <form className="panel-form" aria-label="Create service agreement form" onSubmit={handleCreateAgreement}>
+            <h3>Record partner terms</h3>
+            <p className="field-help">
+              Draft terms against an active merchant-warehouse relationship, then propose them for warehouse acceptance.
+            </p>
+            {activeRelationships.length ? (
+              <div className="form-grid">
+                <label htmlFor="service-agreement-relationship">
+                  <span>Relationship</span>
+                  <select
+                    id="service-agreement-relationship"
+                    value={agreementRelationshipId}
+                    onChange={(event) => setAgreementRelationshipId(event.target.value)}
+                    required
+                  >
+                    {activeRelationships.map((relationship) => (
+                      <option key={relationship.id} value={relationship.id}>
+                        {relationship.merchantName} and {relationship.warehouseProviderName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label htmlFor="service-agreement-title">
+                  <span>Title</span>
+                  <input
+                    id="service-agreement-title"
+                    value={agreementTitle}
+                    onChange={(event) => setAgreementTitle(event.target.value)}
+                    required
+                  />
+                </label>
+                <label htmlFor="service-agreement-effective-date">
+                  <span>Effective date</span>
+                  <input
+                    id="service-agreement-effective-date"
+                    type="date"
+                    value={agreementEffectiveDate}
+                    onChange={(event) => setAgreementEffectiveDate(event.target.value)}
+                    required
+                  />
+                </label>
+                <label className="wide-field" htmlFor="service-agreement-notes">
+                  <span>Notes</span>
+                  <textarea
+                    id="service-agreement-notes"
+                    value={agreementNotes}
+                    onChange={(event) => setAgreementNotes(event.target.value)}
+                  />
+                </label>
+              </div>
+            ) : (
+              <span className="data-chip warning-chip">Activate a warehouse relationship before drafting terms.</span>
+            )}
+            {canCreateAgreement ? (
+              <button className="primary-button fit-button" type="submit" disabled={submitting}>
+                {submitting ? 'Creating agreement' : 'Create agreement draft'}
+              </button>
+            ) : null}
+          </form>
+        ) : null}
         {data.agreements.length ? (
           <div className="table-wrap">
             <table>
@@ -158,6 +342,7 @@ export function ServiceAccountabilityPage() {
                   <th>Coordination fee</th>
                   <th>SLA</th>
                   <th>Notes</th>
+                  <th>Next action</th>
                 </tr>
               </thead>
               <tbody>
@@ -181,13 +366,30 @@ export function ServiceAccountabilityPage() {
                       </div>
                     </td>
                     <td className="note-cell">{agreement.serviceNotes ?? 'None'}</td>
+                    <td>
+                      {agreement.status === 'DRAFT' && canDraftAgreement ? (
+                        <button className="table-button" type="button" onClick={() => void updateAgreementStatus(agreement, 'propose')}>
+                          Propose terms
+                        </button>
+                      ) : agreement.status === 'PROPOSED' && canAcceptAgreement ? (
+                        <button className="table-button" type="button" onClick={() => void updateAgreementStatus(agreement, 'accept')}>
+                          Accept terms
+                        </button>
+                      ) : agreement.status === 'ACTIVE' ? (
+                        <span className="data-chip">Active agreement</span>
+                      ) : agreement.status === 'PROPOSED' ? (
+                        <span className="data-chip warning-chip">Waiting for warehouse acceptance</span>
+                      ) : (
+                        <span className="data-chip">No agreement action</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <EmptyState label="No service agreements yet" guidance="Create or activate merchant-warehouse relationships, then record agreement terms so SLA and statement evidence have an operating basis." />
+          <EmptyState label="No service agreements yet" guidance="Create or activate a partner relationship, then record agreement terms." />
         )}
       </section>
 
@@ -204,7 +406,7 @@ export function ServiceAccountabilityPage() {
             ))}
           </div>
         ) : (
-          <EmptyState label="No SLA records for the selected agreement" guidance="SLA records appear as service windows are measured against the selected agreement." />
+          <EmptyState label="No SLA records for the selected agreement" guidance="SLA records appear after service work starts under this agreement." />
         )}
       </section>
 
@@ -238,7 +440,7 @@ export function ServiceAccountabilityPage() {
             </table>
           </div>
         ) : (
-          <EmptyState label="No service statements yet" guidance="Statements appear after service periods close and fees, exceptions, or adjustments are ready for review." />
+          <EmptyState label="No service statements yet" guidance="Statements appear after a service period closes." />
         )}
       </section>
 
@@ -276,20 +478,11 @@ export function ServiceAccountabilityPage() {
               </table>
             </div>
           ) : (
-            <EmptyState label="No import batches yet" guidance="Import batches appear when merchants submit order intake files for validation and audit review." />
+            <EmptyState label="No import batches yet" guidance="Import history appears after order-intake files are submitted." />
           )}
         </section>
       )}
     </div>
-  )
-}
-
-function GuidancePanel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <aside className="admin-guidance-panel" aria-label={title}>
-      <strong>{title}</strong>
-      <p>{children}</p>
-    </aside>
   )
 }
 
@@ -328,7 +521,7 @@ function IssueTable({
       outcome: item.outcomeNote,
     })),
   ]
-  if (!rows.length) return <EmptyState label="No review records yet" guidance="Disputes, claims, and review requests will appear here when a service record needs partner attention." />
+  if (!rows.length) return <EmptyState label="No review records yet" guidance="Partner issues appear here when disputes, claims, or reviews are opened." />
 
   return (
     <div className="table-wrap">
@@ -358,16 +551,6 @@ function IssueTable({
   )
 }
 
-function QuantityCell({
-  value,
-  tone = 'neutral',
-}: {
-  value: number
-  tone?: 'neutral' | 'ready' | 'pending' | 'risk'
-}) {
-  return <span className={`quantity-cell quantity-${tone}`}>{value}</span>
-}
-
 function PageHeading({ title, subtitle }: { title: string, subtitle: string }) {
   return (
     <div className="page-heading">
@@ -381,4 +564,28 @@ function PageHeading({ title, subtitle }: { title: string, subtitle: string }) {
 
 function money(value: number) {
   return `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} service units`
+}
+
+function serviceSignal(
+  id: string,
+  severity: AttentionSignal['severity'],
+  title: string,
+  body: string,
+  sourceType: string,
+  sourceId: string,
+  createdAt: string,
+): AttentionSignal {
+  return {
+    id,
+    severity,
+    title,
+    body,
+    ownerRole: 'MERCHANT',
+    nextActionLabel: 'Review service record',
+    route: '/service-accountability',
+    sourceType,
+    sourceId,
+    createdAt,
+    resolved: false,
+  }
 }

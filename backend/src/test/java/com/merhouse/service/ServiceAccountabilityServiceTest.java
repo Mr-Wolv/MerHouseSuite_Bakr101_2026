@@ -3,10 +3,13 @@ package com.merhouse.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.merhouse.entity.AppUser;
 import com.merhouse.dto.CreateServiceAgreementRequest;
 import com.merhouse.dto.CreateServiceStatementRequest;
 import com.merhouse.dto.RateCardRequest;
@@ -14,6 +17,7 @@ import com.merhouse.dto.ServiceStatementLineRequest;
 import com.merhouse.dto.SlaPolicyRequest;
 import com.merhouse.entity.MerchantWarehouseRelationship;
 import com.merhouse.entity.MerchantWarehouseRelationshipStatus;
+import com.merhouse.entity.NotificationTopic;
 import com.merhouse.entity.ReferenceRateCard;
 import com.merhouse.entity.ServiceAgreement;
 import com.merhouse.entity.ServiceAgreementStatus;
@@ -65,6 +69,8 @@ class ServiceAccountabilityServiceTest {
         org.mockito.Mockito.mock(FulfillmentAllocationRepository.class);
     private final ShipmentRepository shipmentRepository =
         org.mockito.Mockito.mock(ShipmentRepository.class);
+    private final ServiceAccountabilityAlertService alertService =
+        org.mockito.Mockito.mock(ServiceAccountabilityAlertService.class);
     private final CurrentUserService currentUserService = org.mockito.Mockito.mock(CurrentUserService.class);
     private final ServiceAccountabilityService service = new ServiceAccountabilityService(
         relationshipRepository,
@@ -76,6 +82,7 @@ class ServiceAccountabilityServiceTest {
         inboundRepository,
         allocationRepository,
         shipmentRepository,
+        alertService,
         currentUserService
     );
 
@@ -150,6 +157,35 @@ class ServiceAccountabilityServiceTest {
 
         assertEquals(ServiceAgreementStatus.ACTIVE, agreement.getStatus());
         verify(currentUserService).requireAdminOrTenant(provider.getId());
+        verify(alertService).recordMerchantAlert(
+            eq(merchant.getId()),
+            eq("Service agreement active"),
+            contains("accepted"),
+            eq("ServiceAgreement"),
+            eq(agreement.getId())
+        );
+    }
+
+    @Test
+    void proposedAgreementAlertsWarehouseProviderSide() {
+        Tenant merchant = tenant(TenantType.MERCHANT, "Merchant");
+        Tenant provider = tenant(TenantType.WAREHOUSE_PROVIDER, "Provider");
+        ServiceAgreement agreement = agreement(merchant, provider, ServiceAgreementStatus.DRAFT);
+
+        when(agreementRepository.findWithDetailsById(agreement.getId())).thenReturn(Optional.of(agreement));
+        when(agreementRepository.saveAndFlush(agreement)).thenReturn(agreement);
+
+        service.proposeAgreement(agreement.getId());
+
+        assertEquals(ServiceAgreementStatus.PROPOSED, agreement.getStatus());
+        verify(currentUserService).requireAdminOrTenant(merchant.getId());
+        verify(alertService).recordWarehouseAlert(
+            eq(provider.getId()),
+            eq("Service agreement proposed"),
+            contains("proposed Standard"),
+            eq("ServiceAgreement"),
+            eq(agreement.getId())
+        );
     }
 
     @Test
@@ -234,6 +270,36 @@ class ServiceAccountabilityServiceTest {
         verify(statementRepository, never()).saveAndFlush(any());
     }
 
+    @Test
+    void finalizedStatementAlertsCounterpartyOnly() {
+        Tenant merchant = tenant(TenantType.MERCHANT, "Merchant");
+        Tenant provider = tenant(TenantType.WAREHOUSE_PROVIDER, "Provider");
+        ServiceAgreement agreement = agreement(merchant, provider, ServiceAgreementStatus.ACTIVE);
+        ServiceStatement statement = statement(agreement, ServiceStatementStatus.DRAFT);
+
+        when(statementRepository.findWithDetailsById(statement.getId())).thenReturn(Optional.of(statement));
+        when(currentUserService.isAdmin()).thenReturn(false);
+        when(currentUserService.required()).thenReturn(new UserPrincipal(
+            UUID.randomUUID(),
+            merchant.getId(),
+            "merchant@example.test",
+            UserRole.MERCHANT,
+            true
+        ));
+        when(statementRepository.saveAndFlush(statement)).thenReturn(statement);
+
+        service.finalizeStatement(statement.getId());
+
+        assertEquals(ServiceStatementStatus.FINALIZED, statement.getStatus());
+        verify(alertService).recordCounterpartyAlert(
+            eq(agreement),
+            eq("Service statement finalized"),
+            contains("ready for review"),
+            eq("ServiceStatement"),
+            eq(statement.getId())
+        );
+    }
+
     private CreateServiceAgreementRequest defaultAgreementRequest(MerchantWarehouseRelationship relationship) {
         return new CreateServiceAgreementRequest(
             relationship.getId(),
@@ -255,6 +321,17 @@ class ServiceAccountabilityServiceTest {
         tenant.setType(type);
         tenant.setName(name);
         return tenant;
+    }
+
+    private AppUser user(Tenant tenant, UserRole role) {
+        AppUser user = new AppUser();
+        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+        user.setTenant(tenant);
+        user.setEmail(role.name().toLowerCase() + "@example.test");
+        user.setPasswordHash("hash");
+        user.setRole(role);
+        user.setEnabled(true);
+        return user;
     }
 
     private MerchantWarehouseRelationship relationship(

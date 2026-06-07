@@ -451,7 +451,7 @@ class AssistantServiceTest {
 
         assertEquals(AssistantInteractionType.REFUSAL, response.responseType());
         assertEquals(
-            "I can summarize and suggest next review steps, but I cannot perform mutations or approve operational changes in V14.",
+            "I can summarize and suggest next review steps, but I cannot perform mutations or approve operational changes.",
             response.responseText()
         );
     }

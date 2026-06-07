@@ -1,10 +1,11 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
+import { MemoryRouter } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import type { AuthState } from '../auth/AuthContextValue'
 import { AuthContext } from '../auth/AuthContextValue'
-import { AdminAccessRequestsPage, AdminAuditPage, AdminRelationshipsPage, AdminTenantsPage, AdminUsersPage } from './AdminPages'
+import { AdminAccessRequestsPage, AdminAuditPage, AdminOverviewPage, AdminRelationshipsPage, AdminTenantsPage, AdminUsersPage } from './AdminPages'
 
 const apiMock = vi.hoisted(() => ({
   tenants: vi.fn(),
@@ -13,6 +14,8 @@ const apiMock = vi.hoisted(() => ({
   adminSummary: vi.fn(),
   adminTenantHealth: vi.fn(),
   adminAuditEvents: vi.fn(),
+  warehouses: vi.fn(),
+  createWarehouse: vi.fn(),
   createTenant: vi.fn(),
   suspendTenant: vi.fn(),
   activateTenant: vi.fn(),
@@ -132,13 +135,126 @@ const relationships = [
 ]
 
 function renderWithAuth(element: ReactNode, state: AuthState = authState) {
-  return render(<AuthContext.Provider value={state}>{element}</AuthContext.Provider>)
+  return render(
+    <MemoryRouter>
+      <AuthContext.Provider value={state}>{element}</AuthContext.Provider>
+    </MemoryRouter>,
+  )
 }
+
+describe('Admin overview', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    apiMock.tenants.mockResolvedValue(tenants)
+    apiMock.users.mockResolvedValue(users)
+    apiMock.orders.mockResolvedValue([{
+      id: 'order-1',
+      merchantId: 'merchant-tenant',
+      customerAddress: 'Cairo Customer',
+      status: 'BACKORDERED',
+      items: [{ id: 'item-1', inventoryItemId: 'inventory-1', sku: 'SKU-1', itemName: 'Merchant Item', quantity: 2 }],
+      allocations: [],
+      backorders: [{
+        id: 'backorder-1',
+        inventoryItemId: 'inventory-1',
+        sku: 'SKU-1',
+        itemName: 'Merchant Item',
+        quantity: 1,
+        status: 'OPEN',
+        createdAt: '2026-05-17T00:00:00Z',
+      }],
+      createdAt: '2026-05-17T00:00:00Z',
+    }])
+    apiMock.adminSummary.mockResolvedValue({
+      tenants: 2,
+      suspendedTenants: 1,
+      users: 2,
+      enabledUsers: 2,
+      platformAdmins: 1,
+      pendingAccessRequests: 3,
+      activeRelationships: 1,
+      suspendedRelationships: 1,
+      openInboundRequests: 4,
+      openFulfillmentExceptions: 2,
+      failedShipments: 1,
+      returnedShipments: 1,
+      failedOutboxEvents: 5,
+      openServiceDisputes: 1,
+      openServiceClaims: 1,
+      pendingServiceReviews: 2,
+    })
+    apiMock.adminTenantHealth.mockResolvedValue([{
+      tenant: tenants[0],
+      tenantId: 'merchant-tenant',
+      users: 1,
+      relationships: 1,
+      warehouses: 0,
+      inventoryItems: 1,
+      inboundRequests: 2,
+      orders: 1,
+      fulfillmentAllocations: 1,
+      serviceStatements: 1,
+      openDisputes: 1,
+      openClaims: 0,
+      pendingReviews: 1,
+    }])
+  })
+
+  it('prioritizes attention-worthy admin work before platform ledgers', async () => {
+    renderWithAuth(<AdminOverviewPage />)
+
+    expect(await screen.findByRole('heading', { name: 'Admin Overview' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Platform attention queue')).toHaveTextContent('Review the signals below first')
+    expect(screen.getByRole('heading', { name: 'Needs Attention First' })).toBeInTheDocument()
+    expect(screen.getByText('6 active')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Review requests/i })).toHaveAttribute('href', '/admin/access-requests')
+    expect(screen.getByRole('link', { name: /Open outbox diagnostics/i })).toHaveAttribute('href', '/admin/outbox')
+    expect(screen.getAllByRole('link', { name: /Open service review/i })).toHaveLength(3)
+    expect(screen.getByRole('link', { name: /Review relationships/i })).toHaveAttribute('href', '/admin/relationships')
+    expect(screen.queryByRole('link', { name: /Fulfillment exceptions 2/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Network scale and readiness' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Review order and tenant history' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Recent Operational Orders' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tenant Health' })).toBeInTheDocument()
+  })
+
+  it('frames owner/admin-only overview signals as support review work', async () => {
+    renderWithAuth(<AdminOverviewPage />, {
+      ...authState,
+      user: {
+        ...authState.user!,
+        role: 'SUPPORT_ADMIN',
+      },
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Admin Overview' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Review and escalate/i })).toHaveAttribute('href', '/admin/access-requests')
+    expect(screen.getByRole('link', { name: /Review diagnostics/i })).toHaveAttribute('href', '/admin/outbox')
+    expect(screen.queryByRole('link', { name: /Review requests/i })).not.toBeInTheDocument()
+  })
+
+  it('does not point auditors at hidden access-request routes from fallback attention', async () => {
+    renderWithAuth(<AdminOverviewPage />, {
+      ...authState,
+      user: {
+        ...authState.user!,
+        role: 'AUDITOR',
+      },
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Admin Overview' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Review requests/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Review and escalate/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Access requests need review/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Review diagnostics/i })).toHaveAttribute('href', '/admin/outbox')
+  })
+})
 
 describe('Admin tenant management', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     apiMock.tenants.mockResolvedValue(tenants)
+    apiMock.warehouses.mockResolvedValue([])
     apiMock.createTenant.mockResolvedValue({
       id: 'new-tenant',
       name: 'New Merchant',
@@ -147,6 +263,16 @@ describe('Admin tenant management', () => {
       suspensionReason: null,
       suspendedAt: null,
       createdAt: '2026-05-17T00:01:00Z',
+    })
+    apiMock.createWarehouse.mockResolvedValue({
+      id: 'warehouse-location-1',
+      tenantId: 'warehouse-tenant',
+      name: 'Cairo Dock A',
+      address: 'Cairo Dock 1',
+      latitude: null,
+      longitude: null,
+      capacity: 120,
+      createdAt: '2026-05-17T00:02:00Z',
     })
   })
 
@@ -164,6 +290,27 @@ describe('Admin tenant management', () => {
       type: 'MERCHANT',
     })
     expect(await screen.findByText('New Merchant')).toBeInTheDocument()
+  })
+
+  it('registers a warehouse location for a warehouse-provider tenant', async () => {
+    const user = userEvent.setup()
+    renderWithAuth(<AdminTenantsPage />)
+
+    const warehouseForm = await screen.findByRole('form', { name: 'Register warehouse location form' })
+    expect(within(warehouseForm).getByText(/Create at least one physical warehouse/)).toBeInTheDocument()
+    await user.type(within(warehouseForm).getByLabelText('Warehouse name'), 'Cairo Dock A')
+    await user.type(within(warehouseForm).getByLabelText('Address'), 'Cairo Dock 1')
+    await user.clear(within(warehouseForm).getByLabelText('Capacity'))
+    await user.type(within(warehouseForm).getByLabelText('Capacity'), '120')
+    await user.click(within(warehouseForm).getByRole('button', { name: 'Register warehouse' }))
+
+    expect(apiMock.createWarehouse).toHaveBeenCalledWith('admin-token', {
+      tenantId: 'warehouse-tenant',
+      name: 'Cairo Dock A',
+      address: 'Cairo Dock 1',
+      capacity: 120,
+    })
+    expect(await within(warehouseForm).findByText('Cairo Warehouse (1 warehouses)')).toBeInTheDocument()
   })
 
   it('filters tenants by type', async () => {
@@ -240,7 +387,8 @@ describe('Admin relationship governance', () => {
     })
 
     const activeRow = await screen.findByRole('row', { name: /Cairo Warehouse/i })
-    expect(within(activeRow).getByRole('button', { name: 'Owner/admin only' })).toBeDisabled()
+    expect(within(activeRow).getByText('Read-only relationship review')).toHaveClass('data-chip')
+    expect(within(activeRow).queryByRole('button', { name: 'Suspend' })).not.toBeInTheDocument()
     expect(apiMock.suspendMerchantWarehouseRelationship).not.toHaveBeenCalled()
   })
 })
@@ -294,7 +442,7 @@ describe('Admin access request management', () => {
     expect(within(row).getByText('Reviewed')).toBeInTheDocument()
   })
 
-  it('shows access requests to support admins without decision controls', async () => {
+  it('shows access requests to support admins as review and escalation work', async () => {
     renderWithAuth(<AdminAccessRequestsPage />, {
       ...authState,
       user: {
@@ -304,8 +452,95 @@ describe('Admin access request management', () => {
     })
 
     expect(await screen.findByText('owner@new.test')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Owner/admin only' })).toBeDisabled()
+    expect(screen.getByText('Review and escalate')).toHaveClass('data-chip')
+    expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Convert' })).not.toBeInTheDocument()
     expect(apiMock.approveAccessRequest).not.toHaveBeenCalled()
+  })
+
+  it('renders only currently available owner actions instead of repeated disabled controls', async () => {
+    const user = userEvent.setup()
+    apiMock.accessRequests.mockResolvedValue([
+      {
+        id: 'request-pending',
+        organizationName: 'Pending Merchant',
+        requesterEmail: 'pending@new.test',
+        requestedRole: 'MERCHANT',
+        notes: 'Needs review',
+        status: 'PENDING',
+        reviewedByUserId: null,
+        reviewNote: null,
+        reviewedAt: null,
+        createdAt: '2026-05-18T00:00:00Z',
+      },
+      {
+        id: 'request-approved',
+        organizationName: 'Approved Merchant',
+        requesterEmail: 'approved@new.test',
+        requestedRole: 'MERCHANT',
+        notes: 'Ready',
+        status: 'APPROVED',
+        reviewedByUserId: 'admin-id',
+        reviewNote: 'Approved',
+        reviewedAt: '2026-05-18T00:10:00Z',
+        createdAt: '2026-05-18T00:00:00Z',
+      },
+      {
+        id: 'request-rejected',
+        organizationName: 'Rejected Merchant',
+        requesterEmail: 'rejected@new.test',
+        requestedRole: 'MERCHANT',
+        notes: 'No',
+        status: 'REJECTED',
+        reviewedByUserId: 'admin-id',
+        reviewNote: 'Rejected',
+        reviewedAt: '2026-05-18T00:10:00Z',
+        createdAt: '2026-05-18T00:00:00Z',
+      },
+      {
+        id: 'request-converted',
+        organizationName: 'Converted Merchant',
+        requesterEmail: 'converted@new.test',
+        requestedRole: 'MERCHANT',
+        notes: 'Done',
+        status: 'APPROVED',
+        reviewedByUserId: 'admin-id',
+        reviewNote: 'Converted',
+        reviewedAt: '2026-05-18T00:10:00Z',
+        convertedAt: '2026-05-18T00:20:00Z',
+        convertedTenantId: 'tenant-1',
+        convertedUserId: 'user-1',
+        createdAt: '2026-05-18T00:00:00Z',
+      },
+    ])
+
+    renderWithAuth(<AdminAccessRequestsPage />)
+
+    const pendingRow = await screen.findByRole('row', { name: /pending@new\.test/i })
+    expect(within(pendingRow).getByRole('button', { name: 'Approve' })).toBeEnabled()
+    expect(within(pendingRow).getByRole('button', { name: 'Reject' })).toBeEnabled()
+    expect(within(pendingRow).getByText('Convert after approval')).toHaveClass('data-chip')
+    expect(within(pendingRow).queryByRole('button', { name: 'Convert' })).not.toBeInTheDocument()
+
+    const approvedRow = screen.getByRole('row', { name: /approved@new\.test/i })
+    expect(within(approvedRow).getByText('Approval recorded')).toHaveClass('data-chip')
+    expect(within(approvedRow).getByText('Enter setup password')).toHaveClass('data-chip')
+    expect(within(approvedRow).queryByRole('button', { name: 'Convert' })).not.toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Temporary setup password'), 'ready-password')
+    expect(within(approvedRow).queryByText('Enter setup password')).not.toBeInTheDocument()
+    expect(within(approvedRow).getByRole('button', { name: 'Convert' })).toBeEnabled()
+    expect(within(approvedRow).queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
+    expect(within(approvedRow).queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
+
+    const rejectedRow = screen.getByRole('row', { name: /rejected@new\.test/i })
+    expect(within(rejectedRow).getByText('Rejected request')).toHaveClass('data-chip')
+    expect(within(rejectedRow).queryByRole('button')).not.toBeInTheDocument()
+
+    const convertedRow = screen.getByRole('row', { name: /converted@new\.test/i })
+    expect(within(convertedRow).getByText('Account created')).toHaveClass('data-chip')
+    expect(within(convertedRow).queryByRole('button')).not.toBeInTheDocument()
   })
 
   it('renders injection-shaped access request text without creating executable elements', async () => {
@@ -412,16 +647,15 @@ describe('Admin user management', () => {
 
     expect(apiMock.disableUser).toHaveBeenCalledWith('admin-token', 'merchant-user', { reason: 'Administrative account update' })
     expect(await within(row).findByText('DISABLED')).toBeInTheDocument()
-    expect(within(row).getByRole('button', { name: 'Disabled' })).toBeDisabled()
+    expect(within(row).getByRole('button', { name: 'Enable' })).toBeInTheDocument()
   })
 
-  it('does not offer self-disable for the current admin', async () => {
+  it('explains self-disable as a state chip for the current admin', async () => {
     renderWithAuth(<AdminUsersPage />)
 
     const row = await screen.findByRole('row', { name: /owner@example.test/i })
-    const button = within(row).getByRole('button', { name: 'Current user' })
-
-    expect(button).toBeDisabled()
+    expect(within(row).getByText('Current user')).toHaveClass('data-chip')
+    expect(within(row).queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument()
   })
 
   it('allows support admins to reset ordinary users without account mutation controls', async () => {
@@ -436,10 +670,11 @@ describe('Admin user management', () => {
     })
 
     await screen.findByText('merchant@merhouse.local')
-    expect(screen.getByRole('button', { name: 'Owner/admin only' })).toBeDisabled()
+    expect(screen.getByText('Owner/admin account creation')).toHaveClass('data-chip')
 
     const row = screen.getByRole('row', { name: /merchant@merhouse.local/i })
-    expect(within(row).getByRole('button', { name: 'Disable' })).toBeDisabled()
+    expect(within(row).getByText('Owner/admin action')).toHaveClass('data-chip')
+    expect(within(row).queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument()
     await user.type(screen.getByLabelText('Temporary reset password'), 'support-reset-password')
     expect(screen.getByLabelText('Account action safety summary')).toHaveTextContent('RESET READY')
     await user.click(within(row).getByRole('button', { name: 'Reset' }))
@@ -450,7 +685,7 @@ describe('Admin user management', () => {
     })
   })
 
-  it('does not offer disabling the last enabled owner shown in the table', async () => {
+  it('explains the last enabled owner protection as a state chip', async () => {
     apiMock.users.mockResolvedValue([
       {
         id: 'only-owner',
@@ -465,9 +700,8 @@ describe('Admin user management', () => {
     renderWithAuth(<AdminUsersPage />)
 
     const row = await screen.findByRole('row', { name: /only-owner@merhouse.local/i })
-    const button = within(row).getByRole('button', { name: 'Last owner' })
-
-    expect(button).toBeDisabled()
+    expect(within(row).getByText('Last owner')).toHaveClass('data-chip')
+    expect(within(row).queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument()
   })
 
   it('allows disabling another admin when one enabled admin remains', async () => {
@@ -591,7 +825,7 @@ describe('Admin audit review', () => {
     renderWithAuth(<AdminAuditPage />)
 
     expect(await screen.findByText('ASSISTANT SUMMARY')).toBeInTheDocument()
-    expect(screen.getByLabelText('Audit review lens')).toHaveTextContent('isolate V14 summaries')
+    expect(screen.getByLabelText('Audit review lens')).toHaveTextContent('isolate summaries')
     expect(screen.getByRole('status')).toHaveTextContent('Showing 3 audit events')
     expect(screen.getByLabelText('Scrollable admin audit table')).toHaveAttribute('tabIndex', '0')
     expect(screen.getByText('TENANT CREATED')).toBeInTheDocument()

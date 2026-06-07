@@ -3,8 +3,10 @@ package com.merhouse.service;
 import com.merhouse.dto.CarrierDispatchResponse;
 import com.merhouse.dto.OutboxEventResponse;
 import com.merhouse.dto.OutboxSummaryResponse;
+import com.merhouse.dto.AttentionSeverity;
 import com.merhouse.entity.OutboxEvent;
 import com.merhouse.entity.OutboxEventStatus;
+import com.merhouse.entity.UserRole;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.exception.ResourceNotFoundException;
 import com.merhouse.repository.CarrierDispatchRepository;
@@ -21,25 +23,48 @@ import org.springframework.transaction.annotation.Transactional;
 public class OutboxAdminService {
     private final OutboxEventRepository outboxEventRepository;
     private final CarrierDispatchRepository carrierDispatchRepository;
+    private final OutboxAlertService outboxAlertService;
     private final int maxAttempts;
 
     public OutboxAdminService(
         OutboxEventRepository outboxEventRepository,
         CarrierDispatchRepository carrierDispatchRepository,
+        OutboxAlertService outboxAlertService,
         @Value("${warehouse.outbox.max-attempts:3}") int maxAttempts
     ) {
         this.outboxEventRepository = outboxEventRepository;
         this.carrierDispatchRepository = carrierDispatchRepository;
+        this.outboxAlertService = outboxAlertService;
         this.maxAttempts = maxAttempts;
     }
 
     @Transactional(readOnly = true)
     public OutboxSummaryResponse summary() {
+        long pending = outboxEventRepository.countByStatus(OutboxEventStatus.PENDING);
+        long processed = outboxEventRepository.countByStatus(OutboxEventStatus.PROCESSED);
+        long failed = outboxEventRepository.countByStatus(OutboxEventStatus.FAILED);
+        long retryableFailed = outboxEventRepository.countByStatusAndAttemptsLessThan(OutboxEventStatus.FAILED, maxAttempts);
         return new OutboxSummaryResponse(
-            outboxEventRepository.countByStatus(OutboxEventStatus.PENDING),
-            outboxEventRepository.countByStatus(OutboxEventStatus.PROCESSED),
-            outboxEventRepository.countByStatus(OutboxEventStatus.FAILED),
-            outboxEventRepository.countByStatusAndAttemptsLessThan(OutboxEventStatus.FAILED, maxAttempts)
+            pending,
+            processed,
+            failed,
+            retryableFailed,
+            failed > 0
+                ? List.of(AttentionSignalFactory.signal(
+                    "outbox-failed",
+                    retryableFailed > 0 ? AttentionSeverity.CRITICAL : AttentionSeverity.REVIEW,
+                    "Outbox failures need reliability handling",
+                    retryableFailed > 0
+                        ? retryableFailed + " failed events can be retried before the queue is healthy."
+                        : failed + " failed events should be reviewed or parked.",
+                    UserRole.ADMIN,
+                    retryableFailed > 0 ? "Retry failed work" : "Review failed work",
+                    "/admin/outbox",
+                    "OutboxEvent",
+                    null,
+                    Instant.now()
+                ))
+                : List.of()
         );
     }
 
@@ -66,7 +91,14 @@ public class OutboxAdminService {
         event.setStatus(OutboxEventStatus.PENDING);
         event.setNextAttemptAt(Instant.now());
         event.setLastError(null);
-        return OutboxEventResponse.from(outboxEventRepository.save(event));
+        OutboxEvent saved = outboxEventRepository.save(event);
+        outboxAlertService.recordHealthAlert(
+            "Outbox retry queued",
+            saved.getEventType() + " was returned to the processing queue.",
+            saved.getAggregateType(),
+            saved.getAggregateId()
+        );
+        return OutboxEventResponse.from(saved);
     }
 
     @Transactional
@@ -77,7 +109,15 @@ public class OutboxAdminService {
         }
         event.setStatus(OutboxEventStatus.DEAD_LETTER);
         event.setLastError(trimToNull(reason));
-        return OutboxEventResponse.from(outboxEventRepository.save(event));
+        OutboxEvent saved = outboxEventRepository.save(event);
+        outboxAlertService.recordHealthAlert(
+            "Outbox event parked",
+            saved.getEventType() + " moved to dead-letter"
+                + (saved.getLastError() == null ? "." : ": " + saved.getLastError()),
+            saved.getAggregateType(),
+            saved.getAggregateId()
+        );
+        return OutboxEventResponse.from(saved);
     }
 
     private OutboxEvent getRequired(UUID eventId) {
@@ -95,4 +135,5 @@ public class OutboxAdminService {
         }
         return value.trim();
     }
+
 }

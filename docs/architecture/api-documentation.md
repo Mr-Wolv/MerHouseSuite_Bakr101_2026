@@ -34,7 +34,7 @@ The generated OpenAPI title is `MerHouse API`, and the grouped contract is named
 
 ## Authentication
 
-Authenticated endpoints use bearer-token authentication. Login returns the access token and current user summary. Frontend requests attach the token through the shared API client in `frontend/src/api/client.ts`.
+Authenticated endpoints use bearer-token authentication. Login returns the access token and current user summary. `GET /api/v1/auth/me` returns the signed-in account context, and `PATCH /api/v1/auth/me/password` changes the signed-in user's password after current-password verification. Frontend requests attach the token through the shared API client in `frontend/src/api/client.ts`.
 
 ## Source Of Truth
 

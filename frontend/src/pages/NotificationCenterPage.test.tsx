@@ -1,7 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import type { AuthState } from '../auth/AuthContextValue'
 import { AuthContext } from '../auth/AuthContextValue'
+import { notificationUnreadChangedEvent } from '../notifications/notificationEvents'
 import { NotificationCenterPage } from './NotificationCenterPage'
 
 const apiMock = vi.hoisted(() => ({
@@ -42,9 +44,11 @@ const authState: AuthState = {
 
 function renderPage() {
   render(
-    <AuthContext.Provider value={authState}>
-      <NotificationCenterPage />
-    </AuthContext.Provider>,
+    <MemoryRouter>
+      <AuthContext.Provider value={authState}>
+        <NotificationCenterPage />
+      </AuthContext.Provider>
+    </MemoryRouter>,
   )
 }
 
@@ -107,16 +111,20 @@ describe('NotificationCenterPage', () => {
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Notifications' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Notification delivery boundary')).toHaveTextContent('Preferences control which alert channels stay active')
+    expect(screen.getByLabelText('Alert rules')).toHaveTextContent('Start with the inbox')
+    const sections = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+    expect(sections.indexOf('Action inbox')).toBeLessThan(sections.indexOf('Preferences'))
     expect(screen.getAllByText('Account lifecycle')).toHaveLength(2)
     expect(screen.getByText('Email channel')).toBeInTheDocument()
     expect(screen.getByText('Account ready')).toBeInTheDocument()
     expect(screen.getAllByText('Unread').some((node) => node.classList.contains('warning-chip'))).toBe(true)
-    expect(screen.getByText('Account ready').closest('article')).toHaveClass('notification-attention')
+    expect(screen.getByText('Account ready').closest('article')).toHaveClass('notification-action')
     expect(screen.getByText('Your MerHouse account was created from an approved access request.')).toHaveClass('note-cell')
     expect(screen.getByText('Local recorded')).toBeInTheDocument()
     expect(screen.getByText('Channel recorded')).toBeInTheDocument()
-    expect(screen.getAllByText('Needs action').some((node) => node.classList.contains('severity-attention'))).toBe(true)
+    expect(screen.getByLabelText(/LOCAL RECORDED: Recorded inside MerHouse/i).getAttribute('title')).toContain('local review')
+    expect(screen.getByLabelText(/NOT CONFIGURED: No external provider is configured/i).getAttribute('title')).toContain('locally')
+    expect(screen.getAllByText('Action needed').some((node) => node.classList.contains('severity-action'))).toBe(true)
     expect(screen.queryByText(/prototype/i)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Disable' })).toHaveClass('warning-button')
     expect(apiMock.notificationPreferences).toHaveBeenCalledWith('notification-token')
@@ -125,6 +133,8 @@ describe('NotificationCenterPage', () => {
 
   it('updates preferences and marks delivery records read', async () => {
     const user = userEvent.setup()
+    const unreadListener = vi.fn()
+    window.addEventListener(notificationUnreadChangedEvent, unreadListener)
     renderPage()
 
     await user.click(await screen.findByRole('button', { name: 'Disable' }))
@@ -140,8 +150,12 @@ describe('NotificationCenterPage', () => {
 
     expect(apiMock.markNotificationRead).toHaveBeenCalledWith('notification-token', 'delivery-1')
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Read/ })).toBeDisabled()
+      expect(screen.getByRole('heading', { name: 'Delivery history' })).toBeInTheDocument()
+      expect(screen.getByText('1 records')).toBeInTheDocument()
     })
+    expect(unreadListener).toHaveBeenCalledTimes(1)
+    expect(unreadListener.mock.calls[0][0]).toMatchObject({ detail: { delta: -1 } })
+    window.removeEventListener(notificationUnreadChangedEvent, unreadListener)
   })
 
   it('renders only the delivery records returned for the authenticated user', async () => {
@@ -172,10 +186,70 @@ describe('NotificationCenterPage', () => {
 
     expect(await screen.findByText('Current user alert')).toBeInTheDocument()
     expect(screen.getByText('Ready for handoff')).toHaveClass('data-chip', 'warning-chip')
-    expect(screen.getAllByText('Needs action').some((node) => node.classList.contains('severity-attention'))).toBe(true)
+    expect(screen.getByLabelText(/READY FOR PROVIDER: Ready for an external delivery provider/i)).toHaveClass('data-chip', 'warning-chip')
+    expect(screen.getAllByText('Action needed').some((node) => node.classList.contains('severity-action'))).toBe(true)
     expect(screen.getByText('Shipment')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open source' })).toHaveAttribute('href', '/shipments/shipment-provider-ready')
     expect(screen.queryByText('Another user alert')).not.toBeInTheDocument()
     expect(screen.queryByText('delivery-current-user')).not.toBeInTheDocument()
+  })
+
+  it('links connected alert sources to their routed work surfaces', async () => {
+    apiMock.notificationDeliveries.mockResolvedValue([
+      deliveryFixture({
+        id: 'delivery-inbound',
+        topic: 'OPERATIONS',
+        title: 'Inbound stock received',
+        sourceType: 'InboundStockRequest',
+        sourceId: 'inbound-12345678',
+      }),
+      deliveryFixture({
+        id: 'delivery-service',
+        topic: 'SERVICE_ACCOUNTABILITY',
+        title: 'Service claim opened',
+        sourceType: 'ServiceClaim',
+        sourceId: 'claim-12345678',
+      }),
+      deliveryFixture({
+        id: 'delivery-exception',
+        topic: 'OPERATIONS',
+        title: 'Fulfillment exception reported',
+        sourceType: 'FulfillmentException',
+        sourceId: 'exception-12345678',
+      }),
+      deliveryFixture({
+        id: 'delivery-order',
+        topic: 'OPERATIONS',
+        title: 'Order needs attention',
+        sourceType: 'CustomerOrder',
+        sourceId: 'order-12345678',
+      }),
+      deliveryFixture({
+        id: 'delivery-backorder',
+        topic: 'OPERATIONS',
+        title: 'Backorder opened',
+        sourceType: 'BackorderItem',
+        sourceId: 'backorder-12345678',
+      }),
+      deliveryFixture({
+        id: 'delivery-outbox',
+        topic: 'OUTBOX_HEALTH',
+        title: 'Outbox event failed',
+        sourceType: 'Shipment',
+        sourceId: 'shipment-12345678',
+      }),
+    ])
+
+    renderPage()
+
+    expect(await screen.findByText('Inbound stock received')).toBeInTheDocument()
+    const sourceLinks = screen.getAllByRole('link', { name: 'Open source' })
+    expect(sourceLinks[0]).toHaveAttribute('href', '/inbound-stock-requests/inbound-12345678')
+    expect(sourceLinks[1]).toHaveAttribute('href', '/service-accountability')
+    expect(sourceLinks[2]).toHaveAttribute('href', '/service-accountability')
+    expect(sourceLinks[3]).toHaveAttribute('href', '/orders/order-12345678')
+    expect(sourceLinks[4]).toHaveAttribute('href', '/merchant/orders')
+    expect(sourceLinks[5]).toHaveAttribute('href', '/admin/outbox')
   })
 
   it('separates critical, action, review, and resolved notification severity', async () => {
@@ -217,14 +291,14 @@ describe('NotificationCenterPage', () => {
 
     expect(await screen.findByText('Outbox dead-lettered')).toBeInTheDocument()
     expect(screen.getByText('Outbox dead-lettered').closest('article')).toHaveClass('notification-critical')
-    expect(screen.getByText('Returned shipment').closest('article')).toHaveClass('notification-attention')
-    expect(screen.getByText('Preference recorded').closest('article')).toHaveClass('notification-info')
-    expect(screen.getByText('Failed event resolved').closest('article')).toHaveClass('notification-resolved')
+    expect(screen.getByText('Returned shipment').closest('article')).toHaveClass('notification-action')
+    expect(screen.getByText('Preference recorded').closest('article')).toHaveClass('notification-review')
+    expect(screen.getByText('Failed event resolved').closest('article')).toHaveClass('notification-cleared')
     expect(screen.getByText('Critical')).toHaveClass('severity-critical')
-    expect(screen.getAllByText('Needs action').some((node) => node.classList.contains('severity-attention'))).toBe(true)
-    expect(screen.getByText('For review')).toHaveClass('severity-info')
-    expect(screen.getByText('Resolved')).toHaveClass('severity-resolved')
-    expect(screen.getAllByText('Needs action').find((node) => node.closest('.metric'))?.closest('.metric')).toHaveTextContent('2')
+    expect(screen.getAllByText('Action needed').some((node) => node.classList.contains('severity-action'))).toBe(true)
+    expect(screen.getByText('Review')).toHaveClass('severity-review')
+    expect(screen.getByText('Cleared')).toHaveClass('severity-cleared')
+    expect(screen.getAllByText('Action needed').find((node) => node.closest('.metric'))?.closest('.metric')).toHaveTextContent('2')
   })
 
   it('guides users when there are no alert records yet', async () => {
@@ -233,6 +307,6 @@ describe('NotificationCenterPage', () => {
     renderPage()
 
     expect(await screen.findByText('No alerts yet')).toBeInTheDocument()
-    expect(screen.getByText(/they will appear here with severity/i)).toBeInTheDocument()
+    expect(screen.getByText(/will appear here/i)).toBeInTheDocument()
   })
 })

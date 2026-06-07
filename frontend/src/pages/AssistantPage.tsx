@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent } from 'react'
 import { Bot, RefreshCcw, Send } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
-import type { AssistantInteraction, AssistantScope } from '../api/types'
+import type { AssistantInteraction, AssistantScope, AttentionSignal } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
+import { shortId } from '../components/format'
+import { GuidancePanel } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
+import { AttentionQueue } from '../components/AttentionQueue'
 
 const scopeLabels: Record<AssistantScope, string> = {
   PLATFORM_OVERVIEW: 'Platform overview',
@@ -17,7 +20,7 @@ const scopeLabels: Record<AssistantScope, string> = {
 export function AssistantPage() {
   const { token, user } = useAuth()
   const [interactions, setInteractions] = useState<AssistantInteraction[]>([])
-  const [prompt, setPrompt] = useState('Summarize what needs review next')
+  const [prompt, setPrompt] = useState('')
   const [scope, setScope] = useState<AssistantScope>('PLATFORM_OVERVIEW')
   const [targetTenantId, setTargetTenantId] = useState('')
   const [decisionReason, setDecisionReason] = useState('Reviewed by operator')
@@ -40,6 +43,30 @@ export function AssistantPage() {
   const canOpenAudit = ['OWNER', 'ADMIN', 'SUPPORT_ADMIN', 'AUDITOR'].includes(user?.role ?? '')
   const pendingSuggestions = interactions.filter((item) => item.actionStatus === 'PENDING').length
   const refusals = interactions.filter((item) => item.responseType === 'REFUSAL').length
+  const assistantSignals: AttentionSignal[] = interactions
+    .filter((item) => item.actionStatus === 'PENDING' || item.responseType === 'REFUSAL')
+    .slice(0, 6)
+    .map((item) => ({
+      id: `assistant-${item.id}`,
+      severity: item.actionStatus === 'PENDING' ? 'ACTION_NEEDED' : 'REVIEW',
+      title: item.actionStatus === 'PENDING'
+        ? canDecideSuggestions ? 'Assistant suggestion needs a decision' : 'Assistant suggestion is waiting for owner review'
+        : 'Assistant refusal needs context review',
+      body: item.actionStatus === 'PENDING'
+        ? canDecideSuggestions
+          ? 'A review-only suggestion is waiting for accept or reject.'
+          : 'A review-only suggestion is visible for audit, but auditors cannot accept or reject it.'
+        : 'A refusal was recorded and may need a better scoped request.',
+      ownerRole: user?.role ?? 'MERCHANT',
+      nextActionLabel: item.actionStatus === 'PENDING'
+        ? canDecideSuggestions ? 'Decide suggestion' : 'Review suggestion'
+        : 'Review interaction',
+      route: '/assistant',
+      sourceType: 'AssistantInteraction',
+      sourceId: item.id,
+      createdAt: item.createdAt,
+      resolved: false,
+    }))
 
   const load = useCallback(async () => {
     if (!token) return
@@ -103,17 +130,22 @@ export function AssistantPage() {
     <div className="page-stack">
       <div className="page-heading">
         <span className="eyebrow">Review assistant</span>
-        <h1>Assistant</h1>
-        <p>Request scoped summaries and review-only suggestions for your MerHouse operations context.</p>
+        <h1>Operational Review Assistant</h1>
+        <p>Ask for a scoped second pass over operations risk.</p>
       </div>
       <GuidancePanel title="Assistant review boundary">
-        The assistant summarizes scoped data and records review-only suggestions. Decisions are audited, but operational records are not mutated by the assistant.
+        Suggestions stay review-only. Accepting one records a decision; it does not change operations.
       </GuidancePanel>
+      <AttentionQueue
+        signals={assistantSignals}
+        description="Pending suggestions and refusals lead this page so the assistant stays tied to review decisions, not generic chat."
+        emptyLabel="No assistant review decisions are waiting"
+      />
 
       {error ? <ErrorState title={error} /> : null}
 
       <div className="status-row">
-        <div className="status-count"><span>Local records</span><strong>{interactions.length}</strong></div>
+        <div className="status-count"><span>Review records</span><strong>{interactions.length}</strong></div>
         <div className="status-count"><span>Pending suggestions</span><strong>{pendingSuggestions}</strong></div>
         <div className="status-count"><span>Refusals</span><strong>{refusals}</strong></div>
         {canOpenAudit ? (
@@ -137,7 +169,13 @@ export function AssistantPage() {
           </>
         ) : null}
         <label htmlFor="assistant-prompt">Prompt</label>
-        <textarea id="assistant-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={4} />
+        <textarea
+          id="assistant-prompt"
+          value={prompt}
+          onChange={(event) => setPrompt(event.target.value)}
+          placeholder="Summarize what needs review next"
+          rows={4}
+        />
         <div className="action-row">
           <button className="icon-text-button" type="submit" disabled={submitting || !prompt.trim()}>
             <Send size={16} aria-hidden="true" />
@@ -154,7 +192,7 @@ export function AssistantPage() {
         <section className="admin-action-panel" aria-label="Suggestion decision controls">
           <div className="admin-action-copy">
             <h2>Suggestion decision controls</h2>
-            <p>Accepting or rejecting a suggestion records an audited review decision only; it does not execute operational changes.</p>
+            <p>Decision buttons record review only; operations stay unchanged.</p>
           </div>
           <label className="compact-field" htmlFor="assistant-decision-reason">
             <span>Decision reason</span>
@@ -170,7 +208,7 @@ export function AssistantPage() {
       <section className="table-section">
         <div className="table-toolbar">
           <h2>Interaction History</h2>
-          <span>{interactions.length} local records</span>
+          <span>{interactions.length} review records</span>
         </div>
         {interactions.length ? (
           <div className="queue-list">
@@ -192,15 +230,15 @@ export function AssistantPage() {
                 <div className="queue-card-body">
                   <div className="queue-card-section">
                     <h3>Request</h3>
-                    <p>{interaction.requestText}</p>
+                    <p>{displayAssistantText(interaction.requestText)}</p>
                   </div>
                   <div className="queue-card-section">
                     <h3>Response</h3>
-                    <p>{interaction.responseText}</p>
+                    <p>{displayAssistantText(interaction.responseText)}</p>
                   </div>
                   <div className="queue-card-section">
                     <h3>Audit</h3>
-                    <p>{interaction.decisionNote ?? 'No decision recorded yet'}</p>
+                    <p>{displayAssistantText(interaction.decisionNote ?? 'No decision recorded yet')}</p>
                     {interaction.decidedAt ? <span className="timestamp-cell">{new Date(interaction.decidedAt).toLocaleString()}</span> : null}
                   </div>
                 </div>
@@ -230,7 +268,7 @@ export function AssistantPage() {
         ) : (
           <EmptyState
             label="No assistant reviews yet"
-            guidance="Start with a scoped summary when you want a second pass over orders, warehouse work, service records, or platform risk. Suggestions stay review-only until a person records a decision."
+            guidance="Start with a scoped summary. Suggestions stay review-only until a person records a decision."
           />
         )}
       </section>
@@ -238,15 +276,12 @@ export function AssistantPage() {
   )
 }
 
-function GuidancePanel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <aside className="admin-guidance-panel" aria-label={title}>
-      <strong>{title}</strong>
-      <p>{children}</p>
-    </aside>
-  )
-}
-
-function shortId(id: string) {
-  return id.slice(0, 8)
+function displayAssistantText(value: string) {
+  return value
+    .replace(/\bV14 assistant\b/gi, 'assistant')
+    .replace(/\bin V14\b/gi, '')
+    .replace(/\bV14\b/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+\./g, '.')
+    .trim()
 }

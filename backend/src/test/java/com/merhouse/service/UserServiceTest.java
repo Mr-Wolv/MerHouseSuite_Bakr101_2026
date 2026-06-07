@@ -15,6 +15,7 @@ import com.merhouse.repository.AppUserRepository;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 class UserServiceTest {
@@ -82,6 +83,36 @@ class UserServiceTest {
         verify(userRepository).save(target);
         verify(passwordEncoder).encode("new-password");
         assertThrows(DomainConflictException.class, () -> userService.disable(targetId, actorId));
+    }
+
+    @Test
+    void userCanChangeOwnPasswordWithCurrentPassword() {
+        UUID userId = UUID.randomUUID();
+        AppUser user = user(UserRole.MERCHANT, true);
+        user.setPasswordHash("old-hash");
+        when(userRepository.findWithTenantById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("current-password", "old-hash")).thenReturn(true);
+        when(passwordEncoder.encode("new-password")).thenReturn("new-hash");
+
+        userService.changeOwnPassword(userId, "current-password", "new-password");
+
+        verify(passwordEncoder).matches("current-password", "old-hash");
+        verify(passwordEncoder).encode("new-password");
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void userCannotChangeOwnPasswordWithWrongCurrentPassword() {
+        UUID userId = UUID.randomUUID();
+        AppUser user = user(UserRole.MERCHANT, true);
+        user.setPasswordHash("old-hash");
+        when(userRepository.findWithTenantById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrong-password", "old-hash")).thenReturn(false);
+
+        assertThrows(BadCredentialsException.class, () -> userService.changeOwnPassword(userId, "wrong-password", "new-password"));
+
+        verify(passwordEncoder, never()).encode("new-password");
+        verify(userRepository, never()).save(user);
     }
 
     @Test

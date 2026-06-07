@@ -13,7 +13,9 @@ import type {
 } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
+import { shortId } from '../components/format'
 import { Metric } from '../components/Metric'
+import { PageHeading, QuantityCell } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
 
 type DetailState<T> = {
@@ -96,8 +98,26 @@ export function InventoryItemDetailPage() {
   const load = useCallback((token: string, id: string) => api.inventoryItemDetail(token, id), [])
   const state = useDetail<InventoryItemDetail>(load, inventoryItemId)
   if (state.loading) return <LoadingState />
-  if (state.error) return <ErrorState title={state.error} pageTitle />
-  if (!state.data) return <EmptyState label="Inventory item detail is unavailable" guidance="Return to inventory and open a current item link from the table to review stock and audit evidence." />
+  if (state.error) {
+    return (
+      <RecoverableDetailState
+        title={state.error}
+        guidance="This item may have been archived, removed, or belongs to another merchant context. Return to Stock and open a current item link."
+        actionLabel="Back to Stock"
+        to="/merchant/inventory"
+      />
+    )
+  }
+  if (!state.data) {
+    return (
+      <RecoverableDetailState
+        title="Inventory item detail is unavailable"
+        guidance="Return to Stock and open a current item link from the table to review stock and audit evidence."
+        actionLabel="Back to Stock"
+        to="/merchant/inventory"
+      />
+    )
+  }
 
   const { item, auditLogs, inboundRequests, timeline } = state.data
   return (
@@ -285,12 +305,12 @@ export function MerchantWarehouseRelationshipDetailPage() {
         ...inboundStockRequests.map((request) => ({
           label: `Inbound ${request.merchantReference ?? shortId(request.id)}`,
           to: `/inbound-stock-requests/${request.id}`,
-          meta: `${request.status} · ${request.requestedQuantity} requested · ${request.receivedQuantity} received`,
+          meta: `${request.status} - ${request.requestedQuantity} requested - ${request.receivedQuantity} received`,
         })),
         ...allocations.map((allocation) => ({
           label: `Allocation ${shortId(allocation.id)}`,
           to: `/fulfillment-allocations/${allocation.id}`,
-          meta: `${allocation.status} · priority ${allocation.priority} · ${allocation.scanCode ?? 'scan pending'}`,
+          meta: `${allocation.status} - priority ${allocation.priority} - ${allocation.scanCode ?? 'scan pending'}`,
         })),
       ]} />
       <TimelinePanel events={timeline} />
@@ -348,6 +368,31 @@ function DetailGuidancePanel({ title, children }: { title: string; children: Rea
       <strong>{title}</strong>
       <p>{children}</p>
     </aside>
+  )
+}
+
+function RecoverableDetailState({
+  title,
+  guidance,
+  actionLabel,
+  to,
+}: {
+  title: string
+  guidance: string
+  actionLabel: string
+  to: string
+}) {
+  return (
+    <div className="page-stack">
+      <div className="page-heading">
+        <h1>{title}</h1>
+      </div>
+      <EmptyState
+        label={title}
+        guidance={guidance}
+        action={<Link className="icon-text-button" to={to}>{actionLabel}</Link>}
+      />
+    </div>
   )
 }
 
@@ -462,16 +507,6 @@ function StockChange({ before, reserved }: { before: number; reserved: number })
   )
 }
 
-function QuantityCell({
-  value,
-  tone = 'neutral',
-}: {
-  value: number
-  tone?: 'neutral' | 'ready' | 'pending' | 'risk'
-}) {
-  return <span className={`quantity-cell quantity-${tone}`}>{value}</span>
-}
-
 function RelatedLinks({ rows }: { rows: Array<{ label: string; to: string; meta: string }> }) {
   if (!rows.length) return <EmptyState label="No linked operational records yet" guidance="Linked allocations, shipments, inbound requests, or relationship records appear when this workflow connects to downstream work." />
   return (
@@ -499,20 +534,7 @@ function EvidenceCounts({ audits = 0, dispatches = 0, outbox = 0 }: { audits?: n
   )
 }
 
-function PageHeading({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div className="page-heading">
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
-    </div>
-  )
-}
-
 function formatDate(value: string | null) {
   if (!value) return 'Not recorded'
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
-}
-
-function shortId(id: string) {
-  return id.slice(0, 8)
 }

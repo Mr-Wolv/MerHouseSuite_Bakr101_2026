@@ -44,6 +44,7 @@ try {
     }
 
     if ($IncludeE2E) {
+        & (Join-Path $projectRoot "scripts\local\wait-backend.ps1")
         Write-Host "Running frontend Playwright tests..."
         $previousBaseUrl = $env:FRONTEND_TOUR_BASE_URL
         $previousApiUrl = $env:E2E_API_URL

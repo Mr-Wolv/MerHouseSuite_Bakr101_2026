@@ -1,20 +1,22 @@
 import { LogOut } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { appIcons } from './AppIcons'
 import { ThemeToggle } from './ThemeToggle'
+import { notificationUnreadChangedEvent } from '../notifications/notificationEvents'
+import type { NotificationUnreadChangedDetail } from '../notifications/notificationEvents'
 
 const adminNav = [
   { to: '/admin', label: 'Overview', icon: appIcons.governance },
-  { to: '/admin/tenants', label: 'Tenants', icon: appIcons.tenants },
-  { to: '/admin/users', label: 'Users', icon: appIcons.users },
-  { to: '/admin/access-requests', label: 'Access', icon: appIcons.access },
-  { to: '/admin/relationships', label: 'Relations', icon: appIcons.relationships },
-  { to: '/service-accountability', label: 'Service', icon: appIcons.service },
+  { to: '/admin/tenants', label: 'Organizations', icon: appIcons.tenants },
+  { to: '/admin/users', label: 'Accounts', icon: appIcons.users },
+  { to: '/admin/access-requests', label: 'Access requests', icon: appIcons.access },
+  { to: '/admin/relationships', label: 'Partners', icon: appIcons.relationships },
+  { to: '/service-accountability', label: 'Service review', icon: appIcons.service },
   { to: '/admin/outbox', label: 'Outbox', icon: appIcons.outbox },
-  { to: '/admin/audit', label: 'Audit', icon: appIcons.audit },
+  { to: '/admin/audit', label: 'Audit trail', icon: appIcons.audit },
   { to: '/assistant', label: 'Assistant', icon: appIcons.assistant },
   { to: '/notifications', label: 'Alerts', icon: appIcons.alerts },
 ]
@@ -29,16 +31,16 @@ const navByRole = {
     (item) => item.to !== '/admin/tenants' && item.to !== '/admin/users' && item.to !== '/admin/access-requests',
   ),
   MERCHANT: [
-    { to: '/merchant', label: 'Overview', icon: appIcons.operations },
-    { to: '/merchant/inventory', label: 'Inventory', icon: appIcons.inventory },
+    { to: '/merchant', label: 'Home', icon: appIcons.operations },
+    { to: '/merchant/inventory', label: 'Stock', icon: appIcons.inventory },
     { to: '/merchant/orders', label: 'Orders', icon: appIcons.orders },
-    { to: '/service-accountability', label: 'Service', icon: appIcons.service },
+    { to: '/service-accountability', label: 'Service review', icon: appIcons.service },
     { to: '/assistant', label: 'Assistant', icon: appIcons.assistant },
     { to: '/notifications', label: 'Alerts', icon: appIcons.alerts },
   ],
   WAREHOUSE_OPERATOR: [
-    { to: '/warehouse', label: 'Warehouse', icon: appIcons.warehouseWork },
-    { to: '/service-accountability', label: 'Service', icon: appIcons.service },
+    { to: '/warehouse', label: 'Work queue', icon: appIcons.warehouseWork },
+    { to: '/service-accountability', label: 'Service review', icon: appIcons.service },
     { to: '/assistant', label: 'Assistant', icon: appIcons.assistant },
     { to: '/notifications', label: 'Alerts', icon: appIcons.alerts },
   ],
@@ -76,6 +78,17 @@ export function AppLayout() {
     }
   }, [refreshNotificationSummary])
 
+  useEffect(() => {
+    function handleUnreadChanged(event: Event) {
+      const detail = (event as CustomEvent<NotificationUnreadChangedDetail>).detail
+      if (!detail || typeof detail.delta !== 'number') return
+      setUnreadCount((current) => Math.max(0, current + detail.delta))
+    }
+
+    window.addEventListener(notificationUnreadChangedEvent, handleUnreadChanged)
+    return () => window.removeEventListener(notificationUnreadChangedEvent, handleUnreadChanged)
+  }, [])
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
@@ -112,10 +125,10 @@ export function AppLayout() {
 
       <main className="main-shell">
         <header className="topbar">
-          <div>
+          <Link className="topbar-identity" to="/account" aria-label={`Account settings for ${user?.email ?? 'current user'}`}>
             <span className="eyebrow">{user?.role.replaceAll('_', ' ')}</span>
             <strong>{user?.email}</strong>
-          </div>
+          </Link>
           <div className="topbar-actions">
             <ThemeToggle />
             <button className="icon-text-button" type="button" onClick={logout}>

@@ -3,6 +3,8 @@ package com.merhouse.service;
 import com.merhouse.dto.AdminAuditEventResponse;
 import com.merhouse.dto.AdminPlatformSummaryResponse;
 import com.merhouse.dto.AdminTenantHealthResponse;
+import com.merhouse.dto.AttentionSeverity;
+import com.merhouse.dto.AttentionSignalResponse;
 import com.merhouse.dto.TenantResponse;
 import com.merhouse.entity.AccessRequestStatus;
 import com.merhouse.entity.InboundStockRequestStatus;
@@ -34,6 +36,8 @@ import com.merhouse.repository.WarehouseRepository;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.time.Instant;
+import java.util.ArrayList;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +68,7 @@ public class AdminControlService {
     private final ServiceStatementRepository statementRepository;
     private final TenantService tenantService;
     private final AdminAuditService adminAuditService;
+    private final CurrentUserService currentUserService;
 
     public AdminControlService(
         TenantRepository tenantRepository,
@@ -83,7 +88,8 @@ public class AdminControlService {
         FulfillmentAllocationRepository allocationRepository,
         ServiceStatementRepository statementRepository,
         TenantService tenantService,
-        AdminAuditService adminAuditService
+        AdminAuditService adminAuditService,
+        CurrentUserService currentUserService
     ) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
@@ -103,31 +109,57 @@ public class AdminControlService {
         this.statementRepository = statementRepository;
         this.tenantService = tenantService;
         this.adminAuditService = adminAuditService;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional(readOnly = true)
     public AdminPlatformSummaryResponse summary() {
+        long pendingAccessRequests = accessRequestRepository.countByStatus(AccessRequestStatus.PENDING);
+        long suspendedTenants = tenantRepository.countByActiveFalse();
+        long suspendedRelationships = relationshipRepository.countByStatus(MerchantWarehouseRelationshipStatus.SUSPENDED);
+        long openFulfillmentExceptions = exceptionRepository.countByStatus("OPEN");
+        long failedShipments = shipmentRepository.countByStatus(ShipmentStatus.FAILED);
+        long returnedShipments = shipmentRepository.countByStatus(ShipmentStatus.RETURNED);
+        long failedOutboxEvents = outboxRepository.countByStatus(OutboxEventStatus.FAILED);
+        long openServiceDisputes = disputeRepository.countByStatus(ServiceDisputeStatus.OPEN);
+        long openServiceClaims = claimRepository.countByStatus(ServiceClaimStatus.OPEN);
+        long pendingServiceReviews = reviewRepository.countByStatus(ServiceReviewStatus.PENDING);
+        UserRole currentRole = currentUserService.required().role();
+        List<AttentionSignalResponse> attentionSignals = adminAttentionSignals(
+            pendingAccessRequests,
+            suspendedTenants,
+            suspendedRelationships,
+            openFulfillmentExceptions,
+            failedShipments,
+            returnedShipments,
+            failedOutboxEvents,
+            openServiceDisputes,
+            openServiceClaims,
+            pendingServiceReviews,
+            currentRole
+        );
         return new AdminPlatformSummaryResponse(
             tenantRepository.count(),
-            tenantRepository.countByActiveFalse(),
+            suspendedTenants,
             userRepository.count(),
             userRepository.countByEnabledTrue(),
             userRepository.countByRoleIn(PLATFORM_ADMIN_ROLES),
-            accessRequestRepository.countByStatus(AccessRequestStatus.PENDING),
+            pendingAccessRequests,
             relationshipRepository.countByStatus(MerchantWarehouseRelationshipStatus.ACTIVE),
-            relationshipRepository.countByStatus(MerchantWarehouseRelationshipStatus.SUSPENDED),
+            suspendedRelationships,
             inboundRepository.countByStatusIn(Set.of(
                 InboundStockRequestStatus.SUBMITTED,
                 InboundStockRequestStatus.APPROVED,
                 InboundStockRequestStatus.RECEIVING
             )),
-            exceptionRepository.countByStatus("OPEN"),
-            shipmentRepository.countByStatus(ShipmentStatus.FAILED),
-            shipmentRepository.countByStatus(ShipmentStatus.RETURNED),
-            outboxRepository.countByStatus(OutboxEventStatus.FAILED),
-            disputeRepository.countByStatus(ServiceDisputeStatus.OPEN),
-            claimRepository.countByStatus(ServiceClaimStatus.OPEN),
-            reviewRepository.countByStatus(ServiceReviewStatus.PENDING)
+            openFulfillmentExceptions,
+            failedShipments,
+            returnedShipments,
+            failedOutboxEvents,
+            openServiceDisputes,
+            openServiceClaims,
+            pendingServiceReviews,
+            attentionSignals
         );
     }
 
@@ -178,5 +210,89 @@ public class AdminControlService {
                 ? reviewRepository.countByMerchantIdAndStatus(tenantId, ServiceReviewStatus.PENDING)
                 : reviewRepository.countByWarehouseProviderIdAndStatus(tenantId, ServiceReviewStatus.PENDING)
         );
+    }
+
+    private List<AttentionSignalResponse> adminAttentionSignals(
+        long pendingAccessRequests,
+        long suspendedTenants,
+        long suspendedRelationships,
+        long openFulfillmentExceptions,
+        long failedShipments,
+        long returnedShipments,
+        long failedOutboxEvents,
+        long openServiceDisputes,
+        long openServiceClaims,
+        long pendingServiceReviews,
+        UserRole currentRole
+    ) {
+        List<AttentionSignalResponse> signals = new ArrayList<>();
+        Instant now = Instant.now();
+        if (currentRole != UserRole.AUDITOR) {
+            addCountSignal(
+                signals,
+                pendingAccessRequests,
+                "admin-access-requests",
+                currentRole.canMutatePlatform() ? AttentionSeverity.ACTION_NEEDED : AttentionSeverity.REVIEW,
+                "Access requests need review",
+                currentRole.canMutatePlatform()
+                    ? "Pending onboarding requests are waiting on platform approval."
+                    : "Pending onboarding requests are waiting on owner/admin approval; support can review context and escalate.",
+                currentRole.canMutatePlatform() ? "Review requests" : "Review and escalate",
+                "/admin/access-requests",
+                "AccessRequest",
+                now,
+                currentRole.canMutatePlatform() ? UserRole.ADMIN : currentRole
+            );
+        }
+        addCountSignal(signals, failedOutboxEvents, "admin-failed-outbox", AttentionSeverity.CRITICAL,
+            "Outbox failures need reliability review",
+            currentRole.canMutatePlatform()
+                ? "Failed integration work is waiting for retry or dead-letter handling."
+                : "Failed integration work needs owner/admin retry or dead-letter handling; review diagnostics before escalation.",
+            currentRole.canMutatePlatform() ? "Open outbox diagnostics" : "Review diagnostics",
+            "/admin/outbox", "OutboxEvent", now, currentRole.canMutatePlatform() ? UserRole.ADMIN : currentRole);
+        addCountSignal(signals, openServiceDisputes + openServiceClaims + pendingServiceReviews, "admin-service-risks", AttentionSeverity.ACTION_NEEDED,
+            "Service accountability risks are open", "Open disputes, claims, or pending reviews need a platform-readable decision trail.",
+            "Open service review", "/service-accountability", "ServiceAccountability", now, currentRole);
+        addCountSignal(signals, suspendedTenants + suspendedRelationships, "admin-suspended-governance", AttentionSeverity.REVIEW,
+            "Suspended governance needs context", "Suspended tenants or relationships should be reviewed before daily operators depend on them.",
+            "Review relationships", "/admin/relationships", "MerchantWarehouseRelationship", now, currentRole);
+        addCountSignal(signals, openFulfillmentExceptions, "admin-fulfillment-exceptions", AttentionSeverity.CRITICAL,
+            "Fulfillment exceptions need operational follow-up", "Open exceptions should be resolved through the service and workflow surfaces, not hidden in audit history.",
+            "Open service review", "/service-accountability", "FulfillmentException", now, currentRole);
+        addCountSignal(signals, failedShipments + returnedShipments, "admin-delivery-failures", AttentionSeverity.CRITICAL,
+            "Delivery failures need service follow-up", "Failed or returned shipments should be inspected through operational detail and service accountability.",
+            "Open service review", "/service-accountability", "Shipment", now, currentRole);
+        return signals;
+    }
+
+    private void addCountSignal(
+        List<AttentionSignalResponse> signals,
+        long count,
+        String id,
+        AttentionSeverity severity,
+        String title,
+        String body,
+        String nextActionLabel,
+        String route,
+        String sourceType,
+        Instant createdAt,
+        UserRole ownerRole
+    ) {
+        if (count <= 0) {
+            return;
+        }
+        signals.add(AttentionSignalFactory.signal(
+            id,
+            severity,
+            title,
+            count + " " + body,
+            ownerRole,
+            nextActionLabel,
+            route,
+            sourceType,
+            null,
+            createdAt
+        ));
     }
 }

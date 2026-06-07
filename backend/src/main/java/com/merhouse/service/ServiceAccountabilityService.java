@@ -1,5 +1,6 @@
 package com.merhouse.service;
 
+import com.merhouse.dto.AttentionSeverity;
 import com.merhouse.dto.CreateServiceAgreementRequest;
 import com.merhouse.dto.CreateServiceClaimRequest;
 import com.merhouse.dto.CreateServiceDisputeRequest;
@@ -82,6 +83,7 @@ public class ServiceAccountabilityService {
     private final InboundStockRequestRepository inboundRepository;
     private final FulfillmentAllocationRepository allocationRepository;
     private final ShipmentRepository shipmentRepository;
+    private final ServiceAccountabilityAlertService alertService;
     private final CurrentUserService currentUserService;
 
     public ServiceAccountabilityService(
@@ -94,6 +96,7 @@ public class ServiceAccountabilityService {
         InboundStockRequestRepository inboundRepository,
         FulfillmentAllocationRepository allocationRepository,
         ShipmentRepository shipmentRepository,
+        ServiceAccountabilityAlertService alertService,
         CurrentUserService currentUserService
     ) {
         this.relationshipRepository = relationshipRepository;
@@ -105,6 +108,7 @@ public class ServiceAccountabilityService {
         this.inboundRepository = inboundRepository;
         this.allocationRepository = allocationRepository;
         this.shipmentRepository = shipmentRepository;
+        this.alertService = alertService;
         this.currentUserService = currentUserService;
     }
 
@@ -178,7 +182,15 @@ public class ServiceAccountabilityService {
         }
         agreement.setStatus(ServiceAgreementStatus.PROPOSED);
         agreement.setProposedAt(Instant.now());
-        return ServiceAgreementResponse.from(agreementRepository.saveAndFlush(agreement));
+        ServiceAgreement saved = agreementRepository.saveAndFlush(agreement);
+        alertService.recordWarehouseAlert(
+            saved.getWarehouseProvider().getId(),
+            "Service agreement proposed",
+            saved.getMerchant().getName() + " proposed " + saved.getTitle() + ".",
+            "ServiceAgreement",
+            saved.getId()
+        );
+        return ServiceAgreementResponse.from(saved);
     }
 
     @Transactional
@@ -197,7 +209,15 @@ public class ServiceAccountabilityService {
             agreement.getSupersedesAgreement().setStatus(ServiceAgreementStatus.SUPERSEDED);
             agreementRepository.saveAndFlush(agreement.getSupersedesAgreement());
         }
-        return ServiceAgreementResponse.from(agreementRepository.saveAndFlush(agreement));
+        ServiceAgreement saved = agreementRepository.saveAndFlush(agreement);
+        alertService.recordMerchantAlert(
+            saved.getMerchant().getId(),
+            "Service agreement active",
+            saved.getWarehouseProvider().getName() + " accepted " + saved.getTitle() + ".",
+            "ServiceAgreement",
+            saved.getId()
+        );
+        return ServiceAgreementResponse.from(saved);
     }
 
     @Transactional
@@ -209,7 +229,15 @@ public class ServiceAccountabilityService {
         }
         agreement.setStatus(ServiceAgreementStatus.SUSPENDED);
         agreement.setSuspendedAt(Instant.now());
-        return ServiceAgreementResponse.from(agreementRepository.saveAndFlush(agreement));
+        ServiceAgreement saved = agreementRepository.saveAndFlush(agreement);
+        alertService.recordCounterpartyAlert(
+            saved,
+            "Service agreement suspended",
+            saved.getTitle() + " was suspended.",
+            "ServiceAgreement",
+            saved.getId()
+        );
+        return ServiceAgreementResponse.from(saved);
     }
 
     @Transactional
@@ -222,7 +250,15 @@ public class ServiceAccountabilityService {
         }
         agreement.setStatus(ServiceAgreementStatus.ENDED);
         agreement.setEndedAt(Instant.now());
-        return ServiceAgreementResponse.from(agreementRepository.saveAndFlush(agreement));
+        ServiceAgreement saved = agreementRepository.saveAndFlush(agreement);
+        alertService.recordCounterpartyAlert(
+            saved,
+            "Service agreement ended",
+            saved.getTitle() + " was ended.",
+            "ServiceAgreement",
+            saved.getId()
+        );
+        return ServiceAgreementResponse.from(saved);
     }
 
     @Transactional
@@ -359,7 +395,16 @@ public class ServiceAccountabilityService {
         }
         statement.setStatus(ServiceStatementStatus.FINALIZED);
         statement.setFinalizedAt(Instant.now());
-        return ServiceStatementResponse.from(statementRepository.saveAndFlush(statement));
+        ServiceStatement saved = statementRepository.saveAndFlush(statement);
+        alertService.recordCounterpartyAlert(
+            saved.getAgreement(),
+            "Service statement finalized",
+            "Statement for " + saved.getPeriodStart() + " to " + saved.getPeriodEnd()
+                + " is ready for review.",
+            "ServiceStatement",
+            saved.getId()
+        );
+        return ServiceStatementResponse.from(saved);
     }
 
     @Transactional
@@ -371,7 +416,16 @@ public class ServiceAccountabilityService {
         }
         statement.setStatus(ServiceStatementStatus.MARKED_SETTLED);
         statement.setSettlementMarkedAt(Instant.now());
-        return ServiceStatementResponse.from(statementRepository.saveAndFlush(statement));
+        ServiceStatement saved = statementRepository.saveAndFlush(statement);
+        alertService.recordCounterpartyAlert(
+            saved.getAgreement(),
+            "Service statement settled",
+            "Statement for " + saved.getPeriodStart() + " to " + saved.getPeriodEnd()
+                + " was marked settled.",
+            "ServiceStatement",
+            saved.getId()
+        );
+        return ServiceStatementResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -413,7 +467,15 @@ public class ServiceAccountabilityService {
         dispute.setWarehouseProvider(statement.getWarehouseProvider());
         dispute.setReason(request.reason().trim());
         dispute.setEvidenceNote(trimToNull(request.evidenceNote()));
-        return ServiceDisputeResponse.from(disputeRepository.saveAndFlush(dispute));
+        ServiceDispute saved = disputeRepository.saveAndFlush(dispute);
+        alertService.recordCounterpartyAlert(
+            saved.getAgreement(),
+            "Service dispute opened",
+            saved.getReason(),
+            "ServiceDispute",
+            saved.getId()
+        );
+        return ServiceDisputeResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -444,7 +506,15 @@ public class ServiceAccountabilityService {
         dispute.setStatus(request.status());
         dispute.setOutcomeNote(trimToNull(request.outcomeNote()));
         dispute.setResolvedAt(Instant.now());
-        return ServiceDisputeResponse.from(disputeRepository.saveAndFlush(dispute));
+        ServiceDispute saved = disputeRepository.saveAndFlush(dispute);
+        alertService.recordCounterpartyAlert(
+            saved.getAgreement(),
+            "Service dispute " + saved.getStatus().name().toLowerCase(),
+            saved.getOutcomeNote() == null ? saved.getReason() : saved.getOutcomeNote(),
+            "ServiceDispute",
+            saved.getId()
+        );
+        return ServiceDisputeResponse.from(saved);
     }
 
     @Transactional
@@ -460,7 +530,15 @@ public class ServiceAccountabilityService {
         claim.setClaimType(request.claimType().trim());
         claim.setReason(request.reason().trim());
         claim.setEvidenceNote(trimToNull(request.evidenceNote()));
-        return ServiceClaimResponse.from(claimRepository.saveAndFlush(claim));
+        ServiceClaim saved = claimRepository.saveAndFlush(claim);
+        alertService.recordCounterpartyAlert(
+            saved.getAgreement(),
+            "Service claim opened",
+            saved.getClaimType() + ": " + saved.getReason(),
+            "ServiceClaim",
+            saved.getId()
+        );
+        return ServiceClaimResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -491,7 +569,15 @@ public class ServiceAccountabilityService {
         claim.setStatus(request.status());
         claim.setOutcomeNote(trimToNull(request.outcomeNote()));
         claim.setResolvedAt(Instant.now());
-        return ServiceClaimResponse.from(claimRepository.saveAndFlush(claim));
+        ServiceClaim saved = claimRepository.saveAndFlush(claim);
+        alertService.recordCounterpartyAlert(
+            saved.getAgreement(),
+            "Service claim " + saved.getStatus().name().toLowerCase(),
+            saved.getOutcomeNote() == null ? saved.getReason() : saved.getOutcomeNote(),
+            "ServiceClaim",
+            saved.getId()
+        );
+        return ServiceClaimResponse.from(saved);
     }
 
     @Transactional
@@ -506,7 +592,15 @@ public class ServiceAccountabilityService {
         review.setReason(request.reason().trim());
         review.setEvidenceNote(trimToNull(request.evidenceNote()));
         review.setRequestedBy(currentUserService.required().getUsername());
-        return ServiceReviewResponse.from(reviewRepository.saveAndFlush(review));
+        ServiceReviewRequest saved = reviewRepository.saveAndFlush(review);
+        alertService.recordCounterpartyAlert(
+            saved.getAgreement(),
+            "Service review requested",
+            saved.getReviewType().name() + ": " + saved.getReason(),
+            "ServiceReviewRequest",
+            saved.getId()
+        );
+        return ServiceReviewResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -537,7 +631,15 @@ public class ServiceAccountabilityService {
         review.setStatus(request.status());
         review.setOutcomeNote(trimToNull(request.outcomeNote()));
         review.setReviewedAt(Instant.now());
-        return ServiceReviewResponse.from(reviewRepository.saveAndFlush(review));
+        ServiceReviewRequest saved = reviewRepository.saveAndFlush(review);
+        alertService.recordCounterpartyAlert(
+            saved.getAgreement(),
+            "Service review " + saved.getStatus().name().toLowerCase(),
+            saved.getOutcomeNote() == null ? saved.getReason() : saved.getOutcomeNote(),
+            "ServiceReviewRequest",
+            saved.getId()
+        );
+        return ServiceReviewResponse.from(saved);
     }
 
     private ServiceStatementResponse createStatementRecord(
@@ -608,7 +710,28 @@ public class ServiceAccountabilityService {
         } else {
             status = elapsedHours <= targetHours ? "ON_TRACK" : "AT_RISK";
         }
-        return new SlaStatusResponse(sourceType, sourceId, status, targetHours, elapsedHours, status + " within " + targetHours + "h target");
+        return new SlaStatusResponse(
+            sourceType,
+            sourceId,
+            status,
+            targetHours,
+            elapsedHours,
+            status + " within " + targetHours + "h target",
+            "AT_RISK".equals(status) || "MISSED".equals(status)
+                ? AttentionSignalFactory.signal(
+                    "sla-" + sourceType + "-" + sourceId,
+                    "MISSED".equals(status) ? AttentionSeverity.CRITICAL : AttentionSeverity.ACTION_NEEDED,
+                    "SLA " + status.toLowerCase().replace('_', ' '),
+                    sourceType + " has used " + elapsedHours + " of " + targetHours + " target hours.",
+                    currentUserService.required().role() == UserRole.WAREHOUSE_OPERATOR ? UserRole.WAREHOUSE_OPERATOR : UserRole.MERCHANT,
+                    "Review service record",
+                    "/service-accountability",
+                    sourceType.name(),
+                    sourceId,
+                    startedAt
+                )
+                : null
+        );
     }
 
     private MerchantWarehouseRelationship getRequiredRelationship(UUID relationshipId) {

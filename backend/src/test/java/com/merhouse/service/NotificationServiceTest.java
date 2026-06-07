@@ -3,7 +3,9 @@ package com.merhouse.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -170,14 +172,64 @@ class NotificationServiceTest {
     @Test
     void summaryCountsUnreadRecordedDeliveriesForCurrentUser() {
         UUID userId = UUID.randomUUID();
+        AppUser user = user(userId, UUID.randomUUID());
         Instant latest = Instant.parse("2026-05-29T11:58:00Z");
+        NotificationDelivery delivery = new NotificationDelivery();
+        ReflectionTestUtils.setField(delivery, "id", UUID.randomUUID());
+        delivery.setRecipient(user);
+        delivery.setTenant(user.getTenant());
+        delivery.setStatus(NotificationDeliveryStatus.RECORDED);
+        delivery.setTopic(NotificationTopic.OPERATIONS);
+        delivery.setTitle("Inbound request needs review");
+        delivery.setBody("Merchant stock is waiting.");
+        delivery.setSourceType("InboundStockRequest");
+        delivery.setSourceId(UUID.randomUUID());
+        ReflectionTestUtils.setField(delivery, "createdAt", latest);
+        when(userRepository.findWithTenantById(userId)).thenReturn(Optional.of(user));
         when(deliveryRepository.countByRecipientIdAndStatus(userId, NotificationDeliveryStatus.RECORDED)).thenReturn(3L);
         when(deliveryRepository.findLatestCreatedAtByRecipientId(userId)).thenReturn(latest);
+        when(deliveryRepository.findByRecipientIdOrderByCreatedAtDesc(eq(userId), any())).thenReturn(List.of(delivery));
 
         var summary = service.summaryForUser(userId);
 
         assertEquals(3L, summary.unreadCount());
         assertEquals(latest, summary.latestDeliveryAt());
+        assertEquals(1, summary.attentionSignals().size());
+        assertEquals("/inbound-stock-requests/" + delivery.getSourceId(), summary.attentionSignals().getFirst().route());
+        assertTrue(summary.attentionSignals().getFirst().body().contains("Merchant stock"));
+    }
+
+    @Test
+    void summaryRoutesConnectedSourcesToTheirOwningWorkSurfaces() {
+        UUID userId = UUID.randomUUID();
+        AppUser user = user(userId, UUID.randomUUID());
+        Instant latest = Instant.parse("2026-05-29T11:58:00Z");
+        UUID orderId = UUID.randomUUID();
+        UUID backorderId = UUID.randomUUID();
+        UUID exceptionId = UUID.randomUUID();
+        UUID shipmentId = UUID.randomUUID();
+        NotificationDelivery order = delivery(user, NotificationTopic.OPERATIONS, "Order needs allocation", "Order is waiting.", "CustomerOrder", orderId, latest);
+        NotificationDelivery backorder = delivery(user, NotificationTopic.OPERATIONS, "Backorder opened", "Stock blocker needs review.", "BackorderItem", backorderId, latest);
+        NotificationDelivery exception = delivery(user, NotificationTopic.OPERATIONS, "Exception reported", "Merchant needs service review.", "FulfillmentException", exceptionId, latest);
+        NotificationDelivery outbox = delivery(user, NotificationTopic.OUTBOX_HEALTH, "Shipment event failed", "Dispatch needs platform review.", "Shipment", shipmentId, latest);
+        when(userRepository.findWithTenantById(userId)).thenReturn(Optional.of(user));
+        when(deliveryRepository.countByRecipientIdAndStatus(userId, NotificationDeliveryStatus.RECORDED)).thenReturn(4L);
+        when(deliveryRepository.findLatestCreatedAtByRecipientId(userId)).thenReturn(latest);
+        when(deliveryRepository.findByRecipientIdOrderByCreatedAtDesc(eq(userId), any())).thenReturn(List.of(
+            order,
+            backorder,
+            exception,
+            outbox
+        ));
+
+        var routes = service.summaryForUser(userId).attentionSignals().stream()
+            .map(signal -> signal.sourceType() + "=" + signal.route())
+            .toList();
+
+        assertTrue(routes.contains("CustomerOrder=/orders/" + orderId));
+        assertTrue(routes.contains("BackorderItem=/merchant/orders"));
+        assertTrue(routes.contains("FulfillmentException=/service-accountability"));
+        assertTrue(routes.contains("Shipment=/admin/outbox"));
     }
 
     private AppUser user(UUID userId, UUID tenantId) {
@@ -187,6 +239,30 @@ class NotificationServiceTest {
         ReflectionTestUtils.setField(user, "id", userId);
         user.setTenant(tenant);
         user.setEmail("user@merhouse.local");
+        user.setRole(com.merhouse.entity.UserRole.MERCHANT);
         return user;
+    }
+
+    private NotificationDelivery delivery(
+        AppUser user,
+        NotificationTopic topic,
+        String title,
+        String body,
+        String sourceType,
+        UUID sourceId,
+        Instant createdAt
+    ) {
+        NotificationDelivery delivery = new NotificationDelivery();
+        ReflectionTestUtils.setField(delivery, "id", UUID.randomUUID());
+        delivery.setRecipient(user);
+        delivery.setTenant(user.getTenant());
+        delivery.setStatus(NotificationDeliveryStatus.RECORDED);
+        delivery.setTopic(topic);
+        delivery.setTitle(title);
+        delivery.setBody(body);
+        delivery.setSourceType(sourceType);
+        delivery.setSourceId(sourceId);
+        ReflectionTestUtils.setField(delivery, "createdAt", createdAt);
+        return delivery;
     }
 }

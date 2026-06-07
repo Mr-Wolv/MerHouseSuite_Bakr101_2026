@@ -255,9 +255,12 @@
       </p>
       <div class="meta" aria-label="diagram scope">
         <span class="pill">Local-development baseline</span>
-        <span class="pill">V1-V14 product surface</span>
+        <span class="pill">V1-V16 local product surface</span>
+        <span class="pill">17 Flyway migrations</span>
         <span class="pill">37 database tables</span>
-        <span class="pill">SaaS readiness reserved for V16</span>
+        <span class="pill">25 business frontend routes + 2 router guard paths</span>
+        <span class="pill">17 web controllers</span>
+        <span class="pill">Local certification in V16; real activation in V17</span>
       </div>
     </header>
 
@@ -320,19 +323,19 @@
         </article>
 
         <article class="step" style="--accent: var(--platform)">
-          <h3>6. Users See Prototype-Local Notifications</h3>
-          <p>V13 records account-lifecycle delivery history without connecting to external email, SMS, push, or webhook providers.</p>
+          <h3>6. Users See Local Action Alerts</h3>
+          <p>V13-V16 record account-lifecycle and operational alert history without connecting to external email, SMS, push, or webhook providers.</p>
           <div class="scenario">
             <div class="scenario-row"><b>Trigger</b><span>An enabled user requests a password reset, or an approved access request is converted into an account.</span></div>
-            <div class="scenario-row"><b>Flow</b><span>The system stores a recipient-scoped notification delivery and refreshes the app-shell Alerts badge through lightweight polling.</span></div>
-            <div class="scenario-row"><b>Outcome</b><span>The recipient sees local delivery history, provider status, preference state, and read state without cross-user visibility.</span></div>
+            <div class="scenario-row"><b>Flow</b><span>The system stores recipient-scoped notification deliveries for lifecycle, operations, service-accountability, and outbox-health events, then refreshes the app-shell Alerts badge through lightweight polling.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>The recipient sees an action inbox, local delivery history, provider status, preference state, and read state without cross-user visibility.</span></div>
           </div>
-          <div class="arrow">Lifecycle event -> local delivery -> Alerts badge</div>
+          <div class="arrow">Lifecycle or operations event -> local alert -> Alerts badge</div>
         </article>
 
         <article class="step" style="--accent: var(--ops)">
           <h3>7. Users Ask For Scoped Assistance</h3>
-          <p>V14 starts with deterministic assistant summaries, risk-ranked review suggestions, and refusal records before any provider-backed AI work.</p>
+          <p>V14 starts with deterministic assistant summaries, risk-ranked review suggestions, and refusal records before any later V17 provider-backed AI activation.</p>
           <div class="scenario">
             <div class="scenario-row"><b>Trigger</b><span>A platform, merchant, or warehouse user asks for an operational summary or review-only suggestion.</span></div>
             <div class="scenario-row"><b>Flow</b><span>The assistant checks role and tenant scope, reads only authorized local services, ranks the allowed risk metrics, records the interaction, and keeps suggestion decisions explicit.</span></div>
@@ -340,13 +343,169 @@
           </div>
           <div class="arrow">Prompt -> scope check -> response + history + audit; decision -> audit</div>
         </article>
+
+        <article class="step" style="--accent: var(--platform)">
+          <h3>8. Users Maintain Account Security</h3>
+          <p>V16 adds authenticated account settings for local account context and current-password-verified password changes.</p>
+          <div class="scenario">
+            <div class="scenario-row"><b>Trigger</b><span>A signed-in user opens their topbar identity and reviews account, role, tenant, enabled-state, and local delivery-boundary context.</span></div>
+            <div class="scenario-row"><b>Flow</b><span>The user submits current password and a valid new password through <code>PATCH /api/v1/auth/me/password</code>.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>The password hash changes, a <code>USER_PASSWORD_CHANGED</code> audit event is recorded, and email, role, tenant, and enabled-state governance remain platform-managed.</span></div>
+          </div>
+          <div class="arrow">Account page -> password verification -> audit event</div>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Current Route, API, And Read-Model Surface</h2>
+      <p class="lede">
+        These cards summarize the current React router, Spring web controllers, and derived attention model. Attention signals are not database tables; they are additive read-model fields derived from existing records and returned by role-scoped summary endpoints.
+      </p>
+
+      <div class="domain-grid">
+        <article class="domain" style="--accent: var(--platform)">
+          <h3>Public And Account Routes</h3>
+          <div class="domain-body">
+            <div class="entity-grid">
+              <div class="entity">
+                <h4>Public access</h4>
+                <div class="keys"><span class="key">/login</span><span class="key">/forgot-password</span><span class="key">/reset-password</span><span class="key">/request-access</span></div>
+                <ul><li>Public users can sign in, request account access, and request local password-recovery proof without provider-delivery claims.</li></ul>
+              </div>
+              <div class="entity">
+                <h4>Signed-in account</h4>
+                <div class="keys"><span class="key">/account</span><span class="key">GET /api/v1/auth/me</span><span class="key">PATCH /api/v1/auth/me/password</span></div>
+                <ul><li>Every authenticated role can inspect account context and change their own password after current-password verification.</li></ul>
+              </div>
+              <div class="entity">
+                <h4>Authenticated route guard</h4>
+                <div class="keys"><span class="key">/</span><span class="key">*</span><span class="key">RouteErrorPage</span><span class="key">NotFoundPage</span></div>
+                <ul><li>The authenticated router redirects each role to its workspace and catches unavailable deep links with MerHouse guidance instead of framework error copy.</li></ul>
+              </div>
+            </div>
+            <div class="relations">
+              <span class="rel">AuthController owns login, current-user, reset, and self password change</span>
+              <span class="rel">AccessRequestController owns public request submission and platform review</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="domain" style="--accent: var(--platform)">
+          <h3>Platform Governance Routes</h3>
+          <div class="domain-body">
+            <div class="entity-grid">
+              <div class="entity">
+                <h4>Platform console</h4>
+                <div class="keys"><span class="key">/admin</span><span class="key">/admin/tenants</span><span class="key">/admin/users</span><span class="key">/admin/access-requests</span></div>
+                <ul><li>Owner/admin roles govern organizations, user accounts, public onboarding, and platform attention queues; support-admin is narrower and auditor is read-only.</li></ul>
+              </div>
+              <div class="entity">
+                <h4>Evidence and reliability</h4>
+                <div class="keys"><span class="key">/admin/relationships</span><span class="key">/admin/outbox</span><span class="key">/admin/audit</span></div>
+                <ul><li>Relationship governance, outbox diagnostics, carrier-dispatch records, and privileged audit events remain separate from daily merchant/warehouse execution.</li></ul>
+              </div>
+            </div>
+            <div class="relations">
+              <span class="rel">AdminControlController returns summary, tenant health, and audit events</span>
+              <span class="rel">TenantController, AdminUserController, AdminOutboxController, and MerchantWarehouseController own platform mutations</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="domain" style="--accent: var(--merchant)">
+          <h3>Merchant Routes</h3>
+          <div class="domain-body">
+            <div class="entity-grid">
+              <div class="entity">
+                <h4>Merchant operations</h4>
+                <div class="keys"><span class="key">/merchant</span><span class="key">/merchant/inventory</span><span class="key">/merchant/orders</span></div>
+                <ul><li>Merchants manage stock readiness, warehouse relationships, inbound requests, customer contacts, orders, imports, allocation, backorders, and exception follow-up.</li></ul>
+              </div>
+              <div class="entity">
+                <h4>Merchant evidence routes</h4>
+                <div class="keys"><span class="key">/orders/:orderId</span><span class="key">/inventory/items/:inventoryItemId</span><span class="key">/merchant-warehouse/relationships/:relationshipId</span></div>
+                <ul><li>Detail routes show role-scoped operational timelines and linked records instead of exposing cross-tenant data.</li></ul>
+              </div>
+            </div>
+            <div class="relations">
+              <span class="rel">DashboardController returns merchant attention and summary metrics</span>
+              <span class="rel">InventoryController, OrderController, and MerchantWarehouseController own merchant work</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="domain" style="--accent: var(--warehouse)">
+          <h3>Warehouse Routes</h3>
+          <div class="domain-body">
+            <div class="entity-grid">
+              <div class="entity">
+                <h4>Warehouse execution</h4>
+                <div class="keys"><span class="key">/warehouse</span><span class="key">/inbound-stock-requests/:inboundStockRequestId</span><span class="key">/fulfillment-allocations/:allocationId</span><span class="key">/shipments/:shipmentId</span></div>
+                <ul><li>Warehouse operators activate relationships, approve and receive inbound stock, pick, pack, ship, deliver, fail, return, and report exceptions.</li></ul>
+              </div>
+              <div class="entity">
+                <h4>Warehouse APIs</h4>
+                <div class="keys"><span class="key">GET /api/v1/dashboard/warehouse</span><span class="key">GET/POST /api/v1/warehouses</span><span class="key">PATCH /api/v1/fulfillment-allocations/{id}/status</span><span class="key">POST/PATCH /api/v1/shipments</span></div>
+                <ul><li>Warehouse work is scoped to authorized provider relationships and warehouse inventory records.</li></ul>
+              </div>
+            </div>
+            <div class="relations">
+              <span class="rel">FulfillmentController owns allocation, shipment, package, and exception paths</span>
+              <span class="rel">OperationalDetailController owns role-scoped evidence pages for warehouse work</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="domain" style="--accent: var(--service)">
+          <h3>Shared Review Routes</h3>
+          <div class="domain-body">
+            <div class="entity-grid">
+              <div class="entity">
+                <h4>Service, assistant, and alerts</h4>
+                <div class="keys"><span class="key">/service-accountability</span><span class="key">/assistant</span><span class="key">/notifications</span></div>
+                <ul><li>All authenticated roles can reach shared review surfaces, but service methods, assistant scopes, and notification reads stay role- and tenant-scoped.</li></ul>
+              </div>
+              <div class="entity">
+                <h4>AttentionSignalResponse</h4>
+                <div class="keys"><span class="key">severity</span><span class="key">ownerRole</span><span class="key">nextActionLabel</span><span class="key">route</span><span class="key">sourceType + sourceId</span><span class="key">resolved</span></div>
+                <ul><li>Derived from access requests, failed outbox events, fulfillment and shipment exceptions, service risk, inbound work, allocation work, and unread connected alerts.</li></ul>
+              </div>
+            </div>
+            <div class="relations">
+              <span class="rel">ServiceAccountabilityController owns agreements, statements, SLA statuses, disputes, claims, and reviews</span>
+              <span class="rel">AssistantController and NotificationController own review assistance and recipient-scoped local alerts</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="domain" style="--accent: var(--ops)">
+          <h3>Local Certification Boundary</h3>
+          <div class="domain-body">
+            <div class="entity-grid">
+              <div class="entity">
+                <h4>Local-only proof</h4>
+                <div class="keys"><span class="key">GET /api/v1/health</span><span class="key">local notification delivery</span><span class="key">local recovery token proof mode</span><span class="key">local carrier dispatch record</span><span class="key">deterministic assistant</span></div>
+                <ul><li>V16 certifies deployment readiness locally through mocks, dry runs, scripts, and docs; it does not provision cloud services or real provider credentials.</li></ul>
+              </div>
+              <div class="entity">
+                <h4>Future activation</h4>
+                <div class="keys"><span class="key">provider delivery</span><span class="key">realtime infrastructure</span><span class="key">production monitoring</span><span class="key">backup/restore activation</span></div>
+                <ul><li>Real production activation is deferred to V17 and must replace local mocks with externalized configuration and provider-specific proof.</li></ul>
+              </div>
+            </div>
+            <div class="relations">
+              <span class="rel">HealthController exposes the local readiness endpoint used by startup and proof scripts</span>
+            </div>
+          </div>
+        </article>
       </div>
     </section>
 
     <section>
       <h2>ERD Cards: UML From Current Database Schema</h2>
       <p class="lede">
-        These cards summarize the Flyway schema through migration 17. Each entity card lists the relationship-defining columns and the important connections without drawing every line across the page.
+        These cards summarize the Flyway schema through migration 17. Each entity card lists the relationship-defining columns and the important connections without drawing every line across the page. Account settings and attention signals do not add tables in V16; they use `app_users`, `admin_audit_events`, and derived summary DTOs.
       </p>
 
       <div class="domain-grid">
@@ -362,7 +521,7 @@
               <div class="entity">
                 <h4><code>app_users</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK tenant_id</span><span class="key uk">UK email</span><span class="key">role</span></div>
-                <ul><li>Authenticates platform, merchant, and warehouse users.</li></ul>
+                <ul><li>Authenticates platform, merchant, and warehouse users; self-service password changes update only the user's password hash.</li></ul>
               </div>
               <div class="entity">
                 <h4><code>password_reset_tokens</code></h4>
@@ -372,12 +531,12 @@
               <div class="entity">
                 <h4><code>access_requests</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK reviewed_by_user_id</span><span class="key fk">FK converted_tenant_id</span><span class="key fk">FK converted_user_id</span></div>
-                <ul><li>Captures onboarding requests and conversion results.</li></ul>
+                <ul><li>Captures onboarding requests, approve/reject review data, and conversion results.</li></ul>
               </div>
               <div class="entity">
                 <h4><code>admin_audit_events</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK actor_user_id</span><span class="key">aggregate_type</span><span class="key">aggregate_id</span></div>
-                <ul><li>Records platform governance actions.</li></ul>
+                <ul><li>Records platform governance, assistant decisions, access-request decisions, and account security events such as `USER_PASSWORD_CHANGED`.</li></ul>
               </div>
               <div class="entity">
                 <h4><code>notification_preferences</code></h4>
@@ -387,7 +546,7 @@
               <div class="entity">
                 <h4><code>notification_deliveries</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK recipient_user_id</span><span class="key fk">FK tenant_id</span><span class="key">status</span><span class="key">delivery_stage</span><span class="key">provider_status</span></div>
-                <ul><li>Prototype-local recipient delivery history for account lifecycle and future operational topics.</li></ul>
+                <ul><li>Prototype-local recipient delivery history for account lifecycle, operations, service accountability, and outbox health topics.</li></ul>
               </div>
               <div class="entity">
                 <h4><code>assistant_interactions</code></h4>
@@ -591,12 +750,12 @@
               <div class="entity">
                 <h4><code>outbox_events</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key">aggregate_type</span><span class="key">aggregate_id</span><span class="key">status</span></div>
-                <ul><li>Reliable side-effect queue for domain events.</li></ul>
+                <ul><li>Reliable side-effect queue for domain events, with retry and dead-letter diagnostics exposed to platform roles.</li></ul>
               </div>
               <div class="entity">
                 <h4><code>carrier_dispatches</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key uk">UK/FK outbox_event_id</span><span class="key fk">FK shipment_id</span></div>
-                <ul><li>Carrier dispatch record generated from shipment events.</li></ul>
+                <ul><li>Local carrier-dispatch record generated from shipment events; it is not a real provider handoff.</li></ul>
               </div>
             </div>
             <div class="relations">

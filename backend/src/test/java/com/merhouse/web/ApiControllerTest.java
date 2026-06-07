@@ -67,6 +67,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest({
+    HealthController.class,
     InventoryController.class,
     FulfillmentController.class,
     MerchantWarehouseController.class,
@@ -118,6 +119,13 @@ class ApiControllerTest {
 
     @MockitoBean
     private AdminAuditService adminAuditService;
+
+    @Test
+    void healthEndpointReportsReadinessWithoutDomainData() throws Exception {
+        mockMvc.perform(get("/api/v1/health"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UP"));
+    }
 
     @Test
     void removeStockEndpointValidatesAndDelegatesToInventoryService() throws Exception {
