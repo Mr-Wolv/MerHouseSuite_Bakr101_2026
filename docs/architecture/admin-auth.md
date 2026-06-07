@@ -17,8 +17,11 @@ MerHouse uses stateless API authentication with signed access tokens, BCrypt pas
 2. The API returns a signed bearer token and the current user summary.
 3. Clients send `Authorization: Bearer <token>` for authenticated API calls.
 4. `GET /api/v1/auth/me` returns the current active user.
+5. `PATCH /api/v1/auth/me/password` lets the signed-in user change their own password after current-password verification.
 
 Access tokens include user id, tenant id, email, role, issue time, and expiration.
+
+Self-service account settings do not change email, role, tenant, enabled state, or token lifetime. Platform account governance remains under `/api/v1/admin/users`.
 
 ## Runtime Configuration
 

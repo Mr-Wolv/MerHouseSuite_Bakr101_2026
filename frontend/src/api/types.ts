@@ -7,6 +7,21 @@ export type NotificationChannel = 'IN_APP' | 'EMAIL_PROTOTYPE'
 export type NotificationDeliveryStatus = 'RECORDED' | 'READ' | 'SKIPPED_BY_PREFERENCE'
 export type NotificationDeliveryStage = 'PREPARED' | 'LOCAL_RECORDED' | 'SKIPPED_BY_PREFERENCE'
 export type NotificationProviderStatus = 'NOT_CONFIGURED' | 'READY_FOR_PROVIDER'
+export type AttentionSeverity = 'CRITICAL' | 'ACTION_NEEDED' | 'REVIEW' | 'CLEARED'
+
+export type AttentionSignal = {
+  id: string
+  severity: AttentionSeverity
+  title: string
+  body: string
+  ownerRole: UserRole
+  nextActionLabel: string
+  route: string
+  sourceType: string | null
+  sourceId: string | null
+  createdAt: string
+  resolved: boolean
+}
 
 export type User = {
   id: string
@@ -36,6 +51,11 @@ export type AuthResponse = {
 
 export type CurrentUserResponse = {
   user: User
+}
+
+export type SelfPasswordChangePayload = {
+  currentPassword: string
+  newPassword: string
 }
 
 export type NotificationPreference = {
@@ -73,6 +93,7 @@ export type NotificationDelivery = {
 export type NotificationSummary = {
   unreadCount: number
   latestDeliveryAt: string | null
+  attentionSignals: AttentionSignal[]
 }
 
 export type AssistantScope = 'PLATFORM_OVERVIEW' | 'MERCHANT_OPERATIONS' | 'WAREHOUSE_OPERATIONS'
@@ -355,6 +376,7 @@ export type OutboxSummary = {
   processed: number
   failed: number
   retryableFailed: number
+  attentionSignals: AttentionSignal[]
 }
 
 export type OutboxEvent = {
@@ -387,6 +409,7 @@ export type AdminPlatformSummary = {
   openServiceDisputes: number
   openServiceClaims: number
   pendingServiceReviews: number
+  attentionSignals: AttentionSignal[]
 }
 
 export type AdminTenantHealth = {
@@ -437,6 +460,15 @@ export type CarrierDispatch = {
 export type CreateTenantPayload = {
   name: string
   type: TenantType
+}
+
+export type CreateWarehousePayload = {
+  tenantId: string
+  name: string
+  address: string
+  latitude?: number | null
+  longitude?: number | null
+  capacity: number
 }
 
 export type CreateUserPayload = {
@@ -685,6 +717,7 @@ export type SlaStatus = {
   targetHours: number
   elapsedHours: number
   label: string
+  attentionSignal: AttentionSignal | null
 }
 
 export type ServiceDispute = {
@@ -901,6 +934,7 @@ export type DashboardSummary = {
   inboundOpen: number
   stockRisk: number
   openExceptions: number
+  attentionSignals: AttentionSignal[]
 }
 
 export type CreateShipmentPayload = {

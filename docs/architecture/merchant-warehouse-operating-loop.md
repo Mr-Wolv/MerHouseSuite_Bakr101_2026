@@ -39,7 +39,8 @@ Receiving records accepted, damaged, and short quantities. Only received quantit
 4. Warehouse provider approves, receives, or rejects inbound stock.
 5. Orders allocate against authorized stock.
 6. Warehouse operators pick, pack, ship, and report exceptions.
-7. Merchant and platform users can inspect operational detail and service-accountability records.
+7. Merchant and platform users can inspect operational detail, notifications, attention signals, and service-accountability records.
+8. Merchant and warehouse parties can record service-agreement terms, propose or accept those terms, and request service review after an agreement is active.
 
 ## Current Implementation
 
@@ -52,3 +53,6 @@ The workflow is implemented through:
 - relationship-aware allocation
 - inbound receiving and rejection actions
 - fulfillment queue context for provider work
+- connected local notification alerts for relationship, inbound, allocation, shipment, exception, service-accountability, and outbox handoffs
+- attention-first dashboard signals for the role that owns the next action or review
+- service-agreement setup, proposal, and acceptance tied to active relationships

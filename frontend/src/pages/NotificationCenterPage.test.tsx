@@ -113,7 +113,7 @@ describe('NotificationCenterPage', () => {
     expect(await screen.findByRole('heading', { name: 'Notifications' })).toBeInTheDocument()
     expect(screen.getByLabelText('Alert rules')).toHaveTextContent('Start with the inbox')
     const sections = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
-    expect(sections.indexOf('Alert inbox')).toBeLessThan(sections.indexOf('Preferences'))
+    expect(sections.indexOf('Action inbox')).toBeLessThan(sections.indexOf('Preferences'))
     expect(screen.getAllByText('Account lifecycle')).toHaveLength(2)
     expect(screen.getByText('Email channel')).toBeInTheDocument()
     expect(screen.getByText('Account ready')).toBeInTheDocument()
@@ -150,7 +150,8 @@ describe('NotificationCenterPage', () => {
 
     expect(apiMock.markNotificationRead).toHaveBeenCalledWith('notification-token', 'delivery-1')
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Read/ })).toBeDisabled()
+      expect(screen.getByRole('heading', { name: 'Delivery history' })).toBeInTheDocument()
+      expect(screen.getByText('1 records')).toBeInTheDocument()
     })
     expect(unreadListener).toHaveBeenCalledTimes(1)
     expect(unreadListener.mock.calls[0][0]).toMatchObject({ detail: { delta: -1 } })
@@ -210,6 +211,27 @@ describe('NotificationCenterPage', () => {
         sourceId: 'claim-12345678',
       }),
       deliveryFixture({
+        id: 'delivery-exception',
+        topic: 'OPERATIONS',
+        title: 'Fulfillment exception reported',
+        sourceType: 'FulfillmentException',
+        sourceId: 'exception-12345678',
+      }),
+      deliveryFixture({
+        id: 'delivery-order',
+        topic: 'OPERATIONS',
+        title: 'Order needs attention',
+        sourceType: 'CustomerOrder',
+        sourceId: 'order-12345678',
+      }),
+      deliveryFixture({
+        id: 'delivery-backorder',
+        topic: 'OPERATIONS',
+        title: 'Backorder opened',
+        sourceType: 'BackorderItem',
+        sourceId: 'backorder-12345678',
+      }),
+      deliveryFixture({
         id: 'delivery-outbox',
         topic: 'OUTBOX_HEALTH',
         title: 'Outbox event failed',
@@ -224,7 +246,10 @@ describe('NotificationCenterPage', () => {
     const sourceLinks = screen.getAllByRole('link', { name: 'Open source' })
     expect(sourceLinks[0]).toHaveAttribute('href', '/inbound-stock-requests/inbound-12345678')
     expect(sourceLinks[1]).toHaveAttribute('href', '/service-accountability')
-    expect(sourceLinks[2]).toHaveAttribute('href', '/admin/outbox')
+    expect(sourceLinks[2]).toHaveAttribute('href', '/service-accountability')
+    expect(sourceLinks[3]).toHaveAttribute('href', '/orders/order-12345678')
+    expect(sourceLinks[4]).toHaveAttribute('href', '/merchant/orders')
+    expect(sourceLinks[5]).toHaveAttribute('href', '/admin/outbox')
   })
 
   it('separates critical, action, review, and resolved notification severity', async () => {

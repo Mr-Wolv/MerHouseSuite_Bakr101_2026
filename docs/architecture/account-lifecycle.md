@@ -14,6 +14,10 @@ User roles are tied to tenant type:
 
 New users start enabled.
 
+## Account Settings
+
+Authenticated users can review their account context at `/account` and change their own password through `PATCH /api/v1/auth/me/password`. The endpoint requires the current password and a valid new password. It does not allow self-service email, role, tenant, or enabled-state changes; those remain platform account-governance actions.
+
 ## Disabled Accounts
 
 Disabled users cannot log in and cannot continue using existing access tokens. Request authentication resolves the persisted user record, so account status changes take effect after the account is disabled.
@@ -33,10 +37,12 @@ Expired, used, missing, disabled-user, and invalid tokens produce the same inval
 
 For V13, enabled-user reset requests also create a prototype-local notification delivery record for the requesting account. This record is local history only; it is not an email or provider delivery.
 
+The default local Docker stack keeps `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=false`, so a browser user can request a reset and see the generic success message, but cannot complete the reset from the browser without a token supplied by another local proof path. To prove the complete request/confirm loop locally, set `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=true`, rebuild or restart the backend, and run the API smoke test with `-ExpectRecoveryToken`. Production reset delivery remains a V16 local certification and V17 real activation item.
+
 ## Access Requests
 
 Public access requests let prospective merchant or warehouse users ask for onboarding without creating an active account.
 
 Access requests start as `PENDING`. Platform users can approve, reject, and convert approved requests into tenant and user records. Reviewed requests record reviewer, note, and review time.
 
-For V13, converting an approved access request also creates a prototype-local notification delivery record for the new user. Production account invitation delivery remains blocked until Pre-V16 and V16 certification.
+For V13, converting an approved access request also creates a prototype-local notification delivery record for the new user. Production account invitation delivery remains blocked until V16 local certification and any later real deployment activation.

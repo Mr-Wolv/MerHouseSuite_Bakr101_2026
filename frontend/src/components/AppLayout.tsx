@@ -1,6 +1,6 @@
 import { LogOut } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { appIcons } from './AppIcons'
@@ -125,10 +125,10 @@ export function AppLayout() {
 
       <main className="main-shell">
         <header className="topbar">
-          <div>
+          <Link className="topbar-identity" to="/account" aria-label={`Account settings for ${user?.email ?? 'current user'}`}>
             <span className="eyebrow">{user?.role.replaceAll('_', ' ')}</span>
             <strong>{user?.email}</strong>
-          </div>
+          </Link>
           <div className="topbar-actions">
             <ThemeToggle />
             <button className="icon-text-button" type="button" onClick={logout}>

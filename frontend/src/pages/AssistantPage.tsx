@@ -3,12 +3,13 @@ import type { FormEvent } from 'react'
 import { Bot, RefreshCcw, Send } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
-import type { AssistantInteraction, AssistantScope } from '../api/types'
+import type { AssistantInteraction, AssistantScope, AttentionSignal } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
 import { shortId } from '../components/format'
 import { GuidancePanel } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
+import { AttentionQueue } from '../components/AttentionQueue'
 
 const scopeLabels: Record<AssistantScope, string> = {
   PLATFORM_OVERVIEW: 'Platform overview',
@@ -42,6 +43,30 @@ export function AssistantPage() {
   const canOpenAudit = ['OWNER', 'ADMIN', 'SUPPORT_ADMIN', 'AUDITOR'].includes(user?.role ?? '')
   const pendingSuggestions = interactions.filter((item) => item.actionStatus === 'PENDING').length
   const refusals = interactions.filter((item) => item.responseType === 'REFUSAL').length
+  const assistantSignals: AttentionSignal[] = interactions
+    .filter((item) => item.actionStatus === 'PENDING' || item.responseType === 'REFUSAL')
+    .slice(0, 6)
+    .map((item) => ({
+      id: `assistant-${item.id}`,
+      severity: item.actionStatus === 'PENDING' ? 'ACTION_NEEDED' : 'REVIEW',
+      title: item.actionStatus === 'PENDING'
+        ? canDecideSuggestions ? 'Assistant suggestion needs a decision' : 'Assistant suggestion is waiting for owner review'
+        : 'Assistant refusal needs context review',
+      body: item.actionStatus === 'PENDING'
+        ? canDecideSuggestions
+          ? 'A review-only suggestion is waiting for accept or reject.'
+          : 'A review-only suggestion is visible for audit, but auditors cannot accept or reject it.'
+        : 'A refusal was recorded and may need a better scoped request.',
+      ownerRole: user?.role ?? 'MERCHANT',
+      nextActionLabel: item.actionStatus === 'PENDING'
+        ? canDecideSuggestions ? 'Decide suggestion' : 'Review suggestion'
+        : 'Review interaction',
+      route: '/assistant',
+      sourceType: 'AssistantInteraction',
+      sourceId: item.id,
+      createdAt: item.createdAt,
+      resolved: false,
+    }))
 
   const load = useCallback(async () => {
     if (!token) return
@@ -105,12 +130,17 @@ export function AssistantPage() {
     <div className="page-stack">
       <div className="page-heading">
         <span className="eyebrow">Review assistant</span>
-        <h1>Assistant</h1>
+        <h1>Operational Review Assistant</h1>
         <p>Ask for a scoped second pass over operations risk.</p>
       </div>
       <GuidancePanel title="Assistant review boundary">
         Suggestions stay review-only. Accepting one records a decision; it does not change operations.
       </GuidancePanel>
+      <AttentionQueue
+        signals={assistantSignals}
+        description="Pending suggestions and refusals lead this page so the assistant stays tied to review decisions, not generic chat."
+        emptyLabel="No assistant review decisions are waiting"
+      />
 
       {error ? <ErrorState title={error} /> : null}
 

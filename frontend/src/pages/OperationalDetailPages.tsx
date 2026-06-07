@@ -305,12 +305,12 @@ export function MerchantWarehouseRelationshipDetailPage() {
         ...inboundStockRequests.map((request) => ({
           label: `Inbound ${request.merchantReference ?? shortId(request.id)}`,
           to: `/inbound-stock-requests/${request.id}`,
-          meta: `${request.status} · ${request.requestedQuantity} requested · ${request.receivedQuantity} received`,
+          meta: `${request.status} - ${request.requestedQuantity} requested - ${request.receivedQuantity} received`,
         })),
         ...allocations.map((allocation) => ({
           label: `Allocation ${shortId(allocation.id)}`,
           to: `/fulfillment-allocations/${allocation.id}`,
-          meta: `${allocation.status} · priority ${allocation.priority} · ${allocation.scanCode ?? 'scan pending'}`,
+          meta: `${allocation.status} - priority ${allocation.priority} - ${allocation.scanCode ?? 'scan pending'}`,
         })),
       ]} />
       <TimelinePanel events={timeline} />

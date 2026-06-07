@@ -103,8 +103,11 @@ export function notificationSourceHref(delivery: NotificationDelivery) {
     InboundStockRequest: 'inbound-stock-requests',
     InventoryItem: 'inventory/items',
     MerchantWarehouseRelationship: 'merchant-warehouse/relationships',
+    CustomerOrder: 'orders',
     Shipment: 'shipments',
   }
+  if (delivery.sourceType === 'BackorderItem') return '/merchant/orders'
+  if (delivery.sourceType === 'FulfillmentException') return '/service-accountability'
   const route = detailRoutes[delivery.sourceType]
   return route ? `/${route}/${delivery.sourceId}` : null
 }

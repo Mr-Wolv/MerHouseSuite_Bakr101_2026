@@ -3,6 +3,7 @@ package com.merhouse.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.merhouse.entity.OutboxEvent;
+import com.merhouse.entity.OutboxEventStatus;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.repository.CarrierDispatchRepository;
 import com.merhouse.repository.OutboxEventRepository;
@@ -28,6 +30,22 @@ class OutboxAdminServiceTest {
         outboxAlertService,
         3
     );
+
+    @Test
+    void summaryExposesRetryableFailuresAsAttentionSignals() {
+        when(outboxEventRepository.countByStatus(OutboxEventStatus.PENDING)).thenReturn(2L);
+        when(outboxEventRepository.countByStatus(OutboxEventStatus.PROCESSED)).thenReturn(7L);
+        when(outboxEventRepository.countByStatus(OutboxEventStatus.FAILED)).thenReturn(3L);
+        when(outboxEventRepository.countByStatusAndAttemptsLessThan(OutboxEventStatus.FAILED, 3)).thenReturn(1L);
+
+        var response = service.summary();
+
+        assertEquals(2L, response.pending());
+        assertEquals(3L, response.failed());
+        assertEquals(1, response.attentionSignals().size());
+        assertTrue(response.attentionSignals().getFirst().route().equals("/admin/outbox"));
+        assertEquals("CRITICAL", response.attentionSignals().getFirst().severity().name());
+    }
 
     @Test
     void retryOnlyAllowsFailedEventsAndClearsLastError() {

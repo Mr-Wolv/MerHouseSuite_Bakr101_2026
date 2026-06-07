@@ -99,7 +99,8 @@ test.describe('admin console', () => {
 
     await page.getByRole('link', { name: 'Accounts' }).click()
     await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByRole('row', { name: /admin@merhouse\.local/ }).getByRole('button', { name: 'Current user' })).toBeDisabled()
+    await expect(page.getByRole('row', { name: /admin@merhouse\.local/ })).toContainText('Current user')
+    await expect(page.getByRole('row', { name: /admin@merhouse\.local/ }).getByRole('button', { name: 'Disable' })).toHaveCount(0)
 
     const createUserForm = page.getByRole('form', { name: 'Create user form' })
     await createUserForm.getByLabel('Tenant').selectOption({ label: `${tenantName} (MERCHANT)` })
@@ -118,7 +119,7 @@ test.describe('admin console', () => {
     await expect(newUserRow).toBeVisible({ timeout: 20_000 })
     await newUserRow.getByRole('button', { name: 'Disable' }).click()
     await expect(newUserRow).toContainText('DISABLED', { timeout: 20_000 })
-    await expect(newUserRow.getByRole('button', { name: 'Disabled' })).toBeDisabled()
+    await expect(newUserRow.getByRole('button', { name: 'Enable' })).toBeVisible()
   })
 
   test('supports password recovery and access request review', async ({ page, request }) => {
@@ -348,6 +349,48 @@ test.describe('admin console', () => {
     await expect(page.getByText('Shipment handed off')).toBeVisible()
     await expect(page.getByText('Shipment delivered')).toBeVisible()
     await expect(page.locator('.data-chip', { hasText: 'Shipment' }).first()).toBeVisible()
+  })
+
+  test('signed-in users can change their own password from account settings', async ({ page, request }) => {
+    const suffix = Date.now().toString(36)
+    const oldPassword = 'account-old-password'
+    const newPassword = 'account-new-password'
+    const adminLogin = await api<{ accessToken: string }>(request, 'post', '/api/v1/auth/login', undefined, {
+      email: 'admin@merhouse.local',
+      password: 'local-owner-password',
+    })
+    const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminLogin.accessToken, {
+      name: `E2E Account Merchant ${suffix}`,
+      type: 'MERCHANT',
+    })
+    const userEmail = `e2e-account-${suffix}@merhouse.local`
+    await api(request, 'post', '/api/v1/admin/users', adminLogin.accessToken, {
+      tenantId: merchant.id,
+      email: userEmail,
+      password: oldPassword,
+      role: 'MERCHANT',
+    })
+
+    await page.goto('/login')
+    await page.getByLabel('Email').fill(userEmail)
+    await page.getByLabel('Password').fill(oldPassword)
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page.getByRole('heading', { name: 'Merchant Overview' })).toBeVisible({ timeout: 20_000 })
+
+    await page.getByRole('link', { name: `Account settings for ${userEmail}` }).click()
+    await expect(page.getByRole('heading', { name: 'Your MerHouse account' })).toBeVisible()
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBeTruthy()
+    await page.getByLabel('Current password').fill(oldPassword)
+    await page.getByLabel('New password', { exact: true }).fill(newPassword)
+    await page.getByLabel('Confirm new password').fill(newPassword)
+    await page.getByRole('button', { name: 'Change password' }).click()
+    await expect(page.getByRole('status')).toContainText('Password changed.')
+
+    await page.getByRole('button', { name: 'Logout' }).click()
+    await page.getByLabel('Email').fill(userEmail)
+    await page.getByLabel('Password').fill(newPassword)
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page.getByRole('heading', { name: 'Merchant Overview' })).toBeVisible({ timeout: 20_000 })
   })
 
   test('warehouse operator can fail and return in-transit shipments', async ({ page, request }) => {
@@ -698,7 +741,7 @@ test.describe('admin console', () => {
     await expect(page.getByText(`V11 Service Terms ${suffix}`)).toBeVisible()
     await expect(page.getByText('INBOUND STOCK REQUEST')).toBeVisible()
     await expect(page.getByText('Playwright dispute review')).toBeVisible()
-    await expect(page.getByText('RECEIVING REVIEW')).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'Claim RECEIVING REVIEW' })).toBeVisible()
     await expect(page.getByText(`V11 Import ${suffix}`)).toBeVisible()
     await page.goto('/notifications')
     await expect(page.getByText('Service agreement active')).toBeVisible()

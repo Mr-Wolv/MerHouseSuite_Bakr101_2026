@@ -105,6 +105,14 @@ describe('AppLayout role navigation', () => {
     expect(screen.queryByLabelText(/unread alerts/i)).not.toBeInTheDocument()
   })
 
+  it('links the signed-in identity to account settings without adding sidebar clutter', async () => {
+    renderLayout(baseAuthState)
+
+    expect(screen.getByRole('link', { name: 'Account settings for role@merhouse.local' })).toHaveAttribute('href', '/account')
+    expect(screen.queryByRole('link', { name: 'Account settings' })).not.toBeInTheDocument()
+    expect(await screen.findByLabelText('2 unread alerts')).toBeInTheDocument()
+  })
+
   it.each([
     'OWNER',
     'ADMIN',

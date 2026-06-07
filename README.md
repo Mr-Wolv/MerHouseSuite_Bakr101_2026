@@ -11,10 +11,11 @@ It models the operating relationship between a brand or merchant and a warehouse
 - Authenticated role-aware web app for platform, merchant, and warehouse users.
 - Merchant workflows for inventory, inbound stock, order creation, order import history, allocation visibility, fulfillment status, service records, and operational detail pages.
 - Warehouse workflows for receiving, pick/pack/ship progress, shipment package evidence, exception reporting, and warehouse inventory.
-- Platform workflows for tenant management, user management, onboarding requests, role changes, account status, audit events, and background work visibility.
-- Service accountability for agreements, service statements, SLA status, disputes, claims, and review requests.
-- Prototype-local assistant for scoped operational summaries, review-only suggestions, refusals, and auditable interaction history.
-- Prototype-local notifications for account lifecycle events, per-user preferences, delivery history, and app-shell alert counts without external provider delivery.
+- Platform workflows for tenant management, user management, onboarding requests, role changes, account status, relationship governance, audit evidence, outbox diagnostics, and attention-first operational review.
+- Service accountability for agreement setup, agreement proposal and acceptance, at-risk SLA work, service statements, disputes, claims, review requests, and import evidence.
+- Account settings after sign-in for account context and current-password-verified self-service password changes.
+- Deterministic prototype-local operations assistant for scoped summaries, review-only suggestions, refusals, pending-decision review, and auditable interaction history.
+- Prototype-local notification action inbox for account lifecycle events, connected operational handoffs, service accountability updates, outbox health, per-user preferences, delivery history, and app-shell alert counts without external provider delivery.
 - REST API with validation, authorization, tenant-aware data access, Flyway migrations, PostgreSQL persistence, and OpenAPI metadata.
 
 ## Tech Stack
@@ -60,7 +61,7 @@ Local URLs:
 - Backend: `http://localhost:8080`
 
 The compose stack builds and runs PostgreSQL, the Spring Boot API, and the nginx-served frontend.
-This repository is prepared for private local development. SaaS deployment work is intentionally reserved for the V16 productionization phase, and any later public release should be assembled from the publishable `backend/` and `frontend/` boundary after a publication review.
+This repository is prepared for private local development and future deployment readiness. V16 certification uses local mocks, dry-run proof, and publication-boundary checks; it does not perform real cloud/provider deployment. Any later public release should be assembled from the publishable `backend/` and `frontend/` boundary after a publication review.
 
 ## Development Commands
 
@@ -89,6 +90,12 @@ Full local quality check:
 
 ```powershell
 .\scripts\quality\check.ps1
+```
+
+Deployment-ready local certification gate:
+
+```powershell
+.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -SkipCompose
 ```
 
 Start or stop the local stack:
@@ -126,5 +133,6 @@ The backend reads configuration from environment variables. `.env.example` conta
 - [Architecture notes](docs/architecture/merchant-warehouse-operating-loop.md)
 - [Agentic operations assistance](docs/architecture/agentic-operations-assistance.md)
 - [Notifications](docs/architecture/notifications.md)
+- [Deployment-ready local certification](docs/architecture/deployment-ready-local-certification.md)
 - [Structural stabilization](docs/architecture/structural-stabilization.md)
 - [System diagrams](docs/architecture/system-diagrams.html)

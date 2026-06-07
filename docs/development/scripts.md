@@ -20,6 +20,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/frontend-deploy-check.ps1` | Check the deployed frontend shell and API proxy. |
 | `scripts/quality/frontend-full-tour.ps1` | Run the browser tour against a running local stack. |
 | `scripts/quality/public-readiness.ps1` | Check the future `backend/` and `frontend/` publication boundary, forbidden sensitive files, high-confidence sensitive patterns, and Compose config. |
+| `scripts/quality/deployment-readiness.ps1` | Run the V16 deployment-ready local certification gate with local/mock proof and optional API smoke. |
 | `scripts/maintenance/clean-reports.ps1` | Trim old local reports, logs, and screenshots. |
 
 ## Typical Local Flow
@@ -87,11 +88,30 @@ $env:FRONTEND_TOUR_BASE_URL = "http://localhost:3000"
 Remove-Item Env:\FRONTEND_TOUR_BASE_URL
 ```
 
+Password recovery proof has two local modes:
+
+- default mode keeps `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=false`; reset requests record local notification history and return a generic browser message without exposing a reset link
+- complete local request/confirm proof requires `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=true`, a backend restart or rebuild, and:
+
+```powershell
+.\scripts\quality\api-smoke.ps1 -ExpectRecoveryToken
+```
+
+Keep token echo disabled for production-shaped checks. V16 certifies the local/mock recovery boundary; provider-backed reset delivery remains a V17 real activation item.
+
 Validate markdown and Obsidian links after documentation or note changes:
 
 ```powershell
 .\scripts\quality\markdown-check.ps1
 ```
+
+Run the V16 deployment-ready local certification gate when the stack is ready for heavier proof:
+
+```powershell
+.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -SkipCompose
+```
+
+Add `-IncludeApiSmoke` when the seeded local stack should also prove API smoke scenarios. The gate stays local and mocked; it does not provision cloud infrastructure, provider credentials, or production delivery.
 
 Validate Compose configuration:
 

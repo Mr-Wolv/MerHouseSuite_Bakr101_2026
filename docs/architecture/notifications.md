@@ -1,8 +1,8 @@
 # Notifications
 
-MerHouse V13 provides a local notification foundation. It records account-lifecycle delivery history and exposes per-user notification preferences without connecting to an external provider.
+MerHouse provides a prototype-local notification foundation. It records account-lifecycle and operational alert history, exposes per-user notification preferences, and treats unread routed records as an action inbox without connecting to an external provider.
 
-This is prototype-local behavior. The backend stores delivery records for visibility and proof, but it does not send email, SMS, push, webhooks, or provider traffic. Production delivery, provider credentials, callback endpoints, bounce handling, and deliverability monitoring remain Pre-V16 and V16 work.
+This is prototype-local behavior. The backend stores delivery records for visibility and proof, but it does not send email, SMS, push, webhooks, or provider traffic. V16 certifies the local/mock delivery boundary; production delivery, provider credentials, callback endpoints, bounce handling, and deliverability monitoring remain V17 real activation work.
 
 ## Model
 
@@ -37,7 +37,7 @@ Delivery stages:
 Provider statuses:
 
 - `NOT_CONFIGURED`: V13 has no external delivery provider configured. This is the expected status for local prototype records.
-- `READY_FOR_PROVIDER`: reserved for a later provider-backed delivery handoff after Pre-V16 and V16 certification.
+- `READY_FOR_PROVIDER`: reserved for a later provider-backed delivery handoff after V16 local certification and V17 real activation.
 
 ## Account Lifecycle Hooks
 
@@ -89,13 +89,14 @@ Every connected alert must remain tenant-scoped, role-appropriate, and safe for 
 
 The V15.5 closeout pass adds source navigation for connected local alerts. When a delivery has a routed source, the notification card links to that work surface:
 
-- operational detail routes for `InboundStockRequest`, `FulfillmentAllocation`, `InventoryItem`, `MerchantWarehouseRelationship`, and `Shipment`
-- `/service-accountability` for service agreements, statements, disputes, claims, and reviews
+- operational detail routes for `InboundStockRequest`, `FulfillmentAllocation`, `InventoryItem`, `MerchantWarehouseRelationship`, `Shipment`, and `CustomerOrder`
+- `/merchant/orders` for backorder review
+- `/service-accountability` for service agreements, statements, disputes, claims, reviews, and fulfillment-exception review
 - `/admin/outbox` for outbox-health alerts
 
 Sources without a safe routed surface stay visible as source chips only; they should not render dead links.
 
-Provider-backed email, SMS, push, webhook, and realtime delivery remain Pre-V16/V16 work. V15.5 may add local in-app delivery records and UI source semantics, but it must not claim production delivery.
+Provider-backed email, SMS, push, webhook, and realtime delivery remain V17 real activation work. V15.5 may add local in-app delivery records and UI source semantics, and V16 may certify local/mock contracts, but neither phase claims production delivery.
 
 ## API
 
@@ -127,13 +128,16 @@ Rules:
 
 The React console exposes `/notifications` for all authenticated roles through the `Alerts` navigation item. The page shows:
 
-- unread and delivery-record counts
-- all preference rows and enable/disable actions
-- local delivery history
-- prototype-local labels
+- an action inbox first, with unread/actionable records before read or skipped history
+- unread, action-needed, preference, and provider-handoff summary counts
+- source links for routed operational records and source chips for records without a safe route
+- local delivery history below the active inbox
+- authenticated preference rows and enable/disable actions below the inbox/history work
 - delivery stage and provider status labels
 - mark-read actions for unread records
 - background refresh for delivery history
+
+Read records remain available as history, but they no longer drive active attention signals. This keeps `/notifications` aligned with the V15.9 product intent: notifications are an operational action inbox first and a delivery-history/preferences surface second.
 
 ## Live Update Direction
 
@@ -150,7 +154,7 @@ Until that decision is made, polling remains the V13 implementation path.
 
 ## Publication Boundary
 
-No provider credentials, private endpoints, webhook secrets, tokens, customer data, or operational reports are required or embedded in `backend/` or `frontend/` for this foundation. Provider-backed delivery must be introduced later through externalized configuration and V16 secret-management proof.
+No provider credentials, private endpoints, webhook secrets, tokens, customer data, or operational reports are required or embedded in `backend/` or `frontend/` for this foundation. V16 proves the secret-management and local/mock boundary; provider-backed delivery must be introduced later through externalized configuration during V17 real activation.
 
 ## Proof
 
@@ -168,4 +172,4 @@ npm run lint
 
 The Playwright full tour includes notification-recipient proof: a password-reset delivery created for one admin account is visible to that account and absent for a support-admin account. It also includes multi-role notification preference proof: a merchant preference change affects merchant delivery state without leaking to a warehouse operator, while the warehouse operator still receives its own local lifecycle delivery.
 
-The V13 close-out proof also ran the broad backend, frontend, Playwright, migration, markdown, and publication-boundary checks from the roadmap change-quality rule.
+The V15.9/V15.10 close-out proof also covers connected notification source routes for orders, backorders, fulfillment exceptions, service accountability, and outbox health; unread delivery-derived attention signals; read/history exclusion from active queues; desktop and narrow route checks; markdown checks; and publication-boundary scans through the roadmap change-quality rule.

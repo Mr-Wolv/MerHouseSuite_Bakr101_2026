@@ -129,7 +129,7 @@ describe('AssistantPage', () => {
   it('loads assistant history with review-ready language', async () => {
     renderPage()
 
-    expect(await screen.findByRole('heading', { name: 'Assistant' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Operational Review Assistant' })).toBeInTheDocument()
     expect(screen.getByLabelText('Assistant review boundary')).toHaveTextContent('Suggestions stay review-only')
     expect(screen.getByText('Summarize my queues')).toBeInTheDocument()
     expect(screen.getByText('Merchant operations summary: 7 orders or workload items.')).toBeInTheDocument()
@@ -230,6 +230,8 @@ describe('AssistantPage', () => {
     })
 
     expect(await screen.findByText('Suggested next step: review failed outbox events.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Review suggestion' })).toHaveAttribute('href', '/assistant')
+    expect(screen.queryByRole('link', { name: 'Decide suggestion' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Decision reason')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Accept suggestion' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Reject suggestion' })).not.toBeInTheDocument()

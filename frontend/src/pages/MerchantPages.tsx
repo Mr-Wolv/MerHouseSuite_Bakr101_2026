@@ -23,6 +23,7 @@ import { shortId } from '../components/format'
 import { Metric } from '../components/Metric'
 import { FirstRunChecklist, GuidancePanel, PageHeading, QuantityCell, WorkflowDivider } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
+import { AttentionQueue } from '../components/AttentionQueue'
 
 type MerchantData = {
   items: InventoryItem[]
@@ -70,6 +71,11 @@ export function MerchantOverviewPage() {
       <GuidancePanel title="Start with risk">
         Open Orders when risk rises; use Stock when a prerequisite is missing.
       </GuidancePanel>
+      <AttentionQueue
+        signals={data.dashboard?.attentionSignals ?? []}
+        description="Backorders, inbound blockers, and fulfillment exceptions appear here before order history."
+        emptyLabel="No merchant blockers are active"
+      />
       <div className="metric-grid">
         <Metric label="Inventory items" value={data.items.length} />
         <Metric label="Orders" value={data.orders.length} />
@@ -662,6 +668,9 @@ export function MerchantOrdersPage() {
   if (!data) return <EmptyState label="No merchant orders available" guidance="Add inventory, confirm stock availability, then create the first customer order from this page." />
 
   const createOrderBlocker = data.items.length === 0 ? 'Create a stock item before creating an order.' : ''
+  const canAddDraftLine = Boolean(inventoryItemId) && quantity >= 1
+  const canSaveContact = Boolean(customerAddress && contactLabel && contactName)
+  const canImportRows = Boolean(csvText.trim()) && !submitting
 
   return (
     <div className="page-stack">
@@ -730,12 +739,20 @@ export function MerchantOrdersPage() {
           </label>
         </div>
         <div className="table-actions">
-          <button className="secondary-button fit-button" type="button" disabled={!inventoryItemId || quantity < 1} onClick={addDraftLine}>
-            Add line
-          </button>
-          <button className="secondary-button fit-button" type="button" disabled={!customerAddress || !contactLabel || !contactName} onClick={() => void createContact()}>
-            Save contact
-          </button>
+          {canAddDraftLine ? (
+            <button className="secondary-button fit-button" type="button" onClick={addDraftLine}>
+              Add line
+            </button>
+          ) : (
+            <span className="data-chip warning-chip">Choose an item and quantity before adding a line.</span>
+          )}
+          {canSaveContact ? (
+            <button className="secondary-button fit-button" type="button" onClick={() => void createContact()}>
+              Save contact
+            </button>
+          ) : (
+            <span className="data-chip warning-chip">Address, label, and contact name save a reusable contact.</span>
+          )}
         </div>
         {draftItems.length ? (
           <div className="status-row" aria-label="Draft order lines">
@@ -773,9 +790,13 @@ export function MerchantOrdersPage() {
               placeholder="Customer address,SKU,Quantity,Customer name,Customer phone"
             />
           </label>
-          <button className="secondary-button fit-button" type="button" disabled={!csvText.trim() || submitting} onClick={() => void importCsvOrders()}>
-            {submitting ? 'Submitting import' : 'Submit import batch'}
-          </button>
+          {canImportRows ? (
+            <button className="secondary-button fit-button" type="button" onClick={() => void importCsvOrders()}>
+              Submit import batch
+            </button>
+          ) : (
+            <span className="data-chip warning-chip">Paste one or more rows to submit an import batch.</span>
+          )}
         </div>
         {importBatches.length ? (
           <div className="table-wrap">
@@ -959,9 +980,13 @@ function MerchantExceptionsTable({
                   <td>{exception.description}</td>
                   <td><StatusBadge value={exception.status} /></td>
                   <td>
-                    <button className="table-button" type="button" disabled={!open} onClick={() => onResolve(exception.id)}>
-                      {open ? 'Resolve and notify-ready' : 'Resolved'}
-                    </button>
+                    {open ? (
+                      <button className="table-button" type="button" onClick={() => onResolve(exception.id)}>
+                        Resolve and notify-ready
+                      </button>
+                    ) : (
+                      <span className="data-chip">Resolved</span>
+                    )}
                   </td>
                 </tr>
               )
@@ -1081,7 +1106,7 @@ function InboundRequestsTable({
             {requests.map((request) => {
               const canSubmit = request.status === 'DRAFT'
               const canCancel = request.status === 'DRAFT' || request.status === 'SUBMITTED' || request.status === 'APPROVED'
-              const submitLabel = request.status === 'DRAFT' ? 'Submit draft' : inboundClosedLabel(request.status)
+              const hasAction = canSubmit || canCancel
               return (
                 <tr key={request.id}>
                   <td>
@@ -1097,12 +1122,17 @@ function InboundRequestsTable({
                   <td><StatusBadge value={request.status} /></td>
                   <td>
                     <div className="table-actions">
-                      <button className="table-button" type="button" disabled={!canSubmit} onClick={() => onSubmit(request)}>
-                        {submitLabel}
-                      </button>
-                      <button className="table-button warning-button" type="button" disabled={!canCancel} onClick={() => onCancel(request)}>
-                        {canCancel ? 'Cancel inbound' : 'Closed'}
-                      </button>
+                      {canSubmit ? (
+                        <button className="table-button" type="button" onClick={() => onSubmit(request)}>
+                          Submit draft
+                        </button>
+                      ) : null}
+                      {canCancel ? (
+                        <button className="table-button warning-button" type="button" onClick={() => onCancel(request)}>
+                          Cancel inbound
+                        </button>
+                      ) : null}
+                      {!hasAction ? <span className="data-chip">{inboundClosedLabel(request.status)}</span> : null}
                     </div>
                   </td>
                 </tr>
@@ -1235,15 +1265,15 @@ function OrdersTable({
 function inboundClosedLabel(status: InboundStockRequest['status']) {
   switch (status) {
     case 'SUBMITTED':
-      return 'Submitted'
+      return 'Submitted to warehouse'
     case 'APPROVED':
-      return 'Approved'
+      return 'Warehouse approved'
     case 'RECEIVING':
-      return 'Receiving'
+      return 'Receiving in progress'
     case 'RECEIVED':
-      return 'Received'
+      return 'Received by warehouse'
     case 'REJECTED':
-      return 'Rejected'
+      return 'Rejected by warehouse'
     case 'CANCELLED':
       return 'Cancelled'
     default:

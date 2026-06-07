@@ -78,6 +78,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/service-accountability',
     '/assistant',
     '/notifications',
+    '/account',
   ],
   admin: [
     '/admin',
@@ -90,6 +91,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/service-accountability',
     '/assistant',
     '/notifications',
+    '/account',
   ],
   supportAdmin: [
     '/admin',
@@ -101,6 +103,7 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/service-accountability',
     '/assistant',
     '/notifications',
+    '/account',
   ],
   auditor: [
     '/admin',
@@ -110,9 +113,10 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/service-accountability',
     '/assistant',
     '/notifications',
+    '/account',
   ],
-  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/assistant', '/notifications'],
-  warehouse: ['/warehouse', '/service-accountability', '/assistant', '/notifications'],
+  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/assistant', '/notifications', '/account'],
+  warehouse: ['/warehouse', '/service-accountability', '/assistant', '/notifications', '/account'],
 }
 
 const viewports = {
@@ -578,20 +582,24 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   await supportPage.goto(`${APP_URL}/admin/users`, { waitUntil: 'networkidle' })
   await expect(supportPage.getByRole('heading', { name: 'Users' })).toBeVisible()
   await expect(supportPage.getByRole('link', { name: 'Organizations' })).toHaveCount(0)
-  await expect(supportPage.getByRole('button', { name: 'Owner/admin only' })).toBeDisabled()
+  await expect(supportPage.getByText('Owner/admin account creation')).toBeVisible()
   await supportPage.getByLabel('Email search').fill(hierarchy.ordinaryMerchant.email)
   const ordinaryUserRow = supportPage.locator('tr').filter({ hasText: hierarchy.ordinaryMerchant.email }).first()
   await expect(ordinaryUserRow).toBeVisible()
-  await expect(ordinaryUserRow.getByRole('button', { name: 'Disable' })).toBeDisabled()
+  await expect(ordinaryUserRow.getByText('Owner/admin action')).toBeVisible()
+  await expect(ordinaryUserRow.getByRole('button', { name: 'Disable' })).toHaveCount(0)
   await supportPage.getByLabel('Temporary reset password').fill('support-reset-password')
   await ordinaryUserRow.getByRole('button', { name: 'Reset' }).click()
   await expect(supportPage.locator('.inline-error')).toHaveCount(0)
-  records.push({ role: 'supportAdmin', action: 'reset ordinary user while account mutation stayed disabled' })
+  records.push({ role: 'supportAdmin', action: 'reset ordinary user while account mutation ownership stayed explicit' })
 
   await supportPage.goto(`${APP_URL}/admin/access-requests`, { waitUntil: 'networkidle' })
   await expect(supportPage.getByRole('heading', { name: 'Access Requests' })).toBeVisible()
   await expect(supportPage.getByText(`Hierarchy Access ${hierarchy.suffix}`)).toBeVisible()
-  await expect(supportPage.getByRole('button', { name: 'Owner/admin only' }).first()).toBeDisabled()
+  await expect(supportPage.getByText('Review and escalate').first()).toBeVisible()
+  await expect(supportPage.getByRole('button', { name: 'Approve' })).toHaveCount(0)
+  await expect(supportPage.getByRole('button', { name: 'Reject' })).toHaveCount(0)
+  await expect(supportPage.getByRole('button', { name: 'Convert' })).toHaveCount(0)
   records.push({ role: 'supportAdmin', action: 'viewed access queue without approval power' })
   await supportContext.close()
 
@@ -606,7 +614,7 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   await expect(auditorPage.getByRole('link', { name: 'Accounts' })).toHaveCount(0)
   await expect(auditorPage.getByRole('link', { name: 'Access requests' })).toHaveCount(0)
   await auditorPage.goto(`${APP_URL}/assistant`, { waitUntil: 'networkidle' })
-  await expect(auditorPage.getByRole('heading', { name: 'Assistant' })).toBeVisible()
+  await expect(auditorPage.getByRole('heading', { name: 'Operational Review Assistant' })).toBeVisible()
   const auditorPrompt = `What should I review next for hierarchy ${hierarchy.suffix}?`
   await auditorPage.getByLabel('Prompt').fill(auditorPrompt)
   await auditorPage.getByRole('button', { name: 'Run assistant' }).click()
@@ -620,7 +628,9 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   await auditorPage.goto(`${APP_URL}/admin/users`, { waitUntil: 'networkidle' })
   await expect(auditorPage.getByRole('heading', { name: 'Admin Overview' })).toBeVisible()
   await auditorPage.goto(`${APP_URL}/admin/outbox`, { waitUntil: 'networkidle' })
-  await expect(auditorPage.getByRole('button', { name: 'Owner/admin only' })).toBeDisabled()
+  await expect(auditorPage.getByText('Read-only diagnostics').first()).toBeVisible()
+  await expect(auditorPage.getByRole('button', { name: 'Retry' })).toHaveCount(0)
+  await expect(auditorPage.getByRole('button', { name: 'Dead-letter' })).toHaveCount(0)
   records.push({ role: 'auditor', action: 'reviewed assistant audit records without suggestion decision controls' })
   await auditorContext.close()
 
@@ -743,7 +753,8 @@ test('notification preferences change visible delivery state across merchant and
     email: fixture.merchantAccount.email,
   })
   await merchantPage.reload({ waitUntil: 'domcontentloaded' })
-  await expect(merchantPage.getByText('2 records')).toBeVisible()
+  await expect(merchantPage.getByText('1 active')).toBeVisible()
+  await expect(merchantPage.getByText('1 records')).toBeVisible()
   await expect(merchantPage.getByText('Skipped by preference', { exact: true })).toBeVisible()
   await expect(merchantPage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
   await expect(merchantPage.locator('[aria-label="2 unread alerts"]')).toHaveCount(0)
@@ -755,7 +766,7 @@ test('notification preferences change visible delivery state across merchant and
   await expect(warehousePage.getByText('Password reset prepared')).toBeVisible()
   await expect(warehousePage.getByText('Local recorded')).toBeVisible()
   await expect(warehousePage.getByText('Channel recorded')).toBeVisible()
-  await expect(warehousePage.getByText('1 records')).toBeVisible()
+  await expect(warehousePage.getByText('1 active')).toBeVisible()
   await expect(warehousePage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
 
   await merchantContext.close()

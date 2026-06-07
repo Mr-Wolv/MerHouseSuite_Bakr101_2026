@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import type {
@@ -18,6 +18,7 @@ import { shortId } from '../components/format'
 import { Metric } from '../components/Metric'
 import { FirstRunChecklist, GuidancePanel, QuantityCell, WorkflowDivider } from '../components/PageChrome'
 import { StatusBadge } from '../components/StatusBadge'
+import { AttentionQueue } from '../components/AttentionQueue'
 
 type ShipmentDraft = {
   carrier: string
@@ -56,6 +57,7 @@ export function WarehousePage() {
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
+  const dashboardRefreshVersion = useRef(0)
 
   useEffect(() => {
     if (!token) return
@@ -124,12 +126,55 @@ export function WarehousePage() {
     return next
   }, [warehouseAllocations])
 
+  async function refreshDashboard() {
+    if (!token) return
+    const version = dashboardRefreshVersion.current + 1
+    dashboardRefreshVersion.current = version
+    const nextDashboard = await api.warehouseDashboard(token)
+    if (version === dashboardRefreshVersion.current) {
+      setDashboard(nextDashboard)
+    }
+  }
+
+  function syncAllocationAttention(allocation: FulfillmentAllocation) {
+    setDashboard((current) => {
+      if (!current) return current
+      const remainingSignals = current.attentionSignals.filter((signal) => (
+        signal.sourceType !== 'FulfillmentAllocation'
+          || (
+            signal.sourceId !== allocation.id
+            && signal.id !== `warehouse-allocation-${allocation.id}`
+            && signal.route !== `/fulfillment-allocations/${allocation.id}`
+          )
+      ))
+      if (allocation.status !== 'PENDING' && allocation.status !== 'PICKING' && allocation.status !== 'PACKED') {
+        return { ...current, attentionSignals: remainingSignals }
+      }
+      const nextSignal = {
+        id: `warehouse-allocation-${allocation.id}`,
+        severity: 'ACTION_NEEDED' as const,
+        title: 'Fulfillment work is waiting',
+        body: `Order ${shortId(allocation.orderId)} is ${allocation.status}.`,
+        ownerRole: 'WAREHOUSE_OPERATOR' as const,
+        nextActionLabel: 'Open allocation detail',
+        route: `/fulfillment-allocations/${allocation.id}`,
+        sourceType: 'FulfillmentAllocation',
+        sourceId: allocation.id,
+        createdAt: allocation.createdAt,
+        resolved: false,
+      }
+      return { ...current, attentionSignals: [nextSignal, ...remainingSignals] }
+    })
+  }
+
   async function advance(allocation: FulfillmentAllocation, nextStatus: FulfillmentStatus) {
     if (!token) return
     setActionError('')
     try {
       const updated = await api.advanceAllocation(token, allocation.id, { nextStatus })
       setAllocations((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      await refreshDashboard()
+      syncAllocationAttention(updated)
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to advance allocation.')
     }
@@ -141,6 +186,7 @@ export function WarehousePage() {
     try {
       const updated = await api.activateMerchantWarehouseRelationship(token, relationship.id)
       setRelationships((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to activate relationship.')
     }
@@ -152,6 +198,7 @@ export function WarehousePage() {
     try {
       const updated = await api.startReceivingInboundStock(token, request.id)
       setInboundRequests((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to start receiving.')
     }
@@ -171,6 +218,7 @@ export function WarehousePage() {
         const nextInventory = await api.warehouseInventory(token, selectedWarehouseId)
         setInventory(nextInventory)
       }
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to receive inbound stock.')
     }
@@ -184,6 +232,7 @@ export function WarehousePage() {
         rejectionReason: 'Rejected from warehouse console',
       })
       setInboundRequests((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to reject inbound stock.')
     }
@@ -199,6 +248,7 @@ export function WarehousePage() {
     try {
       const updated = await api.approveInboundStock(token, request.id)
       setInboundRequests((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to approve inbound stock.')
     }
@@ -234,6 +284,8 @@ export function WarehousePage() {
       setAllocations((current) => current.map((item) => (
         item.id === allocation.id ? { ...item, status: 'SHIPPED', shipment } : item
       )))
+      await refreshDashboard()
+      syncAllocationAttention({ ...allocation, status: 'SHIPPED', shipment })
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to create shipment.')
     }
@@ -253,6 +305,7 @@ export function WarehousePage() {
       setAllocations((current) => current.map((item) => (
         item.id === allocation.id ? { ...item, shipment } : item
       )))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to mark shipment delivered.')
     }
@@ -276,6 +329,7 @@ export function WarehousePage() {
             }
           : item
       )))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to update workload.')
     }
@@ -292,6 +346,7 @@ export function WarehousePage() {
         description: `${reasonCode} reported from warehouse console for allocation ${shortId(allocation.id)}.`,
       })
       setExceptions((current) => [created, ...current])
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to report exception.')
     }
@@ -316,6 +371,7 @@ export function WarehousePage() {
         ...current,
         [row.inventoryItemId]: defaultAdjustmentDraft(updated),
       }))
+      await refreshDashboard()
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to adjust stock.')
     }
@@ -362,6 +418,12 @@ export function WarehousePage() {
               ))}
             </select>
           </label>
+
+          <AttentionQueue
+            signals={dashboard?.attentionSignals ?? []}
+            description="Receiving, fulfillment, and exception signals are shown before metrics and history."
+            emptyLabel="No warehouse work is blocked"
+          />
 
           <FirstRunChecklist
             title="Warehouse setup path"
@@ -862,9 +924,13 @@ function RelationshipsTable({
                   <td><StatusBadge value={relationship.status} /></td>
                   <td className="note-cell">{relationship.serviceNotes ?? 'None'}</td>
                   <td>
-                    <button className="table-button" type="button" disabled={!canActivate} title={actionHint} onClick={() => onActivate(relationship)}>
-                      {canActivate ? 'Activate' : relationship.status === 'ACTIVE' ? 'Active' : 'Locked'}
-                    </button>
+                    {canActivate ? (
+                      <button className="table-button" type="button" title={actionHint} onClick={() => onActivate(relationship)}>
+                        Activate
+                      </button>
+                    ) : (
+                      <span className="data-chip">{relationship.status === 'ACTIVE' ? 'Active partner' : 'No warehouse action'}</span>
+                    )}
                     {!canActivate ? <p className="field-help prerequisite-help">{actionHint}</p> : null}
                   </td>
                 </tr>

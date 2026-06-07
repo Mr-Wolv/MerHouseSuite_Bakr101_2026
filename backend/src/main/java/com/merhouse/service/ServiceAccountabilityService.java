@@ -1,5 +1,6 @@
 package com.merhouse.service;
 
+import com.merhouse.dto.AttentionSeverity;
 import com.merhouse.dto.CreateServiceAgreementRequest;
 import com.merhouse.dto.CreateServiceClaimRequest;
 import com.merhouse.dto.CreateServiceDisputeRequest;
@@ -709,7 +710,28 @@ public class ServiceAccountabilityService {
         } else {
             status = elapsedHours <= targetHours ? "ON_TRACK" : "AT_RISK";
         }
-        return new SlaStatusResponse(sourceType, sourceId, status, targetHours, elapsedHours, status + " within " + targetHours + "h target");
+        return new SlaStatusResponse(
+            sourceType,
+            sourceId,
+            status,
+            targetHours,
+            elapsedHours,
+            status + " within " + targetHours + "h target",
+            "AT_RISK".equals(status) || "MISSED".equals(status)
+                ? AttentionSignalFactory.signal(
+                    "sla-" + sourceType + "-" + sourceId,
+                    "MISSED".equals(status) ? AttentionSeverity.CRITICAL : AttentionSeverity.ACTION_NEEDED,
+                    "SLA " + status.toLowerCase().replace('_', ' '),
+                    sourceType + " has used " + elapsedHours + " of " + targetHours + " target hours.",
+                    currentUserService.required().role() == UserRole.WAREHOUSE_OPERATOR ? UserRole.WAREHOUSE_OPERATOR : UserRole.MERCHANT,
+                    "Review service record",
+                    "/service-accountability",
+                    sourceType.name(),
+                    sourceId,
+                    startedAt
+                )
+                : null
+        );
     }
 
     private MerchantWarehouseRelationship getRequiredRelationship(UUID relationshipId) {

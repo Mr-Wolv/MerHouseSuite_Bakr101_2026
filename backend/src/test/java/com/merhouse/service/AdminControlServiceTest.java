@@ -1,6 +1,7 @@
 package com.merhouse.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -33,6 +34,7 @@ import com.merhouse.repository.ServiceStatementRepository;
 import com.merhouse.repository.ShipmentRepository;
 import com.merhouse.repository.TenantRepository;
 import com.merhouse.repository.WarehouseRepository;
+import com.merhouse.security.UserPrincipal;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -59,6 +61,7 @@ class AdminControlServiceTest {
     private final ServiceStatementRepository statementRepository = mock(ServiceStatementRepository.class);
     private final TenantService tenantService = mock(TenantService.class);
     private final AdminAuditService adminAuditService = mock(AdminAuditService.class);
+    private final CurrentUserService currentUserService = mock(CurrentUserService.class);
     private final AdminControlService service = new AdminControlService(
         tenantRepository,
         userRepository,
@@ -77,11 +80,13 @@ class AdminControlServiceTest {
         allocationRepository,
         statementRepository,
         tenantService,
-        adminAuditService
+        adminAuditService,
+        currentUserService
     );
 
     @Test
     void summaryUsesRepositoryCountsInsteadOfLoadingTables() {
+        when(currentUserService.required()).thenReturn(principal(UserRole.ADMIN));
         Set<UserRole> platformRoles = Set.of(UserRole.OWNER, UserRole.ADMIN, UserRole.SUPPORT_ADMIN, UserRole.AUDITOR);
         when(tenantRepository.count()).thenReturn(11L);
         when(tenantRepository.countByActiveFalse()).thenReturn(2L);
@@ -122,6 +127,16 @@ class AdminControlServiceTest {
         assertEquals(12L, response.openServiceDisputes());
         assertEquals(13L, response.openServiceClaims());
         assertEquals(14L, response.pendingServiceReviews());
+        assertEquals(6, response.attentionSignals().size());
+        assertTrue(response.attentionSignals().stream()
+            .anyMatch(signal -> signal.title().equals("Fulfillment exceptions need operational follow-up")
+                && signal.route().equals("/service-accountability")
+                && signal.sourceType().equals("FulfillmentException")
+                && signal.ownerRole() == UserRole.ADMIN));
+        assertTrue(response.attentionSignals().stream()
+            .anyMatch(signal -> signal.title().equals("Outbox failures need reliability review")
+                && signal.route().equals("/admin/outbox")
+                && signal.severity().name().equals("CRITICAL")));
         verify(relationshipRepository, never()).findAll();
         verify(inboundRepository, never()).findAll();
         verify(exceptionRepository, never()).findAll();
@@ -130,6 +145,41 @@ class AdminControlServiceTest {
         verify(claimRepository, never()).findAll();
         verify(reviewRepository, never()).findAll();
         verify(accessRequestRepository, never()).findAll();
+    }
+
+    @Test
+    void supportSummaryLabelsOwnerAdminOnlyAttentionAsReviewAndEscalate() {
+        when(currentUserService.required()).thenReturn(principal(UserRole.SUPPORT_ADMIN));
+        when(accessRequestRepository.countByStatus(AccessRequestStatus.PENDING)).thenReturn(2L);
+        when(outboxRepository.countByStatus(OutboxEventStatus.FAILED)).thenReturn(1L);
+
+        var response = service.summary();
+
+        assertTrue(response.attentionSignals().stream()
+            .anyMatch(signal -> signal.sourceType().equals("AccessRequest")
+                && signal.severity().name().equals("REVIEW")
+                && signal.nextActionLabel().equals("Review and escalate")
+                && signal.ownerRole() == UserRole.SUPPORT_ADMIN));
+        assertTrue(response.attentionSignals().stream()
+            .anyMatch(signal -> signal.sourceType().equals("OutboxEvent")
+                && signal.nextActionLabel().equals("Review diagnostics")
+                && signal.ownerRole() == UserRole.SUPPORT_ADMIN));
+    }
+
+    @Test
+    void auditorSummaryDoesNotPointToHiddenAccessRequestRoute() {
+        when(currentUserService.required()).thenReturn(principal(UserRole.AUDITOR));
+        when(accessRequestRepository.countByStatus(AccessRequestStatus.PENDING)).thenReturn(2L);
+        when(outboxRepository.countByStatus(OutboxEventStatus.FAILED)).thenReturn(1L);
+
+        var response = service.summary();
+
+        assertTrue(response.attentionSignals().stream()
+            .noneMatch(signal -> signal.route().equals("/admin/access-requests")));
+        assertTrue(response.attentionSignals().stream()
+            .anyMatch(signal -> signal.sourceType().equals("OutboxEvent")
+                && signal.nextActionLabel().equals("Review diagnostics")
+                && signal.ownerRole() == UserRole.AUDITOR));
     }
 
     @Test
@@ -172,5 +222,9 @@ class AdminControlServiceTest {
         tenant.setType(type);
         tenant.setName(name);
         return tenant;
+    }
+
+    private UserPrincipal principal(UserRole role) {
+        return new UserPrincipal(UUID.randomUUID(), UUID.randomUUID(), role.name().toLowerCase() + "@merhouse.local", role, true);
     }
 }

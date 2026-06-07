@@ -96,6 +96,8 @@ export function NotificationCenterPage() {
     )
   }, [deliveries])
   const actionableCount = severityCounts.critical + severityCounts.action
+  const actionDeliveries = deliveries.filter((delivery) => delivery.status === 'RECORDED' && !delivery.readAt)
+  const historyDeliveries = deliveries.filter((delivery) => delivery.status !== 'RECORDED' || delivery.readAt)
 
   async function togglePreference(preference: NotificationPreference) {
     if (!token) return
@@ -173,12 +175,12 @@ export function NotificationCenterPage() {
 
       <section className="table-section">
         <div className="table-toolbar">
-          <h2>Alert inbox</h2>
-          <span>{deliveries.length} records</span>
+          <h2>Action inbox</h2>
+          <span>{actionDeliveries.length} active</span>
         </div>
-        {deliveries.length ? (
+        {actionDeliveries.length ? (
           <div className="queue-list">
-            {deliveries.map((delivery) => {
+            {actionDeliveries.map((delivery) => {
               const canMarkRead = delivery.status === 'RECORDED' && !delivery.readAt
               const severity = notificationSeverity(delivery)
               const Icon = notificationSeverityIcon(severity)
@@ -241,7 +243,62 @@ export function NotificationCenterPage() {
         ) : (
           <EmptyState
             label="No alerts yet"
-            guidance="New account, operations, service, or outbox alerts will appear here. Keep only the channels you own enabled."
+            guidance="Unread operations, service, account, and outbox alerts that need attention will appear here before history."
+          />
+        )}
+      </section>
+
+      <section className="table-section">
+        <div className="table-toolbar">
+          <h2>Delivery history</h2>
+          <span>{historyDeliveries.length} records</span>
+        </div>
+        {historyDeliveries.length ? (
+          <div className="queue-list">
+            {historyDeliveries.map((delivery) => {
+              const severity = notificationSeverity(delivery)
+              const Icon = notificationSeverityIcon(severity)
+              const sourceHref = notificationSourceHref(delivery)
+              return (
+                <article className={`queue-card notification-card notification-${severity}`} key={delivery.id}>
+                  <div className="queue-card-header">
+                    <div className="queue-card-title">
+                      <Icon size={18} aria-hidden="true" />
+                      <strong>{delivery.title}</strong>
+                      <StatusBadge value={delivery.status} />
+                      <span className="data-chip">History</span>
+                    </div>
+                    <div className="queue-card-meta">
+                      <span className={`data-chip severity-chip severity-${severity}`}>
+                        {severityLabels[severity]}
+                      </span>
+                      <span className="data-chip">{topicLabels[delivery.topic]}</span>
+                    </div>
+                  </div>
+                  <p className="note-cell">{displayDeliveryBody(delivery.body)}</p>
+                  <div className="action-row">
+                    <span className="data-chip">{channelLabels[delivery.channel]}</span>
+                    <span className="data-chip">{deliveryStageLabels[delivery.deliveryStage]}</span>
+                    <span className={delivery.providerStatus === 'READY_FOR_PROVIDER' ? 'data-chip warning-chip' : 'data-chip'}>
+                      {providerStatusLabels[delivery.providerStatus]}
+                    </span>
+                    <span className="data-chip">{new Date(delivery.createdAt).toLocaleString()}</span>
+                    {delivery.sourceType ? <span className="data-chip">{delivery.sourceType}</span> : null}
+                    {delivery.sourceId ? <span className="data-chip mono-cell">{shortNotificationSourceId(delivery.sourceId)}</span> : null}
+                    {sourceHref ? (
+                      <Link className="table-button text-link" to={sourceHref}>
+                        Open source
+                      </Link>
+                    ) : null}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        ) : (
+          <EmptyState
+            label="No delivery history yet"
+            guidance="Read, skipped, or resolved local delivery records will stay here after the action inbox is clear."
           />
         )}
       </section>

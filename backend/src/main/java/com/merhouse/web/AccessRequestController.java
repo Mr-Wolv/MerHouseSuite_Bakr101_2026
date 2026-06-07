@@ -55,13 +55,19 @@ public class AccessRequestController {
     @PatchMapping("/{id}/approve")
     @PreAuthorize("@currentUserService.canMutatePlatform()")
     public AccessRequestResponse approve(@PathVariable UUID id, @Valid @RequestBody AccessRequestReviewRequest request) {
-        return AccessRequestResponse.from(accessRequestService.approve(id, currentUserService.required().id(), request));
+        UUID actorId = currentUserService.required().id();
+        var approved = accessRequestService.approve(id, actorId, request);
+        adminAuditService.record(actorId, "ACCESS_REQUEST_APPROVED", "AccessRequest", id, request.reviewNote());
+        return AccessRequestResponse.from(approved);
     }
 
     @PatchMapping("/{id}/reject")
     @PreAuthorize("@currentUserService.canMutatePlatform()")
     public AccessRequestResponse reject(@PathVariable UUID id, @Valid @RequestBody AccessRequestReviewRequest request) {
-        return AccessRequestResponse.from(accessRequestService.reject(id, currentUserService.required().id(), request));
+        UUID actorId = currentUserService.required().id();
+        var rejected = accessRequestService.reject(id, actorId, request);
+        adminAuditService.record(actorId, "ACCESS_REQUEST_REJECTED", "AccessRequest", id, request.reviewNote());
+        return AccessRequestResponse.from(rejected);
     }
 
     @PatchMapping("/{id}/convert")

@@ -25,6 +25,7 @@ import type {
   ResolveExceptionPayload,
   UpdateAllocationWorkloadPayload,
   CreateTenantPayload,
+  CreateWarehousePayload,
   CreateOrderImportPayload,
   CreateServiceAgreementPayload,
   CreateServiceClaimPayload,
@@ -37,6 +38,7 @@ import type {
   CreateOrderPayload,
   CreateUserPayload,
   CurrentUserResponse,
+  SelfPasswordChangePayload,
   ChangeUserRolePayload,
   CreateInboundStockRequestPayload,
   CreateMerchantWarehouseRelationshipPayload,
@@ -144,6 +146,13 @@ export const api = {
   },
   me(token: string) {
     return request<CurrentUserResponse>('/api/v1/auth/me', { token })
+  },
+  changeOwnPassword(token: string, payload: SelfPasswordChangePayload) {
+    return request<{ message: string }>('/api/v1/auth/me/password', {
+      method: 'PATCH',
+      token,
+      body: payload,
+    })
   },
   notificationPreferences(token: string) {
     return request<NotificationPreference[]>('/api/v1/notifications/preferences', { token })
@@ -576,6 +585,13 @@ export const api = {
   },
   warehouses(token: string) {
     return request<Warehouse[]>('/api/v1/warehouses', { token })
+  },
+  createWarehouse(token: string, body: CreateWarehousePayload) {
+    return request<Warehouse>('/api/v1/warehouses', {
+      method: 'POST',
+      token,
+      body,
+    })
   },
   warehouseInventory(token: string, warehouseId: string) {
     return request<WarehouseInventory[]>(`/api/v1/inventory/warehouses/${warehouseId}`, { token })

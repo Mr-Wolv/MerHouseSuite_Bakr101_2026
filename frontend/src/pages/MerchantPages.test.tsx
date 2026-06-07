@@ -324,9 +324,44 @@ describe('Merchant inventory', () => {
     const draftRow = await screen.findByRole('row', { name: /ASN-DRAFT Cairo Hub SKU-1 4 0 0 DRAFT/i })
     await user.click(within(draftRow).getByRole('button', { name: 'Submit draft' }))
     expect(apiMock.submitInboundStockDraft).toHaveBeenCalledWith('merchant-token', 'inbound-draft')
+    expect(await within(draftRow).findByText('SUBMITTED')).toBeInTheDocument()
+    expect(within(draftRow).queryByRole('button', { name: 'Submit draft' })).not.toBeInTheDocument()
+    expect(within(draftRow).getByRole('button', { name: 'Cancel inbound' })).toBeEnabled()
     await user.click(within(draftRow).getByRole('button', { name: 'Cancel inbound' }))
     expect(apiMock.cancelInboundStock).toHaveBeenCalledWith('merchant-token', 'inbound-draft')
+    expect(await within(draftRow).findByText('Cancelled')).toHaveClass('data-chip')
+    expect(within(draftRow).queryByRole('button', { name: 'Cancel inbound' })).not.toBeInTheDocument()
   }, 10_000)
+
+  it('shows settled inbound states as history chips instead of disabled controls', async () => {
+    apiMock.inboundStockRequests.mockResolvedValue([
+      {
+        ...inboundRequests[0],
+        id: 'inbound-received',
+        merchantReference: 'ASN-RECEIVED',
+        status: 'RECEIVED',
+        receivedQuantity: 5,
+        shortageQuantity: 0,
+        receivedAt: '2026-05-17T00:10:00Z',
+      },
+      {
+        ...inboundRequests[0],
+        id: 'inbound-cancelled',
+        merchantReference: 'ASN-CANCELLED',
+        status: 'CANCELLED',
+      },
+    ])
+
+    renderWithAuth(<MerchantInventoryPage />)
+
+    const receivedRow = await screen.findByRole('row', { name: /ASN-RECEIVED/i })
+    expect(within(receivedRow).getByText('Received by warehouse')).toHaveClass('data-chip')
+    expect(within(receivedRow).queryByRole('button')).not.toBeInTheDocument()
+
+    const cancelledRow = screen.getByRole('row', { name: /ASN-CANCELLED/i })
+    expect(within(cancelledRow).getByText('Cancelled')).toHaveClass('data-chip')
+    expect(within(cancelledRow).queryByRole('button')).not.toBeInTheDocument()
+  })
 
   it('keeps inbound warehouse choices inside the selected relationship provider', async () => {
     const user = userEvent.setup()
@@ -591,6 +626,33 @@ describe('Merchant orders', () => {
     })
     expect(await screen.findByText('PARTIAL ACCEPTED')).toBeInTheDocument()
     expect(screen.getByText('Unknown SKU for this merchant.')).toBeInTheDocument()
+  })
+
+  it('shows resolved fulfillment exceptions as state instead of disabled action buttons', async () => {
+    apiMock.fulfillmentExceptions.mockResolvedValue([
+      {
+        id: 'exception-resolved',
+        allocationId: 'allocation-1',
+        orderId: 'order-1',
+        merchantId: 'merchant-tenant',
+        merchantName: 'Merchant Tenant',
+        warehouseProviderId: 'warehouse-tenant',
+        warehouseProviderName: 'FedEx Cairo',
+        reasonCode: 'SHORT_PICK',
+        description: 'Short pick was already reviewed.',
+        resolutionNote: 'Merchant accepted split shipment.',
+        status: 'RESOLVED',
+        createdAt: '2026-05-17T00:00:00Z',
+        resolvedAt: '2026-05-17T00:05:00Z',
+      },
+    ])
+
+    renderWithAuth(<MerchantOrdersPage />)
+
+    const row = await screen.findByRole('row', { name: /Short pick was already reviewed/i })
+    expect(within(row).getByText('Resolved')).toHaveClass('data-chip')
+    expect(within(row).queryByRole('button', { name: 'Resolved' })).not.toBeInTheDocument()
+    expect(within(row).queryByRole('button', { name: 'Resolve and notify-ready' })).not.toBeInTheDocument()
   })
 
   it('disables order creation when no inventory items exist', async () => {

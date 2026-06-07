@@ -157,7 +157,7 @@ Run `.\scripts\quality\check.ps1 -IncludeE2E -SkipCompose` when a seeded local s
 ## Non-Goals
 
 - Do not rewrite the application architecture from scratch.
-- Do not introduce production SaaS deployment behavior before V16.
+- Do not introduce production SaaS deployment behavior before a later real deployment activation phase.
 - Do not move private notes, prompts, credentials, or operational context into `backend/` or `frontend/`.
 - Do not change API routes, database schema, or UI behavior just to make files look cleaner.
 - Do not close this stabilization track by file movement alone; the result must be easier to prove.

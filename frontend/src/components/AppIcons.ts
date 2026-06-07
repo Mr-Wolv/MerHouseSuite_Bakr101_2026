@@ -12,6 +12,7 @@ import {
   KeyRound,
   LogIn,
   PackageCheck,
+  CircleUserRound,
   RadioTower,
   RotateCcw,
   Scale,
@@ -26,6 +27,7 @@ import {
 
 export const appIcons = {
   access: ClipboardCheck,
+  account: CircleUserRound,
   alerts: Bell,
   alertsActive: Siren,
   assistant: Bot,

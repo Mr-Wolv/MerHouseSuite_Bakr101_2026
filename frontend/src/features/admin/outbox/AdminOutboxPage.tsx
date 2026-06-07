@@ -7,6 +7,7 @@ import { shortId } from '../../../components/format'
 import { Metric } from '../../../components/Metric'
 import { PageHeading } from '../../../components/PageChrome'
 import { StatusBadge } from '../../../components/StatusBadge'
+import { AttentionQueue } from '../../../components/AttentionQueue'
 
 export function AdminOutboxPage() {
   const { token, user: currentUser } = useAuth()
@@ -90,15 +91,26 @@ export function AdminOutboxPage() {
   return (
     <div className="page-stack">
       <PageHeading title="Outbox" subtitle="Monitor side-effect events, retries, and carrier dispatch records." />
+      {summary ? (
+        <AttentionQueue
+          signals={summary.attentionSignals}
+          description="Failed and retryable work is shown before processed history and carrier diagnostics."
+          emptyLabel="No reliability work is waiting"
+        />
+      ) : null}
       <div className="admin-action-panel">
         <div className="admin-action-copy">
           <h2>Diagnostic actions</h2>
           <p>Processing and dead-letter moves are local reliability controls. Dead-letter actions keep the reason below with the event trail.</p>
         </div>
         <div className="admin-action-controls">
-          <button className="primary-button fit-button" type="button" onClick={processOutbox} disabled={loading || !canMutatePlatform}>
-            {!canMutatePlatform ? 'Owner/admin only' : loading ? 'Processing' : 'Process outbox'}
-          </button>
+          {canMutatePlatform ? (
+            <button className="primary-button fit-button" type="button" onClick={processOutbox} disabled={loading}>
+              {loading ? 'Processing' : 'Process outbox'}
+            </button>
+          ) : (
+            <span className="data-chip warning-chip">Owner/admin action</span>
+          )}
           <button className="icon-text-button" type="button" onClick={refreshOutbox} disabled={refreshing || loading}>
             {refreshing ? 'Refreshing' : 'Refresh'}
           </button>
@@ -134,7 +146,7 @@ export function AdminOutboxPage() {
         </div>
       ) : null}
       <OutboxEventsTable
-        events={events}
+        events={[...events].sort((left, right) => Number(right.status === 'FAILED') - Number(left.status === 'FAILED'))}
         onRetry={canMutatePlatform ? retryEvent : undefined}
         onDeadLetter={canMutatePlatform ? deadLetterEvent : undefined}
       />
@@ -171,37 +183,41 @@ function OutboxEventsTable({
               </tr>
             </thead>
             <tbody>
-              {events.map((event) => (
-                <tr key={event.id}>
-                  <td>{event.eventType}</td>
-                  <td>{event.aggregateType} <span className="mono-cell">{shortId(event.aggregateId)}</span></td>
-                  <td><StatusBadge value={event.status} /></td>
-                  <td><span className={event.attempts > 1 ? 'quantity-cell quantity-pending' : 'quantity-cell'}>{event.attempts}</span></td>
-                  <td className="note-cell">{event.lastError ?? 'No failure recorded'}</td>
-                  <td><TimestampCell value={event.createdAt} /></td>
-                  <td>{event.nextAttemptAt ? <TimestampCell value={event.nextAttemptAt} /> : 'Not scheduled'}</td>
-                  <td>
-                    <div className="action-row compact-actions">
-                      <button
-                        className="table-button"
-                        type="button"
-                        disabled={event.status !== 'FAILED' || !onRetry}
-                        onClick={() => onRetry?.(event.id)}
-                      >
-                        Retry
-                      </button>
-                      <button
-                        className="table-button destructive-button"
-                        type="button"
-                        disabled={event.status === 'PROCESSED' || event.status === 'DEAD_LETTER' || !onDeadLetter}
-                        onClick={() => onDeadLetter?.(event.id)}
-                      >
-                        Dead-letter
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {events.map((event) => {
+                const canRetry = event.status === 'FAILED' && Boolean(onRetry)
+                const canDeadLetter = event.status === 'FAILED' && Boolean(onDeadLetter)
+                const hasOwnerAction = canRetry || canDeadLetter
+                return (
+                  <tr key={event.id}>
+                    <td>{event.eventType}</td>
+                    <td>{event.aggregateType} <span className="mono-cell">{shortId(event.aggregateId)}</span></td>
+                    <td><StatusBadge value={event.status} /></td>
+                    <td><span className={event.attempts > 1 ? 'quantity-cell quantity-pending' : 'quantity-cell'}>{event.attempts}</span></td>
+                    <td className="note-cell">{event.lastError ?? 'No failure recorded'}</td>
+                    <td><TimestampCell value={event.createdAt} /></td>
+                    <td>{event.nextAttemptAt ? <TimestampCell value={event.nextAttemptAt} /> : 'Not scheduled'}</td>
+                    <td>
+                      {onRetry || onDeadLetter ? (
+                        <div className="action-row compact-actions">
+                          {canRetry ? (
+                            <button className="table-button" type="button" onClick={() => onRetry?.(event.id)}>
+                              Retry
+                            </button>
+                          ) : null}
+                          {canDeadLetter ? (
+                            <button className="table-button destructive-button" type="button" onClick={() => onDeadLetter?.(event.id)}>
+                              Dead-letter
+                            </button>
+                          ) : null}
+                          {!hasOwnerAction ? <span className="data-chip">{outboxActionStateLabel(event.status)}</span> : null}
+                        </div>
+                      ) : (
+                        <span className="data-chip">Read-only diagnostics</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -210,6 +226,19 @@ function OutboxEventsTable({
       )}
     </section>
   )
+}
+
+function outboxActionStateLabel(status: OutboxEvent['status']) {
+  switch (status) {
+    case 'PENDING':
+      return 'Awaiting processing'
+    case 'PROCESSED':
+      return 'Processed'
+    case 'DEAD_LETTER':
+      return 'Dead-lettered'
+    default:
+      return 'No event action'
+  }
 }
 
 function CarrierDispatchesTable({ dispatches }: { dispatches: CarrierDispatch[] }) {

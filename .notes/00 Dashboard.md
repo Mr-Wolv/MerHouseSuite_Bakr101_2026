@@ -13,6 +13,7 @@
 
 - [[.notes/Daily/2026-05-31|Today]]
 - [[.notes/QC/Roadmap QC Checklist|Roadmap QC checklist]]
+- [[.notes/QC/Final Public Repo Closeout|Final public repo closeout]]
 - [[.notes/Inbox/README|Inbox]]
 
 ## Work Notes

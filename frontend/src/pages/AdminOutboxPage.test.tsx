@@ -132,7 +132,12 @@ describe('AdminOutboxPage', () => {
       },
     })
 
-    expect(await screen.findByRole('button', { name: 'Owner/admin only' })).toBeDisabled()
+    expect(await screen.findByText('Owner/admin action')).toHaveClass('data-chip')
+    expect(screen.queryByRole('button', { name: 'Owner/admin only' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Process outbox' })).not.toBeInTheDocument()
+    expect(screen.getByText('Read-only diagnostics')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Dead-letter' })).not.toBeInTheDocument()
     expect(apiMock.processOutbox).not.toHaveBeenCalled()
   })
 
@@ -166,5 +171,46 @@ describe('AdminOutboxPage', () => {
     const row = screen.getByRole('row', { name: /ShipmentFailed/i })
     expect(within(row).getByRole('button', { name: 'Retry' })).toBeEnabled()
     expect(within(row).getByRole('button', { name: 'Dead-letter' })).toBeEnabled()
+  })
+
+  it('shows settled owner outbox events as state instead of disabled retry controls', async () => {
+    apiMock.outboxEvents.mockResolvedValue([
+      {
+        id: 'processed-event-id',
+        eventType: 'OrderCreated',
+        aggregateType: 'CustomerOrder',
+        aggregateId: 'order-id-123456',
+        status: 'PROCESSED',
+        attempts: 1,
+        createdAt: '2026-05-17T00:00:00Z',
+        nextAttemptAt: null,
+        processedAt: '2026-05-17T00:00:01Z',
+        lastError: null,
+      },
+      {
+        id: 'pending-event-id',
+        eventType: 'OrderAllocated',
+        aggregateType: 'CustomerOrder',
+        aggregateId: 'order-id-987654',
+        status: 'PENDING',
+        attempts: 0,
+        createdAt: '2026-05-17T00:02:00Z',
+        nextAttemptAt: null,
+        processedAt: null,
+        lastError: null,
+      },
+    ])
+
+    renderPage()
+
+    const processedRow = await screen.findByRole('row', { name: /OrderCreated/i })
+    expect(within(processedRow).getByText('Processed')).toHaveClass('data-chip')
+    expect(within(processedRow).queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
+    expect(within(processedRow).queryByRole('button', { name: 'Dead-letter' })).not.toBeInTheDocument()
+
+    const pendingRow = screen.getByRole('row', { name: /OrderAllocated/i })
+    expect(within(pendingRow).getByText('Awaiting processing')).toHaveClass('data-chip')
+    expect(within(pendingRow).queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
+    expect(within(pendingRow).queryByRole('button', { name: 'Dead-letter' })).not.toBeInTheDocument()
   })
 })

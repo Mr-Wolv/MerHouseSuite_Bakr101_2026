@@ -65,7 +65,7 @@ Maven Surefire loads Mockito as an explicit Java agent during tests so newer JDK
 
 ## API Modules
 
-- Authentication and current user
+- Authentication, current user, account settings, and self-service password change
 - Access requests
 - Tenant and user administration
 - Inventory and warehouse inventory
@@ -73,7 +73,7 @@ Maven Surefire loads Mockito as an explicit Java agent during tests so newer JDK
 - Fulfillment allocations, exceptions, and shipments
 - Merchant-warehouse relationships and inbound stock
 - Operational details and timelines
-- Service accountability
-- Prototype-local agentic operations assistance
-- Prototype-local notifications
+- Service accountability, agreements, statements, SLA review, disputes, claims, and order imports
+- Deterministic prototype-local operations assistance with scoped summaries, review suggestions, refusals, and auditable human decisions
+- Prototype-local notification action inbox, recipient-scoped delivery history, preferences, and app-shell unread summary
 - Transactional outbox administration
