@@ -78,6 +78,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ripgrep
 
+      - name: Check markdown links
+        shell: pwsh
+        run: ./scripts/quality/markdown-check.ps1
+
+      - name: Check PowerShell scripts parse
+        shell: pwsh
+        run: |
+          $errors = @()
+          Get-ChildItem scripts -Recurse -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors) {
+              $errors += $parseErrors | ForEach-Object { "$($_.Extent.File):$($_.Extent.StartLineNumber): $($_.Message)" }
+            }
+          }
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "PowerShell script parser check passed."
+
       - name: Run public readiness checks
         shell: pwsh
         run: ./scripts/quality/public-readiness.ps1 -SkipCompose
@@ -178,7 +200,18 @@ jobs:
 
       - name: Run frontend full tour
         shell: pwsh
-        run: ./scripts/quality/frontend-full-tour.ps1 -BaseUrl "http://localhost:3000" -ApiUrl "http://localhost:3000" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD -MerchantPassword $env:CI_REVIEW_PASSWORD -WarehousePassword $env:CI_REVIEW_PASSWORD -OutputPath "reports/ci-frontend-full-tour.json"
+        run: ./scripts/quality/frontend-full-tour.ps1 -BaseUrl "http://localhost:3000" -ApiUrl "http://localhost:3000" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD -MerchantPassword $env:CI_REVIEW_PASSWORD -WarehousePassword $env:CI_REVIEW_PASSWORD -SupportAdminPassword $env:CI_REVIEW_PASSWORD -AuditorPassword $env:CI_REVIEW_PASSWORD -OutputPath "reports/ci-frontend-full-tour.json"
+
+      - name: Upload integration proof reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-proof-reports
+          path: |
+            reports/*.json
+            reports/*.md
+            frontend/test-results/**
+          if-no-files-found: ignore
 
       - name: Print Docker Compose logs
         if: failure()
