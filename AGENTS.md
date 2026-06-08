@@ -10,7 +10,7 @@ The roadmap QC rules are mandatory acceptance criteria, not advisory notes. Befo
 
 - Read the Roadmap QC Rules and Change Quality Rule sections.
 - Translate the relevant QC rules into concrete checks for the task.
-- Identify whether the change touches the future publication boundary, private notes, scripts, CI, docs, database, backend behavior, frontend behavior, or repository metadata.
+- Identify whether the change touches repository shape, scripts, CI, docs, database, backend behavior, frontend behavior, or repository metadata.
 - Check the visible user-facing result, not only the implementation detail. For example, GitHub Actions naming means both the workflow name and visible run title.
 - Add or update focused tests for newly added or materially changed behavior. Tests should assert the durable user-facing contract, current invariant, and how the change works with surrounding components, permissions, states, and flows without clunky transitions or broken handoffs; do not preserve obsolete fixture counts, incidental ordering, or implementation timing.
 - If code, documentation, scripts, CI behavior, or repository publication state disagree with the roadmap, fix the disagreement or call it out before closing the task.
@@ -30,33 +30,30 @@ If the roadmap is absent, work from the tracked project source only:
 - `scripts/local/` contains local runtime helpers.
 - `scripts/quality/` contains verification helpers.
 - `scripts/maintenance/` contains cleanup helpers.
-- `.notes/` contains private Obsidian working notes, dashboards, QC notes, and templates.
-- `private/` contains private references and non-public operational context.
+- `docs/` is the durable project documentation layer. Keep lasting project decisions there.
 
-## Publication Boundary
+## Repository Boundary
 
-The future public repository is expected to contain only `backend/` and `frontend/`. Treat those folders as publishable app source even though this working repository is private.
+The repository is meant to be readable by a developer who just cloned it. Keep source, docs, scripts, CI, compose files, root configuration, and agent guidance useful and current.
 
-Do not add sensitive material to `backend/` or `frontend/`: real keys, tokens, credentials, private prompts, customer data, vendor account details, internal endpoints, database dumps, generated sensitive reports, production deployment details, or local `.env` files. Use environment variables, templates, or explicit external paths instead.
+Keep local-only values and working context out of Git. Use environment variables, templates, ignored files, or explicit external paths for anything that belongs to one machine or one deployment.
 
-Local/demo credentials may exist only when they are obviously fake, development-scoped, and documented as such. If there is doubt, move the value outside the app folders or ask for clarification before implementing.
+Local/demo credentials may exist only when they are obviously fake, development-scoped, and documented as such. If there is doubt, keep the value out of the repository or ask for clarification before implementing.
 
-## Markdown And Obsidian
-
-The repository root can be opened as an Obsidian vault. Use `.notes/00 Dashboard.md` as the private dashboard and `.notes/QC/Roadmap QC Checklist.md` for completion checks.
+## Markdown
 
 Keep markdown alive:
 
-- Link notes to the roadmap, docs, source files, proof scripts, or follow-up notes.
-- Promote durable decisions from `.notes/` into tracked docs when they affect architecture, setup, roadmap scope, quality rules, or future agent behavior.
-- Do not let private notes become the only source of truth for product behavior or repository policy.
-- Run `.\scripts\quality\markdown-check.ps1` after changing markdown or Obsidian links.
+- Link docs to the roadmap, source files, proof scripts, or follow-up architecture pages.
+- Promote durable decisions into tracked docs when they affect architecture, setup, roadmap scope, quality rules, or future agent behavior.
+- Keep local notes and one-off working context outside the repository; promote lasting decisions into docs.
+- Run `.\scripts\quality\markdown-check.ps1` after changing markdown.
 
 ## Gap Closure
 
-When you find a gap, close it before expanding scope when practical. Gaps include stale docs, missing proof, script/doc drift, CI naming drift, unsafe publication-boundary content, broken markdown links, prototype behavior without labels, and private facts embedded in app source.
+When you find a gap, close it before expanding scope when practical. Gaps include stale docs, missing proof, script/doc drift, CI naming drift, repository-boundary drift, broken markdown links, prototype behavior without labels, and local-only facts embedded in source.
 
-If you decide something is for later, future work, a later deliberate step, Pre-V16, V16, V17, or VInfinite, write it down before closing the task. Use the affected tracked architecture doc for design decisions, `docs/architecture/roadmap.md` for phase or version ownership, and an active `.notes/` page for working context that links back to the durable doc. Do not leave deferred decisions only in chat.
+If you decide something is for later, future work, a later deliberate step, Pre-V16, V16, V17, or VInfinite, write it down before closing the task. Use the affected tracked architecture doc for design decisions and `docs/architecture/roadmap.md` for phase or version ownership. Do not leave deferred decisions only in chat.
 
 If a gap cannot be closed in the current change, record it in the roadmap, a tracked doc, or a current QC note with:
 
@@ -67,6 +64,6 @@ If a gap cannot be closed in the current change, record it in the roadmap, a tra
 
 ## Working Standard
 
-Keep changes focused, keep documentation aligned with the code, and run the checks that match the affected area. This repository is a private working workspace. The intended future publication boundary is a separate repository containing only `backend/` and `frontend/`; private operational material may be tracked in this private repo, but it must live outside those application folders and be referenced through paths, environment variables, or templates rather than embedded in the future public app source. Sensitive information of any kind must not be hard-coded in `backend/` or `frontend/`: keys, tokens, credentials, private prompts, customer data, vendor account details, internal endpoints, operational secrets, or generated sensitive reports. V16 belongs to deployment-ready local certification; SaaS production activation belongs to a later explicit deployment phase.
+Keep changes focused, keep documentation aligned with the code, and run the checks that match the affected area. Write docs, scripts, CI, and app source for a future reader, not just for the current local session. V16 belongs to deployment-ready local certification; SaaS production activation belongs to a later explicit deployment phase.
 
 When reporting completion, name the QC proof that was run and any QC rule that shaped the change. If proof was intentionally skipped, say why and name the remaining risk. If a requested shortcut would weaken the roadmap QC rules, stop and explain the conflict instead of silently taking the shortcut.

@@ -2,7 +2,7 @@
 
 This directory contains engineering documentation for the current MerHouse local-development codebase.
 
-The working repository is private. The intended future public release boundary is a separate repository containing only `backend/` and `frontend/`; private operational material and sensitive information should remain outside those folders and be referenced rather than embedded in publishable app source.
+This repository is prepared as a public local-development project. It includes the application source, documentation, scripts, CI, Docker Compose setup, and root guidance needed to understand and run MerHouse. Local-only working files stay outside Git.
 
 ## Start Here
 
@@ -11,9 +11,9 @@ The working repository is private. The intended future public release boundary i
 - [Backend guide](development/backend.md): backend runtime, testing, persistence, and API modules.
 - [Frontend guide](development/frontend.md): frontend routes, runtime behavior, and tests.
 - [Scripts guide](development/scripts.md): local helper scripts and when to use them.
-- [Knowledge system](development/knowledge-system.md): tracked docs, private Obsidian notes, publication boundary, and markdown proof.
+- [Knowledge system](development/knowledge-system.md): tracked docs, repo shape, and markdown proof.
 
-MerHouse is prepared here as a private local development stack and future deployment-ready codebase. V16 uses local mocks, dry-run proof, and publication-boundary checks; actual production deployment is deferred to a later optional phase.
+MerHouse is prepared here as a local development stack and future deployment-ready codebase. V16 uses local mocks, dry-run proof, and repository checks; actual production deployment is deferred to a later optional phase.
 
 ## Architecture
 
@@ -23,7 +23,6 @@ MerHouse is prepared here as a private local development stack and future deploy
 - [Allocation strategy](architecture/allocation-strategy.md)
 - [API documentation](architecture/api-documentation.md)
 - [Cancellation workflow](architecture/cancellation-workflow.md)
-- [Frontend V15 audit](architecture/frontend-v15-audit.md)
 - [Deployment-ready local certification](architecture/deployment-ready-local-certification.md)
 - [Idempotency](architecture/idempotency.md)
 - [Inventory locking](architecture/inventory-locking.md)
@@ -35,11 +34,9 @@ MerHouse is prepared here as a private local development stack and future deploy
 - [Role and tenant boundaries](architecture/role-tenant-boundaries.md)
 - [Service accountability](architecture/service-accountability.md)
 - [Shipment state machine](architecture/shipment-state-machine.md)
-- [Stakeholder workflow truth audit](architecture/stakeholder-workflow-truth-audit.md)
-- [Structural stabilization](architecture/structural-stabilization.md)
 - [System diagrams](architecture/system-diagrams.html)
 - [Transactional outbox](architecture/outbox.md)
 
 ## Working Notes
 
-Private Obsidian notes live under `.notes/` and private references live under `private/`. They are useful for active work, but durable project truth should be promoted into tracked documentation when it affects code behavior, roadmap scope, quality rules, setup, or future agent guidance.
+Durable project truth belongs in tracked documentation. When local working notes produce lasting decisions, promote those decisions into `README.md`, this docs index, the roadmap, or the affected architecture/development document.

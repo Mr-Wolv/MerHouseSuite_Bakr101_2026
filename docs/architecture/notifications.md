@@ -2,7 +2,7 @@
 
 MerHouse provides a prototype-local notification foundation. It records account-lifecycle and operational alert history, exposes per-user notification preferences, and treats unread routed records as an action inbox without connecting to an external provider.
 
-This is prototype-local behavior. The backend stores delivery records for visibility and proof, but it does not send email, SMS, push, webhooks, or provider traffic. V16 certifies the local/mock delivery boundary; production delivery, provider credentials, callback endpoints, bounce handling, and deliverability monitoring remain V17 real activation work.
+This is prototype-local behavior. The backend stores delivery records for visibility and proof, but it does not send email, SMS, push, webhooks, or provider traffic. V16 certifies the local/mock delivery boundary; production delivery setup, callbacks, bounce handling, and deliverability monitoring remain V17 real activation work.
 
 ## Model
 
@@ -85,7 +85,7 @@ The third V15.5 implementation records local in-app alerts for outbox diagnostic
 - warehouse accepts a service agreement: merchant users receive a service-accountability alert tied to the `ServiceAgreement`
 - service statements, disputes, claims, reviews, and their resolution steps: the counterparty receives a service-accountability alert tied to the statement, dispute, claim, or review record; platform/admin actions alert both merchant and warehouse parties
 
-Every connected alert must remain tenant-scoped, role-appropriate, and safe for the future public `backend/` and `frontend/` source boundary.
+Every connected alert must remain tenant-scoped, role-appropriate, and safe to keep in the repository.
 
 The V15.5 closeout pass adds source navigation for connected local alerts. When a delivery has a routed source, the notification card links to that work surface:
 
@@ -152,9 +152,9 @@ SSE or WebSockets should be treated as a later deliberate architecture decision:
 
 Until that decision is made, polling remains the V13 implementation path.
 
-## Publication Boundary
+## Repository Boundary
 
-No provider credentials, private endpoints, webhook secrets, tokens, customer data, or operational reports are required or embedded in `backend/` or `frontend/` for this foundation. V16 proves the secret-management and local/mock boundary; provider-backed delivery must be introduced later through externalized configuration during V17 real activation.
+This notification foundation runs without provider setup in the repository. V16 proves the local/mock boundary; provider-backed delivery must be introduced later through externalized configuration during V17 real activation.
 
 ## Proof
 
@@ -172,4 +172,4 @@ npm run lint
 
 The Playwright full tour includes notification-recipient proof: a password-reset delivery created for one admin account is visible to that account and absent for a support-admin account. It also includes multi-role notification preference proof: a merchant preference change affects merchant delivery state without leaking to a warehouse operator, while the warehouse operator still receives its own local lifecycle delivery.
 
-The V15.9/V15.10 close-out proof also covers connected notification source routes for orders, backorders, fulfillment exceptions, service accountability, and outbox health; unread delivery-derived attention signals; read/history exclusion from active queues; desktop and narrow route checks; markdown checks; and publication-boundary scans through the roadmap change-quality rule.
+The V15.9/V15.10 close-out proof also covers connected notification source routes for orders, backorders, fulfillment exceptions, service accountability, and outbox health; unread delivery-derived attention signals; read/history exclusion from active queues; desktop and narrow route checks; markdown checks; and repository-boundary scans through the roadmap change-quality rule.

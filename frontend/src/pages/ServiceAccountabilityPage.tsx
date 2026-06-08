@@ -236,6 +236,9 @@ export function ServiceAccountabilityPage() {
             ? 'Start by creating or activating a service agreement; disputes, claims, reviews, and SLA records appear after partner work begins.'
           : 'Start with open disputes, claims, and pending reviews. This role reviews evidence without creating partner review work.'}
       </GuidancePanel>
+      <GuidancePanel title="Service record boundary">
+        Statements are local service records, not invoices or payment collection. Disputes, claims, and reviews use linked operational records and evidence notes; file attachments, legal deadline enforcement, and correction ledgers are future expansion. SLA hours are local policy clocks.
+      </GuidancePanel>
       <AttentionQueue
         signals={serviceAttentionSignals}
         description="At-risk SLA records and unresolved service issues lead this page; agreements and statements remain below as supporting history."
@@ -440,7 +443,7 @@ export function ServiceAccountabilityPage() {
             </table>
           </div>
         ) : (
-          <EmptyState label="No service statements yet" guidance="Statements appear after a service period closes." />
+          <EmptyState label="No service statements yet" guidance="Statements appear after a service period closes; invoices, payments, and statement correction ledgers are outside the local model." />
         )}
       </section>
 
@@ -521,7 +524,14 @@ function IssueTable({
       outcome: item.outcomeNote,
     })),
   ]
-  if (!rows.length) return <EmptyState label="No review records yet" guidance="Partner issues appear here when disputes, claims, or reviews are opened." />
+  if (!rows.length) {
+    return (
+      <EmptyState
+        label="No review records yet"
+        guidance="Partner issues appear here when disputes, claims, or reviews are opened. Evidence is stored as notes linked to local records, not as uploaded file attachments."
+      />
+    )
+  }
 
   return (
     <div className="table-wrap">

@@ -271,6 +271,8 @@ describe('WarehousePage', () => {
     expect(screen.getByText('Start with active allocations, then move to receiving and records after the queue is under control.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Open partner and inbound work' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Review shipments, exceptions, and stock' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Returned shipment boundary')).toHaveTextContent('delivery-state evidence')
+    expect(screen.getByLabelText('Returned shipment boundary')).toHaveTextContent('do not run customer RMA intake')
     expect(screen.getByText('Activate partner access')).toBeInTheDocument()
     expect(screen.getByText('Review requested partners first; active partners can send stock and orders.')).toBeInTheDocument()
     expect(screen.getByText('Available units')).toBeInTheDocument()

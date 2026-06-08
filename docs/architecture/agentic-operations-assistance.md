@@ -16,7 +16,7 @@ A pending suggestion can be accepted or rejected by the same authenticated actor
 
 ## Intelligence Boundary
 
-The V14 assistant is prototype-local until V16 certifies the local/mock boundary and a later V17 activation explicitly introduces real provider-backed behavior. The app source must not contain private prompts, provider keys, customer data snapshots, internal endpoints, or production deployment assumptions. Current responses are generated from existing local application services and stored in `assistant_interactions` with `prototype_local=true`. Suggestion decisions are stored on the same row as `action_status`, `decision_note`, `decided_by_user_id`, and `decided_at`.
+The V14 assistant is prototype-local until V16 certifies the local/mock boundary and a later V17 activation explicitly introduces real provider-backed behavior. Current responses are generated from existing local application services and stored in `assistant_interactions` with `prototype_local=true`. Suggestion decisions are stored on the same row as `action_status`, `decision_note`, `decided_by_user_id`, and `decided_at`.
 
 The assistant is expected to be useful within that boundary: it should not merely repeat counters when the user asks what comes next. It should choose a scoped queue, explain why that queue comes before lower-risk work, and refuse mutation requests instead of taking action.
 
@@ -33,7 +33,7 @@ The backend remains the source of truth for identity, role and tenant boundaries
 
 The local model runtime can be Dockerized beside the rest of the stack. Candidate runtimes include Ollama, llama.cpp, vLLM, or another local model server chosen during V15.2. The architecture must include model-runtime-off behavior: when the local model is unavailable, core MerHouse workflows continue and the assistant falls back to deterministic triage or a clear unavailable state.
 
-Before Pre-V16 begins, V15.2 must either implement a first read-only local agent slice or close with an architecture-only decision and explicit blockers. Required proof includes tenant/role boundary tests for every agent-visible tool, human approval for risky actions, audit records for tool calls and decisions, eval cases for useful next-step suggestions and refusals, and publication-boundary proof that prompts, model settings, traces, and generated reports do not leak into `backend/` or `frontend`.
+Before Pre-V16 begins, V15.2 must either implement a first read-only local agent slice or close with an architecture-only decision and explicit blockers. Required proof includes tenant/role boundary tests for every agent-visible tool, human approval for risky actions, audit records for tool calls and decisions, eval cases for useful next-step suggestions and refusals, and proof that model configuration and generated traces stay local unless they are deliberately documented for the repository.
 
 ## Audit And Refusal Model
 
@@ -70,6 +70,6 @@ V14 assistant changes require:
 - refusal tests for unsupported mutations, cross-tenant access, and over-authority scope requests
 - frontend tests for role-appropriate scope options and visible prototype-local interaction history
 - API smoke proof for platform, merchant, and auditor assistant endpoints, current-user history scoping, audit visibility, and smoke-scale concurrent assistant requests
-- publication-boundary proof that no private prompts, provider keys, or internal endpoints are hard-coded in `backend/` or `frontend/`
+- publication-boundary proof that assistant runtime configuration stays externalized and local-only artifacts stay out of Git
 
 The API smoke suite includes concurrent assistant summary requests to catch obvious transactional or persistence regressions. It is not maximum-load or production stress certification; measuring practical load limits remains a Pre-V16 gate.

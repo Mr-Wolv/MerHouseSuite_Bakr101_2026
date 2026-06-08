@@ -519,6 +519,9 @@ export function WarehousePage() {
             title="Review shipments, exceptions, and stock"
             description="Use these ledgers for follow-up evidence, exception review, and inventory adjustment after daily queue work."
           />
+          <GuidancePanel title="Returned shipment boundary">
+            Failed and returned shipment statuses are delivery-state evidence for operational and service review. They do not run customer RMA intake, refund, inspection, or disposition workflows.
+          </GuidancePanel>
 
           <RecentShipmentsPanel rows={recentShipments} />
           <WarehouseExceptionsTable exceptions={exceptions.filter((exception) => exception.warehouseProviderId === selected?.tenantId || !selected?.tenantId)} />

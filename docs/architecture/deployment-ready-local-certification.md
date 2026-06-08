@@ -4,13 +4,13 @@ V16 prepares MerHouse for future deployment without deploying it now. The phase 
 
 ## Boundary
 
-V16 is not a SaaS launch. It does not provision cloud infrastructure, register provider credentials, send email, SMS, push, or webhook traffic, activate realtime infrastructure, or claim production monitoring. Actual production activation is deferred to a later optional phase.
+V16 is not a SaaS launch. It does not provision cloud infrastructure, send email, SMS, push, or webhook traffic, activate realtime infrastructure, or claim production monitoring. Actual production activation is deferred to a later optional phase.
 
 ## Local Mock Contracts
 
 | Dependency | Local proof | Future replacement |
 | --- | --- | --- |
-| Notification delivery | Recipient-scoped in-app delivery records, preferences, provider status, and action inbox proof. | Email, SMS, push, or webhook provider with credentials, callbacks, bounce handling, and deliverability monitoring. |
+| Notification delivery | Recipient-scoped in-app delivery records, preferences, provider status, and action inbox proof. | Email, SMS, push, or webhook delivery with callbacks, bounce handling, and deliverability monitoring. |
 | Password recovery delivery | Local reset records with token echo disabled by default; API smoke can enable token echo only for local proof. | Provider-backed reset delivery and recovery runbook. |
 | Carrier/provider handoff | Local outbox events and carrier-dispatch records. | Real carrier or delivery-provider adapter with idempotent callbacks and retry policy. |
 | Assistant/model behavior | Deterministic prototype-local review assistance and audit records. | Optional local or provider-backed model runtime with prompt/data boundary proof. |
@@ -43,12 +43,12 @@ When the seeded local stack is running and API smoke proof is desired:
 
 ## Current Closeout Proof
 
-The V16 local certification closeout on 2026-06-07 used the rebuilt local Docker stack and did not perform real deployment.
+The V16 local certification closeout on 2026-06-08 used the rebuilt local Docker stack and did not perform real deployment.
 
-- `.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -SkipCompose` passed, covering markdown proof, publication boundary proof, backend tests, frontend lint/build/Vitest, and Playwright E2E.
-- `.\scripts\quality\api-smoke.ps1` passed against the running local stack and wrote `reports/api-smoke-test-20260607-180359.summary.md`.
-- Live in-app browser QC checked 102 routed desktop/narrow records across public auth, owner/platform, support admin, auditor, merchant, warehouse, service review, assistant, notifications, account settings, and operational detail routes with 0 horizontal overflow findings, 0 unnamed buttons or links, 0 unlabeled form controls, 0 real forbidden/unauthorized app states, and 0 console errors.
-- Live action smoke created fresh local stakeholders and operating records, then proved a warehouse operator could move an allocation to `PICKING` and approve an inbound request to `APPROVED` with no overflow, unnamed controls, or console errors after mutation.
+- `.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose` passed, covering markdown proof, public-readiness proof, backend tests, frontend lint/build/Vitest, Playwright E2E, and API smoke.
+- API smoke passed against the running local stack and wrote `reports/api-smoke-test-20260608-124336.summary.md`.
+- Live browser QC checked 152 routed desktop/narrow records across public auth, owner/platform, support admin, auditor, merchant, warehouse, service review, assistant, notifications, account settings, and operational detail routes with 0 horizontal overflow findings, 0 unnamed buttons or links, 0 unlabeled form controls, 0 real forbidden/unauthorized app states, and 0 console errors.
+- Live action proof covered fresh local stakeholders and operating records through relationship setup, inbound receiving, stock readiness, order allocation, notifications, warehouse fulfillment, account settings, and service review.
 
 ## Future Activation Checklist
 
@@ -56,4 +56,4 @@ The V16 local certification closeout on 2026-06-07 used the rebuilt local Docker
 - Replace local carrier/provider records with real provider adapters.
 - Decide whether assistant behavior stays deterministic, local-model-backed, or provider-backed.
 - Add production monitoring, alerting, logs, backup/restore, rollback, and incident-response runbooks.
-- Re-run publication-boundary certification before assembling the future public `backend/` and `frontend/` repository.
+- Re-run public-readiness certification before publishing the repository.

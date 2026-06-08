@@ -42,6 +42,8 @@ Receiving records accepted, damaged, and short quantities. Only received quantit
 7. Merchant and platform users can inspect operational detail, notifications, attention signals, and service-accountability records.
 8. Merchant and warehouse parties can record service-agreement terms, propose or accept those terms, and request service review after an agreement is active.
 
+Failed and returned shipment statuses are delivery-state evidence inside this local fulfillment loop. They do not represent a full customer RMA workflow with intake, inspection, refund, disposition, or accounting ownership. Those workflows are future expansion unless the roadmap deliberately pulls them forward.
+
 ## Current Implementation
 
 The workflow is implemented through:

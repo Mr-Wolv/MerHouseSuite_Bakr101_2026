@@ -68,7 +68,7 @@ function Resolve-WikiTarget {
 
 Push-Location $projectRoot
 try {
-    Write-Host "Checking markdown and Obsidian links..."
+    Write-Host "Checking markdown links..."
     $markdownFiles = Get-ChildItem -Path $projectRoot -Recurse -Filter *.md -File -Force |
         Where-Object { $_.FullName -notmatch $excludedPathPattern }
 

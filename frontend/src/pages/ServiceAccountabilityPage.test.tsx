@@ -275,6 +275,8 @@ describe('ServiceAccountabilityPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Service Accountability' })).toBeInTheDocument()
     expect(screen.getByLabelText('Service accountability review')).toHaveTextContent('Start with open disputes')
+    expect(screen.getByLabelText('Service record boundary')).toHaveTextContent('not invoices or payment collection')
+    expect(screen.getByLabelText('Service record boundary')).toHaveTextContent('file attachments, legal deadline enforcement, and correction ledgers are future expansion')
     expect(screen.getByText('Priority support for fragile orders.')).toHaveClass('note-cell')
     expect(screen.getByText('Mismatch in handoff count.')).toHaveClass('note-cell')
     expect(screen.getByText('Carrier dispatch shows one fewer package.')).toHaveClass('note-cell')
@@ -364,6 +366,8 @@ describe('ServiceAccountabilityPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Service Accountability' })).toBeInTheDocument()
     expect(screen.getByLabelText('Service accountability review')).toHaveTextContent('Start by creating or activating a service agreement')
+    expect(screen.getByText(/statement correction ledgers are outside the local model/i)).toBeInTheDocument()
+    expect(screen.getByText(/not as uploaded file attachments/i)).toBeInTheDocument()
     expect(screen.getByText('No service accountability risks are active')).toBeInTheDocument()
     expect(screen.getByText('Agreement required')).toHaveClass('data-chip')
     expect(screen.getByText('No service agreements yet')).toBeInTheDocument()

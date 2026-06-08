@@ -11,8 +11,12 @@ backend/.mvn/wrapper/maven-wrapper.jar
 *.log
 reports/
 
-# Private local workspace state
+# Local editor workspace state
 .obsidian/
+
+# Local working notes and reference material
+.notes/
+private/
 
 frontend/dist/
 frontend/test-results/

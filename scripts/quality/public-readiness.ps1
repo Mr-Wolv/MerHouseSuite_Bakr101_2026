@@ -25,16 +25,16 @@ try {
     Invoke-Checked "Checking diff whitespace..." { git diff --check }
 
     Write-Host ""
-    Write-Host "Checking publication boundaries..."
+    Write-Host "Checking repository shape..."
     $ignoreOutput = git check-ignore -v frontend/tests/e2e/full-tour.spec.ts frontend/playwright.config.ts 2>$null
     $frontendIgnored = $ignoreOutput | Where-Object { $_ -match "frontend/(tests/e2e|playwright\.config\.ts)" }
     if ($frontendIgnored) {
         throw "Frontend Playwright tests or config are still ignored."
     }
-    Write-Host "Publication boundary check passed."
+    Write-Host "Repository shape check passed."
 
     Write-Host ""
-    Write-Host "Checking publication-shaped CI naming..."
+    Write-Host "Checking public CI naming..."
     $workflowPath = Join-Path $projectRoot ".github\workflows\ci.yml"
     if (Test-Path -LiteralPath $workflowPath) {
         $workflowText = Get-Content -Raw -LiteralPath $workflowPath
@@ -47,26 +47,41 @@ try {
     }
     Write-Host "CI naming check passed."
 
-    Write-Host ""
-    Write-Host "Checking backend/ and frontend/ for forbidden sensitive files..."
-    $forbiddenFiles = Get-ChildItem -Path backend, frontend -Recurse -Force -File |
+    $publicPathOutput = git ls-files --cached --others --exclude-standard
+    $publicFiles = $publicPathOutput |
+        Where-Object { $_ } |
+        ForEach-Object { Get-Item -LiteralPath (Join-Path $projectRoot $_) -ErrorAction SilentlyContinue } |
         Where-Object {
-            $_.FullName -notmatch "\\frontend\\node_modules\\" -and
-            $_.FullName -notmatch "\\frontend\\dist\\" -and
-            $_.FullName -notmatch "\\backend\\target\\" -and
+            $_ -and -not $_.PSIsContainer
+        }
+
+    Write-Host ""
+    Write-Host "Checking repository tree for local-only folders..."
+    $privateFolders = @(".notes", "private") | Where-Object { Test-Path -LiteralPath (Join-Path $projectRoot $_) }
+    if ($privateFolders) {
+        $privateFolders | ForEach-Object { Join-Path $projectRoot $_ }
+        throw "Local-only working folders must not be present in the repository tree."
+    }
+    Write-Host "Local-folder boundary check passed."
+
+    Write-Host ""
+    Write-Host "Checking repository tree for unsafe runtime files..."
+    $forbiddenFiles = $publicFiles |
+        Where-Object {
             (
                 $_.Name -match '^\.env(\..*)?$' -or
                 $_.Extension -in @(".pem", ".key", ".p12", ".pfx", ".jks", ".keystore", ".kubeconfig")
             )
         }
+    $forbiddenFiles = $forbiddenFiles | Where-Object { $_.Name -ne ".env.example" }
     if ($forbiddenFiles) {
         $forbiddenFiles | ForEach-Object { $_.FullName }
-        throw "Forbidden sensitive files found inside backend/ or frontend/."
+        throw "Unsafe runtime files found in the repository tree."
     }
-    Write-Host "Sensitive-file boundary check passed."
+    Write-Host "Runtime-file boundary check passed."
 
     Write-Host ""
-    Write-Host "Scanning backend/ and frontend/ publication boundary for high-confidence sensitive patterns..."
+    Write-Host "Scanning repository tree for token-shaped values..."
     $patterns = @(
         'AKIA[0-9A-Z]{16}',
         'AIza[0-9A-Za-z_-]{35}',
@@ -93,7 +108,17 @@ try {
     )
     $matches = @()
     foreach ($pattern in $patterns) {
-        $result = rg -n --pcre2 --glob '!frontend/node_modules/**' --glob '!backend/target/**' --glob '!frontend/dist/**' -- $pattern backend frontend 2>$null
+        $result = rg -n --pcre2 `
+            --glob '!/.git/**' `
+            --glob '!frontend/node_modules/**' `
+            --glob '!frontend/dist/**' `
+            --glob '!frontend/test-results/**' `
+            --glob '!frontend/playwright-report/**' `
+            --glob '!backend/target/**' `
+            --glob '!reports/**' `
+            --glob '!package-lock.json' `
+            --glob '!frontend/package-lock.json' `
+            -- $pattern . 2>$null
         if ($LASTEXITCODE -eq 0) {
             $matches += $result
         } elseif ($LASTEXITCODE -eq 1) {
@@ -104,9 +129,9 @@ try {
     }
     if ($matches.Count -gt 0) {
         $matches | Sort-Object -Unique
-        throw "Sensitive-pattern scan found publication-boundary matches that need review."
+        throw "Token-shaped value scan found matches that need review."
     }
-    Write-Host "Sensitive-pattern scan passed."
+    Write-Host "Token-shaped value scan passed."
 
     if (-not $SkipCompose) {
         Invoke-Checked "Validating Docker Compose config..." { docker compose --env-file .env.example config --quiet }

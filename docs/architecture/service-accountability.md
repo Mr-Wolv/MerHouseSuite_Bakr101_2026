@@ -4,6 +4,8 @@ Service accountability records describe the operating agreement and review loop 
 
 The feature records coordination state only. It does not implement payment processing, banking, accounting, tax, credit-card, FX, or legal-contract workflows.
 
+It also does not store uploaded dispute attachments, enforce legal or business-calendar dispute deadlines, or run a statement-correction ledger. Current disputes, claims, and reviews preserve evidence as notes and linked local operational records. Statement totals are local service-unit records, and settlement state is a coordination marker rather than proof of payment collection.
+
 ## Core Records
 
 - Service agreements tied to active merchant-warehouse relationships.
@@ -27,6 +29,8 @@ The shared `/service-accountability` route is attention-first. At-risk SLA work,
 Merchant and platform roles can draft service-agreement terms against an active merchant-warehouse relationship and propose those terms for warehouse acceptance. Warehouse and platform roles can accept proposed terms. Review requests stay locked until an agreement is active, and fresh stakeholders see agreement-required guidance instead of a dead-end review action.
 
 The route also exposes agreement terms, SLA status, service statement totals, review records, claims, disputes, and order import history according to user role and tenant.
+
+Visible service-accountability copy must keep the boundary clear for operators: statements are not invoices, SLA hours are local policy clocks, and dispute evidence is note-and-record based until a future attachment or correction workflow is deliberately added.
 
 ## Role Boundaries
 

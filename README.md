@@ -2,7 +2,7 @@
 
 MerHouse is a B2B fulfillment coordination system for merchants and warehouse providers.
 
-This workspace is private. The intended future public release boundary is a separate repository containing only the `backend/` and `frontend/` application folders. Private operational material and sensitive information may live in this private repo, but they should stay outside `backend/` and `frontend/` and be referenced by path, environment variable, or template. That includes API keys, tokens, credentials, private prompts, customer data, vendor account details, internal endpoints, generated sensitive reports, and environment-specific values.
+This repository is prepared as a public local-development project. It includes the application source, documentation, scripts, CI configuration, Docker Compose setup, and agent guidance needed to understand and run MerHouse. Local-only working files stay outside Git.
 
 It models the operating relationship between a brand or merchant and a warehouse partner: products, inventory expectations, inbound stock, customer orders, allocation, fulfillment progress, exceptions, shipment evidence, and service accountability all move through one role-aware workflow.
 
@@ -74,7 +74,7 @@ Local URLs:
 - Backend: `http://localhost:8080`
 
 The compose stack builds and runs PostgreSQL, the Spring Boot API, and the nginx-served frontend.
-This repository is prepared for private local development and future deployment readiness. V16 certification uses local mocks, dry-run proof, and publication-boundary checks; it does not perform real cloud/provider deployment. Any later public release should be assembled from the publishable `backend/` and `frontend/` boundary after a publication review.
+This repository is prepared for public local development and future deployment readiness. V16 certification uses local mocks, dry-run proof, and publication-boundary checks; it does not perform real cloud/provider deployment. Any later production activation still needs a separate deployment phase.
 
 ## Development Commands
 
@@ -149,30 +149,36 @@ V16 proves deployment readiness locally; it does not deploy MerHouse.
 - Carrier/provider handoff is represented by local outbox and carrier-dispatch records.
 - Assistant behavior is deterministic local review assistance, not provider-backed AI.
 - Health, backup/restore, dependency, and public-readiness proof are local/dry-run checks.
-- Secrets must be supplied through environment variables or external local files. Do not place `.env`, provider keys, production credentials, private prompts, customer data, database dumps, or internal endpoints inside `backend/` or `frontend/`.
+- Service statements are local service-unit records, not invoices or payment collection; dispute evidence is stored as notes and linked local records, not uploaded legal attachment packets.
+- Failed and returned shipments are delivery-state evidence, not a full customer RMA, refund, inspection, disposition, or accounting workflow.
+- Runtime-only values belong in `.env` or your shell environment. Keep generated proof reports, local data, and deployment-specific details out of Git.
 
-Future production activation is a separate later phase and must replace local mocks with real provider contracts, externalized secrets, monitoring, backup/restore operations, and deployment-specific proof.
+Future production activation is a separate later phase and must replace local mocks with real provider contracts, deployment configuration, monitoring, backup/restore operations, and deployment-specific proof.
 
 ## Final Local QC Snapshot
 
-The final closeout pass on 2026-06-07 verified:
+The final closeout pass on 2026-06-08 verified:
 
-- Live browser tour across public auth/recovery/access/reset, owner/admin, support-admin, auditor, merchant, warehouse, account settings, notifications, assistant, service accountability, outbox, audit, and operational detail routes.
+- Live browser tour across 152 routed records for public auth/recovery/access/reset, owner/admin, support-admin, auditor, merchant, warehouse, account settings, notifications, assistant, service accountability, outbox, audit, and operational detail routes.
 - Desktop and narrow viewport sweeps with no visible horizontal page overflow, clipped visible controls, missing accessible names, framework error residue, or confusing route fallback.
 - Fresh merchant and warehouse accounts from empty state into active relationship, inbound receiving, stock, order allocation, notifications, and detail-page workflows.
 - Account settings password change for a disposable user, including form clearing and login with the new password.
 - `.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose` passed, including backend tests, frontend lint/build/Vitest, Playwright E2E, markdown, public-readiness, and API smoke.
 
-Generated proof reports stay outside the future public app boundary.
+Generated proof reports stay local through `.gitignore`.
 
-## Future Public Repository Boundary
+## What Belongs In Git
 
-The intended future public repository should contain only:
+The repository is intended to contain developer/user-relevant project material:
 
 - `backend/`
 - `frontend/`
+- `docs/`
+- `scripts/`
+- `.github/`
+- root configuration such as `README.md`, `AGENTS.md`, `.env.example`, `.gitattributes`, `.gitignore`, `docker-compose.yml`, and `pom.xml`
 
-This private workspace may also contain docs, scripts, notes, private references, generated reports, local environment files, and editor settings. Before any public publish, assemble or review the public surface so only developer/user-relevant application source is included and no private operational nuance or sensitive material is exposed.
+Local notes, generated reports, environment files, editor state, dependency output, build output, and deployment-specific run material are excluded.
 
 ## Documentation
 
@@ -186,5 +192,4 @@ This private workspace may also contain docs, scripts, notes, private references
 - [Agentic operations assistance](docs/architecture/agentic-operations-assistance.md)
 - [Notifications](docs/architecture/notifications.md)
 - [Deployment-ready local certification](docs/architecture/deployment-ready-local-certification.md)
-- [Structural stabilization](docs/architecture/structural-stabilization.md)
 - [System diagrams](docs/architecture/system-diagrams.html)
