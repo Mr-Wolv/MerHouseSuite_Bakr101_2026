@@ -100,6 +100,10 @@ jobs:
           }
           Write-Host "PowerShell script parser check passed."
 
+      - name: Check mobile app installability
+        shell: pwsh
+        run: ./scripts/quality/pwa-check.ps1
+
       - name: Run public readiness checks
         shell: pwsh
         run: ./scripts/quality/public-readiness.ps1 -SkipCompose

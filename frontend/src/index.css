@@ -1718,7 +1718,7 @@ tr:last-child td {
     z-index: 5;
     border-right: 0;
     gap: 14px;
-    padding: 14px;
+    padding: calc(12px + env(safe-area-inset-top)) 14px 12px;
   }
 
   .brand {
@@ -1726,13 +1726,26 @@ tr:last-child td {
   }
 
   .nav-list {
-    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    display: flex;
+    gap: 8px;
+    margin-inline: -4px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding: 2px 4px 4px;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+  }
+
+  .nav-link {
+    flex: 0 0 auto;
+    min-width: 128px;
+    scroll-snap-align: start;
   }
 
   .topbar {
     align-items: flex-start;
     flex-direction: column;
-    padding: 16px;
+    padding: 16px 16px 14px;
   }
 
   .topbar-actions {
@@ -1747,7 +1760,7 @@ tr:last-child td {
   }
 
   .content-shell {
-    padding: 18px;
+    padding: 18px max(18px, env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
   }
 
   .metric-grid {
@@ -1866,6 +1879,15 @@ tr:last-child td {
 
   .brand span {
     display: none;
+  }
+
+  .sidebar {
+    padding-inline: 12px;
+  }
+
+  .nav-link {
+    min-width: 112px;
+    padding-inline: 9px;
   }
 
   .span-two-field {

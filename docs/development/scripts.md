@@ -19,6 +19,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/api-docs.ps1` | Check local OpenAPI availability and print local documentation URLs. |
 | `scripts/quality/frontend-deploy-check.ps1` | Check the deployed frontend shell and API proxy. |
 | `scripts/quality/frontend-full-tour.ps1` | Run the browser tour against a running local stack. |
+| `scripts/quality/pwa-check.ps1` | Check mobile/PWA install metadata, manifest, icon references, and service worker markers. |
 | `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, CI naming, and Compose config. |
 | `scripts/quality/deployment-readiness.ps1` | Run the V16 deployment-ready local certification gate with local/mock proof and optional API smoke. |
 | `scripts/maintenance/clean-reports.ps1` | Trim old local reports, logs, and screenshots. |
@@ -103,6 +104,12 @@ Validate markdown links after documentation changes:
 
 ```powershell
 .\scripts\quality\markdown-check.ps1
+```
+
+Validate installable mobile web app metadata after frontend shell changes:
+
+```powershell
+.\scripts\quality\pwa-check.ps1
 ```
 
 Run the V16 deployment-ready local certification gate when the stack is ready for heavier proof:

@@ -27,6 +27,7 @@ MerHouse is prepared here as a local development stack and future deployment-rea
 - [Idempotency](architecture/idempotency.md)
 - [Inventory locking](architecture/inventory-locking.md)
 - [Merchant-warehouse operating loop](architecture/merchant-warehouse-operating-loop.md)
+- [Mobile-ready local certification](architecture/mobile-ready-local-certification.md)
 - [Notifications](architecture/notifications.md)
 - [Operational details and timelines](architecture/operational-details-timelines.md)
 - [Partial allocation and backorders](architecture/partial-allocation.md)

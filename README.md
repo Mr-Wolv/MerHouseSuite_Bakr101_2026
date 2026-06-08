@@ -17,6 +17,7 @@ It models the operating relationship between a brand or merchant and a warehouse
 - Deterministic prototype-local operations assistant for scoped summaries, review-only suggestions, refusals, pending-decision review, and auditable interaction history.
 - Prototype-local notification action inbox for account lifecycle events, connected operational handoffs, service accountability updates, outbox health, per-user preferences, delivery history, and app-shell alert counts without external provider delivery.
 - REST API with validation, authorization, tenant-aware data access, Flyway migrations, PostgreSQL persistence, and OpenAPI metadata.
+- V16.1 mobile-ready work targets the same app as an installable mobile web app, not a separate native app.
 
 ## Local Workflow Truth
 
@@ -151,6 +152,7 @@ V16 proves deployment readiness locally; it does not deploy MerHouse.
 - Health, backup/restore, dependency, and public-readiness proof are local/dry-run checks.
 - Service statements are local service-unit records, not invoices or payment collection; dispute evidence is stored as notes and linked local records, not uploaded legal attachment packets.
 - Failed and returned shipments are delivery-state evidence, not a full customer RMA, refund, inspection, disposition, or accounting workflow.
+- Mobile support in V16.1 means an installable web app with mobile proof; native app-store packaging, native push, camera/barcode APIs, and offline sync are later work.
 - Runtime-only values belong in `.env` or your shell environment. Keep generated proof reports, local data, and deployment-specific details out of Git.
 
 Future production activation is a separate later phase and must replace local mocks with real provider contracts, deployment configuration, monitoring, backup/restore operations, and deployment-specific proof.
@@ -190,6 +192,7 @@ Local notes, generated reports, environment files, editor state, dependency outp
 - [Knowledge system](docs/development/knowledge-system.md)
 - [Architecture notes](docs/architecture/merchant-warehouse-operating-loop.md)
 - [Agentic operations assistance](docs/architecture/agentic-operations-assistance.md)
+- [Mobile-ready local certification](docs/architecture/mobile-ready-local-certification.md)
 - [Notifications](docs/architecture/notifications.md)
 - [Deployment-ready local certification](docs/architecture/deployment-ready-local-certification.md)
 - [System diagrams](docs/architecture/system-diagrams.html)

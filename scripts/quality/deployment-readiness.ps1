@@ -37,6 +37,9 @@ Write-Host "Running markdown proof..."
 Write-Host "Running publication/readiness boundary proof..."
 & (Join-Path $PSScriptRoot "public-readiness.ps1") -SkipCompose:$SkipCompose
 
+Write-Host "Running mobile/PWA installability proof..."
+& (Join-Path $PSScriptRoot "pwa-check.ps1")
+
 Write-Host "Running broad local quality gate..."
 & (Join-Path $PSScriptRoot "check.ps1") -IncludeE2E:$IncludeE2E -SkipCompose:$SkipCompose
 

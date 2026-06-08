@@ -4,7 +4,7 @@ This roadmap is the project planning and quality source of truth. It should stay
 
 ## Current Status
 
-MerHouse is a local-development fulfillment coordination system for merchants, warehouse providers, and platform operators. It is deployment-ready in the local-certification sense: Docker Compose, local mocks, proof scripts, tests, and docs are in place. It is not a SaaS production deployment.
+MerHouse is a local-development fulfillment coordination system for merchants, warehouse providers, and platform operators. It is deployment-ready as a desktop web app and is being certified as an installable mobile web app in the local-certification sense: Docker Compose, local mocks, proof scripts, tests, docs, and CI are in place. It is not a SaaS production deployment.
 
 The repository is intended to be public-readable. Keep source, docs, scripts, CI, compose files, and root guidance useful to a developer who just cloned the project. Runtime values belong in environment variables, ignored local files, explicit external files, or templates.
 
@@ -17,9 +17,38 @@ The repository is intended to be public-readable. Keep source, docs, scripts, CI
 - Platform workflows for tenants, users, access requests, relationship governance, audit, outbox diagnostics, attention queues, and support/auditor boundaries.
 - Service accountability for agreements, proposals, SLA review, service statements, disputes, claims, reviews, and import evidence.
 - Account settings with account context and current-password-verified password change.
+- Installable mobile web app foundation with PWA manifest, app icon, mobile metadata, online-first service worker, and mobile proof script.
 - Local notification records, preferences, action inbox, and delivery history without external provider delivery.
 - Deterministic local operations assistant with scoped summaries, review-only suggestions, refusals, decision audit, and no operational mutation.
 - Local deployment-readiness harness for checks, smoke flows, browser proof, publication readiness, and mock-provider boundaries.
+
+## Active Work
+
+### V16.1: Mobile-Ready Local Certification
+
+Goal: make MerHouse locally proven as both a desktop web app and an installable mobile web app while keeping one React codebase, one backend, one auth model, and one role-aware product surface.
+
+Mobile in V16.1 means a progressive web app that can be opened from a phone browser, added to the home screen, launched from an app icon, and used across the same local roles and workflows. It does not mean native app-store packaging, native push delivery, offline sync, barcode hardware integration, or a second mobile codebase.
+
+Planned scope:
+
+- PWA install foundation: manifest, app icons, theme/background colors, mobile metadata, routing fallback, and installability proof.
+- Mobile app shell: touch-safe navigation, compact account access, safe-area padding, mobile-friendly menus, and no desktop-sidebar dependence.
+- Mobile workflow fit: merchant inventory/orders/service review, warehouse receiving/fulfillment/exceptions, notifications, assistant, account settings, and admin/support/auditor routes remain usable on phone viewports.
+- Mobile states: first-run empty state, active operating state, blocked/error state, attention/action-needed state, and resolved/history state.
+- Mobile proof: Playwright mobile route tour, manifest/installability checks, no horizontal overflow, no clipped controls, no unnamed controls, stable login/session behavior, and no console errors.
+- CI/CD proof: keep desktop quality gates and add mobile/PWA checks with uploaded proof reports.
+- Documentation: README, docs index, frontend/scripts docs, and this roadmap must explain the mobile boundary and local certification commands.
+
+Acceptance bar:
+
+- local desktop browser tour still passes
+- local mobile browser tour passes
+- installability/PWA checks pass
+- backend/frontend tests still pass
+- API smoke still passes
+- GitHub Actions quality gate passes
+- remaining native-only/mobile-provider work is documented as V17 or VInfinite work
 
 ## Local Boundaries
 
@@ -30,6 +59,7 @@ The repository is intended to be public-readable. Keep source, docs, scripts, CI
 - Dispute evidence is stored as notes and linked local records, not uploaded legal attachment packets.
 - Failed and returned shipments are delivery-state evidence, not full customer RMA/refund/inspection/disposition workflows.
 - Health, backup/restore, dependency, and publication-readiness proof are local or dry-run checks.
+- V16.1 mobile support is an installable web app, not native app-store deployment.
 
 ## Next Work
 
@@ -99,5 +129,6 @@ Do not call the project closed unless:
 - public-readiness passes
 - markdown links pass
 - backend and frontend tests pass
+- PWA/mobile installability checks pass
 - the browser tour passes for the supported local roles and routes
 - any remaining limitation is documented as a local boundary, V17 work, or VInfinite expansion

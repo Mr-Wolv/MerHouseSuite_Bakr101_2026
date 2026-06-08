@@ -26,6 +26,26 @@ The Vite dev server proxies `/api` to `http://localhost:8080`.
 
 The Docker image builds the React app and serves it through nginx. In Docker Compose, nginx proxies API and OpenAPI requests to the backend service.
 
+## Mobile Web App Runtime
+
+V16.1 treats mobile as the same React app running as an installable progressive web app. The mobile foundation lives in:
+
+| Path | Role |
+| --- | --- |
+| `frontend/index.html` | Mobile metadata and manifest link |
+| `frontend/public/manifest.webmanifest` | App name, start URL, display mode, theme colors, and icon list |
+| `frontend/public/pwa-icon.svg` | Mobile app icon used by the manifest and touch metadata |
+| `frontend/public/sw.js` | Online-first service worker for shell/navigation fallback |
+| `frontend/src/registerServiceWorker.ts` | Production-only service worker registration |
+
+Check installability metadata from the repository root:
+
+```powershell
+.\scripts\quality\pwa-check.ps1
+```
+
+V16.1 mobile support is not a native app-store build. Native push, camera/barcode APIs, offline write queues, and app-store packaging remain later work.
+
 ## Theme Runtime
 
 V15 adds a frontend theme provider under `frontend/src/theme`. The default preference is `system`, which resolves through `prefers-color-scheme`. When a user toggles the visible theme control, the explicit `light` or `dark` preference is stored in `localStorage` under `merhouse-theme-preference`.
