@@ -4,7 +4,7 @@ This roadmap is the project planning and quality source of truth. It should stay
 
 ## Current Status
 
-MerHouse is a local-development fulfillment coordination system for merchants, warehouse providers, and platform operators. It is deployment-ready as a desktop web app and is being certified as an installable mobile web app in the local-certification sense: Docker Compose, local mocks, proof scripts, tests, docs, and CI are in place. It is not a SaaS production deployment.
+MerHouse is a local-development fulfillment coordination system for merchants, warehouse providers, and platform operators. It is deployment-ready as a desktop web app and installable mobile web app in the local-certification sense: Docker Compose, local mocks, proof scripts, tests, docs, and CI are in place. It is not a SaaS production deployment.
 
 The repository is intended to be public-readable. Keep source, docs, scripts, CI, compose files, and root guidance useful to a developer who just cloned the project. Runtime values belong in environment variables, ignored local files, explicit external files, or templates.
 
@@ -22,9 +22,11 @@ The repository is intended to be public-readable. Keep source, docs, scripts, CI
 - Deterministic local operations assistant with scoped summaries, review-only suggestions, refusals, decision audit, and no operational mutation.
 - Local deployment-readiness harness for checks, smoke flows, browser proof, publication readiness, and mock-provider boundaries.
 
-## Active Work
+## Recent Certification
 
 ### V16.1: Mobile-Ready Local Certification
+
+Status: locally and CI-certified on 2026-06-08.
 
 Goal: make MerHouse locally proven as both a desktop web app and an installable mobile web app while keeping one React codebase, one backend, one auth model, and one role-aware product surface.
 
@@ -37,7 +39,7 @@ Planned scope:
 - Mobile workflow fit: merchant inventory/orders/service review, warehouse receiving/fulfillment/exceptions, notifications, assistant, account settings, and admin/support/auditor routes remain usable on phone viewports.
 - Mobile states: first-run empty state, active operating state, blocked/error state, attention/action-needed state, and resolved/history state.
 - Mobile proof: Playwright mobile route tour, manifest/installability checks, no horizontal overflow, no clipped controls, no unnamed controls, stable login/session behavior, and no console errors.
-- CI/CD proof: keep desktop quality gates and add mobile/PWA checks with uploaded proof reports.
+- CI/CD proof: keep desktop quality gates and include mobile/PWA checks with uploaded proof reports.
 - Documentation: README, docs index, frontend/scripts docs, and this roadmap must explain the mobile boundary and local certification commands.
 
 Acceptance bar:

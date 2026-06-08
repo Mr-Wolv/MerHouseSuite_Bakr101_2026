@@ -100,4 +100,4 @@ The local V16.1 proof pass on 2026-06-08 verified:
 - `.\scripts\quality\frontend-full-tour.ps1 -OutputPath ".\reports\v16-1-mobile-full-tour.json"` passed with 152 routed records and 0 bad records.
 - `.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose` passed, including backend tests, frontend lint/build/Vitest, Playwright E2E, PWA proof, markdown, public-readiness, and API smoke.
 
-CI proof is required before closing V16.1.
+GitHub Actions proof passed on run `27142885985` for commit `876f7f5`, covering backend, frontend, Compose, public readiness with mobile installability, and integration proof.
