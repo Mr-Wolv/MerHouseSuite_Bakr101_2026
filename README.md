@@ -166,7 +166,7 @@ The final closeout pass on 2026-06-08 verified:
 - Fresh merchant and warehouse accounts from empty state into active relationship, inbound receiving, stock, order allocation, notifications, and detail-page workflows.
 - Account settings password change for a disposable user, including form clearing and login with the new password.
 - `.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose` passed, including backend tests, frontend lint/build/Vitest, Playwright E2E, markdown, public-readiness, and API smoke.
-- V16.1 mobile-ready proof added PWA installability checks, mobile metadata, app icon, online-first service worker, mobile shell navigation, and a Playwright mobile PWA test. GitHub Actions passed those checks on run `27142885985`.
+- V16.1 mobile-ready proof added PWA installability checks, mobile metadata, app icon, online-first service worker, mobile shell navigation, and a Playwright mobile PWA test. GitHub Actions passed those checks on run `27143382033`.
 
 Generated proof reports stay local through `.gitignore`.
 
