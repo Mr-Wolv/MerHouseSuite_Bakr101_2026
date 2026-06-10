@@ -36,6 +36,8 @@ If the roadmap is absent, work from the tracked project source only:
 
 The repository is meant to be readable by a developer who just cloned it. Keep source, docs, scripts, CI, compose files, root configuration, and agent guidance useful and current.
 
+The current public-facing posture is local-certified project/codebase, not production SaaS launch. V16.2 local convergence evidence is recorded in `docs/architecture/cross-surface-convergence.md`; cloud deployment, app-store release, production monitoring, provider-backed delivery, backup/restore operations, and incident response belong to later activation unless the roadmap is deliberately changed.
+
 Keep local-only values and working context out of Git. Use environment variables, templates, ignored files, or explicit external paths for anything that belongs to one machine or one deployment.
 
 Local/demo credentials may exist only when they are obviously fake, development-scoped, and documented as such. If there is doubt, keep the value out of the repository or ask for clarification before implementing.
@@ -64,6 +66,6 @@ If a gap cannot be closed in the current change, record it in the roadmap, a tra
 
 ## Working Standard
 
-Keep changes focused, keep documentation aligned with the code, and run the checks that match the affected area. Write docs, scripts, CI, and app source for a future reader, not just for the current local session. V16 belongs to deployment-ready local certification; SaaS production activation belongs to a later explicit deployment phase.
+Keep changes focused, keep documentation aligned with the code, and run the checks that match the affected area. Write docs, scripts, CI, and app source for a future reader, not just for the current local session. V16.2 belongs to completed deployment-ready local certification; SaaS production activation belongs to a later explicit deployment phase.
 
 When reporting completion, name the QC proof that was run and any QC rule that shaped the change. If proof was intentionally skipped, say why and name the remaining risk. If a requested shortcut would weaken the roadmap QC rules, stop and explain the conflict instead of silently taking the shortcut.
