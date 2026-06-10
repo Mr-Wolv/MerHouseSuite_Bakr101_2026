@@ -26,7 +26,7 @@ $Context.FulfilledBackorderOrder = Invoke-Json -Context $Context -Method Patch -
     nextStatus = "FULFILLED"
 }
 Assert-Equal -Actual $Context.FulfilledBackorderOrder.backorders[0].status -Expected "FULFILLED" -Message "Fulfilled backorder status mismatch."
-Assert-Equal -Actual $Context.FulfilledBackorderOrder.status -Expected "ALLOCATED" -Message "Fulfilled all-backorder order status mismatch."
+Assert-Equal -Actual $Context.FulfilledBackorderOrder.status -Expected "BACKORDERED" -Message "Fulfilled all-backorder order status mismatch."
 
 Write-Host "32. Cancelling an open backorder"
 $cancellableOrder = Invoke-Json -Context $Context -Method Post -Path "/api/v1/orders" -Body @{

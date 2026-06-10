@@ -572,8 +572,10 @@ test.describe('admin console', () => {
     await page.reload({ waitUntil: 'networkidle' })
     await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible()
     await expect(inboundRow()).toContainText('APPROVED', { timeout: 20_000 })
-    await expect(inboundRow().getByRole('button', { name: 'Receive all' })).toBeVisible()
-    await clickFreshButton(() => inboundRow().getByRole('button', { name: 'Receive all' }))
+    await clickFreshButton(() => inboundRow().getByRole('button', { name: 'Start receiving' }))
+    await expect(inboundRow()).toContainText('RECEIVING', { timeout: 20_000 })
+    await expect(inboundRow().getByRole('button', { name: 'Post receipt' })).toBeVisible()
+    await clickFreshButton(() => inboundRow().getByRole('button', { name: 'Post receipt' }))
     await expect(inboundRow().getByText('No warehouse action')).toBeVisible()
     await expect(inboundRow()).toContainText('RECEIVED', { timeout: 20_000 })
 

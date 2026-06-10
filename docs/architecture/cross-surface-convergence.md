@@ -10,6 +10,18 @@ The previous numbered loop history was cleared from this active ledger on 2026-0
 
 New convergence entries start at `BH-001`. Each entry must name a concrete suspected bug or risk, the evidence that makes it worth investigating, the user-facing impact, the fix or decision, and the proof that closed or narrowed it.
 
+## Wrap-Up Certification Directive
+
+As of 2026-06-10, V16.2 convergence must stop micromanaged loop expansion. The operating target is to wrap up local-only deployment readiness through visible browser and installed-APK behavior, V&V/QC/QA gates, and real-world performance checks.
+
+Use this directive before opening another bug hunt:
+
+- Run the live browser route/workflow proof and inspect what the rendered product actually does.
+- Run the APK assembly, install, and Android route tour when Android SDK plus a running emulator or device are available; if unavailable, record that exact local blocker and continue only with non-blocked browser/API/docs readiness work.
+- Fix only defects surfaced by live browser behavior, installed-APK behavior, certification gates, report inspection, or clear code/runtime contradictions.
+- Do not add speculative edge-case work just because it can be imagined. If the case is not valid for local deployment-ready V16.2, document the boundary or leave it for V17/VInfinite.
+- Prefer one wrap-up checkpoint with clean proof over many small loop entries. Keep the tree clean after each wrap-up pass.
+
 ## Operating Definition
 
 Every action possible means every meaningful stakeholder workflow, route, state transition, empty and active state, error or denial boundary, and cross-role handoff. It does not mean mechanically clicking duplicate utility controls after the durable workflow contract is already covered.
@@ -133,6 +145,72 @@ Each entry should include:
 - Remaining risk and next target.
 
 ## Current Bug-Hunt Ledger
+
+### BH-049: Wrap-Up Certification Replaced Micromanaged Looping
+
+Date: 2026-06-10.
+
+Target and suspected bug:
+
+- V16.2 wrap-up readiness across live browser, installed APK, cross-surface parity, performance, API smoke, and deployment-ready local gates.
+- The risk was process drift: continuing small speculative loop work instead of proving the real local product surfaces and fixing only surfaced blockers.
+
+Why this target matters:
+
+- The project goal is local-only deployment readiness with V&V/QC/QA evidence, not endless theoretical refactoring.
+- Browser and installed Android behavior are the authoritative validation surfaces for the shared React product.
+- Performance readiness and deployment certification need to prove the same web/native reports, not separate partial claims.
+
+Working-tree scope for this iteration:
+
+- `docs/architecture/cross-surface-convergence.md`
+- `frontend/src/index.css`
+- `frontend/tests/e2e/admin-console.spec.ts`
+- `frontend/tests/e2e/full-tour.spec.ts`
+- `scripts/api/scenarios/12-backorder-status.ps1`
+
+Surfaces, roles, states, and workflows inspected:
+
+- Live Docker frontend at `http://localhost:3000` and backend at `http://localhost:8080`.
+- Browser tour across public routes, owner, admin, support-admin, auditor, active merchant, empty merchant, active warehouse, and empty warehouse states.
+- Installed Android debug APK on `Pixel_7` emulator, device serial `emulator-5554`.
+- Native public/auth, admin, service-accountability, assistant, notifications, account, merchant, warehouse, and operational detail routes.
+- Cross-surface web/native report comparison.
+- Performance readiness with bundle budgets, route-readiness timing, screenshot timing, and timed API smoke.
+- Deployment-ready local certification gate.
+
+Evidence found:
+
+- Browser full tour passed with 188 route records, zero console-error records, zero overflow records, and zero unlabeled-control records.
+- Native Android APK assembled successfully for `http://10.0.2.2:8080`; refreshed APK SHA-256 is `b252a277e01ca00370491a95a8873262acf6fa76d2dca3869a154d15792e995d`.
+- Installed-APK tour passed with 100 native records and 100 pulled PNG screenshots.
+- Manual visual inspection of `reports/wrapup-native-android-tour/96-warehouse_empty-warehouse.png` found a real mobile layout defect first, then confirmed the fixed empty-warehouse screen no longer stretched the sidebar/header into a large blank region before page content.
+- Cross-surface tour check passed with 188 web records, 100 native records, and 82 normalized role/path pairs.
+- Performance readiness initially found a real proof blocker: API smoke expected a fulfilled all-backorder order to become `ALLOCATED`, while backend service tests and behavior keep the order `BACKORDERED` because fulfilling a backorder does not synthesize a fulfillment allocation.
+- Browser route proof found stale receiving workflow assumptions in two Playwright flows: they expected the retired `Receive all` shortcut instead of the current `Start receiving` and `Post receipt` flow used by the warehouse UI and component tests.
+
+Fix:
+
+- `scripts/api/scenarios/12-backorder-status.ps1` now expects the fulfilled all-backorder order to remain `BACKORDERED`, matching `OrderServiceTest` and current backend behavior.
+- `frontend/src/index.css` now keeps the mobile app shell and sidebar aligned to the top so short mobile states do not stretch navigation into visual dead space in the Android WebView.
+- `frontend/tests/e2e/full-tour.spec.ts` now proves the harmonic inbound workflow by clicking `Post receipt` after `RECEIVING`.
+- `frontend/tests/e2e/admin-console.spec.ts` now proves the older V8 operating loop through the actual `APPROVED` -> `RECEIVING` -> `Post receipt` -> `RECEIVED` transition.
+- The wrap-up directive above now requires live browser/APK proof first and forbids speculative micromanaged loop expansion unless a live surface, gate, report, or clear runtime contradiction exposes the defect.
+
+Proof run:
+
+- `.\scripts\quality\frontend-full-tour.ps1 -BaseUrl "http://localhost:3000" -ApiUrl "http://localhost:8080" -OutputPath ".\reports\wrapup-frontend-full-tour.json"` passed 5 Playwright tests and wrote the browser tour report plus action reports.
+- `.\scripts\quality\native-mobile-check.ps1 -Assemble -ApiBaseUrl "http://10.0.2.2:8080"` passed and built `frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
+- `.\scripts\quality\native-android-tour.ps1 -ApiUrl "http://localhost:8080" -OutputPath ".\reports\wrapup-native-android-tour.json" -ScreenshotDirectory ".\reports\wrapup-native-android-tour"` passed on `emulator-5554`.
+- `.\scripts\quality\cross-surface-tour-check.ps1 -WebReportPath ".\reports\wrapup-frontend-full-tour.json" -NativeReportPath ".\reports\wrapup-native-android-tour.json"` passed.
+- `.\scripts\quality\performance-readiness.ps1 -IncludeApiSmoke -ApiBaseUrl "http://localhost:8080" -WebReportPath ".\reports\wrapup-frontend-full-tour.json" -NativeReportPath ".\reports\wrapup-native-android-tour.json" -OutputPath ".\reports\wrapup-performance-readiness.json"` passed after the smoke expectation fix.
+- `Push-Location frontend; npm exec -- playwright test tests/e2e/admin-console.spec.ts --project=chromium -g "merchant and warehouse complete the V8 operating loop through the UI"; Pop-Location` passed the targeted stale E2E workflow after the `Post receipt` update.
+- `.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose -WebTourReportPath ".\reports\wrapup-frontend-full-tour.json" -NativeTourReportPath ".\reports\wrapup-native-android-tour.json" -NativeApiBaseUrl "http://10.0.2.2:8080"` passed.
+
+Remaining risk and next target:
+
+- Final human live walkthrough with the reviewer/product owner remains the closeout validation ceremony before calling the full convergence goal complete.
+- Keep future work to surfaced live/gate blockers only; do not reopen speculative bug loops without new observed evidence.
 
 ### BH-048: Notification Load-More Failure Kept Stale Success Feedback
 
