@@ -333,11 +333,21 @@ After rollout, run deployed proof against the public frontend and API targets:
   -ApiBaseUrl "https://api.example.com" `
   -DeploymentLabel "staging-v17" `
   -ProviderStatus "smtp-staging-configured" `
+  -AdminEmail "<staging-owner-email>" `
+  -AdminPassword "<staging-owner-password>" `
+  -MerchantEmail "<staging-merchant-email>" `
+  -MerchantPassword "<staging-merchant-password>" `
+  -WarehouseEmail "<staging-warehouse-email>" `
+  -WarehousePassword "<staging-warehouse-password>" `
+  -SupportAdminEmail "<staging-support-email>" `
+  -SupportAdminPassword "<staging-support-password>" `
+  -AuditorEmail "<staging-auditor-email>" `
+  -AuditorPassword "<staging-auditor-password>" `
   -IncludeLoadSmoke `
   -IncludeBrowserTour
 ```
 
-The default deployed proof checks the frontend shell, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, and performance/API timing. `-IncludeLoadSmoke` adds concurrent health traffic and attaches the generated load-smoke report path to the deployment evidence manifest; `-IncludeBrowserTour` requires seeded stakeholder data and runs the browser tour against the deployed frontend. Every run writes `v17-deployment-evidence-*.json` with the deployment label, commit SHA, public frontend/API URLs, provider status label, proof-output paths, included proof slices, and remaining required evidence without storing secrets.
+The default deployed proof checks the frontend shell, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, and performance/API timing. `-IncludeLoadSmoke` adds concurrent health traffic and attaches the generated load-smoke report path to the deployment evidence manifest; `-IncludeBrowserTour` requires seeded stakeholder data and runs the browser tour against the deployed frontend. Every run writes `v17-deployment-evidence-*.json` with the deployment label, commit SHA, public frontend/API URLs, provider status label, proof-output paths, included proof slices, and remaining required evidence without storing secrets. The wrapper requires explicit staging or production smoke credentials and rejects local demo values such as `admin@merhouse.local`, `local-owner-password`, and `review-password`.
 
 Run only the lightweight deployed monitoring proof when a target needs a fast health/reachability sample:
 
@@ -349,7 +359,7 @@ Run only the lightweight deployed monitoring proof when a target needs a fast he
 
 This proof checks repeated frontend shell responses and `/api/v1/health` responses with latency budgets. It is release evidence for reachability and health detection, not a replacement for external uptime monitoring, paging, incident routing, or log/error aggregation.
 
-For deployed browser tours, pass the same stakeholder emails and passwords used to seed the staging or smoke tenant through the `-AdminEmail`, `-MerchantEmail`, `-WarehouseEmail`, `-SupportAdminEmail`, `-AuditorEmail`, and matching password parameters. The wrapper keeps the frontend URL and API URL separate so same-origin proxy deployments and split frontend/API origin deployments are both explicit in proof output.
+For deployed browser tours, pass the same stakeholder emails and passwords used to seed the staging or smoke tenant through the `-AdminEmail`, `-MerchantEmail`, `-WarehouseEmail`, `-SupportAdminEmail`, `-AuditorEmail`, and matching password parameters. The owner credential is required for deployed API smoke even when the browser tour is skipped; the stakeholder credentials are required when `-IncludeBrowserTour` is supplied. The wrapper keeps the frontend URL and API URL separate so same-origin proxy deployments and split frontend/API origin deployments are both explicit in proof output.
 
 Run the API smoke suite after the stack is running:
 

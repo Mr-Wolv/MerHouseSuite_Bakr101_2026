@@ -204,10 +204,24 @@ Repeatable VPS rollout and deployed proof use separate commands so deployment an
 
 ```powershell
 .\scripts\deploy\deploy-vps.ps1 -EnvFile ".env.production" -Build -BackupBeforeDeploy -ConfirmDeploy
-.\scripts\quality\deployed-v17-proof.ps1 -FrontendBaseUrl "https://app.example.com" -ApiBaseUrl "https://api.example.com" -IncludeLoadSmoke -IncludeBrowserTour
+.\scripts\quality\deployed-v17-proof.ps1 `
+  -FrontendBaseUrl "https://app.example.com" `
+  -ApiBaseUrl "https://api.example.com" `
+  -AdminEmail "<staging-owner-email>" `
+  -AdminPassword "<staging-owner-password>" `
+  -MerchantEmail "<staging-merchant-email>" `
+  -MerchantPassword "<staging-merchant-password>" `
+  -WarehouseEmail "<staging-warehouse-email>" `
+  -WarehousePassword "<staging-warehouse-password>" `
+  -SupportAdminEmail "<staging-support-email>" `
+  -SupportAdminPassword "<staging-support-password>" `
+  -AuditorEmail "<staging-auditor-email>" `
+  -AuditorPassword "<staging-auditor-password>" `
+  -IncludeLoadSmoke `
+  -IncludeBrowserTour
 ```
 
-The deploy script refuses the example env template, audits the private env file without printing secrets, and requires explicit confirmation. The proof script checks frontend reachability, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, performance/API timing, optional report-backed load smoke, optional browser tour evidence, and writes a sanitized deployment evidence manifest.
+The deploy script refuses the example env template, audits the private env file without printing secrets, and requires explicit confirmation. The proof script checks frontend reachability, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, performance/API timing, optional report-backed load smoke, optional browser tour evidence, and writes a sanitized deployment evidence manifest. Deployed proof requires explicit staging or production smoke credentials and rejects local demo defaults.
 
 Start or stop the local stack:
 

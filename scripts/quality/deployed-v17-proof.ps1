@@ -4,16 +4,16 @@ param(
     [string]$OutputDirectory = "reports",
     [string]$DeploymentLabel = "v17-deployed-proof",
     [string]$ProviderStatus = "not-recorded",
-    [string]$AdminEmail = "admin@merhouse.local",
-    [string]$AdminPassword = "local-owner-password",
-    [string]$MerchantEmail = "review.merchant@merhouse.local",
-    [string]$MerchantPassword = "review-password",
-    [string]$WarehouseEmail = "review.operator@merhouse.local",
-    [string]$WarehousePassword = "review-password",
-    [string]$SupportAdminEmail = "review.support@merhouse.local",
-    [string]$SupportAdminPassword = "review-password",
-    [string]$AuditorEmail = "review.auditor@merhouse.local",
-    [string]$AuditorPassword = "review-password",
+    [string]$AdminEmail = "",
+    [string]$AdminPassword = "",
+    [string]$MerchantEmail = "",
+    [string]$MerchantPassword = "",
+    [string]$WarehouseEmail = "",
+    [string]$WarehousePassword = "",
+    [string]$SupportAdminEmail = "",
+    [string]$SupportAdminPassword = "",
+    [string]$AuditorEmail = "",
+    [string]$AuditorPassword = "",
     [switch]$IncludeBrowserTour,
     [switch]$IncludeLoadSmoke,
     [int]$ConcurrentUsers = 25,
@@ -25,8 +25,45 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 . (Join-Path $PSScriptRoot "url-guard-lib.ps1")
 
+function Assert-DeployedCredential {
+    param(
+        [Parameter(Mandatory = $true)] [string] $Name,
+        [AllowNull()] [string] $Value
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        throw "$Name is required for deployed V17 proof. Pass staging or production smoke credentials explicitly."
+    }
+    $normalizedValue = $Value.Trim()
+    if ($normalizedValue -in @(
+        "admin@merhouse.local",
+        "local-owner-password",
+        "review.merchant@merhouse.local",
+        "review.operator@merhouse.local",
+        "review.support@merhouse.local",
+        "review.auditor@merhouse.local",
+        "review-password"
+    )) {
+        throw "$Name uses a local demo value. Deployed V17 proof requires explicit staging or production smoke credentials."
+    }
+}
+
 $normalizedFrontendBaseUrl = Assert-AbsoluteHttpUrl -Name "FrontendBaseUrl" -Value $FrontendBaseUrl
 $normalizedApiBaseUrl = Assert-AbsoluteHttpUrl -Name "ApiBaseUrl" -Value $ApiBaseUrl
+Assert-DeployedCredential -Name "AdminEmail" -Value $AdminEmail
+Assert-DeployedCredential -Name "AdminPassword" -Value $AdminPassword
+
+if ($IncludeBrowserTour) {
+    Assert-DeployedCredential -Name "MerchantEmail" -Value $MerchantEmail
+    Assert-DeployedCredential -Name "MerchantPassword" -Value $MerchantPassword
+    Assert-DeployedCredential -Name "WarehouseEmail" -Value $WarehouseEmail
+    Assert-DeployedCredential -Name "WarehousePassword" -Value $WarehousePassword
+    Assert-DeployedCredential -Name "SupportAdminEmail" -Value $SupportAdminEmail
+    Assert-DeployedCredential -Name "SupportAdminPassword" -Value $SupportAdminPassword
+    Assert-DeployedCredential -Name "AuditorEmail" -Value $AuditorEmail
+    Assert-DeployedCredential -Name "AuditorPassword" -Value $AuditorPassword
+}
+
 $resolvedOutputDirectory = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
     [System.IO.Path]::GetFullPath($OutputDirectory)
 } else {
