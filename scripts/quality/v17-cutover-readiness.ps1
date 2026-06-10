@@ -197,6 +197,12 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             if ([string]::IsNullOrWhiteSpace($proofArtifact.versionName)) {
                 $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact versionName must be non-blank."
             }
+            if ($null -ne $attached.androidRelease.versionCode -and $attached.androidRelease.versionCode.ToString() -ne $proofArtifact.versionCode.ToString()) {
+                $failures += "Deployment evidence manifest attachedEvidence.androidRelease.versionCode must match androidRelease artifact versionCode."
+            }
+            if ($null -ne $attached.androidRelease.versionName -and $attached.androidRelease.versionName -ne $proofArtifact.versionName) {
+                $failures += "Deployment evidence manifest attachedEvidence.androidRelease.versionName must match androidRelease artifact versionName."
+            }
             if ($proofArtifact.cleartextTraffic -ne "disabled-for-release") {
                 $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact cleartextTraffic must be disabled-for-release."
             }

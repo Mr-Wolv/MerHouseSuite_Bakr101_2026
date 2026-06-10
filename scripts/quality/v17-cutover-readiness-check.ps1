@@ -147,7 +147,7 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.liveStakeholderWalkthrough -Encoding utf8
 
 $attached = [ordered]@{
-    androidRelease = [ordered]@{ schema = "merhouse.v17.android-release.v1"; path = $artifactPaths.androidRelease; apiBaseUrl = "https://api.example.com" }
+    androidRelease = [ordered]@{ schema = "merhouse.v17.android-release.v1"; path = $artifactPaths.androidRelease; apiBaseUrl = "https://api.example.com"; versionCode = 17; versionName = "17.0.0-internal" }
     installedAndroidTour = [ordered]@{ schema = "merhouse.native-android-tour.report.v1"; path = $artifactPaths.installedAndroidTour; apiUrl = "https://api.example.com" }
     backupRestore = [ordered]@{ schema = "merhouse.v17.backup-restore-drill.v1"; path = $artifactPaths.backupRestore }
     rollback = [ordered]@{ schema = "merhouse.v17.rollback-rehearsal.v1"; path = $artifactPaths.rollback }
@@ -196,6 +196,8 @@ $missingManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $missingEv
 $wrongAttachmentManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
 $wrongAttachmentManifest.attachedEvidence.androidRelease.schema = "merhouse.load-smoke.v1"
 $wrongAttachmentManifest.attachedEvidence.androidRelease.path = $artifactPaths.invalidAndroidRelease
+$wrongAttachmentManifest.attachedEvidence.androidRelease.versionCode = 99
+$wrongAttachmentManifest.attachedEvidence.androidRelease.versionName = "wrong-version"
 $wrongAttachmentManifest.attachedEvidence.backupRestore.path = $artifactPaths.invalidBackupRestore
 $wrongAttachmentManifest.attachedEvidence.rollback.path = $artifactPaths.invalidRollback
 $wrongAttachmentManifest.attachedEvidence.alertRouting.apiBaseUrl = "https://wrong-api.example.com"
@@ -292,6 +294,8 @@ try {
         $_.Exception.Message -match "androidRelease.path artifact sha256" -and
         $_.Exception.Message -match "androidRelease.path artifact versionCode" -and
         $_.Exception.Message -match "androidRelease.path artifact versionName" -and
+        $_.Exception.Message -match "androidRelease.versionCode" -and
+        $_.Exception.Message -match "androidRelease.versionName" -and
         $_.Exception.Message -match "androidRelease.path artifact cleartextTraffic" -and
         $_.Exception.Message -match "androidRelease.path artifact signing" -and
         $_.Exception.Message -match "backupRestore.path artifact restored" -and
