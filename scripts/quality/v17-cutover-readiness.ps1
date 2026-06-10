@@ -46,6 +46,19 @@ $expectedAttachmentSchemas = @{
     alertRouting = "merhouse.v17.alert-routing.v1"
     liveStakeholderWalkthrough = "merhouse.v17.live-stakeholder-walkthrough.v1"
 }
+
+function Resolve-ProofPath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ""
+    }
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return [System.IO.Path]::GetFullPath($Path)
+    }
+    return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
+}
+
 foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
     if ($null -eq $attached.$attachmentName) {
         $failures += "Deployment evidence manifest attachedEvidence.$attachmentName must be present for cutover readiness."
@@ -53,6 +66,30 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
     }
     if ($attached.$attachmentName.schema -ne $expectedAttachmentSchemas[$attachmentName]) {
         $failures += "Deployment evidence manifest attachedEvidence.$attachmentName schema must be $($expectedAttachmentSchemas[$attachmentName])."
+    }
+    $proofPath = Resolve-ProofPath -Path $attached.$attachmentName.path
+    if ([string]::IsNullOrWhiteSpace($proofPath) -or -not (Test-Path -LiteralPath $proofPath)) {
+        $failures += "Deployment evidence manifest attachedEvidence.$attachmentName.path must point to an existing proof artifact."
+        continue
+    }
+    try {
+        $proofArtifact = Get-Content -Raw -LiteralPath $proofPath | ConvertFrom-Json
+        $proofSchema = $proofArtifact.schema
+        if ([string]::IsNullOrWhiteSpace($proofSchema) -and $attachmentName -eq "installedAndroidTour") {
+            $hasNativeTourProvenance =
+                -not [string]::IsNullOrWhiteSpace($proofArtifact.apkSha256) -and
+                -not [string]::IsNullOrWhiteSpace($proofArtifact.apiUrl) -and
+                $null -ne $proofArtifact.checkedRoutes -and
+                @($proofArtifact.deviceSerials).Count -gt 0
+            if ($hasNativeTourProvenance) {
+                $proofSchema = "merhouse.native-android-tour.report.v1"
+            }
+        }
+        if ($proofSchema -ne $expectedAttachmentSchemas[$attachmentName]) {
+            $failures += "Deployment evidence manifest attachedEvidence.$attachmentName.path artifact schema must be $($expectedAttachmentSchemas[$attachmentName])."
+        }
+    } catch {
+        $failures += "Deployment evidence manifest attachedEvidence.$attachmentName.path must be readable JSON proof."
     }
 }
 if ($null -ne $attached.androidRelease -and $attached.androidRelease.apiBaseUrl -ne $manifest.apiBaseUrl) {
