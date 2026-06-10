@@ -37,7 +37,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/url-guard-lib.ps1` | Shared helper for validating and normalizing non-blank absolute `http` or `https` local setup, native build, frontend proxy, OpenAPI docs, tour, smoke, performance, deployment, and report-provenance URLs. |
 | `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, CI naming, and Compose config. |
 | `scripts/quality/deployment-readiness.ps1` | Run the V16.2 deployment-ready local certification gate with local/mock proof and optional timed API smoke. |
-| `scripts/deploy/vps-check.ps1` | Validate the V17 VPS production Compose shape against the deployment env template. |
+| `scripts/deploy/vps-check.ps1` | Validate the V17 VPS production Compose shape against the deployment env template or a private deployment env file. |
 | `scripts/deploy/env-audit.ps1` | Audit V17 deployment env files for required values, HTTPS origins, loopback bind, absolute backup path, placeholder secrets, and SMTP requirements without printing secret values. |
 | `scripts/deploy/reverse-proxy-check.ps1` | Validate the V17 nginx reverse-proxy template for HTTPS redirect, TLS protocols, security headers, public Swagger/API-doc blocking, and frontend proxy target. |
 | `scripts/deploy/deploy-vps.ps1` | Apply the V17 VPS Compose stack from a private env file after explicit confirmation, optional image pull/build, and optional pre-deploy backup. |
@@ -303,7 +303,7 @@ Audit the template in CI/preflight mode or audit a private env file before rollo
 .\scripts\deploy\env-audit.ps1 -EnvFile ".env.production"
 ```
 
-Strict mode rejects placeholder database/JWT/SMTP credentials, non-HTTPS public origins, CORS values that omit the public frontend URL, non-loopback frontend binds, relative backup paths, incomplete SMTP settings when email delivery is enabled, unsupported agent modes, out-of-range recovery and access-request throttles, and out-of-range agent timeouts. The audit prints key names and paths only, not secret values.
+Strict mode rejects placeholder database/JWT/SMTP credentials, non-HTTPS public origins, CORS values that omit the public frontend URL, non-loopback frontend binds, relative backup paths, incomplete SMTP settings when email delivery is enabled, unsupported agent modes, out-of-range recovery and access-request throttles, and out-of-range agent timeouts. `vps-check.ps1` then verifies that the rendered Compose file wires those audited throttle values into the backend while keeping public mode on, seed-admin off, recovery-token echo off, and Swagger off. The audit prints key names and paths only, not secret values.
 
 Validate the public nginx reverse-proxy template before installing it on the VPS:
 
