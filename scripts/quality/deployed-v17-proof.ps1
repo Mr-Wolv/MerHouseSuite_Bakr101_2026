@@ -99,8 +99,38 @@ function Resolve-EvidenceAttachment {
     }
 }
 
+function Get-ProviderStatusEvidenceState {
+    param([AllowNull()] [string] $Status)
+
+    $normalized = if ($null -eq $Status) { "" } else { $Status.Trim().ToLowerInvariant() }
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        throw "ProviderStatus must be a non-blank deployment evidence label."
+    }
+
+    if ($normalized -in @(
+        "smtp-staging-proven",
+        "smtp-production-proven",
+        "email-provider-proven",
+        "email-disabled-by-policy"
+    )) {
+        return "closed"
+    }
+
+    if ($normalized -in @(
+        "not-recorded",
+        "smtp-staging-configured",
+        "smtp-configured",
+        "email-configured"
+    )) {
+        return "open"
+    }
+
+    throw "ProviderStatus must be one of: not-recorded, smtp-staging-configured, smtp-configured, email-configured, smtp-staging-proven, smtp-production-proven, email-provider-proven, email-disabled-by-policy."
+}
+
 $normalizedFrontendBaseUrl = Assert-AbsoluteHttpUrl -Name "FrontendBaseUrl" -Value $FrontendBaseUrl
 $normalizedApiBaseUrl = Assert-AbsoluteHttpUrl -Name "ApiBaseUrl" -Value $ApiBaseUrl
+$providerEvidenceState = Get-ProviderStatusEvidenceState -Status $ProviderStatus
 Assert-DeployedCredential -Name "AdminEmail" -Value $AdminEmail
 Assert-DeployedCredential -Name "AdminPassword" -Value $AdminPassword
 
@@ -246,6 +276,9 @@ if (-not $backupRestoreEvidence) {
 }
 if (-not $rollbackEvidence) {
     $nextRequiredEvidence += "rollback rehearsal"
+}
+if ($providerEvidenceState -eq "open") {
+    $nextRequiredEvidence += "provider-backed recovery, access-request, and notification email proof or an explicit email-disabled production policy"
 }
 $nextRequiredEvidence += @(
     "monitoring alert routing proof",
