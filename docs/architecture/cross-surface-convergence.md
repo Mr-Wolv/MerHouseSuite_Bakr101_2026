@@ -1,8 +1,8 @@
 # Cross-Surface V&V Bug-Hunt Convergence
 
-MerHouse V16.2 is now operated as a focused bug-hunting convergence track for the shared web and native Android product surface. The goal is to find and close real stakeholder-facing defects, state mismatches, broken handoffs, performance regressions, and local-boundary drift as quickly and deeply as possible.
+MerHouse V16.2 used this focused bug-hunting convergence track for the shared web and native Android product surface. The local-development closeout completed on 2026-06-10 after live browser and installed-APK walkthrough evidence found and fixed the final admin overview loading blocker in `BH-052`.
 
-This page is the active evidence ledger for that track. Read it with the [roadmap](roadmap.md), [native Android local certification](native-android-local-certification.md), [deployment-ready local certification](deployment-ready-local-certification.md), and [system diagrams](system-diagrams.html).
+This page is the durable evidence ledger for that track. Read it with the [roadmap](roadmap.md), [native Android local certification](native-android-local-certification.md), [deployment-ready local certification](deployment-ready-local-certification.md), and [system diagrams](system-diagrams.html).
 
 ## Reset Rule
 
@@ -62,8 +62,8 @@ Use this queue to avoid wandering. Each pass chooses one row, audits the named f
 
 | Queue | File group | Audit focus | Status |
 | --- | --- | --- | --- |
-| 1 | Notification backend, frontend, tests, and docs | Recipient scoping, unread/action/history state, source routes, dense records, local-provider boundary, web/native shared rendering | Covered through `BH-001` to `BH-003` and `BH-034`; final live walkthrough pending |
-| 2 | Auth, account lifecycle, password reset, and access requests | Public routes, local reset boundary, account-ready handoff, validation, denial, fake credential repeatability | Covered through `BH-004` to `BH-008`; live browser sign-in CORS bug under `BH-035`; final live walkthrough pending |
+| 1 | Notification backend, frontend, tests, and docs | Recipient scoping, unread/action/history state, source routes, dense records, local-provider boundary, web/native shared rendering | Covered through `BH-001` to `BH-003` and `BH-034`; live walkthrough evidence closed in `BH-052` |
+| 2 | Auth, account lifecycle, password reset, and access requests | Public routes, local reset boundary, account-ready handoff, validation, denial, fake credential repeatability | Covered through `BH-004` to `BH-008`; live browser sign-in CORS bug under `BH-035`; live walkthrough evidence closed in `BH-052` |
 | 3 | Admin governance pages and services | Dense tenants/users, access-request conversion, support/auditor boundaries, relationship governance, outbox diagnostics | Covered through `BH-009` to `BH-012`; final live walkthrough admin loading defect closed in `BH-052` |
 | 4 | Merchant operations pages and services | Inventory, inbound stock, order create/import, allocation visibility, backorders, notification handoffs | In progress through `BH-013` to `BH-016` |
 | 5 | Warehouse operations pages and services | Receiving, pick/pack/ship/deliver/fail/return, package evidence, exceptions, stock adjustments | In progress through `BH-017` to `BH-019`; receiving and shipment evidence validation closed in `BH-039` to `BH-041` |
@@ -114,7 +114,7 @@ Broad proof:
 .\scripts\quality\performance-readiness.ps1
 ```
 
-Do not claim convergence from scripts alone. Final convergence still requires a live walkthrough with the reviewer and product owner in the real browser and real installed Android app.
+Do not claim future convergence from scripts alone. Later releases that change stakeholder workflows, native packaging, local-provider boundaries, or performance-critical routes must repeat a live walkthrough in the real browser and real installed Android app.
 
 ## Final Live Walkthrough Checklist
 
@@ -324,7 +324,7 @@ Fix or decision:
 - Current command examples and `cross-surface-tour-check.ps1` defaults now use `reports/wrapup-frontend-full-tour.json` and `reports/wrapup-native-android-tour.json`.
 - Current certification prose now records the wrap-up APK fingerprint and byte size.
 - The historical BH-037 ledger entry keeps its old report artifact references but now says they were the then-latest reports at that point.
-- The system diagram convergence card now states that browser behavior, installed-APK behavior, reports, or gate output drive bug fixes, and that final convergence still waits for the live reviewer/product-owner walkthrough.
+- The system diagram convergence card now states that browser behavior, installed-APK behavior, reports, or gate output drive bug fixes; `BH-052` later records the completed live reviewer/product-owner walkthrough evidence.
 
 Proof run:
 
@@ -884,7 +884,7 @@ Target and suspected bug:
 
 Why this target matters:
 
-- The final convergence bar still requires a real installed Android walkthrough with the reviewer/product owner.
+- At this point in the ledger, the final convergence bar still required a real installed Android walkthrough with the reviewer/product owner; `BH-052` later records that live evidence.
 - Before returning to non-Android bug hunting, the current APK artifact should at least be refreshed and checked for the emulator backend API base.
 - A missing Android device should be recorded as a proof blocker once, not allowed to become an aimless loop.
 
@@ -1358,7 +1358,7 @@ Proof run:
 
 Remaining risk and next target:
 
-- The installed APK tour still requires a running emulator/device and seeded local stack for live Android evidence. Continue Queue 8 by checking native report provenance and API-base synchronization before the final live installed-app walkthrough.
+- At this point in the ledger, the installed APK tour still required a running emulator/device and seeded local stack for live Android evidence; later entries closed native report provenance, API-base synchronization, and the final live installed-app walkthrough.
 
 ### BH-027: Outbox Health Notification Summaries Lost Diagnostics Route Without Source Ids
 

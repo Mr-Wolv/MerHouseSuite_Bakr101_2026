@@ -96,7 +96,7 @@ Do not call native mobile local certification complete until:
 - docs clearly state that mobile certification is native Android packaging backed by one shared frontend shell
 - the native wrapper reuses the same frontend build without duplicated workflow implementation
 - the local backend boundary remains explicit
-- final V16.2 convergence still waits for the real installed-app and browser walkthrough recorded through the cross-surface evidence template
+- final V16.2 convergence recorded the real installed-app and browser walkthrough in the cross-surface evidence ledger; repeat that live proof for later workflow, packaging, local-boundary, or performance-sensitive changes
 
 ## Local Tooling Note
 

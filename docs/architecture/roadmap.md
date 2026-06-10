@@ -46,7 +46,7 @@ Acceptance bar:
 
 ### V16.2: Cross-Surface Real-World Usage Convergence
 
-Status: active final QC bug-hunt track.
+Status: complete for local-development certification on 2026-06-10; future changes should rerun the matching proof instead of reopening an indefinite loop.
 
 Goal: hunt and close concrete cross-surface bugs until the app behaves coherently for real local users across supported roles, states, and surfaces. The track must prioritize stakeholder-facing defects, dense-state failures, permission mistakes, workflow handoff gaps, frontend/backend state mismatches, performance regressions, and local-boundary drift over repetitive proof-reference cleanup or broad aimless refactoring.
 

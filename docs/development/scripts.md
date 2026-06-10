@@ -220,7 +220,7 @@ Report paths are all-or-none. `deployment-readiness.ps1` rejects a lone `-WebTou
 
 `deployment-readiness.ps1` runs shared mobile shell and native sync proof before the broad local quality gate, then calls `check.ps1 -SkipMobile` so those same mobile/native checks are not repeated in the same run. Running `check.ps1` directly still includes mobile shell and native sync proof by default, and direct broad-gate runs can pass `-NativeApiBaseUrl` when the Android build must target a physical-device LAN URL instead of the emulator default.
 
-After the browser tour, installed-APK tour, cross-surface comparison, and full deployment gate are green, switch from scripted verification to the [final live walkthrough checklist](../architecture/cross-surface-convergence.md#final-live-walkthrough-checklist). Record the reviewer/product-owner results with the manual walkthrough evidence template in that ledger; do not treat script output alone as final V16.2 convergence.
+After future browser tours, installed-APK tours, cross-surface comparisons, and full deployment gates are green for workflow, packaging, local-boundary, or performance-sensitive changes, repeat the [final live walkthrough checklist](../architecture/cross-surface-convergence.md#final-live-walkthrough-checklist). Record reviewer/product-owner results with the manual walkthrough evidence template in that ledger; do not treat script output alone as a new convergence claim.
 
 Validate Compose configuration:
 
