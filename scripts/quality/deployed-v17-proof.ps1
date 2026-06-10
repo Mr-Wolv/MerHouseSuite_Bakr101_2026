@@ -167,6 +167,74 @@ function Resolve-EvidenceAttachment {
             throw "EmailProviderProofManifestPath must include secretPolicy."
         }
     }
+    if ($Name -eq "BackupRestoreManifestPath") {
+        if (-not [bool]$json.restored) {
+            throw "BackupRestoreManifestPath must set restored to true."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.backupPath)) {
+            throw "BackupRestoreManifestPath must include backupPath."
+        }
+        $backupPath = if ([System.IO.Path]::IsPathRooted($json.backupPath)) {
+            [System.IO.Path]::GetFullPath($json.backupPath)
+        } else {
+            [System.IO.Path]::GetFullPath((Join-Path $projectRoot $json.backupPath))
+        }
+        if (-not (Test-Path -LiteralPath $backupPath)) {
+            throw "BackupRestoreManifestPath backupPath was not found: $backupPath"
+        }
+        if ($json.backupSha256 -notmatch '^[a-fA-F0-9]{64}$') {
+            throw "BackupRestoreManifestPath backupSha256 must be a 64-character hex digest."
+        }
+        $backupHash = (Get-FileHash -LiteralPath $backupPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($backupHash -ne $json.backupSha256.ToLowerInvariant()) {
+            throw "BackupRestoreManifestPath backupSha256 must match backupPath content."
+        }
+        $backupBytes = (Get-Item -LiteralPath $backupPath).Length
+        if ([long]$json.backupBytes -ne $backupBytes -or $backupBytes -le 0) {
+            throw "BackupRestoreManifestPath backupBytes must match a non-empty backupPath file."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.secretPolicy)) {
+            throw "BackupRestoreManifestPath must include secretPolicy."
+        }
+    }
+    if ($Name -eq "RollbackManifestPath") {
+        if (-not [bool]$json.rollbackRan) {
+            throw "RollbackManifestPath must set rollbackRan to true."
+        }
+        if ($json.preflight.envAudit -ne "passed") {
+            throw "RollbackManifestPath preflight.envAudit must be passed."
+        }
+        if ($json.preflight.vpsShape -ne "passed") {
+            throw "RollbackManifestPath preflight.vpsShape must be passed."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.secretPolicy)) {
+            throw "RollbackManifestPath must include secretPolicy."
+        }
+        if ($null -ne $json.postRollbackMonitoring -and [bool]$json.postRollbackMonitoring.ran) {
+            if ([string]::IsNullOrWhiteSpace($json.postRollbackMonitoring.frontendBaseUrl)) {
+                throw "RollbackManifestPath postRollbackMonitoring.frontendBaseUrl must be present when monitoring ran."
+            }
+            if ([string]::IsNullOrWhiteSpace($json.postRollbackMonitoring.apiBaseUrl)) {
+                throw "RollbackManifestPath postRollbackMonitoring.apiBaseUrl must be present when monitoring ran."
+            }
+            $monitoringPath = if ([System.IO.Path]::IsPathRooted($json.postRollbackMonitoring.reportPath)) {
+                [System.IO.Path]::GetFullPath($json.postRollbackMonitoring.reportPath)
+            } else {
+                [System.IO.Path]::GetFullPath((Join-Path $projectRoot $json.postRollbackMonitoring.reportPath))
+            }
+            if (-not (Test-Path -LiteralPath $monitoringPath)) {
+                throw "RollbackManifestPath postRollbackMonitoring.reportPath was not found: $monitoringPath"
+            }
+            try {
+                $monitoringReport = Get-Content -Raw -LiteralPath $monitoringPath | ConvertFrom-Json
+            } catch {
+                throw "RollbackManifestPath postRollbackMonitoring.reportPath must be readable JSON proof."
+            }
+            if ($monitoringReport.schema -ne "merhouse.v17.deployed-monitoring.v1") {
+                throw "RollbackManifestPath postRollbackMonitoring.reportPath schema must be merhouse.v17.deployed-monitoring.v1."
+            }
+        }
+    }
     if ($Name -eq "AlertRoutingManifestPath") {
         if ([string]::IsNullOrWhiteSpace($json.frontendBaseUrl)) {
             throw "AlertRoutingManifestPath must include frontendBaseUrl."
@@ -224,6 +292,8 @@ function Resolve-EvidenceAttachment {
         artifactPath = $json.artifactPath
         sha256 = $json.sha256
         bytes = $json.bytes
+        postRollbackMonitoringFrontendBaseUrl = $json.postRollbackMonitoring.frontendBaseUrl
+        postRollbackMonitoringApiBaseUrl = $json.postRollbackMonitoring.apiBaseUrl
     }
 }
 
@@ -295,6 +365,12 @@ if ($emailProviderEvidence -and $emailProviderEvidence.frontendBaseUrl -ne $norm
 }
 if ($emailProviderEvidence -and $emailProviderEvidence.providerStatus.ToString().ToLowerInvariant() -ne $ProviderStatus.Trim().ToLowerInvariant()) {
     throw "EmailProviderProofManifestPath providerStatus must match ProviderStatus. Expected $ProviderStatus but found $($emailProviderEvidence.providerStatus)."
+}
+if ($rollbackEvidence -and -not [string]::IsNullOrWhiteSpace($rollbackEvidence.postRollbackMonitoringApiBaseUrl) -and $rollbackEvidence.postRollbackMonitoringApiBaseUrl -ne $normalizedApiBaseUrl) {
+    throw "RollbackManifestPath postRollbackMonitoring.apiBaseUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($rollbackEvidence.postRollbackMonitoringApiBaseUrl)."
+}
+if ($rollbackEvidence -and -not [string]::IsNullOrWhiteSpace($rollbackEvidence.postRollbackMonitoringFrontendBaseUrl) -and $rollbackEvidence.postRollbackMonitoringFrontendBaseUrl -ne $normalizedFrontendBaseUrl) {
+    throw "RollbackManifestPath postRollbackMonitoring.frontendBaseUrl must match deployed FrontendBaseUrl. Expected $normalizedFrontendBaseUrl but found $($rollbackEvidence.postRollbackMonitoringFrontendBaseUrl)."
 }
 if ($alertRoutingEvidence -and $alertRoutingEvidence.apiBaseUrl -ne $normalizedApiBaseUrl) {
     throw "AlertRoutingManifestPath apiBaseUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($alertRoutingEvidence.apiBaseUrl)."

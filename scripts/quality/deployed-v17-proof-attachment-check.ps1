@@ -22,11 +22,20 @@ $validAndroidArtifactPath = Join-Path $resolvedOutputDirectory "v17-android-rele
 $wrongAndroidArtifactPath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-wrong.aab"
 $validEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-valid.json"
 $wrongEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-wrong.json"
+$validBackupRestorePath = Join-Path $resolvedOutputDirectory "v17-backup-restore-proof-check-valid.json"
+$wrongBackupRestorePath = Join-Path $resolvedOutputDirectory "v17-backup-restore-proof-check-wrong.json"
+$validBackupDumpPath = Join-Path $resolvedOutputDirectory "v17-backup-restore-proof-check.dump"
+$validRollbackPath = Join-Path $resolvedOutputDirectory "v17-rollback-proof-check-valid.json"
+$wrongRollbackPath = Join-Path $resolvedOutputDirectory "v17-rollback-proof-check-wrong.json"
+$validRollbackMonitoringPath = Join-Path $resolvedOutputDirectory "v17-rollback-monitoring-proof-check.json"
 
 Set-Content -LiteralPath $validAndroidArtifactPath -Value "fixture signed Android artifact" -Encoding utf8
 Set-Content -LiteralPath $wrongAndroidArtifactPath -Value "changed Android artifact" -Encoding utf8
+Set-Content -LiteralPath $validBackupDumpPath -Value "fixture postgres custom-format backup" -Encoding utf8
 $validAndroidArtifactHash = (Get-FileHash -LiteralPath $validAndroidArtifactPath -Algorithm SHA256).Hash.ToLowerInvariant()
 $validAndroidArtifactBytes = (Get-Item -LiteralPath $validAndroidArtifactPath).Length
+$validBackupHash = (Get-FileHash -LiteralPath $validBackupDumpPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
 
 @{
     schema = "merhouse.v17.android-release.v1"
@@ -73,6 +82,66 @@ $validAndroidArtifactBytes = (Get-Item -LiteralPath $validAndroidArtifactPath).L
     deliveryEvidence = ""
     secretPolicy = "No SMTP credentials are stored."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongEmailProviderPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.backup-restore-drill.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    backupPath = $validBackupDumpPath
+    backupSha256 = $validBackupHash
+    backupBytes = $validBackupBytes
+    restored = $true
+    secretPolicy = "manifest omits database credentials and env values"
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validBackupRestorePath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.backup-restore-drill.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    backupPath = $validBackupDumpPath
+    backupSha256 = $validAndroidArtifactHash
+    backupBytes = $validAndroidArtifactBytes
+    restored = $false
+    secretPolicy = ""
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongBackupRestorePath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.deployed-monitoring.v1"
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validRollbackMonitoringPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.rollback-rehearsal.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    rollbackRan = $true
+    preflight = @{
+        envAudit = "passed"
+        vpsShape = "passed"
+    }
+    postRollbackMonitoring = @{
+        ran = $true
+        frontendBaseUrl = "https://app.example.com"
+        apiBaseUrl = "https://api.example.com"
+        reportPath = $validRollbackMonitoringPath
+    }
+    secretPolicy = "Private env values, provider credentials, deployment logs, keystores, and backup archives are excluded from this manifest."
+} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $validRollbackPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.rollback-rehearsal.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    rollbackRan = $false
+    preflight = @{
+        envAudit = "failed"
+        vpsShape = "passed"
+    }
+    postRollbackMonitoring = @{
+        ran = $true
+        frontendBaseUrl = "https://app.example.com"
+        apiBaseUrl = "https://api.example.com"
+        reportPath = (Join-Path $resolvedOutputDirectory "missing-rollback-monitoring-proof-check.json")
+    }
+    secretPolicy = ""
+} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $wrongRollbackPath -Encoding utf8
 
 @{
     schema = "merhouse.v17.alert-routing.v1"
@@ -170,6 +239,19 @@ if ($emailProvider.providerStatus -ne "smtp-staging-proven") {
     throw "Valid email-provider attachment did not preserve provider status."
 }
 
+$backupRestore = Invoke-AttachmentResolver -Name "BackupRestoreManifestPath" -Path $validBackupRestorePath | ConvertFrom-Json
+if ($backupRestore.schema -ne "merhouse.v17.backup-restore-drill.v1") {
+    throw "Valid backup-restore attachment did not resolve with the expected schema."
+}
+
+$rollback = Invoke-AttachmentResolver -Name "RollbackManifestPath" -Path $validRollbackPath | ConvertFrom-Json
+if ($rollback.schema -ne "merhouse.v17.rollback-rehearsal.v1") {
+    throw "Valid rollback attachment did not resolve with the expected schema."
+}
+if ($rollback.postRollbackMonitoringFrontendBaseUrl -ne "https://app.example.com" -or $rollback.postRollbackMonitoringApiBaseUrl -ne "https://api.example.com") {
+    throw "Valid rollback attachment did not preserve post-rollback monitoring target URLs."
+}
+
 $resolved = Invoke-AttachmentResolver -Name "AlertRoutingManifestPath" -Path $validAlertPath | ConvertFrom-Json
 if ($resolved.schema -ne "merhouse.v17.alert-routing.v1") {
     throw "Valid alert-routing attachment did not resolve with the expected schema."
@@ -229,6 +311,36 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Incomplete email-provider attachment was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    Invoke-AttachmentResolver -Name "BackupRestoreManifestPath" -Path $wrongBackupRestorePath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "restored to true") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Incomplete backup-restore attachment was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    Invoke-AttachmentResolver -Name "RollbackManifestPath" -Path $wrongRollbackPath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "rollbackRan to true") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Incomplete rollback attachment was accepted."
 }
 
 $failedAsExpected = $false
