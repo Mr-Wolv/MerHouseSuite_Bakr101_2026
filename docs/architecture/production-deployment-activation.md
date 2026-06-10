@@ -100,8 +100,10 @@ If the Android app is part of the release claim, assemble the native shell again
 ```powershell
 .\scripts\quality\native-mobile-check.ps1 -Assemble -ApiBaseUrl "https://<staging-api-origin>"
 .\scripts\quality\native-android-tour.ps1 -ApiUrl "https://<staging-api-origin>"
-.\scripts\quality\native-android-release-check.ps1 -ApiBaseUrl "https://<staging-api-origin>" -Bundle
+.\scripts\quality\native-android-release-check.ps1 -ApiBaseUrl "https://<staging-api-origin>" -Bundle -OutputPath ".\reports\v17-android-release.json"
 ```
+
+The signed release check writes a sanitized Android release manifest with commit SHA, API URL, artifact kind/path, SHA-256, byte size, cleartext policy, and external-keystore signing boundary. Keep the manifest with deployment evidence; keep keystores outside Git.
 
 ## Production Cutover Proof
 

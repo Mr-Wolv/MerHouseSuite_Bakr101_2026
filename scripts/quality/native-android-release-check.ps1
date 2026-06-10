@@ -1,6 +1,7 @@
 param(
     [string]$ApiBaseUrl,
-    [switch]$Bundle
+    [switch]$Bundle,
+    [string]$OutputPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -56,7 +57,45 @@ if (-not (Test-Path $artifact)) {
 
 $hash = (Get-FileHash $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
 $bytes = (Get-Item $artifact).Length
+$artifactKind = if ($Bundle) { "aab" } else { "apk" }
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $OutputPath = ".\reports\v17-android-release-$timestamp.json"
+}
+$resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
+    [System.IO.Path]::GetFullPath($OutputPath)
+} else {
+    [System.IO.Path]::GetFullPath((Join-Path $repoRoot $OutputPath))
+}
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $resolvedOutputPath) | Out-Null
+
+$commitSha = ""
+try {
+    Push-Location $repoRoot
+    $commitSha = (git rev-parse HEAD).Trim()
+} catch {
+    $commitSha = "unavailable"
+} finally {
+    Pop-Location
+}
+
+$manifest = [ordered]@{
+    schema = "merhouse.v17.android-release.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    commitSha = $commitSha
+    apiBaseUrl = $normalizedApiBaseUrl
+    artifactKind = $artifactKind
+    artifactPath = $artifact
+    sha256 = $hash
+    bytes = $bytes
+    cleartextTraffic = "disabled-for-release"
+    signing = "external-keystore-env"
+}
+$manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $resolvedOutputPath -Encoding utf8
+
 Write-Host "Signed Android release artifact: $artifact"
 Write-Host "Android release SHA-256: $hash"
 Write-Host "Android release bytes: $bytes"
+Write-Host "Android release manifest: $resolvedOutputPath"
 Write-Host "Signed Android release check passed."

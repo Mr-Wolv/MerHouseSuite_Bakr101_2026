@@ -257,7 +257,7 @@ Future production activation is a separate later phase and must replace local mo
 The tracked activation checklist lives in [Production deployment activation](docs/architecture/production-deployment-activation.md).
 Service-specific activation notes for email recovery, account invitations, email notifications, and real agentic work live in [V17 external service activation](docs/architecture/v17-service-activation.md).
 
-V17 private deployment work adds a VPS + Docker Compose shape under `deploy/vps/`, deployment scripts under `scripts/deploy/`, private env auditing, public reverse-proxy hardening checks, deployed proof wrappers, backend/frontend container healthchecks, deployed monitoring samples, SMTP-backed email delivery hooks, read-plus-draft agent runtime metadata, load-smoke proof, and signed internal Android release checks. Keep detailed deployment values, provider credentials, Android keystores, and proof logs private until the deployment is proven and intentionally published.
+V17 private deployment work adds a VPS + Docker Compose shape under `deploy/vps/`, deployment scripts under `scripts/deploy/`, private env auditing, public reverse-proxy hardening checks, deployed proof wrappers, backend/frontend container healthchecks, deployed monitoring samples, SMTP-backed email delivery hooks, read-plus-draft agent runtime metadata, load-smoke proof, and signed internal Android release checks with sanitized release manifests. Keep detailed deployment values, provider credentials, Android keystores, and proof logs private until the deployment is proven and intentionally published.
 
 ## Latest Scripted Local QC Snapshot
 

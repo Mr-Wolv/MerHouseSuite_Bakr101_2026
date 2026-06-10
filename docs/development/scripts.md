@@ -24,7 +24,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/mobile-shell-check.ps1` | Check shared mobile shell metadata, manifest, icon references, and service worker markers used by web and native packaging. |
 | `scripts/quality/native-mobile-check.ps1` | Check the Capacitor Android wrapper, sync the frontend build into Android, and optionally assemble a debug APK. |
 | `scripts/quality/native-android-tour.ps1` | Install the debug APK on a running emulator, authenticate seeded roles, visit native routes, and capture APK screenshots. |
-| `scripts/quality/native-android-release-check.ps1` | Build a signed internal Android APK or AAB against an HTTPS API URL using keystore values supplied outside Git. |
+| `scripts/quality/native-android-release-check.ps1` | Build a signed internal Android APK or AAB against an HTTPS API URL using keystore values supplied outside Git and write a sanitized release manifest. |
 | `scripts/quality/cross-surface-tour-check.ps1` | Compare browser and installed-APK tour reports for clean records, provenance, valid native screenshot evidence, exact normalized role/path set equality, and traceable pass output. |
 | `scripts/quality/performance-readiness.ps1` | Check local deployment-shaped performance readiness through frontend bundle budgets, paired browser/installed-APK report provenance and timing when reports are supplied, and optional API smoke timing. |
 | `scripts/quality/load-smoke.ps1` | Run a small concurrent health-check smoke against a deployed or local API target. |
@@ -170,10 +170,10 @@ $env:MERHOUSE_ANDROID_KEYSTORE_PATH = "D:\secure\merhouse-release.jks"
 $env:MERHOUSE_ANDROID_KEYSTORE_PASSWORD = "<secret>"
 $env:MERHOUSE_ANDROID_KEY_ALIAS = "merhouse"
 $env:MERHOUSE_ANDROID_KEY_PASSWORD = "<secret>"
-.\scripts\quality\native-android-release-check.ps1 -ApiBaseUrl "https://api.example.com" -Bundle
+.\scripts\quality\native-android-release-check.ps1 -ApiBaseUrl "https://api.example.com" -Bundle -OutputPath ".\reports\v17-android-release.json"
 ```
 
-Release builds force Android cleartext traffic off. The script prints the artifact path, SHA-256, and byte size; keep keystores and credentials outside Git.
+Release builds force Android cleartext traffic off. The script prints the artifact path, SHA-256, byte size, and manifest path. The manifest records commit SHA, API URL, artifact kind/path, SHA-256, byte size, cleartext policy, and external-keystore signing boundary without recording keystore details. Keep keystores and credentials outside Git.
 
 Run the native Android APK tour after the local stack is running, seeded, and an emulator is booted:
 

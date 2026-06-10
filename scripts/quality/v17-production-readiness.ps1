@@ -70,7 +70,7 @@ try {
             throw "-ApiBaseUrl is required when -IncludeAndroidRelease is supplied."
         }
         Invoke-Checked "Building signed Android release proof..." {
-            & ".\scripts\quality\native-android-release-check.ps1" -ApiBaseUrl $ApiBaseUrl -Bundle
+            & ".\scripts\quality\native-android-release-check.ps1" -ApiBaseUrl $ApiBaseUrl -Bundle -OutputPath ".\reports\v17-android-release.json"
         }
     } else {
         Write-Host ""
