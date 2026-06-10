@@ -180,7 +180,7 @@ V17 is complete only when:
 
 - production deploy and rollback are repeatable from documented steps
 - secrets are externalized and rotated outside Git
-- CORS, HTTPS, Swagger exposure, seed admin, recovery token echo, and public startup validation match the production boundary
+- CORS, HTTPS, Swagger/OpenAPI unavailability, seed admin, recovery token echo, and public startup validation match the production boundary
 - database backup and restore have been proven
 - provider-backed delivery either works with evidence or remains explicitly disabled and labeled as local/in-app only
 - monitoring and alerting detect API health, frontend reachability, backend errors, and failed background delivery/dispatch work

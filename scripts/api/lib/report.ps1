@@ -365,6 +365,10 @@ function New-SmokeSummary {
     if ($Context.ExpectRecoveryToken) {
         $passwordRecoveryProof = "Enabled-user reset produced a local dev token, missing account stayed generic, reset token was single-use, and login worked with the new password"
     }
+    $openApiBoundaryProof = "OpenAPI exposed expected contract metadata"
+    if (-not $Context.ExpectOpenApiDocs) {
+        $openApiBoundaryProof = "public OpenAPI docs stayed unavailable with HTTP 403 or 404"
+    }
 
     $lines = @(
         "# API Smoke Test Summary",
@@ -393,7 +397,7 @@ function New-SmokeSummary {
         "| V6 outbox processing | PASS | $v6ProcessedCount scoped outbox rows processed and $v6CarrierDispatchCount carrier dispatches recorded |",
         "| Backorder status | PASS | Explicit backorder fulfillment and cancellation endpoints changed OPEN backorders to FULFILLED and CANCELLED |",
         "| V7.6 auth recovery/access | PASS | Password reset request/confirm, single-use rejection, access request submit/list/approve/reject verified |",
-        "| API boundary checks | PASS | Injection-shaped access request data stayed inert, merchant access to admin APIs was blocked, invalid reset tokens failed safely, and OpenAPI exposed expected contract metadata |",
+        "| API boundary checks | PASS | Injection-shaped access request data stayed inert, merchant access to admin APIs was blocked, invalid reset tokens failed safely, and $openApiBoundaryProof |",
         "| V14 assistant operations | PASS | Platform, merchant, and auditor assistant requests produced summaries, suggestions, refusals, accept audit proof, read-only auditor behavior, current-user history scoping, and $v14AssistantConcurrentSucceeded concurrent merchant summaries with $v14AssistantConcurrentFailed failures |",
         "",
         "## Key IDs",

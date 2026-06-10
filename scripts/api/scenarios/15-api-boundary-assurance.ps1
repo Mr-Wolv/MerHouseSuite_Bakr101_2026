@@ -36,5 +36,5 @@ if ($Context.ExpectOpenApiDocs) {
         throw "OpenAPI contract did not expose the bearerAuth security scheme."
     }
 } else {
-    Invoke-ExpectedHttpFailure -Method Get -Path "/v3/api-docs/merhouse-v1" -ExpectedStatus 403
+    Invoke-ExpectedHttpFailure -Method Get -Path "/v3/api-docs/merhouse-v1" -ExpectedStatuses @(403, 404)
 }

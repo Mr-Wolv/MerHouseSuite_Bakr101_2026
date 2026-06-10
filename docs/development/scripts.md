@@ -303,7 +303,7 @@ Audit the template in CI/preflight mode or audit a private env file before rollo
 .\scripts\deploy\env-audit.ps1 -EnvFile ".env.production"
 ```
 
-Strict mode rejects placeholder database/JWT/SMTP credentials, non-HTTPS public origins, CORS values that omit the public frontend URL, non-loopback frontend binds, relative backup paths, incomplete SMTP settings when email delivery is enabled, unsupported agent modes, out-of-range recovery and access-request throttles, and out-of-range agent timeouts. `vps-check.ps1` then verifies that the rendered Compose file wires those audited throttle values into the backend while keeping public mode on, seed-admin off, recovery-token echo off, and Swagger off. The audit prints key names and paths only, not secret values.
+Strict mode rejects placeholder database/JWT/SMTP credentials, non-HTTPS public origins, CORS values that omit the public frontend URL, non-loopback frontend binds, relative backup paths, incomplete SMTP settings when email delivery is enabled, unsupported agent modes, out-of-range recovery and access-request throttles, and out-of-range agent timeouts. `vps-check.ps1` then verifies that the rendered Compose file wires those audited throttle values into the backend while keeping public mode on, seed-admin off, recovery-token echo off, and Swagger off. Deployed API smoke treats public OpenAPI proof as unavailable when the endpoint returns either an authorization block or a disabled-route not-found response. The audit prints key names and paths only, not secret values.
 
 Validate the public nginx reverse-proxy template before installing it on the VPS:
 
@@ -403,7 +403,7 @@ Run the API smoke suite after the stack is running:
 .\scripts\quality\api-smoke.ps1
 ```
 
-The API smoke wrapper and lower-level scenario runner both validate and normalize `-BaseUrl` as a non-blank absolute `http` or `https` URL before any smoke scenario starts. The wrapper prints the normalized target and either the resolved output path or the timestamped report pattern before delegating to the lower-level runner.
+The API smoke wrapper and lower-level scenario runner both validate and normalize `-BaseUrl` as a non-blank absolute `http` or `https` URL before any smoke scenario starts. The wrapper prints the normalized target and either the resolved output path or the timestamped report pattern before delegating to the lower-level runner. In public proof mode, `-ExpectOpenApiDocs:$false` accepts HTTP 403 or 404 from the grouped OpenAPI endpoint because either response keeps API documentation unavailable to the public target.
 
 The API docs helper validates `-BaseUrl` the same way before checking or opening Swagger/OpenAPI URLs.
 

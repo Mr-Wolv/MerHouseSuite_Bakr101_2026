@@ -41,8 +41,18 @@ function Invoke-ExpectedHttpFailure {
         [Parameter(Mandatory = $true)] [string] $Path,
         $Body = $null,
         [hashtable] $Headers = @{},
-        [Parameter(Mandatory = $true)] [int] $ExpectedStatus
+        [int] $ExpectedStatus = 0,
+        [int[]] $ExpectedStatuses = @()
     )
+
+    $acceptedStatuses = @($ExpectedStatuses)
+    if ($acceptedStatuses.Count -eq 0 -and $ExpectedStatus -gt 0) {
+        $acceptedStatuses = @($ExpectedStatus)
+    }
+    if ($acceptedStatuses.Count -eq 0) {
+        throw "Expected at least one HTTP status for $Method $Path."
+    }
+    $expectedStatusText = $acceptedStatuses -join " or "
 
     $uri = "$($Context.BaseUrl)$Path"
     $parameters = @{
@@ -59,12 +69,14 @@ function Invoke-ExpectedHttpFailure {
 
     try {
         Invoke-RestMethod @parameters | Out-Null
-        throw "Expected HTTP $ExpectedStatus for $Method $Path, but request succeeded."
+        throw "Expected HTTP $expectedStatusText for $Method $Path, but request succeeded."
     } catch {
         if (-not $_.Exception.Response) {
             throw
         }
         $actualStatus = [int]$_.Exception.Response.StatusCode
-        Assert-Equal -Actual $actualStatus -Expected $ExpectedStatus -Message "Unexpected status for $Method $Path."
+        if ($acceptedStatuses -notcontains $actualStatus) {
+            throw "Unexpected status for $Method $Path. Expected HTTP $expectedStatusText, got HTTP $actualStatus."
+        }
     }
 }
