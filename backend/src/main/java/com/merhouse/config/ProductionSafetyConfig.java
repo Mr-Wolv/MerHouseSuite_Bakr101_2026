@@ -28,6 +28,7 @@ public class ProductionSafetyConfig {
         @Value("${merhouse.email.enabled:false}") boolean emailEnabled,
         @Value("${merhouse.email.from:}") String emailFrom,
         @Value("${spring.mail.host:}") String smtpHost,
+        @Value("${spring.mail.username:}") String smtpUsername,
         @Value("${spring.mail.password:}") String smtpPassword,
         @Value("${merhouse.agent.mode:deterministic}") String agentMode,
         @Value("${merhouse.agent.timeout-seconds:15}") int agentTimeoutSeconds
@@ -48,6 +49,7 @@ public class ProductionSafetyConfig {
             emailEnabled,
             emailFrom,
             smtpHost,
+            smtpUsername,
             smtpPassword,
             agentMode,
             agentTimeoutSeconds
@@ -70,6 +72,7 @@ public class ProductionSafetyConfig {
         boolean emailEnabled,
         String emailFrom,
         String smtpHost,
+        String smtpUsername,
         String smtpPassword,
         String agentMode,
         int agentTimeoutSeconds
@@ -118,6 +121,9 @@ public class ProductionSafetyConfig {
             }
             if (isBlank(smtpHost) || smtpHost.equalsIgnoreCase("localhost") || smtpHost.equals("127.0.0.1")) {
                 failures.add("MERHOUSE_SMTP_HOST must point to an external provider when email delivery is enabled for public deployments.");
+            }
+            if (isBlank(smtpUsername) || looksLikePlaceholder(smtpUsername)) {
+                failures.add("MERHOUSE_SMTP_USERNAME must be set to a private provider account when email delivery is enabled for public deployments.");
             }
             if (isBlank(smtpPassword) || looksLikePlaceholder(smtpPassword)) {
                 failures.add("MERHOUSE_SMTP_PASSWORD must be set to a private provider credential when email delivery is enabled for public deployments.");

@@ -26,6 +26,7 @@ class ProductionSafetyConfigTest {
             "",
             "localhost",
             "",
+            "",
             "deterministic",
             15
         ));
@@ -49,6 +50,7 @@ class ProductionSafetyConfigTest {
             false,
             "",
             "localhost",
+            "",
             "",
             "deterministic",
             15
@@ -74,6 +76,7 @@ class ProductionSafetyConfigTest {
             "",
             "localhost",
             "",
+            "",
             "deterministic",
             15
         ));
@@ -97,6 +100,7 @@ class ProductionSafetyConfigTest {
             false,
             "",
             "localhost",
+            "",
             "",
             "deterministic",
             15
@@ -122,6 +126,7 @@ class ProductionSafetyConfigTest {
             "",
             "localhost",
             "",
+            "",
             "deterministic",
             15
         ));
@@ -146,6 +151,7 @@ class ProductionSafetyConfigTest {
             "",
             "localhost",
             "",
+            "",
             "deterministic",
             15
         ));
@@ -169,10 +175,38 @@ class ProductionSafetyConfigTest {
             true,
             "ops@merhouse.example",
             "localhost",
+            "ops@merhouse.example",
             "GmailAppCredentialWithStrongPrivateEntropy",
             "deterministic",
             15
         ));
+    }
+
+    @Test
+    void rejectsPublicEmailDeliveryWithoutSmtpUsername() {
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            5,
+            60,
+            false,
+            "",
+            3,
+            24,
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            true,
+            "ops@merhouse.example",
+            "smtp.gmail.com",
+            "",
+            "GmailAppCredentialWithStrongPrivateEntropy",
+            "deterministic",
+            15
+        ));
+
+        assertThat(exception.getMessage()).contains("MERHOUSE_SMTP_USERNAME must be set");
     }
 
     @Test
@@ -193,6 +227,7 @@ class ProductionSafetyConfigTest {
             true,
             "ops@merhouse.example",
             "smtp.gmail.com",
+            "ops@merhouse.com",
             "GmailAppCredentialWithStrongPrivateEntropy",
             "deterministic",
             15
@@ -217,6 +252,7 @@ class ProductionSafetyConfigTest {
             false,
             "",
             "localhost",
+            "",
             "",
             "provider",
             15
@@ -243,6 +279,7 @@ class ProductionSafetyConfigTest {
             "",
             "localhost",
             "",
+            "",
             "deterministic",
             0
         ));
@@ -267,6 +304,7 @@ class ProductionSafetyConfigTest {
             false,
             "",
             "localhost",
+            "",
             "",
             "deterministic",
             15
@@ -294,6 +332,7 @@ class ProductionSafetyConfigTest {
             false,
             "",
             "localhost",
+            "",
             "",
             "deterministic",
             15

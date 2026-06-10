@@ -259,6 +259,7 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_EMAIL_ENABLED` | Enables SMTP-backed email delivery attempts for configured email channels |
 | `MERHOUSE_EMAIL_FROM` | Sender address for provider-backed email delivery |
 | `MERHOUSE_SMTP_HOST` / `MERHOUSE_SMTP_PORT` | SMTP provider target, such as Gmail/Google Workspace SMTP for staging proof |
+| `MERHOUSE_SMTP_USERNAME` / `MERHOUSE_SMTP_PASSWORD` | SMTP provider account and private credential; required when email delivery is enabled |
 | `MERHOUSE_AGENT_MODE` | Agent runtime mode; V17 public/deployment checks currently accept only `deterministic` read-plus-draft behavior |
 | `MERHOUSE_AGENT_TIMEOUT_SECONDS` | Agent runtime timeout guard; deployment checks require 1-60 seconds |
 

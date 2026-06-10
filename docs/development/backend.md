@@ -45,6 +45,12 @@ Important environment variables:
 | `MERHOUSE_SWAGGER_ENABLED` | OpenAPI and Swagger UI switch |
 | `MERHOUSE_DEPLOYMENT_PUBLIC` | Deployment-shaped startup validation |
 | `MERHOUSE_CORS_ALLOWED_ORIGINS` | Comma-separated browser/native origins allowed to call `/api/**`; the local default includes Docker nginx, Vite dev/tour origins, and Capacitor local origins |
+| `MERHOUSE_EMAIL_ENABLED` | Opt-in SMTP-backed email delivery attempts for V17 recovery, account-ready, and notification email proof |
+| `MERHOUSE_EMAIL_FROM` | Sender address required when email delivery is enabled |
+| `MERHOUSE_SMTP_HOST` / `MERHOUSE_SMTP_PORT` | SMTP provider target; public startup rejects local SMTP hosts when email delivery is enabled |
+| `MERHOUSE_SMTP_USERNAME` / `MERHOUSE_SMTP_PASSWORD` | SMTP provider account and private credential required when email delivery is enabled |
+| `MERHOUSE_AGENT_MODE` | Agent runtime mode; public startup currently accepts only `deterministic` |
+| `MERHOUSE_AGENT_TIMEOUT_SECONDS` | Agent runtime timeout guard; public startup requires 1-60 seconds |
 
 ## Tests
 
