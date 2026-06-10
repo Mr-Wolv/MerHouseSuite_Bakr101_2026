@@ -102,10 +102,28 @@ function Resolve-EvidenceAttachment {
     if ($expectedSchemas.ContainsKey($Name) -and $schema -notin $expectedSchemas[$Name]) {
         throw "$Name schema must be one of: $($expectedSchemas[$Name] -join ', '). Found: $schema."
     }
+    if ($Name -eq "AlertRoutingManifestPath") {
+        if ([string]::IsNullOrWhiteSpace($json.frontendBaseUrl)) {
+            throw "AlertRoutingManifestPath must include frontendBaseUrl."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.apiBaseUrl)) {
+            throw "AlertRoutingManifestPath must include apiBaseUrl."
+        }
+        if (@($json.routedSignals).Count -lt 1) {
+            throw "AlertRoutingManifestPath must include at least one routedSignals entry."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.deliveryEvidence)) {
+            throw "AlertRoutingManifestPath must include deliveryEvidence."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.secretPolicy)) {
+            throw "AlertRoutingManifestPath must include secretPolicy."
+        }
+    }
 
     return [ordered]@{
         path = $resolvedPath
         schema = $schema
+        frontendBaseUrl = $json.frontendBaseUrl
         apiBaseUrl = $json.apiBaseUrl
         apiUrl = $json.apiUrl
     }
@@ -168,6 +186,12 @@ if ($androidReleaseEvidence -and $androidReleaseEvidence.apiBaseUrl -ne $normali
 }
 if ($installedAndroidTourEvidence -and $installedAndroidTourEvidence.apiUrl -ne $normalizedApiBaseUrl) {
     throw "InstalledAndroidTourReportPath apiUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($installedAndroidTourEvidence.apiUrl)."
+}
+if ($alertRoutingEvidence -and $alertRoutingEvidence.apiBaseUrl -ne $normalizedApiBaseUrl) {
+    throw "AlertRoutingManifestPath apiBaseUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($alertRoutingEvidence.apiBaseUrl)."
+}
+if ($alertRoutingEvidence -and $alertRoutingEvidence.frontendBaseUrl -ne $normalizedFrontendBaseUrl) {
+    throw "AlertRoutingManifestPath frontendBaseUrl must match deployed FrontendBaseUrl. Expected $normalizedFrontendBaseUrl but found $($alertRoutingEvidence.frontendBaseUrl)."
 }
 
 $resolvedOutputDirectory = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {

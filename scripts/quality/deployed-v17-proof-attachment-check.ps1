@@ -18,8 +18,10 @@ $wrongAlertPath = Join-Path $resolvedOutputDirectory "v17-alert-routing-proof-ch
 @{
     schema = "merhouse.v17.alert-routing.v1"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
-    target = "proof-parser-only"
-    alertRoutes = @("api-health", "frontend-health", "failed-provider-delivery")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    routedSignals = @("api-health", "frontend-health", "failed-provider-delivery")
+    deliveryEvidence = "operator-confirmed-alert-routing-fixture"
     secretPolicy = "No provider credentials or alert endpoints are stored in this parser proof fixture."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validAlertPath -Encoding utf8
 
@@ -66,6 +68,9 @@ Resolve-EvidenceAttachment -Name '$Name' -Path '$escapedPath' | ConvertTo-Json -
 $resolved = Invoke-AttachmentResolver -Name "AlertRoutingManifestPath" -Path $validAlertPath | ConvertFrom-Json
 if ($resolved.schema -ne "merhouse.v17.alert-routing.v1") {
     throw "Valid alert-routing attachment did not resolve with the expected schema."
+}
+if ($resolved.frontendBaseUrl -ne "https://app.example.com" -or $resolved.apiBaseUrl -ne "https://api.example.com") {
+    throw "Valid alert-routing attachment did not preserve deployed target URLs."
 }
 
 $failedAsExpected = $false
