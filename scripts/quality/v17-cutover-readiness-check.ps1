@@ -47,9 +47,19 @@ $artifactPaths = [ordered]@{
     invalidLiveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-live-walkthrough.json"
 }
 
-@{ generatedAt = (Get-Date).ToUniversalTime().ToString("o"); baseUrl = "https://app.example.com"; status = "PASSED"; checkedActions = @("api-smoke") } |
+$smokeEvidence = @{
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    status = "PASSED"
+    testRun = "fixture"
+    apiResponses = @{
+        adminLogin = @{ user = @{ email = "owner@example.com" }; accessToken = "[redacted]" }
+        boundaryAccessRequest = @{ id = "fixture-boundary-access-request"; status = "PENDING" }
+    }
+    tableStateAfterTransactions = @{ tenants = @(@{ id = "fixture-tenant" }) }
+}
+($smokeEvidence + @{ baseUrl = "https://app.example.com" }) |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.frontendProxySmoke -Encoding utf8
-@{ generatedAt = (Get-Date).ToUniversalTime().ToString("o"); baseUrl = "https://api.example.com"; status = "PASSED"; checkedActions = @("api-smoke") } |
+($smokeEvidence + @{ baseUrl = "https://api.example.com" }) |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.directApiSmoke -Encoding utf8
 @{ schema = "merhouse.v17.deployed-monitoring.v1"; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.monitoring -Encoding utf8
@@ -218,6 +228,7 @@ $wrongAttachmentManifest.attachedEvidence.rollback.path = $artifactPaths.invalid
 $wrongAttachmentManifest.attachedEvidence.alertRouting.apiBaseUrl = "https://wrong-api.example.com"
 $wrongAttachmentManifest.attachedEvidence.emailProvider.path = $artifactPaths.invalidEmailProvider
 $wrongAttachmentManifest.attachedEvidence.liveStakeholderWalkthrough.path = $artifactPaths.invalidLiveStakeholderWalkthrough
+$wrongAttachmentManifest.outputFiles.directApiSmoke = $artifactPaths.invalidBrowserTour
 $wrongAttachmentManifest.outputFiles.loadSmoke = $artifactPaths.invalidLoadSmoke
 $wrongAttachmentManifest.outputFiles.browserTour = $artifactPaths.invalidBrowserTour
 $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $wrongAttachmentManifestPath -Encoding utf8
@@ -338,6 +349,9 @@ try {
         $_.Exception.Message -match "rollback.path artifact rollbackRan" -and
         $_.Exception.Message -match "rollback.path artifact preflight.envAudit" -and
         $_.Exception.Message -match "rollback.path artifact postRollbackMonitoring.apiBaseUrl" -and
+        $_.Exception.Message -match "outputFiles.directApiSmoke status" -and
+        $_.Exception.Message -match "outputFiles.directApiSmoke testRun" -and
+        $_.Exception.Message -match "outputFiles.directApiSmoke apiResponses" -and
         $_.Exception.Message -match "outputFiles.loadSmoke baseUrl" -and
         $_.Exception.Message -match "outputFiles.loadSmoke result.passed" -and
         $_.Exception.Message -match "outputFiles.browserTour appUrl" -and

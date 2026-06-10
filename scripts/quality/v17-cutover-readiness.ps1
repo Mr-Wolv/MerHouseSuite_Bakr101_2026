@@ -60,6 +60,7 @@ function Test-OutputFile {
         [string]$ExpectedBaseUrl = "",
         [string]$ExpectedFrontendBaseUrl = "",
         [string]$ExpectedApiBaseUrl = "",
+        [switch]$RequireApiSmokeReport,
         [switch]$RequireApiSmokeTiming,
         [switch]$RequireBrowserTourProvenance,
         [switch]$RequireLoadSmokePassed
@@ -80,6 +81,23 @@ function Test-OutputFile {
         }
         if (-not [string]::IsNullOrWhiteSpace($ExpectedBaseUrl) -and $proofReport.baseUrl -ne $ExpectedBaseUrl) {
             $script:failures += "Deployment evidence manifest outputFiles.$ProofName baseUrl must match $ExpectedBaseUrl."
+        }
+        if ($RequireApiSmokeReport) {
+            if ($proofReport.status -ne "PASSED") {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName status must be PASSED."
+            }
+            if ([string]::IsNullOrWhiteSpace($proofReport.generatedAt)) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName generatedAt must be present."
+            }
+            if ([string]::IsNullOrWhiteSpace($proofReport.testRun)) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName testRun must be present."
+            }
+            if ($null -eq $proofReport.apiResponses -or $null -eq $proofReport.apiResponses.adminLogin -or $null -eq $proofReport.apiResponses.boundaryAccessRequest) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName apiResponses must include adminLogin and boundaryAccessRequest smoke evidence."
+            }
+            if ($null -eq $proofReport.tableStateAfterTransactions) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName tableStateAfterTransactions must be present."
+            }
         }
         if (-not [string]::IsNullOrWhiteSpace($ExpectedFrontendBaseUrl) -and $proofReport.frontendBaseUrl -ne $ExpectedFrontendBaseUrl) {
             $script:failures += "Deployment evidence manifest outputFiles.$ProofName frontendBaseUrl must match frontendBaseUrl."
@@ -117,8 +135,8 @@ function Test-OutputFile {
     }
 }
 
-Test-OutputFile -ProofName "frontendProxySmoke" -ExpectedBaseUrl $manifest.frontendBaseUrl
-Test-OutputFile -ProofName "directApiSmoke" -ExpectedBaseUrl $manifest.apiBaseUrl
+Test-OutputFile -ProofName "frontendProxySmoke" -ExpectedBaseUrl $manifest.frontendBaseUrl -RequireApiSmokeReport
+Test-OutputFile -ProofName "directApiSmoke" -ExpectedBaseUrl $manifest.apiBaseUrl -RequireApiSmokeReport
 Test-OutputFile -ProofName "monitoring" -ExpectedSchema "merhouse.v17.deployed-monitoring.v1" -ExpectedFrontendBaseUrl $manifest.frontendBaseUrl -ExpectedApiBaseUrl $manifest.apiBaseUrl
 Test-OutputFile -ProofName "performance" -RequirePassedStatus -RequireApiSmokeTiming
 Test-OutputFile -ProofName "loadSmoke" -ExpectedSchema "merhouse.load-smoke.v1" -ExpectedBaseUrl $manifest.apiBaseUrl -RequireLoadSmokePassed
