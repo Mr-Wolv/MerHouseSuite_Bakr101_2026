@@ -32,7 +32,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/cross-surface-tour-check.ps1` | Compare browser and installed-APK tour reports for clean records, provenance, valid native screenshot evidence, exact normalized role/path set equality, and traceable pass output. |
 | `scripts/quality/performance-readiness.ps1` | Check local deployment-shaped performance readiness through frontend bundle budgets, paired browser/installed-APK report provenance and timing when reports are supplied, and optional API smoke timing. |
 | `scripts/quality/load-smoke.ps1` | Run a small concurrent health-check smoke against a deployed or local API target and write a JSON proof report. |
-| `scripts/quality/v17-production-readiness.ps1` | Run V17 preflight proof across script parsing, VPS deployment shape, markdown, public-readiness, performance readiness, and optional deployed load smoke or signed Android release proof. |
+| `scripts/quality/v17-production-readiness.ps1` | Run V17 preflight proof across script parsing, env template audit, VPS/reverse-proxy deployment shape, Android release shape, deployed-evidence attachment schemas, cutover-readiness fixtures, markdown, public-readiness, performance readiness, and optional deployed load smoke or signed Android release proof. |
 | `scripts/quality/tour-report-lib.ps1` | Shared helper for reading, normalizing, and validating browser/native tour report records, including required role/path identity. |
 | `scripts/quality/url-guard-lib.ps1` | Shared helper for validating and normalizing non-blank absolute `http` or `https` local setup, native build, frontend proxy, OpenAPI docs, tour, smoke, performance, deployment, and report-provenance URLs. |
 | `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, CI naming, and Compose config. |
@@ -242,7 +242,7 @@ Run the V17 deployment preflight before a staging or production rollout:
 .\scripts\quality\v17-production-readiness.ps1
 ```
 
-The default preflight parses PowerShell scripts, validates the rendered VPS Compose output including public-mode safety flags, checks the Android release Gradle/manifest shape, checks markdown, checks public-facing repository boundaries, and rebuilds the frontend for performance budgets. It intentionally skips live load smoke and signed Android artifact proof until a real HTTPS target and external signing secrets exist. When a staging or production target is reachable, include those proof slices:
+The default preflight parses PowerShell scripts, audits the deployment env template, validates the rendered VPS Compose output including public-mode safety flags, checks the reverse-proxy template, checks the Android release Gradle/manifest shape, proves deployed-evidence attachment schema rules, exercises the cutover-readiness validator with complete and incomplete fixtures, checks markdown, checks public-facing repository boundaries, and rebuilds the frontend for performance budgets. It intentionally skips live load smoke and signed Android artifact proof until a real HTTPS target and external signing secrets exist. When a staging or production target is reachable, include those proof slices:
 
 ```powershell
 .\scripts\quality\v17-production-readiness.ps1 `
