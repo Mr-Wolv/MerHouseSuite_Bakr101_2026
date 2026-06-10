@@ -38,10 +38,40 @@ foreach ($proofName in @("frontendProxySmoke", "directApiSmoke", "monitoringSamp
 }
 
 $attached = $manifest.attachedEvidence
-foreach ($attachmentName in @("androidRelease", "installedAndroidTour", "backupRestore", "rollback", "alertRouting", "liveStakeholderWalkthrough")) {
+$expectedAttachmentSchemas = @{
+    androidRelease = "merhouse.v17.android-release.v1"
+    installedAndroidTour = "merhouse.native-android-tour.report.v1"
+    backupRestore = "merhouse.v17.backup-restore-drill.v1"
+    rollback = "merhouse.v17.rollback-rehearsal.v1"
+    alertRouting = "merhouse.v17.alert-routing.v1"
+    liveStakeholderWalkthrough = "merhouse.v17.live-stakeholder-walkthrough.v1"
+}
+foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
     if ($null -eq $attached.$attachmentName) {
         $failures += "Deployment evidence manifest attachedEvidence.$attachmentName must be present for cutover readiness."
+        continue
     }
+    if ($attached.$attachmentName.schema -ne $expectedAttachmentSchemas[$attachmentName]) {
+        $failures += "Deployment evidence manifest attachedEvidence.$attachmentName schema must be $($expectedAttachmentSchemas[$attachmentName])."
+    }
+}
+if ($null -ne $attached.androidRelease -and $attached.androidRelease.apiBaseUrl -ne $manifest.apiBaseUrl) {
+    $failures += "Deployment evidence manifest attachedEvidence.androidRelease.apiBaseUrl must match apiBaseUrl."
+}
+if ($null -ne $attached.installedAndroidTour -and $attached.installedAndroidTour.apiUrl -ne $manifest.apiBaseUrl) {
+    $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.apiUrl must match apiBaseUrl."
+}
+if ($null -ne $attached.alertRouting -and $attached.alertRouting.apiBaseUrl -ne $manifest.apiBaseUrl) {
+    $failures += "Deployment evidence manifest attachedEvidence.alertRouting.apiBaseUrl must match apiBaseUrl."
+}
+if ($null -ne $attached.alertRouting -and $attached.alertRouting.frontendBaseUrl -ne $manifest.frontendBaseUrl) {
+    $failures += "Deployment evidence manifest attachedEvidence.alertRouting.frontendBaseUrl must match frontendBaseUrl."
+}
+if ($null -ne $attached.liveStakeholderWalkthrough -and $attached.liveStakeholderWalkthrough.apiBaseUrl -ne $manifest.apiBaseUrl) {
+    $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.apiBaseUrl must match apiBaseUrl."
+}
+if ($null -ne $attached.liveStakeholderWalkthrough -and $attached.liveStakeholderWalkthrough.frontendBaseUrl -ne $manifest.frontendBaseUrl) {
+    $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.frontendBaseUrl must match frontendBaseUrl."
 }
 
 $providerStatus = if ($null -eq $manifest.providerStatus) { "" } else { $manifest.providerStatus.Trim().ToLowerInvariant() }

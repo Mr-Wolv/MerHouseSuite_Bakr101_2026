@@ -14,8 +14,10 @@ New-Item -ItemType Directory -Force -Path $resolvedOutputDirectory | Out-Null
 
 $validManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-valid-deployment-evidence.json"
 $missingEvidenceManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-missing-evidence.json"
+$wrongAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment.json"
 $validOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-valid-report.json"
 $missingOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-missing-report.json"
+$wrongAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment-report.json"
 
 $attached = [ordered]@{
     androidRelease = [ordered]@{ schema = "merhouse.v17.android-release.v1"; path = "android.json"; apiBaseUrl = "https://api.example.com" }
@@ -55,6 +57,11 @@ $missingManifest.nextRequiredEvidence = @("manual owner, merchant, warehouse, su
 $missingManifest.includedProof.browserTour = $false
 $missingManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $missingEvidenceManifestPath -Encoding utf8
 
+$wrongAttachmentManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+$wrongAttachmentManifest.attachedEvidence.androidRelease.schema = "merhouse.load-smoke.v1"
+$wrongAttachmentManifest.attachedEvidence.alertRouting.apiBaseUrl = "https://wrong-api.example.com"
+$wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $wrongAttachmentManifestPath -Encoding utf8
+
 & (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $validManifestPath -OutputPath $validOutputPath
 
 $failedAsExpected = $false
@@ -70,6 +77,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Incomplete deployment evidence was accepted as cutover-ready."
+}
+
+$failedAsExpected = $false
+try {
+    & (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $wrongAttachmentManifestPath -OutputPath $wrongAttachmentOutputPath
+} catch {
+    if ($_.Exception.Message -match "androidRelease schema" -and $_.Exception.Message -match "alertRouting.apiBaseUrl") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Wrong attachment evidence was accepted as cutover-ready."
 }
 
 Write-Host "V17 cutover readiness fixture check passed."
