@@ -31,6 +31,15 @@ if ((Split-Path $envPath -Leaf) -eq "env.production.example") {
     throw "Refusing to roll back with the example env template. Use an ignored private env file for deployed environments."
 }
 
+& (Join-Path $PSScriptRoot "env-audit.ps1") -EnvFile $envPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Rollback env audit failed."
+}
+& (Join-Path $PSScriptRoot "vps-check.ps1") -ComposeFile $composePath -EnvFile $envPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Rollback VPS shape check failed."
+}
+
 docker compose --env-file $envPath -f $composePath up -d --remove-orphans
 if ($LASTEXITCODE -ne 0) {
     throw "Compose rollback/up failed."
