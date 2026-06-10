@@ -79,7 +79,7 @@ The latest scripted V16.2 local certification proof uses the rebuilt local Docke
 
 ## Future Activation Checklist
 
-- Follow [Production deployment activation](production-deployment-activation.md) before making a staging or production launch claim.
+- Open a deliberate production activation track before making a staging or production launch claim.
 - Replace local notification and recovery delivery with configured providers.
 - Replace local carrier/provider records with real provider adapters.
 - Keep assistant behavior deterministic unless an explicit V17 or VInfinite activation chooses local-model-backed or provider-backed behavior with prompt/data boundary proof.

@@ -87,7 +87,6 @@ V17 should begin only when MerHouse is intentionally being deployed to real infr
 
 Planned scope:
 
-- production deployment architecture recorded in [Production deployment activation](production-deployment-activation.md)
 - deployment configuration infrastructure
 - provider-backed notification, recovery, carrier, monitoring, backup, rollback, and incident-response operations
 - public operational runbooks

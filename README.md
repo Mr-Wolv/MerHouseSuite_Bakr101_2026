@@ -227,7 +227,6 @@ V16.2 proves deployment readiness locally; it does not deploy MerHouse.
 - Runtime-only values belong in `.env` or your shell environment. Keep generated proof reports, local data, and deployment-specific details out of Git.
 
 Future production activation is a separate later phase and must replace local mocks with real provider contracts, deployment configuration, monitoring, backup/restore operations, and deployment-specific proof.
-The tracked activation checklist lives in [Production deployment activation](docs/architecture/production-deployment-activation.md).
 
 ## Latest Scripted Local QC Snapshot
 
@@ -275,5 +274,4 @@ Local notes, generated reports, environment files, editor state, dependency outp
 - [Native Android local certification](docs/architecture/native-android-local-certification.md)
 - [Notifications](docs/architecture/notifications.md)
 - [Deployment-ready local certification](docs/architecture/deployment-ready-local-certification.md)
-- [Production deployment activation](docs/architecture/production-deployment-activation.md)
 - [System diagrams](docs/architecture/system-diagrams.html)

@@ -32,7 +32,6 @@ MerHouse is prepared here as a local-development stack and public-readable proje
 - [Notifications](architecture/notifications.md)
 - [Operational details and timelines](architecture/operational-details-timelines.md)
 - [Partial allocation and backorders](architecture/partial-allocation.md)
-- [Production deployment activation](architecture/production-deployment-activation.md)
 - [Roadmap](architecture/roadmap.md)
 - [Role and tenant boundaries](architecture/role-tenant-boundaries.md)
 - [Service accountability](architecture/service-accountability.md)
