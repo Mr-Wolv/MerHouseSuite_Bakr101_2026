@@ -101,6 +101,11 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     apiBaseUrl = "https://api.example.com"
     providerStatus = "smtp-staging-proven"
     workflowsProven = @("password-recovery", "access-request", "notification-email")
+    workflowEvidence = @{
+        "password-recovery" = "reset-link provider message accepted for staged recipient"
+        "access-request" = "account-ready provider message accepted for approved requester"
+        "notification-email" = "notification provider message accepted for opted-in recipient"
+    }
     deliveryEvidence = "operator-confirmed-smtp-staging-fixture"
     secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, or message bodies are stored in this parser proof fixture."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validEmailProviderPath -Encoding utf8
@@ -112,6 +117,9 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     apiBaseUrl = "https://wrong-api.example.com"
     providerStatus = "smtp-staging-configured"
     workflowsProven = @("password-recovery")
+    workflowEvidence = @{
+        "password-recovery" = "only one workflow was checked"
+    }
     deliveryEvidence = ""
     secretPolicy = "No SMTP credentials are stored."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongEmailProviderPath -Encoding utf8

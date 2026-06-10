@@ -144,6 +144,11 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     apiBaseUrl = "https://api.example.com"
     providerStatus = "smtp-staging-proven"
     workflowsProven = @("password-recovery", "access-request", "notification-email")
+    workflowEvidence = @{
+        "password-recovery" = "reset-link provider message accepted for staged recipient"
+        "access-request" = "account-ready provider message accepted for approved requester"
+        "notification-email" = "notification provider message accepted for opted-in recipient"
+    }
     deliveryEvidence = "operator-confirmed-smtp-staging-fixture"
     secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, or message bodies are stored in this parser proof fixture."
 } |
@@ -253,6 +258,9 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
     apiBaseUrl = "https://wrong-api.example.com"
     providerStatus = "smtp-staging-configured"
     workflowsProven = @("password-recovery")
+    workflowEvidence = @{
+        "password-recovery" = "only one workflow was checked"
+    }
     deliveryEvidence = ""
     secretPolicy = "No SMTP credentials are stored."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidEmailProvider -Encoding utf8
@@ -359,6 +367,7 @@ try {
         $_.Exception.Message -match "emailProvider.path artifact apiBaseUrl" -and
         $_.Exception.Message -match "emailProvider.path artifact providerStatus" -and
         $_.Exception.Message -match "workflowsProven must include access-request" -and
+        $_.Exception.Message -match "workflowEvidence.access-request" -and
         $_.Exception.Message -match "alertRouting.apiBaseUrl" -and
         $_.Exception.Message -match "liveStakeholderWalkthrough.path artifact apiBaseUrl" -and
         $_.Exception.Message -match "installedAndroidWalkthroughCompleted" -and

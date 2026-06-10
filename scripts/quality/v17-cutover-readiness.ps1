@@ -329,6 +329,9 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
                 if (@($proofArtifact.workflowsProven) -notcontains $workflow) {
                     $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact workflowsProven must include $workflow."
                 }
+                if ($null -eq $proofArtifact.workflowEvidence -or [string]::IsNullOrWhiteSpace($proofArtifact.workflowEvidence.$workflow)) {
+                    $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact workflowEvidence.$workflow must be non-blank."
+                }
             }
             if ([string]::IsNullOrWhiteSpace($proofArtifact.deliveryEvidence)) {
                 $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact deliveryEvidence must be non-blank."
