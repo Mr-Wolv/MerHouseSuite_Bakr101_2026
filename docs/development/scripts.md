@@ -38,8 +38,8 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/deploy/env-audit.ps1` | Audit V17 deployment env files for required values, HTTPS origins, loopback bind, absolute backup path, placeholder secrets, and SMTP requirements without printing secret values. |
 | `scripts/deploy/reverse-proxy-check.ps1` | Validate the V17 nginx reverse-proxy template for HTTPS redirect, TLS protocols, security headers, public Swagger/API-doc blocking, and frontend proxy target. |
 | `scripts/deploy/deploy-vps.ps1` | Apply the V17 VPS Compose stack from a private env file after explicit confirmation, optional image pull/build, and optional pre-deploy backup. |
-| `scripts/deploy/backup-postgres.ps1` | Create a PostgreSQL custom-format backup through the Compose postgres service. |
-| `scripts/deploy/restore-postgres.ps1` | Restore a PostgreSQL backup after explicit confirmation. |
+| `scripts/deploy/backup-postgres.ps1` | Audit a private deployment env file, validate the Compose shape, refuse the example template, and create a PostgreSQL custom-format backup through the Compose postgres service. |
+| `scripts/deploy/restore-postgres.ps1` | Audit a private deployment env file, validate the Compose shape, refuse the example template, and restore a PostgreSQL backup after explicit confirmation. |
 | `scripts/deploy/backup-restore-drill.ps1` | Create a host-copied PostgreSQL backup, restore it into the selected drill/staging environment after explicit confirmation, and write a sanitized drill manifest. |
 | `scripts/deploy/rollback-compose.ps1` | Re-apply the selected Compose image/tag set after explicit rollback confirmation. |
 | `scripts/deploy/rollback-drill.ps1` | Audit a private deployment env, validate the Compose shape, run a confirmed rollback/up, optionally sample deployed health, and write a sanitized rollback rehearsal manifest. |
@@ -315,7 +315,7 @@ Apply the VPS stack only from a private env file and only after choosing backup 
 .\scripts\deploy\deploy-vps.ps1 -EnvFile ".env.production" -Build -BackupBeforeDeploy -ConfirmDeploy
 ```
 
-`deploy-vps.ps1` refuses `env.production.example`, runs the strict env audit, reruns the rendered VPS Compose boundary check, can create a pre-deploy database backup, can pull configured images, and then applies `docker compose up -d --remove-orphans` with optional `--build`.
+`deploy-vps.ps1` refuses `env.production.example`, runs the strict env audit, reruns the rendered VPS Compose boundary check, can create a pre-deploy database backup, can pull configured images, and then applies `docker compose up -d --remove-orphans` with optional `--build`. Direct `backup-postgres.ps1` and `restore-postgres.ps1` runs also refuse the example env template and run the same strict env audit plus Compose shape check before touching the database; backup output defaults under ignored `reports/backups/` unless an explicit external output path is supplied.
 
 Run a restore drill only against the intended staging or drill environment:
 

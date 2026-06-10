@@ -68,7 +68,7 @@ The first V17 implementation target is VPS + Docker Compose:
 - `scripts/deploy/reverse-proxy-check.ps1` validates the public nginx template for HTTPS redirect, TLS protocol, security headers, API-doc blocking, forwarded HTTPS headers, and loopback frontend proxying.
 - `scripts/deploy/vps-check.ps1` validates the Compose shape before rollout.
 - `scripts/deploy/deploy-vps.ps1` applies the VPS Compose stack only from a private env file after explicit confirmation, optional backup, optional pull, and optional build.
-- `scripts/deploy/backup-postgres.ps1`, `restore-postgres.ps1`, and `rollback-compose.ps1` define the first operations hooks.
+- `scripts/deploy/backup-postgres.ps1`, `restore-postgres.ps1`, and `rollback-compose.ps1` define the first operations hooks. Backup and restore refuse the example env template, run strict env audit, and validate the Compose shape before touching the database.
 - `scripts/deploy/backup-restore-drill.ps1` records a guarded restore drill manifest for staging or drill environments.
 - `scripts/deploy/rollback-drill.ps1` records a guarded rollback rehearsal manifest after env audit, Compose shape proof, confirmed rollback/up, and optional deployed monitoring samples.
 - `scripts/quality/native-android-release-shape-check.ps1` statically verifies that the Android release build disables cleartext traffic and sources signing from external environment variables without hardcoded keystore material.
@@ -124,7 +124,7 @@ The restore drill command is destructive and must target staging or a dedicated 
 .\scripts\deploy\backup-restore-drill.ps1 -EnvFile ".env.staging" -OutputDirectory ".\reports" -ConfirmDrill
 ```
 
-The drill writes a sanitized `v17-restore-drill-*.json` manifest with commit SHA, host-copied backup path, backup SHA-256, byte size, env file name only, and restore status.
+The drill writes a sanitized `v17-restore-drill-*.json` manifest with commit SHA, host-copied backup path, backup SHA-256, byte size, env file name only, and restore status. Direct backup output defaults under ignored `reports/backups/` unless an operator supplies an explicit external path, so database archives do not become public repository material by accident.
 
 The rollback rehearsal command is also deployment-changing and must target staging, a drill environment, or an explicitly selected production rollback window:
 

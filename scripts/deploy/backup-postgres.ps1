@@ -1,11 +1,45 @@
 param(
     [string]$ComposeFile = "deploy/vps/compose.production.yml",
     [string]$EnvFile = ".env.production",
-    [string]$OutputDirectory = "backups",
+    [string]$OutputDirectory = "reports/backups",
     [string]$OutputPath = ""
 )
 
 $ErrorActionPreference = "Stop"
+$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+
+function Resolve-ProjectPath {
+    param(
+        [Parameter(Mandatory = $true)] [string] $Path
+    )
+
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return [System.IO.Path]::GetFullPath($Path)
+    }
+    return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
+}
+
+$composePath = Resolve-ProjectPath -Path $ComposeFile
+$envPath = Resolve-ProjectPath -Path $EnvFile
+if (-not (Test-Path -LiteralPath $composePath)) {
+    throw "Compose file was not found: $composePath"
+}
+if (-not (Test-Path -LiteralPath $envPath)) {
+    throw "Deployment env file was not found: $envPath"
+}
+if ((Split-Path $envPath -Leaf) -eq "env.production.example") {
+    throw "Refusing to back up with the example env template. Use an ignored private env file."
+}
+
+& (Join-Path $PSScriptRoot "env-audit.ps1") -EnvFile $envPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Backup env audit failed."
+}
+& (Join-Path $PSScriptRoot "vps-check.ps1") -ComposeFile $composePath -EnvFile $envPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Backup VPS shape check failed."
+}
+
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $backupName = if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     "merhouse-$timestamp.dump"
@@ -14,7 +48,6 @@ $backupName = if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 }
 $containerPath = "/backups/$backupName"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $resolvedOutputPath = if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     [System.IO.Path]::GetFullPath((Join-Path (Join-Path $projectRoot $OutputDirectory) $backupName))
 } elseif ([System.IO.Path]::IsPathRooted($OutputPath)) {
@@ -24,12 +57,12 @@ $resolvedOutputPath = if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 }
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $resolvedOutputPath) | Out-Null
 
-docker compose --env-file $EnvFile -f $ComposeFile exec -T postgres sh -lc "pg_dump -Fc -U `"`$POSTGRES_USER`" -d `"`$POSTGRES_DB`" -f '$containerPath'"
+docker compose --env-file $envPath -f $composePath exec -T postgres sh -lc "pg_dump -Fc -U `"`$POSTGRES_USER`" -d `"`$POSTGRES_DB`" -f '$containerPath'"
 if ($LASTEXITCODE -ne 0) {
     throw "PostgreSQL backup failed."
 }
 
-docker compose --env-file $EnvFile -f $ComposeFile cp "postgres:$containerPath" $resolvedOutputPath
+docker compose --env-file $envPath -f $composePath cp "postgres:$containerPath" $resolvedOutputPath
 if ($LASTEXITCODE -ne 0) {
     throw "Copying PostgreSQL backup to host failed."
 }
