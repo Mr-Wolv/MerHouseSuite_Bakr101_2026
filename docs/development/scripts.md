@@ -19,6 +19,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/api-docs.ps1` | Check local OpenAPI availability with a validated HTTP(S) target and print local documentation URLs. |
 | `scripts/quality/frontend-deploy-check.ps1` | Check the deployed frontend shell and API proxy with a validated local HTTP(S) target. |
 | `scripts/quality/deployed-v17-proof.ps1` | Run deployed V17 proof against explicit frontend/API URLs, including frontend proxy smoke, direct API smoke, performance/API timing, optional load smoke, optional browser tour, and a sanitized deployment evidence manifest. |
+| `scripts/quality/deployed-monitoring-proof.ps1` | Sample deployed frontend shell and API health endpoints repeatedly with latency budgets and write a monitoring-style proof report. |
 | `scripts/quality/frontend-full-tour.ps1` | Run the browser tour against a running local stack. |
 | `scripts/quality/mobile-shell-check.ps1` | Check shared mobile shell metadata, manifest, icon references, and service worker markers used by web and native packaging. |
 | `scripts/quality/native-mobile-check.ps1` | Check the Capacitor Android wrapper, sync the frontend build into Android, and optionally assemble a debug APK. |
@@ -314,7 +315,17 @@ After rollout, run deployed proof against the public frontend and API targets:
   -IncludeBrowserTour
 ```
 
-The default deployed proof checks the frontend shell, frontend-proxy API smoke, direct API smoke, and performance/API timing. `-IncludeLoadSmoke` adds concurrent health traffic; `-IncludeBrowserTour` requires seeded stakeholder data and runs the browser tour against the deployed frontend. Every run writes `v17-deployment-evidence-*.json` with the deployment label, commit SHA, public frontend/API URLs, provider status label, proof-output paths, included proof slices, and remaining required evidence without storing secrets.
+The default deployed proof checks the frontend shell, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, and performance/API timing. `-IncludeLoadSmoke` adds concurrent health traffic; `-IncludeBrowserTour` requires seeded stakeholder data and runs the browser tour against the deployed frontend. Every run writes `v17-deployment-evidence-*.json` with the deployment label, commit SHA, public frontend/API URLs, provider status label, proof-output paths, included proof slices, and remaining required evidence without storing secrets.
+
+Run only the lightweight deployed monitoring proof when a target needs a fast health/reachability sample:
+
+```powershell
+.\scripts\quality\deployed-monitoring-proof.ps1 `
+  -FrontendBaseUrl "https://app.example.com" `
+  -ApiBaseUrl "https://api.example.com"
+```
+
+This proof checks repeated frontend shell responses and `/api/v1/health` responses with latency budgets. It is release evidence for reachability and health detection, not a replacement for external uptime monitoring, paging, incident routing, or log/error aggregation.
 
 For deployed browser tours, pass the same stakeholder emails and passwords used to seed the staging or smoke tenant through the `-AdminEmail`, `-MerchantEmail`, `-WarehouseEmail`, `-SupportAdminEmail`, `-AuditorEmail`, and matching password parameters. The wrapper keeps the frontend URL and API URL separate so same-origin proxy deployments and split frontend/API origin deployments are both explicit in proof output.
 

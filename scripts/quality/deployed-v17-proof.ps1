@@ -37,6 +37,7 @@ New-Item -ItemType Directory -Force -Path $resolvedOutputDirectory | Out-Null
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $apiSmokeOutput = Join-Path $resolvedOutputDirectory "v17-deployed-api-smoke-$timestamp.json"
 $frontendSmokeOutput = Join-Path $resolvedOutputDirectory "v17-deployed-frontend-proxy-smoke-$timestamp.json"
+$monitoringOutput = Join-Path $resolvedOutputDirectory "v17-deployed-monitoring-$timestamp.json"
 $performanceOutput = Join-Path $resolvedOutputDirectory "v17-deployed-performance-$timestamp.json"
 $tourOutput = Join-Path $resolvedOutputDirectory "v17-deployed-frontend-tour-$timestamp.json"
 $manifestOutput = Join-Path $resolvedOutputDirectory "v17-deployment-evidence-$timestamp.json"
@@ -76,6 +77,10 @@ Invoke-Checked "Checking deployed frontend shell and proxy smoke..." {
 
 Invoke-Checked "Checking deployed API smoke..." {
     & (Join-Path $PSScriptRoot "api-smoke.ps1") -BaseUrl $normalizedApiBaseUrl -OutputPath $apiSmokeOutput -AdminEmail $AdminEmail -AdminPassword $AdminPassword
+}
+
+Invoke-Checked "Checking deployed monitoring samples..." {
+    & (Join-Path $PSScriptRoot "deployed-monitoring-proof.ps1") -FrontendBaseUrl $normalizedFrontendBaseUrl -ApiBaseUrl $normalizedApiBaseUrl -OutputPath $monitoringOutput
 }
 
 Invoke-Checked "Checking deployed performance/API timing..." {
@@ -124,6 +129,7 @@ $manifest = [ordered]@{
     includedProof = [ordered]@{
         frontendProxySmoke = $true
         directApiSmoke = $true
+        monitoringSamples = $true
         performanceApiTiming = $true
         loadSmoke = [bool]$IncludeLoadSmoke
         browserTour = [bool]$IncludeBrowserTour
@@ -131,6 +137,7 @@ $manifest = [ordered]@{
     outputFiles = [ordered]@{
         frontendProxySmoke = $frontendSmokeOutput
         directApiSmoke = $apiSmokeOutput
+        monitoring = $monitoringOutput
         performance = $performanceOutput
         browserTour = if ($IncludeBrowserTour) { $tourOutput } else { $null }
         manifest = $manifestOutput
@@ -140,7 +147,7 @@ $manifest = [ordered]@{
         "installed Android walkthrough against deployed target",
         "backup restore drill",
         "rollback rehearsal",
-        "monitoring and alert routing proof",
+        "monitoring alert routing proof",
         "manual owner, merchant, warehouse, support-admin, and auditor live walkthrough"
     )
 }

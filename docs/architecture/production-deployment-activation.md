@@ -68,6 +68,7 @@ The first V17 implementation target is VPS + Docker Compose:
 - `scripts/deploy/vps-check.ps1` validates the Compose shape before rollout.
 - `scripts/deploy/deploy-vps.ps1` applies the VPS Compose stack only from a private env file after explicit confirmation, optional backup, optional pull, and optional build.
 - `scripts/deploy/backup-postgres.ps1`, `restore-postgres.ps1`, and `rollback-compose.ps1` define the first operations hooks.
+- `scripts/quality/deployed-monitoring-proof.ps1` samples deployed frontend and API health repeatedly with latency budgets.
 - `scripts/quality/deployed-v17-proof.ps1` runs deployed frontend/API proof against explicit public URLs after rollout and writes a sanitized deployment evidence manifest.
 
 Minimum staging proof:
@@ -76,6 +77,7 @@ Minimum staging proof:
 .\scripts\quality\public-readiness.ps1 -SkipCompose
 .\scripts\quality\markdown-check.ps1
 .\scripts\quality\api-smoke.ps1 -BaseUrl "https://<staging-api-or-frontend-origin>"
+.\scripts\quality\deployed-monitoring-proof.ps1 -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>"
 .\scripts\quality\frontend-full-tour.ps1 -BaseUrl "https://<staging-frontend-origin>" -ApiUrl "https://<staging-api-or-frontend-origin>"
 .\scripts\quality\performance-readiness.ps1 -IncludeApiSmoke -ApiBaseUrl "https://<staging-api-or-frontend-origin>"
 .\scripts\quality\load-smoke.ps1 -BaseUrl "https://<staging-api-or-frontend-origin>" -ConcurrentUsers 25 -RequestsPerUser 8
@@ -119,7 +121,7 @@ Before public production use, record:
 - manual live owner, merchant, warehouse, support-admin, and auditor walkthrough
 - rollback procedure and the proof that it was rehearsed
 
-`deployed-v17-proof.ps1` writes a sanitized `v17-deployment-evidence-*.json` manifest that covers the deployed commit SHA, public frontend/API URLs, proof-output paths, included proof slices, provider-status label, and remaining required evidence. Keep the manifest with release proof artifacts; do not add secrets, private env files, provider credentials, deployment logs, or backup archives to Git.
+`deployed-v17-proof.ps1` writes a sanitized `v17-deployment-evidence-*.json` manifest that covers the deployed commit SHA, public frontend/API URLs, proof-output paths, included proof slices including monitoring samples, provider-status label, and remaining required evidence. Keep the manifest with release proof artifacts; do not add secrets, private env files, provider credentials, deployment logs, or backup archives to Git.
 
 ## Production Acceptance Bar
 
@@ -137,6 +139,6 @@ V17 is complete only when:
 
 ## Current Status
 
-As of 2026-06-10, V17 is in private implementation on a deployment branch, not publicly deployed. The selected first target is VPS + Docker Compose with PostgreSQL, backend, frontend, container healthchecks, nginx/TLS template, public-mode startup validation, private env auditing, backup/restore/rollback/deploy scripts, deployed proof wrappers, opt-in SMTP email attempts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight.
+As of 2026-06-10, V17 is in private implementation on a deployment branch, not publicly deployed. The selected first target is VPS + Docker Compose with PostgreSQL, backend, frontend, container healthchecks, nginx/TLS template, public-mode startup validation, private env auditing, backup/restore/rollback/deploy scripts, deployed proof wrappers, deployed monitoring samples, opt-in SMTP email attempts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight.
 
 The following remain required before any production claim: real VPS access, frontend/API domain values, TLS/certificate setup, deployment secret storage, Gmail or provider SMTP credentials for staging proof, production database credentials, Android signing keystore, monitoring/alerting configuration, deployed staging URL, deployed production URL, backup restore drill, rollback rehearsal, load/soak proof, live browser walkthrough, and live installed-Android walkthrough against the deployed target.
