@@ -68,6 +68,7 @@ The first V17 implementation target is VPS + Docker Compose:
 - `scripts/deploy/reverse-proxy-check.ps1` validates the public nginx template for HTTPS redirect, TLS protocol, security headers, API-doc blocking, forwarded HTTPS headers, and loopback frontend proxying.
 - `scripts/deploy/vps-check.ps1` validates the Compose shape before rollout.
 - `scripts/deploy/deploy-vps.ps1` applies the VPS Compose stack only from a private env file after explicit confirmation, optional backup, optional pull, and optional build.
+- `scripts/deploy/bootstrap-owner.ps1` creates the first deployed owner only after explicit confirmation, strict env audit, Compose shape proof, and a guard that no enabled owner exists; it does not enable public seed-admin startup.
 - `scripts/deploy/backup-postgres.ps1`, `restore-postgres.ps1`, and `rollback-compose.ps1` define the first operations hooks. Backup, restore, and direct rollback refuse the example env template, run strict env audit, and validate the Compose shape before touching the selected deployment stack.
 - `scripts/deploy/backup-restore-drill.ps1` records a guarded restore drill manifest for staging or drill environments.
 - `scripts/deploy/rollback-drill.ps1` records a guarded rollback rehearsal manifest after env audit, Compose shape proof, confirmed rollback/up, and optional deployed monitoring samples.
@@ -113,6 +114,7 @@ When signed Android release, installed Android tour, backup restore drill, or ro
 
 Staging must also include a production-shaped load and operations rehearsal before the production claim:
 
+- first-owner bootstrap through `scripts/deploy/bootstrap-owner.ps1`, followed by proof that `MERHOUSE_AUTH_SEED_ADMIN_ENABLED=false` remains in the deployed backend environment
 - browser and API smoke against seeded-but-realistic role data
 - concurrent-user smoke for owner/admin, merchant, warehouse, support-admin, and auditor sessions
 - provider failure rehearsal for email or any enabled external exchange

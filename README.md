@@ -204,6 +204,7 @@ Repeatable VPS rollout and deployed proof use separate commands so deployment an
 
 ```powershell
 .\scripts\deploy\deploy-vps.ps1 -EnvFile ".env.production" -Build -BackupBeforeDeploy -ConfirmDeploy
+.\scripts\deploy\bootstrap-owner.ps1 -EnvFile ".env.production" -OwnerEmail "<owner-email>" -OwnerPassword "<private-owner-password>" -ConfirmBootstrap
 .\scripts\quality\deployed-v17-proof.ps1 `
   -FrontendBaseUrl "https://app.example.com" `
   -ApiBaseUrl "https://api.example.com" `
@@ -221,7 +222,7 @@ Repeatable VPS rollout and deployed proof use separate commands so deployment an
   -IncludeBrowserTour
 ```
 
-The deploy script refuses the example env template, audits the private env file without printing secrets, and requires explicit confirmation. The proof script checks frontend reachability, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, performance/API timing, optional report-backed load smoke, optional browser tour evidence, and writes a sanitized deployment evidence manifest. Deployed proof requires explicit staging or production smoke credentials and rejects local demo defaults.
+The deploy script refuses the example env template, audits the private env file without printing secrets, and requires explicit confirmation. The bootstrap script creates the first owner only after strict env audit, Compose shape proof, explicit confirmation, and a guard that no enabled owner already exists; public seed-admin startup remains disabled. The proof script checks frontend reachability, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, performance/API timing, optional report-backed load smoke, optional browser tour evidence, and writes a sanitized deployment evidence manifest. Deployed proof requires explicit staging or production smoke credentials and rejects local demo defaults.
 When signed Android release, installed Android tour, backup restore, or rollback rehearsal proof already exists, pass the generated JSON paths with `-AndroidReleaseManifestPath`, `-InstalledAndroidTourReportPath`, `-BackupRestoreManifestPath`, and `-RollbackManifestPath` so the deployment evidence manifest can attach their schemas and paths without storing secrets or logs. The manifest still records `productionClaim=false` until the remaining operations and live stakeholder proof are complete.
 
 Start or stop the local stack:
