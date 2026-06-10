@@ -69,6 +69,7 @@ The first V17 implementation target is VPS + Docker Compose:
 - `scripts/deploy/vps-check.ps1` validates the Compose shape before rollout.
 - `scripts/deploy/deploy-vps.ps1` applies the VPS Compose stack only from a private env file after explicit confirmation, optional backup, optional pull, and optional build.
 - `scripts/deploy/backup-postgres.ps1`, `restore-postgres.ps1`, and `rollback-compose.ps1` define the first operations hooks.
+- `scripts/deploy/backup-restore-drill.ps1` records a guarded restore drill manifest for staging or drill environments.
 - `scripts/quality/deployed-monitoring-proof.ps1` samples deployed frontend and API health repeatedly with latency budgets.
 - `scripts/quality/deployed-v17-proof.ps1` runs deployed frontend/API proof against explicit public URLs after rollout and writes a sanitized deployment evidence manifest.
 
@@ -94,6 +95,14 @@ Staging must also include a production-shaped load and operations rehearsal befo
 - migration rehearsal from an empty database and from a staging snapshot
 - backup restore drill into a separate environment
 - rollback rehearsal for the deployed frontend, backend, and database migration posture
+
+The restore drill command is destructive and must target staging or a dedicated drill environment:
+
+```powershell
+.\scripts\deploy\backup-restore-drill.ps1 -EnvFile ".env.staging" -OutputDirectory ".\reports" -ConfirmDrill
+```
+
+The drill writes a sanitized `v17-restore-drill-*.json` manifest with commit SHA, host-copied backup path, backup SHA-256, byte size, env file name only, and restore status.
 
 If the Android app is part of the release claim, assemble the native shell against the staging API URL and run an installed-app tour on the staging backend:
 
@@ -143,6 +152,6 @@ V17 is complete only when:
 
 ## Current Status
 
-As of 2026-06-10, V17 is in private implementation on a deployment branch, not publicly deployed. The selected first target is VPS + Docker Compose with PostgreSQL, backend, frontend, container healthchecks, nginx/TLS template with public-edge hardening checks, public-mode startup validation, private env auditing, backup/restore/rollback/deploy scripts, deployed proof wrappers, deployed monitoring samples, opt-in SMTP email attempts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight.
+As of 2026-06-10, V17 is in private implementation on a deployment branch, not publicly deployed. The selected first target is VPS + Docker Compose with PostgreSQL, backend, frontend, container healthchecks, nginx/TLS template with public-edge hardening checks, public-mode startup validation, private env auditing, backup/restore drill manifests, rollback/deploy scripts, deployed proof wrappers, deployed monitoring samples, opt-in SMTP email attempts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight.
 
 The following remain required before any production claim: real VPS access, frontend/API domain values, TLS/certificate setup, deployment secret storage, Gmail or provider SMTP credentials for staging proof, production database credentials, Android signing keystore, monitoring/alerting configuration, deployed staging URL, deployed production URL, backup restore drill, rollback rehearsal, load/soak proof, live browser walkthrough, and live installed-Android walkthrough against the deployed target.

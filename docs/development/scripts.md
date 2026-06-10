@@ -39,6 +39,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/deploy/deploy-vps.ps1` | Apply the V17 VPS Compose stack from a private env file after explicit confirmation, optional image pull/build, and optional pre-deploy backup. |
 | `scripts/deploy/backup-postgres.ps1` | Create a PostgreSQL custom-format backup through the Compose postgres service. |
 | `scripts/deploy/restore-postgres.ps1` | Restore a PostgreSQL backup after explicit confirmation. |
+| `scripts/deploy/backup-restore-drill.ps1` | Create a host-copied PostgreSQL backup, restore it into the selected drill/staging environment after explicit confirmation, and write a sanitized drill manifest. |
 | `scripts/deploy/rollback-compose.ps1` | Re-apply the selected Compose image/tag set after explicit rollback confirmation. |
 | `scripts/maintenance/clean-reports.ps1` | Trim old local reports, logs, and screenshots. |
 
@@ -311,6 +312,14 @@ Apply the VPS stack only from a private env file and only after choosing backup 
 ```
 
 `deploy-vps.ps1` refuses `env.production.example`, runs the strict env audit, reruns the rendered VPS Compose boundary check, can create a pre-deploy database backup, can pull configured images, and then applies `docker compose up -d --remove-orphans` with optional `--build`.
+
+Run a restore drill only against the intended staging or drill environment:
+
+```powershell
+.\scripts\deploy\backup-restore-drill.ps1 -EnvFile ".env.staging" -OutputDirectory ".\reports" -ConfirmDrill
+```
+
+The drill wrapper creates a custom-format PostgreSQL backup through the Compose postgres service, copies the backup to the host, restores it with the existing restore script, and writes `v17-restore-drill-*.json` with commit SHA, backup path, SHA-256, byte size, env file name only, and restore status. It omits database credentials and env values.
 
 After rollout, run deployed proof against the public frontend and API targets:
 
