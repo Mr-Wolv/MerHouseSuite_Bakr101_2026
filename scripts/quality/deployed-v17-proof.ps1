@@ -191,6 +191,9 @@ function Resolve-EvidenceAttachment {
             if ($null -eq $json.workflowEvidence -or [string]::IsNullOrWhiteSpace($json.workflowEvidence.$workflow)) {
                 throw "EmailProviderProofManifestPath workflowEvidence.$workflow must be non-blank."
             }
+            if ($null -eq $json.workflowProviderStatuses -or $json.workflowProviderStatuses.$workflow -ne "SENT") {
+                throw "EmailProviderProofManifestPath workflowProviderStatuses.$workflow must be SENT."
+            }
         }
         if ([string]::IsNullOrWhiteSpace($json.deliveryEvidence)) {
             throw "EmailProviderProofManifestPath must include deliveryEvidence."

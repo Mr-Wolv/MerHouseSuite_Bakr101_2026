@@ -106,6 +106,11 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
         "access-request" = "account-ready provider message accepted for approved requester"
         "notification-email" = "notification provider message accepted for opted-in recipient"
     }
+    workflowProviderStatuses = @{
+        "password-recovery" = "SENT"
+        "access-request" = "SENT"
+        "notification-email" = "SENT"
+    }
     deliveryEvidence = "operator-confirmed-smtp-staging-fixture"
     secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, or message bodies are stored in this parser proof fixture."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validEmailProviderPath -Encoding utf8
@@ -119,6 +124,9 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     workflowsProven = @("password-recovery")
     workflowEvidence = @{
         "password-recovery" = "only one workflow was checked"
+    }
+    workflowProviderStatuses = @{
+        "password-recovery" = "SENT"
     }
     deliveryEvidence = ""
     secretPolicy = "No SMTP credentials are stored."

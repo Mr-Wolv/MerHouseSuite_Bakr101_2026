@@ -154,6 +154,11 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
         "access-request" = "account-ready provider message accepted for approved requester"
         "notification-email" = "notification provider message accepted for opted-in recipient"
     }
+    workflowProviderStatuses = @{
+        "password-recovery" = "SENT"
+        "access-request" = "SENT"
+        "notification-email" = "SENT"
+    }
     deliveryEvidence = "operator-confirmed-smtp-staging-fixture"
     secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, or message bodies are stored in this parser proof fixture."
 } |
@@ -270,6 +275,9 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
     workflowsProven = @("password-recovery")
     workflowEvidence = @{
         "password-recovery" = "only one workflow was checked"
+    }
+    workflowProviderStatuses = @{
+        "password-recovery" = "SENT"
     }
     deliveryEvidence = ""
     secretPolicy = "No SMTP credentials are stored."
@@ -395,6 +403,7 @@ try {
         $_.Exception.Message -match "emailProvider.path artifact providerStatus" -and
         $_.Exception.Message -match "workflowsProven must include access-request" -and
         $_.Exception.Message -match "workflowEvidence.access-request" -and
+        $_.Exception.Message -match "workflowProviderStatuses.access-request" -and
         $_.Exception.Message -match "alertRouting.path artifact routedSignals must include api-health" -and
         $_.Exception.Message -match "alertRouting.path artifact signalEvidence.api-health" -and
         $_.Exception.Message -match "alertRouting.path artifact deliveryEvidence" -and
