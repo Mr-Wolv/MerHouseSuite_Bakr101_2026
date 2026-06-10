@@ -69,6 +69,10 @@ $manifest = [ordered]@{
     commitSha = $commitSha
     composeFile = $ComposeFile
     envFileName = Split-Path $EnvFile -Leaf
+    preflight = [ordered]@{
+        envAudit = "passed"
+        vpsShape = "passed"
+    }
     backupPath = $backupPath
     backupSha256 = $backupHash
     backupBytes = $backupBytes
@@ -81,4 +85,3 @@ $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -En
 Write-Host ""
 Write-Host "Backup restore drill manifest: $manifestPath"
 Write-Host "Backup restore drill passed."
-

@@ -116,6 +116,10 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
 @{
     schema = "merhouse.v17.backup-restore-drill.v1"
     backupPath = $artifactPaths.backupRestoreDump
+    preflight = @{
+        envAudit = "passed"
+        vpsShape = "passed"
+    }
     backupSha256 = $backupHash
     backupBytes = $backupBytes
     restored = $true
@@ -298,6 +302,10 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
 @{
     schema = "merhouse.v17.backup-restore-drill.v1"
     backupPath = $artifactPaths.backupRestoreDump
+    preflight = @{
+        envAudit = "failed"
+        vpsShape = "passed"
+    }
     backupSha256 = $androidArtifactHash
     backupBytes = $androidArtifactBytes
     restored = $false
@@ -371,6 +379,7 @@ try {
         $_.Exception.Message -match "installedAndroidTour.path artifact records" -and
         $_.Exception.Message -match "installedAndroidTour.path artifact badRecords" -and
         $_.Exception.Message -match "backupRestore.path artifact restored" -and
+        $_.Exception.Message -match "backupRestore.path artifact preflight.envAudit" -and
         $_.Exception.Message -match "backupRestore.path artifact backupSha256" -and
         $_.Exception.Message -match "rollback.path artifact rollbackRan" -and
         $_.Exception.Message -match "rollback.path artifact preflight.envAudit" -and

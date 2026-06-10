@@ -128,6 +128,10 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     schema = "merhouse.v17.backup-restore-drill.v1"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     backupPath = $validBackupDumpPath
+    preflight = @{
+        envAudit = "passed"
+        vpsShape = "passed"
+    }
     backupSha256 = $validBackupHash
     backupBytes = $validBackupBytes
     restored = $true
@@ -138,6 +142,10 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     schema = "merhouse.v17.backup-restore-drill.v1"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     backupPath = $validBackupDumpPath
+    preflight = @{
+        envAudit = "failed"
+        vpsShape = "passed"
+    }
     backupSha256 = $validAndroidArtifactHash
     backupBytes = $validAndroidArtifactBytes
     restored = $false

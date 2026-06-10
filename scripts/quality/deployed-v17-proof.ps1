@@ -206,6 +206,12 @@ function Resolve-EvidenceAttachment {
         if (-not [bool]$json.restored) {
             throw "BackupRestoreManifestPath must set restored to true."
         }
+        if ($json.preflight.envAudit -ne "passed") {
+            throw "BackupRestoreManifestPath preflight.envAudit must be passed."
+        }
+        if ($json.preflight.vpsShape -ne "passed") {
+            throw "BackupRestoreManifestPath preflight.vpsShape must be passed."
+        }
         if ([string]::IsNullOrWhiteSpace($json.backupPath)) {
             throw "BackupRestoreManifestPath must include backupPath."
         }

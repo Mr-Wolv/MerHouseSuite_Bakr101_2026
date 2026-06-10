@@ -258,6 +258,12 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             if (-not [bool]$proofArtifact.restored) {
                 $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact restored must be true."
             }
+            if ($proofArtifact.preflight.envAudit -ne "passed") {
+                $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact preflight.envAudit must be passed."
+            }
+            if ($proofArtifact.preflight.vpsShape -ne "passed") {
+                $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact preflight.vpsShape must be passed."
+            }
             $backupPath = Resolve-ProofPath -Path $proofArtifact.backupPath
             if ([string]::IsNullOrWhiteSpace($backupPath) -or -not (Test-Path -LiteralPath $backupPath)) {
                 $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact backupPath must point to an existing backup file."
