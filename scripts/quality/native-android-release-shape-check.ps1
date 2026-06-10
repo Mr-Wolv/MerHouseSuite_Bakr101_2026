@@ -5,15 +5,17 @@ $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $androidRoot = Join-Path $projectRoot "frontend\android"
 $buildGradlePath = Join-Path $androidRoot "app\build.gradle"
+$rootBuildGradlePath = Join-Path $androidRoot "build.gradle"
 $manifestPath = Join-Path $androidRoot "app\src\main\AndroidManifest.xml"
 
-foreach ($path in @($buildGradlePath, $manifestPath)) {
+foreach ($path in @($buildGradlePath, $rootBuildGradlePath, $manifestPath)) {
     if (-not (Test-Path -LiteralPath $path)) {
         throw "Expected Android release-shape file was not found: $path"
     }
 }
 
 $buildGradle = Get-Content -LiteralPath $buildGradlePath -Raw
+$rootBuildGradle = Get-Content -LiteralPath $rootBuildGradlePath -Raw
 $manifest = Get-Content -LiteralPath $manifestPath -Raw
 
 $requiredGradlePatterns = @(
@@ -55,8 +57,19 @@ $forbiddenGradlePatterns = @(
 )
 
 foreach ($pattern in $forbiddenGradlePatterns) {
-    if ($buildGradle -match $pattern) {
+    if ($buildGradle -match $pattern -or $rootBuildGradle -match $pattern) {
         throw "Android release Gradle file must not hardcode signing material: $pattern"
+    }
+}
+
+$forbiddenProviderPatterns = @(
+    'com\.google\.gms:google-services',
+    'com\.google\.gms\.google-services',
+    'google-services\.json'
+)
+foreach ($pattern in $forbiddenProviderPatterns) {
+    if ($buildGradle -match $pattern -or $rootBuildGradle -match $pattern) {
+        throw "Android release Gradle file must not enable Google/Firebase provider hooks while native push is out of V17 scope: $pattern"
     }
 }
 
@@ -64,3 +77,4 @@ Write-Host "Android release shape check passed."
 Write-Host "Release cleartext traffic: disabled through manifest placeholder."
 Write-Host "Release signing: external MERHOUSE_ANDROID_KEYSTORE_* environment variables."
 Write-Host "Release versioning: external MERHOUSE_ANDROID_VERSION_* environment variables with local defaults."
+Write-Host "Native push provider hooks: disabled for V17."
