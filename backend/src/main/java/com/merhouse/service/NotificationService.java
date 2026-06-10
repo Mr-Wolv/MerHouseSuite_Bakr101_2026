@@ -233,7 +233,7 @@ public class NotificationService {
             .findByUserIdAndTopicAndChannel(recipient.getId(), topic, NotificationChannel.EMAIL_PROTOTYPE)
             .map(NotificationPreference::isEnabled)
             .orElse(true);
-        emailDelivery.setStatus(enabled ? NotificationDeliveryStatus.READ : NotificationDeliveryStatus.SKIPPED_BY_PREFERENCE);
+        emailDelivery.setStatus(enabled ? NotificationDeliveryStatus.PROVIDER_RECORDED : NotificationDeliveryStatus.SKIPPED_BY_PREFERENCE);
         emailDelivery.setDeliveryStage(enabled ? NotificationDeliveryStage.PREPARED : NotificationDeliveryStage.SKIPPED_BY_PREFERENCE);
         emailDelivery.setProviderStatus(enabled ? NotificationProviderStatus.READY_FOR_PROVIDER : NotificationProviderStatus.NOT_CONFIGURED);
         emailDelivery.setTitle(title);

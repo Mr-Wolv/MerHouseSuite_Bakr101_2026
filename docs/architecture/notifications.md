@@ -26,6 +26,7 @@ Delivery statuses:
 
 - `RECORDED`: the local in-app record is available to the recipient.
 - `READ`: the recipient marked the local record as read.
+- `PROVIDER_RECORDED`: an email/provider delivery attempt was recorded as delivery evidence and is not an unread in-app action.
 - `SKIPPED_BY_PREFERENCE`: the event was kept in history, but the recipient disabled the matching in-app preference.
 
 Delivery stages:
@@ -51,7 +52,7 @@ Approved access requests converted into tenant and user records create an in-app
 
 Both hooks provide recipient-scoped delivery history and UI proof by default. When `MERHOUSE_EMAIL_ENABLED=true` and SMTP is configured, V17 also records an `EMAIL_PROTOTYPE` delivery attempt with provider status, timestamps, retry count, and provider error metadata.
 
-Default local records store `deliveryStage=LOCAL_RECORDED`, `providerStatus=NOT_CONFIGURED`, and `prototypeLocal=true`. Enabled SMTP attempts store `deliveryStage=PROVIDER_SENT` and `providerStatus=SENT` when accepted, or `deliveryStage=PROVIDER_FAILED` and `providerStatus=FAILED` when the provider attempt fails.
+Default local records store `deliveryStage=LOCAL_RECORDED`, `providerStatus=NOT_CONFIGURED`, and `prototypeLocal=true`. Enabled SMTP attempts store `status=PROVIDER_RECORDED` so they remain delivery history instead of unread in-app work, plus `deliveryStage=PROVIDER_SENT` and `providerStatus=SENT` when accepted, or `deliveryStage=PROVIDER_FAILED` and `providerStatus=FAILED` when the provider attempt fails.
 
 ## Connected Alert Direction
 

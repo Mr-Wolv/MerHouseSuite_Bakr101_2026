@@ -164,7 +164,7 @@ class NotificationServiceTest {
 
         verify(deliveryRepository).save(org.mockito.ArgumentMatchers.argThat(delivery ->
             delivery.getChannel() == NotificationChannel.EMAIL_PROTOTYPE
-                && delivery.getStatus() == NotificationDeliveryStatus.READ
+                && delivery.getStatus() == NotificationDeliveryStatus.PROVIDER_RECORDED
                 && delivery.getDeliveryStage() == NotificationDeliveryStage.PROVIDER_SENT
                 && delivery.getProviderStatus() == NotificationProviderStatus.SENT
                 && delivery.getProviderMessageId().equals("smtp-accepted")
@@ -194,6 +194,7 @@ class NotificationServiceTest {
 
         verify(deliveryRepository).save(org.mockito.ArgumentMatchers.argThat(delivery ->
             delivery.getChannel() == NotificationChannel.EMAIL_PROTOTYPE
+                && delivery.getStatus() == NotificationDeliveryStatus.PROVIDER_RECORDED
                 && delivery.getDeliveryStage() == NotificationDeliveryStage.PROVIDER_FAILED
                 && delivery.getProviderStatus() == NotificationProviderStatus.FAILED
                 && delivery.getProviderError().equals("smtp unavailable")

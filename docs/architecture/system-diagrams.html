@@ -331,7 +331,7 @@
           <div class="scenario">
             <div class="scenario-row"><b>Trigger</b><span>An enabled user requests a password reset, or an approved access request is converted into an account.</span></div>
             <div class="scenario-row"><b>Flow</b><span>The system stores recipient-scoped notification deliveries for lifecycle, operations, service-accountability, and outbox-health events, then refreshes the app-shell Alerts badge through lightweight polling.</span></div>
-            <div class="scenario-row"><b>Outcome</b><span>The recipient sees an action inbox, local delivery history, provider status, preference state, and read state without cross-user visibility.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>The recipient sees an action inbox, local delivery history, provider status, preference state, and read state without cross-user visibility; V17 email attempts are delivery evidence, not unread in-app actions.</span></div>
           </div>
           <div class="arrow">Lifecycle or operations event -> local alert -> Alerts badge</div>
         </article>
@@ -595,7 +595,7 @@
               <div class="entity">
                 <h4><code>notification_deliveries</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK recipient_user_id</span><span class="key fk">FK tenant_id</span><span class="key">status</span><span class="key">delivery_stage</span><span class="key">provider_status</span></div>
-                <ul><li>Recipient-scoped, paged local delivery history for account lifecycle, operations, service accountability, and outbox health topics; outbox-health action routes always land on diagnostics even when a local health alert has no source record id.</li></ul>
+                <ul><li>Recipient-scoped, paged delivery history for account lifecycle, operations, service accountability, and outbox health topics; local unread actions use `RECORDED`, user-cleared local records use `READ`, and V17 email/provider attempts use `PROVIDER_RECORDED` so provider evidence does not become unread inbox work.</li></ul>
               </div>
               <div class="entity">
                 <h4><code>assistant_interactions</code></h4>

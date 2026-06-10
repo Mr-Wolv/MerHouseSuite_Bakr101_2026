@@ -19,9 +19,9 @@ type NotificationDeliveryFixture = {
   tenantId: string
   topic: 'ACCOUNT_LIFECYCLE' | 'OPERATIONS' | 'SERVICE_ACCOUNTABILITY' | 'OUTBOX_HEALTH'
   channel: 'IN_APP' | 'EMAIL_PROTOTYPE'
-  status: 'RECORDED' | 'READ' | 'SKIPPED_BY_PREFERENCE'
-  deliveryStage: 'PREPARED' | 'LOCAL_RECORDED' | 'SKIPPED_BY_PREFERENCE'
-  providerStatus: 'NOT_CONFIGURED' | 'READY_FOR_PROVIDER'
+  status: 'RECORDED' | 'READ' | 'PROVIDER_RECORDED' | 'SKIPPED_BY_PREFERENCE'
+  deliveryStage: 'PREPARED' | 'LOCAL_RECORDED' | 'SKIPPED_BY_PREFERENCE' | 'PROVIDER_SENT' | 'PROVIDER_FAILED'
+  providerStatus: 'NOT_CONFIGURED' | 'READY_FOR_PROVIDER' | 'SENT' | 'FAILED'
   title: string
   body: string
   sourceType: string | null

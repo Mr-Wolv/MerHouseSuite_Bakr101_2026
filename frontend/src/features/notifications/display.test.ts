@@ -38,6 +38,7 @@ describe('notification display rules', () => {
     expect(notificationSeverity(delivery({ topic: 'OUTBOX_HEALTH', title: 'Outbox event failed' }))).toBe('critical')
     expect(notificationSeverity(delivery({ providerStatus: 'FAILED' }))).toBe('critical')
     expect(notificationSeverity(delivery({ providerStatus: 'READY_FOR_PROVIDER' }))).toBe('action')
+    expect(notificationSeverity(delivery({ status: 'PROVIDER_RECORDED', providerStatus: 'SENT' }))).toBe('review')
     expect(notificationSeverity(delivery({ title: 'Preference recorded', body: 'Service preferences changed.' }))).toBe('review')
     expect(notificationSeverity(delivery({ status: 'READ', readAt: '2026-06-07T00:01:00Z' }))).toBe('cleared')
   })

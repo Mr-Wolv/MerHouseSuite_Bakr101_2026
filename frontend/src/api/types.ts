@@ -4,7 +4,7 @@ export type TenantType = 'MERCHANT' | 'WAREHOUSE_PROVIDER'
 
 export type NotificationTopic = 'ACCOUNT_LIFECYCLE' | 'OPERATIONS' | 'SERVICE_ACCOUNTABILITY' | 'OUTBOX_HEALTH'
 export type NotificationChannel = 'IN_APP' | 'EMAIL_PROTOTYPE'
-export type NotificationDeliveryStatus = 'RECORDED' | 'READ' | 'SKIPPED_BY_PREFERENCE'
+export type NotificationDeliveryStatus = 'RECORDED' | 'READ' | 'PROVIDER_RECORDED' | 'SKIPPED_BY_PREFERENCE'
 export type NotificationDeliveryStage = 'PREPARED' | 'LOCAL_RECORDED' | 'SKIPPED_BY_PREFERENCE' | 'PROVIDER_SENT' | 'PROVIDER_FAILED'
 export type NotificationProviderStatus = 'NOT_CONFIGURED' | 'READY_FOR_PROVIDER' | 'SENT' | 'FAILED'
 export type AttentionSeverity = 'CRITICAL' | 'ACTION_NEEDED' | 'REVIEW' | 'CLEARED'

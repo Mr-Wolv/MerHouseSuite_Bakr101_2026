@@ -28,6 +28,7 @@ const statusExplanations: Record<string, string> = {
   PREPARED: 'Prepared for delivery or handoff, but not completed yet.',
   PROCESSED: 'Processed successfully.',
   PROVIDER_FAILED: 'External provider delivery failed and needs review.',
+  PROVIDER_RECORDED: 'External provider delivery evidence was recorded without becoming an unread in-app action.',
   PROVIDER_SENT: 'External provider accepted the delivery.',
   READY_FOR_PROVIDER: 'Ready for an external delivery provider when one is configured.',
   RECEIVED: 'Inbound stock has been received.',
