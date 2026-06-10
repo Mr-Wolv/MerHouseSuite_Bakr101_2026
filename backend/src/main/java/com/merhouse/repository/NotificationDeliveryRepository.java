@@ -14,6 +14,13 @@ public interface NotificationDeliveryRepository extends JpaRepository<Notificati
     @EntityGraph(attributePaths = {"recipient", "tenant"})
     List<NotificationDelivery> findByRecipientIdOrderByCreatedAtDesc(UUID recipientId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"recipient", "tenant"})
+    List<NotificationDelivery> findByRecipientIdAndStatusOrderByCreatedAtDesc(
+        UUID recipientId,
+        NotificationDeliveryStatus status,
+        Pageable pageable
+    );
+
     long countByRecipientIdAndStatus(UUID recipientId, NotificationDeliveryStatus status);
 
     @Query("select max(delivery.createdAt) from NotificationDelivery delivery where delivery.recipient.id = :recipientId")

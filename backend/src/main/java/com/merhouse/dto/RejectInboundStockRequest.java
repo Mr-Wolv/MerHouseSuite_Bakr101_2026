@@ -6,4 +6,11 @@ import jakarta.validation.constraints.Size;
 public record RejectInboundStockRequest(
     @NotBlank @Size(max = 1000) String rejectionReason
 ) {
+    public RejectInboundStockRequest {
+        rejectionReason = trim(rejectionReason);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

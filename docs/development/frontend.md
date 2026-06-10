@@ -22,29 +22,51 @@ npm install
 npm run dev
 ```
 
-The Vite dev server proxies `/api` to `http://localhost:8080`.
+The Vite dev server proxies `/api` to `http://localhost:8080`. The backend default CORS origins include the documented local dev and tour origins, `http://localhost:5173` and `http://127.0.0.1:5173`, so browser sign-in behaves the same through Vite as it does through the Docker nginx frontend.
 
 The Docker image builds the React app and serves it through nginx. In Docker Compose, nginx proxies API and OpenAPI requests to the backend service.
 
-## Mobile Web App Runtime
+## Mobile Runtime
 
-V16.1 treats mobile as the same React app running as an installable progressive web app. The mobile foundation lives in:
+Mobile support uses one React app and one Spring Boot API. The browser-facing mobile shell metadata supports the web runtime and is also the build input for the native Android wrapper:
 
 | Path | Role |
 | --- | --- |
 | `frontend/index.html` | Mobile metadata and manifest link |
 | `frontend/public/manifest.webmanifest` | App name, start URL, display mode, theme colors, and icon list |
-| `frontend/public/pwa-icon.svg` | Mobile app icon used by the manifest and touch metadata |
+| `frontend/public/app-icon.svg` | Shared app icon used by the manifest, touch metadata, and native launcher generation |
 | `frontend/public/sw.js` | Online-first service worker for shell/navigation fallback |
 | `frontend/src/registerServiceWorker.ts` | Production-only service worker registration |
 
-Check installability metadata from the repository root:
+Check shared mobile shell metadata from the repository root:
 
 ```powershell
-.\scripts\quality\pwa-check.ps1
+.\scripts\quality\mobile-shell-check.ps1
 ```
 
-V16.1 mobile support is not a native app-store build. Native push, camera/barcode APIs, offline write queues, and app-store packaging remain later work.
+The pass output prints the resolved frontend root, manifest path, manifest name, short name, display mode, theme color, icon count, maskable-icon status, and service worker path so web/native shell proof is traceable.
+
+The native Android wrapper packages the same frontend build without creating a second product implementation. The wrapper lives in:
+
+| Path | Role |
+| --- | --- |
+| `frontend/capacitor.config.ts` | Capacitor app id, app name, web output directory, and Android scheme |
+| `frontend/android` | Android wrapper source used for local debug APK builds |
+| `frontend/dist` | React build copied into the Android app during Capacitor sync |
+
+Native builds use the same API client and routes. For an Android emulator, the local backend base URL is normally `http://10.0.2.2:8080`:
+
+```powershell
+.\scripts\quality\native-mobile-check.ps1 -Assemble -ApiBaseUrl "http://10.0.2.2:8080"
+```
+
+The native check validates `-ApiBaseUrl` through the shared URL guard as a non-blank absolute `http` or `https` URL, applies the native build rule that it must not end with a trailing slash, defaults it to `http://10.0.2.2:8080` unless overridden, then sets `VITE_API_BASE_URL` during the build and verifies that the configured backend base URL is present in the compiled JavaScript before Capacitor sync. Sync output prints the normalized API base and the compiled asset path that proved it. Its structural pass also rejects Android-wrapper source that duplicates product API paths, React route definitions, direct fetch logic, or frontend API-base wiring. This keeps the web build proxy-relative and the native APK emulator/device-relative while preserving one shared route tree and one shared frontend API client.
+
+The debug APK output is `frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
+
+The CI native Android job assembles the same debug APK with the emulator backend URL explicitly supplied, so local and CI Android artifacts carry the same backend boundary.
+
+Native OS notification delivery, native push provider rollout, camera/barcode APIs, offline write queues, app-store signing, and app-store packaging remain later work.
 
 ## Theme Runtime
 
@@ -98,7 +120,7 @@ Routes are defined in `frontend/src/App.tsx`.
 | `/merchant/orders` | Order creation, allocation, cancellation, contacts, imports, and shipment-facing work |
 | `/warehouse` | Warehouse inventory, receiving, fulfillment, shipments, and exceptions |
 | `/service-accountability` | At-risk SLA work, disputes, claims, reviews, service agreements, statements, and import history |
-| `/assistant` | Prototype-local scoped assistant summaries, suggestions, refusals, and interaction history |
+| `/assistant` | Deterministic local scoped assistant summaries, suggestions, refusals, and interaction history |
 | `/notifications` | Action inbox, notification delivery history, and authenticated notification preferences |
 | `/account` | Signed-in account context and self-service password change |
 | `/orders/:orderId` | Order detail |

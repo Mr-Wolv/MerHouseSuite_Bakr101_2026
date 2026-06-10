@@ -101,8 +101,26 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public List<NotificationDelivery> deliveriesForUser(UUID userId, int limit) {
+        return deliveriesForUser(userId, limit, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<NotificationDelivery> deliveriesForUser(UUID userId, int limit, NotificationDeliveryStatus status) {
+        return deliveriesForUser(userId, limit, 0, status);
+    }
+
+    @Transactional(readOnly = true)
+    public List<NotificationDelivery> deliveriesForUser(UUID userId, int limit, int page, NotificationDeliveryStatus status) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        return deliveryRepository.findByRecipientIdOrderByCreatedAtDesc(userId, PageRequest.of(0, safeLimit));
+        int safePage = Math.max(0, page);
+        if (status != null) {
+            return deliveryRepository.findByRecipientIdAndStatusOrderByCreatedAtDesc(
+                userId,
+                status,
+                PageRequest.of(safePage, safeLimit)
+            );
+        }
+        return deliveryRepository.findByRecipientIdOrderByCreatedAtDesc(userId, PageRequest.of(safePage, safeLimit));
     }
 
     @Transactional(readOnly = true)
@@ -114,8 +132,11 @@ public class NotificationService {
             unreadCount,
             deliveryRepository.findLatestCreatedAtByRecipientId(userId),
             unreadCount > 0
-                ? deliveryRepository.findByRecipientIdOrderByCreatedAtDesc(userId, PageRequest.of(0, 5)).stream()
-                    .filter(delivery -> delivery.getStatus() == NotificationDeliveryStatus.RECORDED)
+                ? deliveryRepository.findByRecipientIdAndStatusOrderByCreatedAtDesc(
+                        userId,
+                        NotificationDeliveryStatus.RECORDED,
+                        PageRequest.of(0, 5)
+                    ).stream()
                     .map(delivery -> AttentionSignalFactory.signal(
                         "notification-" + delivery.getId(),
                         delivery.getTopic() == NotificationTopic.OUTBOX_HEALTH ? AttentionSeverity.CRITICAL : AttentionSeverity.ACTION_NEEDED,
@@ -175,11 +196,11 @@ public class NotificationService {
     }
 
     private String notificationRoute(NotificationDelivery delivery) {
-        if (delivery.getSourceType() == null || delivery.getSourceId() == null) {
-            return "/notifications";
-        }
         if (delivery.getTopic() == NotificationTopic.OUTBOX_HEALTH) {
             return "/admin/outbox";
+        }
+        if (delivery.getSourceType() == null || delivery.getSourceId() == null) {
+            return "/notifications";
         }
         return switch (delivery.getSourceType()) {
             case "InboundStockRequest" -> "/inbound-stock-requests/" + delivery.getSourceId();

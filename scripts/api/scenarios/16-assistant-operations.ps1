@@ -8,7 +8,7 @@ $Context.V14AssistantPlatformSuggestion = Invoke-Json -Context $Context -Method 
 }
 Assert-Equal -Actual $Context.V14AssistantPlatformSuggestion.responseType -Expected "SUGGESTION" -Message "V14 platform assistant did not return a suggestion."
 Assert-Equal -Actual $Context.V14AssistantPlatformSuggestion.actionStatus -Expected "PENDING" -Message "V14 platform suggestion did not start pending."
-Assert-Equal -Actual $Context.V14AssistantPlatformSuggestion.prototypeLocal -Expected $true -Message "V14 platform assistant response was not prototype-local."
+Assert-Equal -Actual $Context.V14AssistantPlatformSuggestion.prototypeLocal -Expected $true -Message "V14 platform assistant response was not marked as deterministic local review evidence."
 
 $Context.V14AssistantAcceptedSuggestion = Invoke-Json -Context $Context -Method Post -Path "/api/v1/assistant/interactions/$($Context.V14AssistantPlatformSuggestion.id)/accept" -Headers $Context.AdminHeaders -Body @{
     reason = "Smoke accepts V14 assistant review suggestion"

@@ -291,12 +291,6 @@ public class OrderService {
             .orElseThrow(() -> new ResourceNotFoundException("Backorder not found on order: " + backorderId));
         target.setStatus(nextStatus);
 
-        boolean allClosed = order.getBackorders().stream()
-            .allMatch(item -> item.getStatus() != BackorderStatus.OPEN);
-        if (allClosed && order.getStatus() == OrderStatus.BACKORDERED && nextStatus == BackorderStatus.FULFILLED) {
-            order.setStatus(OrderStatus.ALLOCATED);
-        }
-
         CustomerOrder saved = orderRepository.saveAndFlush(order);
         outboxService.publish(
             "Backorder" + nextStatus.name().charAt(0) + nextStatus.name().substring(1).toLowerCase(),

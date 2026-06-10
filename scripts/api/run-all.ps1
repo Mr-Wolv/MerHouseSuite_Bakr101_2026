@@ -12,6 +12,10 @@ $apiRoot = $PSScriptRoot
 $projectRoot = Split-Path -Parent (Split-Path -Parent $apiRoot)
 $reportsDir = Join-Path $projectRoot "reports"
 
+. (Join-Path $projectRoot "scripts\quality\url-guard-lib.ps1")
+
+$normalizedBaseUrl = Assert-AbsoluteHttpUrl -Name "BaseUrl" -Value $BaseUrl
+
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $OutputPath = Join-Path $reportsDir "api-smoke-test-$timestamp.json"
@@ -26,7 +30,7 @@ New-Item -ItemType Directory -Force -Path (Split-Path -Parent $OutputPath) | Out
 . (Join-Path $apiRoot "lib\report.ps1")
 
 $context = @{
-    BaseUrl = $BaseUrl
+    BaseUrl = $normalizedBaseUrl
     OutputPath = $OutputPath
     Suffix = [Guid]::NewGuid().ToString("N").Substring(0, 8)
     AdminEmail = $AdminEmail
@@ -34,7 +38,7 @@ $context = @{
     ExpectRecoveryToken = [bool]$ExpectRecoveryToken
 }
 
-Write-Host "Running MerHouse API smoke test against $BaseUrl"
+Write-Host "Running MerHouse API smoke test against $normalizedBaseUrl"
 
 . (Join-Path $apiRoot "scenarios\00-auth-admin.ps1") -Context $context
 . (Join-Path $apiRoot "scenarios\01-inventory.ps1") -Context $context

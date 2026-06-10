@@ -12,4 +12,13 @@ public record AccessRequestCreateRequest(
     @NotNull UserRole requestedRole,
     @Size(max = 1000) String notes
 ) {
+    public AccessRequestCreateRequest {
+        organizationName = trim(organizationName);
+        requesterEmail = trim(requesterEmail);
+        notes = trim(notes);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

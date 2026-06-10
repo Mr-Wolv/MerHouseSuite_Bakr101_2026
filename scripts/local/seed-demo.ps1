@@ -13,6 +13,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "..\quality\url-guard-lib.ps1")
+
+$apiBaseUrl = Assert-AbsoluteHttpUrl -Name "BaseUrl" -Value $BaseUrl
 
 function Invoke-Api {
     param(
@@ -29,7 +32,7 @@ function Invoke-Api {
 
     $parameters = @{
         Method = $Method
-        Uri = "$BaseUrl$Path"
+        Uri = "$apiBaseUrl$Path"
     }
     if ($headers.Count -gt 0) {
         $parameters.Headers = $headers
@@ -215,7 +218,7 @@ $suffix = if ([string]::IsNullOrWhiteSpace($Suffix)) {
     $Suffix
 }
 
-Write-Host "Creating demo seed data against $BaseUrl"
+Write-Host "Creating demo seed data against $apiBaseUrl"
 Write-Host "Demo suffix: $suffix"
 
 $login = Invoke-Api -Method Post -Path "/api/v1/auth/login" -Body @{

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { AuthState } from '../auth/AuthContextValue'
 import { AuthContext } from '../auth/AuthContextValue'
@@ -17,6 +17,11 @@ const apiMock = vi.hoisted(() => ({
   proposeServiceAgreement: vi.fn(),
   acceptServiceAgreement: vi.fn(),
   createServiceReview: vi.fn(),
+  resolveServiceDispute: vi.fn(),
+  resolveServiceClaim: vi.fn(),
+  resolveServiceReview: vi.fn(),
+  finalizeServiceStatement: vi.fn(),
+  markServiceStatementSettled: vi.fn(),
 }))
 
 vi.mock('../api/client', () => ({
@@ -226,6 +231,26 @@ describe('ServiceAccountabilityPage', () => {
       createdAt: '2026-05-31T00:06:00Z',
       reviewedAt: null,
     })
+    apiMock.resolveServiceDispute.mockResolvedValue({
+      id: 'dispute-1',
+      status: 'RESOLVED',
+    })
+    apiMock.resolveServiceClaim.mockResolvedValue({
+      id: 'claim-1',
+      status: 'REJECTED',
+    })
+    apiMock.resolveServiceReview.mockResolvedValue({
+      id: 'review-1',
+      status: 'APPROVED',
+    })
+    apiMock.finalizeServiceStatement.mockResolvedValue({
+      id: 'statement-1',
+      status: 'FINALIZED',
+    })
+    apiMock.markServiceStatementSettled.mockResolvedValue({
+      id: 'statement-1',
+      status: 'MARKED_SETTLED',
+    })
     apiMock.createServiceAgreement.mockResolvedValue({
       id: 'agreement-2',
       relationshipId: 'relationship-1',
@@ -287,6 +312,81 @@ describe('ServiceAccountabilityPage', () => {
     expect(apiMock.orderImports).toHaveBeenCalledWith('service-token', 'merchant-tenant')
   })
 
+  it('keeps dense service ledgers bounded while making later records reachable', async () => {
+    const user = userEvent.setup()
+    apiMock.serviceStatements.mockResolvedValue(Array.from({ length: 12 }, (_, index) => ({
+      id: `statement-${index + 1}`,
+      agreementId: 'agreement-1',
+      merchantId: 'merchant-tenant',
+      merchantName: 'Merchant Tenant',
+      warehouseProviderId: 'warehouse-tenant',
+      warehouseProviderName: 'Cairo Hub',
+      status: 'FINALIZED',
+      periodStart: '2026-05-01',
+      periodEnd: '2026-05-31',
+      dueDate: '2026-06-07',
+      subtotalAmount: 100,
+      coordinationFeeAmount: 10,
+      adjustmentAmount: 0,
+      totalAmount: 110,
+      idempotencyKey: null,
+      note: `Statement note ${index + 1}`,
+      lines: [],
+      createdAt: '2026-05-31T00:00:00Z',
+      finalizedAt: '2026-05-31T00:01:00Z',
+      settlementMarkedAt: null,
+    })))
+    apiMock.serviceDisputes.mockResolvedValue(Array.from({ length: 12 }, (_, index) => ({
+      id: `dispute-${index + 1}`,
+      agreementId: 'agreement-1',
+      statementId: 'statement-1',
+      statementLineId: null,
+      merchantId: 'merchant-tenant',
+      warehouseProviderId: 'warehouse-tenant',
+      status: 'OPEN',
+      reason: `Dispute reason ${index + 1}`,
+      evidenceNote: `Evidence note ${index + 1}`,
+      outcomeNote: null,
+      createdAt: `2026-05-31T00:${String(index).padStart(2, '0')}:00Z`,
+      resolvedAt: null,
+    })))
+    apiMock.serviceClaims.mockResolvedValue([])
+    apiMock.serviceReviews.mockResolvedValue([])
+    apiMock.orderImports.mockResolvedValue(Array.from({ length: 12 }, (_, index) => ({
+      id: `import-${index + 1}`,
+      merchantId: 'merchant-tenant',
+      mode: 'VALIDATE_AND_CREATE',
+      status: 'ACCEPTED',
+      sourceLabel: `Import batch ${index + 1}`,
+      uploadedBy: 'merchant-user',
+      totalRows: 3,
+      createdRows: 3,
+      rejectedRows: 0,
+      createdAt: '2026-05-31T00:05:00Z',
+      rows: [],
+    })))
+    renderPage()
+
+    const statementsSection = await screen.findByRole('heading', { name: 'Service Statements' }).then((heading) => heading.closest('section')!)
+    const issuesSection = screen.getByRole('heading', { name: 'Disputes, Claims, Reviews' }).closest('section')!
+    const importsSection = screen.getByRole('heading', { name: 'Order Import History' }).closest('section')!
+
+    expect(within(statementsSection).getByText('Showing 10 of 12 statements')).toBeInTheDocument()
+    expect(within(statementsSection).queryByText('Statement note 11')).not.toBeInTheDocument()
+    await user.click(within(statementsSection).getByRole('button', { name: 'Show 2 more statements' }))
+    expect(within(statementsSection).getByText('Statement note 11')).toBeInTheDocument()
+
+    expect(within(issuesSection).getByText('Showing 10 of 12 issue records')).toBeInTheDocument()
+    expect(within(issuesSection).queryByText('Dispute reason 11')).not.toBeInTheDocument()
+    await user.click(within(issuesSection).getByRole('button', { name: 'Show 2 more issue records' }))
+    expect(within(issuesSection).getByText('Dispute reason 11')).toBeInTheDocument()
+
+    expect(within(importsSection).getByText('Showing 10 of 12 import batches')).toBeInTheDocument()
+    expect(within(importsSection).queryByText('Import batch 11')).not.toBeInTheDocument()
+    await user.click(within(importsSection).getByRole('button', { name: 'Show 2 more import batches' }))
+    expect(within(importsSection).getByText('Import batch 11')).toBeInTheDocument()
+  })
+
   it('requests a manual service review against the active agreement', async () => {
     const user = userEvent.setup()
     renderPage()
@@ -299,6 +399,114 @@ describe('ServiceAccountabilityPage', () => {
       evidenceNote: 'Created from the service accountability page.',
     })
     expect(await screen.findByText('Review request created.')).toBeInTheDocument()
+  })
+
+  it('clears stale review success feedback before showing a failed retry', async () => {
+    const user = userEvent.setup()
+    apiMock.createServiceReview
+      .mockResolvedValueOnce({
+        id: 'review-2',
+        agreementId: 'agreement-1',
+        merchantId: 'merchant-tenant',
+        warehouseProviderId: 'warehouse-tenant',
+        reviewType: 'MANUAL_ADJUSTMENT',
+        status: 'PENDING',
+        reason: 'Manual service adjustment needs partner review',
+        evidenceNote: 'Created from the service accountability page.',
+        outcomeNote: null,
+        requestedBy: 'merchant-user',
+        createdAt: '2026-05-31T00:06:00Z',
+        reviewedAt: null,
+      })
+      .mockRejectedValueOnce(new Error('Provider unavailable'))
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Request review' }))
+    expect(await screen.findByText('Review request created.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Request review' }))
+
+    expect(await screen.findByText('Unable to create review request.')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByText('Review request created.')).not.toBeInTheDocument()
+    })
+  })
+
+  it('resolves service issue records for allowed stakeholder roles', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Resolve dispute' }))
+
+    expect(apiMock.resolveServiceDispute).toHaveBeenCalledWith('service-token', 'dispute-1', {
+      status: 'RESOLVED',
+      outcomeNote: 'Dispute resolved from the service accountability page.',
+    })
+    expect(await screen.findByText('Service dispute resolved.')).toBeInTheDocument()
+  })
+
+  it('finalizes draft service statements for allowed stakeholder roles', async () => {
+    const user = userEvent.setup()
+    apiMock.serviceStatements.mockResolvedValue([{
+      id: 'statement-1',
+      agreementId: 'agreement-1',
+      merchantId: 'merchant-tenant',
+      merchantName: 'Merchant Tenant',
+      warehouseProviderId: 'warehouse-tenant',
+      warehouseProviderName: 'Cairo Hub',
+      status: 'DRAFT',
+      periodStart: '2026-05-01',
+      periodEnd: '2026-05-31',
+      dueDate: '2026-06-07',
+      subtotalAmount: 100,
+      coordinationFeeAmount: 10,
+      adjustmentAmount: 0,
+      totalAmount: 110,
+      idempotencyKey: null,
+      note: 'Draft service statement.',
+      lines: [],
+      createdAt: '2026-05-31T00:00:00Z',
+      finalizedAt: null,
+      settlementMarkedAt: null,
+    }])
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Finalize statement' }))
+
+    expect(apiMock.finalizeServiceStatement).toHaveBeenCalledWith('service-token', 'statement-1')
+    expect(await screen.findByText('Service statement finalized.')).toBeInTheDocument()
+  })
+
+  it('marks finalized service statements settled for allowed stakeholder roles', async () => {
+    const user = userEvent.setup()
+    apiMock.serviceStatements.mockResolvedValue([{
+      id: 'statement-1',
+      agreementId: 'agreement-1',
+      merchantId: 'merchant-tenant',
+      merchantName: 'Merchant Tenant',
+      warehouseProviderId: 'warehouse-tenant',
+      warehouseProviderName: 'Cairo Hub',
+      status: 'FINALIZED',
+      periodStart: '2026-05-01',
+      periodEnd: '2026-05-31',
+      dueDate: '2026-06-07',
+      subtotalAmount: 100,
+      coordinationFeeAmount: 10,
+      adjustmentAmount: 0,
+      totalAmount: 110,
+      idempotencyKey: null,
+      note: 'Finalized service statement.',
+      lines: [],
+      createdAt: '2026-05-31T00:00:00Z',
+      finalizedAt: '2026-05-31T00:01:00Z',
+      settlementMarkedAt: null,
+    }])
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Mark settled' }))
+
+    expect(apiMock.markServiceStatementSettled).toHaveBeenCalledWith('service-token', 'statement-1')
+    expect(await screen.findByText('Service statement marked settled.')).toBeInTheDocument()
   })
 
   it('lets merchants draft and propose agreement terms for an active relationship', async () => {
@@ -319,6 +527,25 @@ describe('ServiceAccountabilityPage', () => {
       }),
     }))
     expect(await screen.findByText('Agreement draft created.')).toBeInTheDocument()
+  })
+
+  it('trims copied service agreement terms before submit', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByRole('form', { name: 'Create service agreement form' })
+    const titleInput = screen.getByLabelText('Title')
+    const notesInput = screen.getByLabelText('Notes')
+    await user.clear(titleInput)
+    await user.type(titleInput, '  Regional SLA terms  ')
+    await user.clear(notesInput)
+    await user.type(notesInput, '  Review monthly handoff exceptions  ')
+    await user.click(screen.getByRole('button', { name: 'Create agreement draft' }))
+
+    expect(apiMock.createServiceAgreement).toHaveBeenCalledWith('service-token', expect.objectContaining({
+      title: 'Regional SLA terms',
+      serviceNotes: 'Review monthly handoff exceptions',
+    }))
   })
 
   it('lets merchants propose drafted agreement terms to the warehouse partner', async () => {
@@ -346,9 +573,13 @@ describe('ServiceAccountabilityPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Service Accountability' })).toBeInTheDocument()
     expect(screen.getByLabelText('Service accountability review')).toHaveTextContent('reviews evidence without creating partner review work')
-    expect(screen.getByText('Read-only evidence review')).toBeInTheDocument()
+    expect(screen.getAllByText('Read-only evidence review').length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: 'Request review' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Resolve dispute' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Finalize statement' })).not.toBeInTheDocument()
     expect(apiMock.createServiceReview).not.toHaveBeenCalled()
+    expect(apiMock.resolveServiceDispute).not.toHaveBeenCalled()
+    expect(apiMock.finalizeServiceStatement).not.toHaveBeenCalled()
     expect(apiMock.orderImports).not.toHaveBeenCalled()
   })
 

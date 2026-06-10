@@ -15,7 +15,7 @@ export const topicLabels: Record<NotificationTopic, string> = {
 
 export const channelLabels: Record<NotificationChannel, string> = {
   IN_APP: 'In app',
-  EMAIL_PROTOTYPE: 'Email channel',
+  EMAIL_PROTOTYPE: 'Local email record',
 }
 
 export const deliveryStageLabels: Record<NotificationDeliveryStage, string> = {
@@ -58,6 +58,7 @@ export function notificationSeverity(delivery: NotificationDelivery): Notificati
     'password reset',
     'dispute',
     'claim',
+    'review requested',
   ]
 
   if (

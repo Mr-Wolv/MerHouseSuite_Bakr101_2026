@@ -40,4 +40,11 @@ public class CurrentUserService {
             throw new AccessDeniedException("You cannot access resources for another tenant.");
         }
     }
+
+    public void requireMutatingAdminOrTenant(UUID tenantId) {
+        UserPrincipal principal = required();
+        if (!principal.role().canMutatePlatform() && !principal.tenantId().equals(tenantId)) {
+            throw new AccessDeniedException("You cannot mutate resources for another tenant.");
+        }
+    }
 }

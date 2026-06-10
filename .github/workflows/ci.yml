@@ -56,6 +56,45 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Run performance readiness
+        shell: pwsh
+        run: ./scripts/quality/performance-readiness.ps1
+
+  native-android:
+    name: Native Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Android debug APK
+        shell: pwsh
+        run: ./scripts/quality/native-mobile-check.ps1 -Assemble -ApiBaseUrl "http://10.0.2.2:8080"
+
+      - name: Upload Android debug APK
+        uses: actions/upload-artifact@v6
+        with:
+          name: merhouse-android-debug-apk
+          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
   compose:
     name: Compose
     runs-on: ubuntu-latest
@@ -100,9 +139,9 @@ jobs:
           }
           Write-Host "PowerShell script parser check passed."
 
-      - name: Check mobile app installability
+      - name: Check shared mobile shell
         shell: pwsh
-        run: ./scripts/quality/pwa-check.ps1
+        run: ./scripts/quality/mobile-shell-check.ps1
 
       - name: Run public readiness checks
         shell: pwsh
@@ -114,6 +153,7 @@ jobs:
     needs:
       - backend
       - frontend
+      - native-android
       - compose
       - public-readiness
     steps:

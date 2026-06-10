@@ -26,14 +26,20 @@ export { AdminAuditPage } from '../features/admin/audit/AdminAuditPage'
 export { AdminOutboxPage } from '../features/admin/outbox/AdminOutboxPage'
 
 type AdminData = {
-  tenants: Tenant[]
-  users: User[]
   orders: Order[]
   summary: AdminPlatformSummary
   tenantHealth: AdminTenantHealth[]
 }
 
+type AdminUsersData = {
+  tenants: Tenant[]
+  users: User[]
+}
+
 const ADMIN_USER_PAGE_SIZE = 25
+const ADMIN_TENANT_PAGE_SIZE = 25
+const ADMIN_RELATIONSHIP_PAGE_SIZE = 25
+const ADMIN_WAREHOUSE_PROVIDER_OPTION_LIMIT = 50
 
 function useAdminData() {
   const { token } = useAuth()
@@ -43,10 +49,29 @@ function useAdminData() {
 
   useEffect(() => {
     if (!token) return
-    Promise.all([api.tenants(token), api.users(token), api.orders(token), api.adminSummary(token), api.adminTenantHealth(token)])
-      .then(([tenants, users, orders, summary, tenantHealth]) => setData({ tenants, users, orders, summary, tenantHealth }))
+    Promise.all([api.orders(token), api.adminSummary(token), api.adminTenantHealth(token)])
+      .then(([orders, summary, tenantHealth]) => setData({ orders, summary, tenantHealth }))
       .catch((caught) => {
         setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load admin data.')
+      })
+      .finally(() => setLoading(false))
+  }, [token])
+
+  return { data, loading, error }
+}
+
+function useAdminUsersData() {
+  const { token } = useAuth()
+  const [data, setData] = useState<AdminUsersData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>('')
+
+  useEffect(() => {
+    if (!token) return
+    Promise.all([api.tenants(token), api.users(token)])
+      .then(([tenants, users]) => setData({ tenants, users }))
+      .catch((caught) => {
+        setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load admin users.')
       })
       .finally(() => setLoading(false))
   }, [token])
@@ -63,9 +88,33 @@ export function AdminOverviewPage() {
     return Array.from(counts.entries())
   }, [data?.orders])
 
-  if (loading) return <LoadingState />
-  if (error) return <ErrorState title={error} />
-  if (!data) return <EmptyState label="No admin data available" guidance="Create tenants, users, access requests, and service relationships to begin building the operating network." />
+  if (loading) {
+    return (
+      <div className="page-stack">
+        <PageHeading title="Admin Overview" subtitle="Start with platform risks, onboarding, delivery failures, and service exceptions." />
+        <AdminGuidancePanel title="Platform attention queue">
+          Review the signals below first; broad tenant and order history stays lower on the page.
+        </AdminGuidancePanel>
+        <LoadingState label="Loading admin overview" />
+      </div>
+    )
+  }
+  if (error) {
+    return (
+      <div className="page-stack">
+        <PageHeading title="Admin Overview" subtitle="Start with platform risks, onboarding, delivery failures, and service exceptions." />
+        <ErrorState title={error} />
+      </div>
+    )
+  }
+  if (!data) {
+    return (
+      <div className="page-stack">
+        <PageHeading title="Admin Overview" subtitle="Start with platform risks, onboarding, delivery failures, and service exceptions." />
+        <EmptyState label="No admin data available" guidance="Create tenants, users, access requests, and service relationships to begin building the operating network." />
+      </div>
+    )
+  }
 
   const adminAttentionSignals = data.summary.attentionSignals?.length
     ? data.summary.attentionSignals
@@ -196,7 +245,7 @@ function countSignal(
 
 export function AdminUsersPage() {
   const { token, user: currentUser } = useAuth()
-  const { data, loading, error } = useAdminData()
+  const { data, loading, error } = useAdminUsersData()
   const [users, setUsers] = useState<User[]>([])
   const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL')
   const [tenantFilter, setTenantFilter] = useState('ALL')
@@ -264,7 +313,7 @@ export function AdminUsersPage() {
     setActionError('')
     setSubmitting(true)
     try {
-      const created = await api.createUser(token, { tenantId, email, password, role })
+      const created = await api.createUser(token, { tenantId, email: email.trim(), password, role })
       setUsers((current) => [...current, created])
       setUserSearch(created.email)
       setRoleFilter('ALL')
@@ -284,7 +333,7 @@ export function AdminUsersPage() {
     if (!token) return
     setActionError('')
     try {
-      const disabled = await api.disableUser(token, userId, { reason })
+      const disabled = await api.disableUser(token, userId, { reason: reason.trim() })
       setUsers((current) => current.map((user) => (user.id === disabled.id ? disabled : user)))
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to disable user.')
@@ -295,7 +344,7 @@ export function AdminUsersPage() {
     if (!token) return
     setActionError('')
     try {
-      const enabled = await api.enableUser(token, userId, { reason })
+      const enabled = await api.enableUser(token, userId, { reason: reason.trim() })
       setUsers((current) => current.map((user) => (user.id === enabled.id ? enabled : user)))
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to enable user.')
@@ -306,7 +355,7 @@ export function AdminUsersPage() {
     if (!token) return
     setActionError('')
     try {
-      const changed = await api.changeUserRole(token, userId, { role: nextRole, reason })
+      const changed = await api.changeUserRole(token, userId, { role: nextRole, reason: reason.trim() })
       setUsers((current) => current.map((user) => (user.id === changed.id ? changed : user)))
     } catch (caught) {
       setActionError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to change role.')
@@ -321,7 +370,7 @@ export function AdminUsersPage() {
       return
     }
     try {
-      const changed = await api.adminResetUserPassword(token, userId, { newPassword: temporaryPassword, reason })
+      const changed = await api.adminResetUserPassword(token, userId, { newPassword: temporaryPassword, reason: reason.trim() })
       setUsers((current) => current.map((user) => (user.id === changed.id ? changed : user)))
       setTemporaryPassword('')
     } catch (caught) {
@@ -329,9 +378,33 @@ export function AdminUsersPage() {
     }
   }
 
-  if (loading) return <LoadingState />
-  if (error) return <ErrorState title={error} />
-  if (!data) return <EmptyState label="No users available" guidance="Create the first platform or tenant user, assign the correct role, and keep the action reason ready for audit review." />
+  if (loading) {
+    return (
+      <div className="page-stack">
+        <PageHeading title="Users" subtitle="Create, recover, and govern platform and tenant accounts with safety rails." />
+        <AdminGuidancePanel title="Privileged account changes">
+          Disable, enable, role-change, and reset actions use the action reason below for audit review. Reset buttons stay locked until a temporary password is ready.
+        </AdminGuidancePanel>
+        <LoadingState label="Loading users" />
+      </div>
+    )
+  }
+  if (error) {
+    return (
+      <div className="page-stack">
+        <PageHeading title="Users" subtitle="Create, recover, and govern platform and tenant accounts with safety rails." />
+        <ErrorState title={error} />
+      </div>
+    )
+  }
+  if (!data) {
+    return (
+      <div className="page-stack">
+        <PageHeading title="Users" subtitle="Create, recover, and govern platform and tenant accounts with safety rails." />
+        <EmptyState label="No users available" guidance="Create the first platform or tenant user, assign the correct role, and keep the action reason ready for audit review." />
+      </div>
+    )
+  }
 
   return (
     <div className="page-stack">
@@ -622,7 +695,11 @@ export function AdminTenantsPage() {
   }, [token])
 
   const filteredTenants = tenants.filter((tenant) => filter === 'ALL' || tenant.type === filter)
-  const warehouseProviderTenants = tenants.filter((tenant) => tenant.type === 'WAREHOUSE_PROVIDER' && tenant.active)
+  const warehouseProviderTenants = tenants
+    .filter((tenant) => tenant.type === 'WAREHOUSE_PROVIDER' && tenant.active)
+    .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
+  const warehouseProviderOptions = warehouseProviderTenants.slice(0, ADMIN_WAREHOUSE_PROVIDER_OPTION_LIMIT)
+  const hiddenWarehouseProviderOptionCount = Math.max(0, warehouseProviderTenants.length - warehouseProviderOptions.length)
   const warehouseCountsByTenant = useMemo(() => {
     const counts = new Map<string, number>()
     warehouses.forEach((warehouse) => counts.set(warehouse.tenantId, (counts.get(warehouse.tenantId) ?? 0) + 1))
@@ -635,8 +712,8 @@ export function AdminTenantsPage() {
     setSubmitting(true)
     setError('')
     try {
-      const created = await api.createTenant(token, { name, type })
-      setTenants((current) => [...current, created])
+      const created = await api.createTenant(token, { name: name.trim(), type })
+      setTenants((current) => [created, ...current])
       setName('')
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to create tenant.')
@@ -653,8 +730,8 @@ export function AdminTenantsPage() {
     try {
       const created = await api.createWarehouse(token, {
         tenantId: warehouseTenantId,
-        name: warehouseName,
-        address: warehouseAddress,
+        name: warehouseName.trim(),
+        address: warehouseAddress.trim(),
         capacity: warehouseCapacity,
       })
       setWarehouses((current) => [...current, created])
@@ -673,15 +750,25 @@ export function AdminTenantsPage() {
     setError('')
     try {
       const next = tenant.active
-        ? await api.suspendTenant(token, tenant.id, { reason })
-        : await api.activateTenant(token, tenant.id, { reason })
+        ? await api.suspendTenant(token, tenant.id, { reason: reason.trim() })
+        : await api.activateTenant(token, tenant.id, { reason: reason.trim() })
       setTenants((current) => current.map((row) => (row.id === next.id ? next : row)))
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to update tenant.')
     }
   }
 
-  if (loading) return <LoadingState />
+  if (loading) {
+    return (
+      <div className="page-stack">
+        <PageHeading title="Tenants" subtitle="Create merchant and warehouse provider tenants for platform accounts." />
+        <AdminGuidancePanel title="Tenant governance controls">
+          Suspension is a privileged platform action. Keep the action reason current before suspending or reactivating tenants so audit review has operational context.
+        </AdminGuidancePanel>
+        <LoadingState label="Loading tenants" />
+      </div>
+    )
+  }
 
   return (
     <div className="page-stack">
@@ -719,15 +806,20 @@ export function AdminTenantsPage() {
               id="admin-warehouse-tenant"
               value={warehouseTenantId}
               onChange={(event) => setWarehouseTenantId(event.target.value)}
-              disabled={!warehouseProviderTenants.length}
+              disabled={!warehouseProviderOptions.length}
             >
-              {warehouseProviderTenants.length ? warehouseProviderTenants.map((tenant) => (
+              {warehouseProviderOptions.length ? warehouseProviderOptions.map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
                   {tenant.name} ({warehouseCountsByTenant.get(tenant.id) ?? 0} warehouses)
                 </option>
               )) : <option value="">Create a warehouse provider tenant first</option>}
             </select>
           </label>
+          {hiddenWarehouseProviderOptionCount ? (
+            <p className="form-helper span-two-field">
+              Showing the {ADMIN_WAREHOUSE_PROVIDER_OPTION_LIMIT} most recent active warehouse provider tenants for this registration control.
+            </p>
+          ) : null}
           <label htmlFor="admin-warehouse-name">
             <span>Warehouse name</span>
             <input id="admin-warehouse-name" value={warehouseName} onChange={(event) => setWarehouseName(event.target.value)} maxLength={160} required />
@@ -741,7 +833,7 @@ export function AdminTenantsPage() {
             <input id="admin-warehouse-capacity" type="number" min={0} value={warehouseCapacity} onChange={(event) => setWarehouseCapacity(Number(event.target.value))} />
           </label>
         </div>
-        <button className="primary-button fit-button" type="submit" disabled={submitting || !warehouseProviderTenants.length || !warehouseTenantId}>
+        <button className="primary-button fit-button" type="submit" disabled={submitting || !warehouseProviderOptions.length || !warehouseTenantId}>
           {submitting ? 'Registering' : 'Register warehouse'}
         </button>
       </form>
@@ -759,7 +851,7 @@ export function AdminTenantsPage() {
           <input id="admin-tenant-action-reason" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={1000} />
         </label>
       </div>
-      <TenantsTable tenants={filteredTenants} onToggle={toggleTenant} />
+      <TenantsTable key={`${filter}:${filteredTenants.length}:${filteredTenants[0]?.id ?? 'empty'}`} tenants={filteredTenants} onToggle={toggleTenant} />
     </div>
   )
 }
@@ -805,8 +897,13 @@ export function AdminAccessRequestsPage() {
   async function convertAccessRequest(request: AccessRequest) {
     if (!token) return
     setError('')
+    const trimmedConversionReason = conversionReason.trim()
     if (temporaryPassword.length < 8) {
       setError('Temporary setup password must be at least 8 characters.')
+      return
+    }
+    if (!trimmedConversionReason) {
+      setError('Conversion reason is required.')
       return
     }
     setActionId(request.id)
@@ -814,7 +911,7 @@ export function AdminAccessRequestsPage() {
       const next = await api.convertAccessRequest(token, request.id, {
         tenantName: request.organizationName,
         temporaryPassword,
-        reason: conversionReason,
+        reason: trimmedConversionReason,
       })
       setRequests((current) => current.map((row) => (row.id === next.id ? next : row)))
       setTemporaryPassword('')
@@ -825,7 +922,17 @@ export function AdminAccessRequestsPage() {
     }
   }
 
-  if (loading) return <LoadingState label="Loading access requests" />
+  if (loading) {
+    return (
+      <div className="page-stack">
+        <PageHeading title="Access Requests" subtitle="Review public merchant and warehouse onboarding requests." />
+        <AdminGuidancePanel title="Onboarding review controls">
+          Review notes apply to the next approve or reject action. Conversion creates the tenant account only after an approved request has a temporary setup password.
+        </AdminGuidancePanel>
+        <LoadingState label="Loading access requests" />
+      </div>
+    )
+  }
 
   const accessCounts = {
     pending: requests.filter((request) => request.status === 'PENDING').length,
@@ -900,7 +1007,9 @@ export function AdminAccessRequestsPage() {
                   const approved = request.status === 'APPROVED'
                   const rejected = request.status === 'REJECTED'
                   const converted = Boolean(request.convertedAt)
-                  const conversionReady = approved && !converted && temporaryPassword.length >= 8
+                  const passwordReady = temporaryPassword.length >= 8
+                  const reasonReady = conversionReason.trim().length > 0
+                  const conversionReady = approved && !converted && passwordReady && reasonReady
                   return (
                     <tr key={request.id}>
                       <td>{request.organizationName}</td>
@@ -951,7 +1060,7 @@ export function AdminAccessRequestsPage() {
                                     Convert
                                   </button>
                                 ) : (
-                                  <span className="data-chip warning-chip">Enter setup password</span>
+                                  <span className="data-chip warning-chip">{passwordReady ? 'Enter conversion reason' : 'Enter setup password'}</span>
                                 )}
                               </>
                             ) : null}
@@ -980,9 +1089,22 @@ export function AdminRelationshipsPage() {
   const { token, user: currentUser } = useAuth()
   const [relationships, setRelationships] = useState<MerchantWarehouseRelationship[]>([])
   const [reason, setReason] = useState('Relationship governance review')
+  const [relationshipPage, setRelationshipPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const canMutatePlatform = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN'
+  const sortedRelationships = useMemo(
+    () => [...relationships].sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)),
+    [relationships],
+  )
+  const relationshipPageCount = Math.max(1, Math.ceil(sortedRelationships.length / ADMIN_RELATIONSHIP_PAGE_SIZE))
+  const safeRelationshipPage = Math.min(relationshipPage, relationshipPageCount)
+  const pagedRelationships = sortedRelationships.slice(
+    (safeRelationshipPage - 1) * ADMIN_RELATIONSHIP_PAGE_SIZE,
+    safeRelationshipPage * ADMIN_RELATIONSHIP_PAGE_SIZE,
+  )
+  const firstRelationshipNumber = sortedRelationships.length ? (safeRelationshipPage - 1) * ADMIN_RELATIONSHIP_PAGE_SIZE + 1 : 0
+  const lastRelationshipNumber = Math.min(safeRelationshipPage * ADMIN_RELATIONSHIP_PAGE_SIZE, sortedRelationships.length)
 
   useEffect(() => {
     if (!token) return
@@ -1000,17 +1122,15 @@ export function AdminRelationshipsPage() {
     setError('')
     try {
       const updated = action === 'suspend'
-        ? await api.suspendMerchantWarehouseRelationship(token, relationship.id, { reason })
+        ? await api.suspendMerchantWarehouseRelationship(token, relationship.id, { reason: reason.trim() })
         : action === 'reactivate'
-          ? await api.reactivateMerchantWarehouseRelationship(token, relationship.id, { reason })
-          : await api.endMerchantWarehouseRelationship(token, relationship.id, { reason })
+          ? await api.reactivateMerchantWarehouseRelationship(token, relationship.id, { reason: reason.trim() })
+          : await api.endMerchantWarehouseRelationship(token, relationship.id, { reason: reason.trim() })
       setRelationships((current) => current.map((row) => (row.id === updated.id ? updated : row)))
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to update relationship.')
     }
   }
-
-  if (loading) return <LoadingState label="Loading relationships" />
 
   return (
     <div className="page-stack">
@@ -1028,7 +1148,34 @@ export function AdminRelationshipsPage() {
       {error ? <ErrorState title={error} /> : null}
       <section className="table-section">
         <h2>Merchant-Warehouse Relationships</h2>
-        {relationships.length ? (
+        {loading ? (
+          <LoadingState label="Loading relationships" />
+        ) : sortedRelationships.length ? (
+          <>
+          <div className="table-toolbar result-toolbar" aria-label="Relationship result pagination">
+            <span>
+              Showing {firstRelationshipNumber}-{lastRelationshipNumber} of {sortedRelationships.length} relationships
+            </span>
+            <div className="action-row compact-actions">
+              <button
+                className="table-button"
+                type="button"
+                disabled={safeRelationshipPage <= 1}
+                onClick={() => setRelationshipPage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </button>
+              <span>Page {safeRelationshipPage} of {relationshipPageCount}</span>
+              <button
+                className="table-button"
+                type="button"
+                disabled={safeRelationshipPage >= relationshipPageCount}
+                onClick={() => setRelationshipPage((current) => Math.min(relationshipPageCount, current + 1))}
+              >
+                Next
+              </button>
+            </div>
+          </div>
           <div className="table-wrap">
             <table>
               <thead>
@@ -1042,7 +1189,7 @@ export function AdminRelationshipsPage() {
                 </tr>
               </thead>
               <tbody>
-                {relationships.map((relationship) => (
+                {pagedRelationships.map((relationship) => (
                   <tr key={relationship.id}>
                     <td>{relationship.merchantName}</td>
                     <td>{relationship.warehouseProviderName}</td>
@@ -1075,6 +1222,7 @@ export function AdminRelationshipsPage() {
               </tbody>
             </table>
           </div>
+          </>
         ) : (
           <EmptyState label="No relationships yet" guidance="Create or approve merchant-warehouse relationships so inventory, inbound stock, fulfillment, and service accountability can connect across tenants." />
         )}
@@ -1164,9 +1312,40 @@ function TenantHealthTable({ rows }: { rows: AdminTenantHealth[] }) {
 }
 
 function TenantsTable({ tenants, onToggle }: { tenants: Tenant[]; onToggle?: (tenant: Tenant) => void }) {
+  const [tenantPage, setTenantPage] = useState(1)
+  const tenantPageCount = Math.max(1, Math.ceil(tenants.length / ADMIN_TENANT_PAGE_SIZE))
+  const safeTenantPage = Math.min(tenantPage, tenantPageCount)
+  const pagedTenants = tenants.slice((safeTenantPage - 1) * ADMIN_TENANT_PAGE_SIZE, safeTenantPage * ADMIN_TENANT_PAGE_SIZE)
+  const firstTenantNumber = tenants.length ? (safeTenantPage - 1) * ADMIN_TENANT_PAGE_SIZE + 1 : 0
+  const lastTenantNumber = Math.min(safeTenantPage * ADMIN_TENANT_PAGE_SIZE, tenants.length)
+
   return (
     <section className="table-section">
       <h2>Tenants</h2>
+      <div className="table-toolbar result-toolbar" aria-label="Tenant result pagination">
+        <span>
+          Showing {firstTenantNumber}-{lastTenantNumber} of {tenants.length} tenants
+        </span>
+        <div className="action-row compact-actions">
+          <button
+            className="table-button"
+            type="button"
+            disabled={safeTenantPage <= 1}
+            onClick={() => setTenantPage((current) => Math.max(1, current - 1))}
+          >
+            Previous
+          </button>
+          <span>Page {safeTenantPage} of {tenantPageCount}</span>
+          <button
+            className="table-button"
+            type="button"
+            disabled={safeTenantPage >= tenantPageCount}
+            onClick={() => setTenantPage((current) => Math.min(tenantPageCount, current + 1))}
+          >
+            Next
+          </button>
+        </div>
+      </div>
       <div className="table-wrap">
         <table>
           <thead>
@@ -1180,7 +1359,7 @@ function TenantsTable({ tenants, onToggle }: { tenants: Tenant[]; onToggle?: (te
             </tr>
           </thead>
           <tbody>
-            {tenants.map((tenant) => (
+            {pagedTenants.map((tenant) => (
               <tr key={tenant.id}>
                 <td>{tenant.name}</td>
                 <td><StatusBadge value={tenant.type} /></td>

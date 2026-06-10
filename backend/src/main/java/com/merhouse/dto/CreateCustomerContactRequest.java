@@ -12,4 +12,14 @@ public record CreateCustomerContactRequest(
     @Size(max = 80) String phone,
     @NotBlank String address
 ) {
+    public CreateCustomerContactRequest {
+        label = trim(label);
+        contactName = trim(contactName);
+        phone = trim(phone);
+        address = trim(address);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

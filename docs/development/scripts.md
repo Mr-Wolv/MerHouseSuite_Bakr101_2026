@@ -8,20 +8,26 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | --- | --- |
 | `scripts/local/start.ps1` | Rebuild and start the local Docker Compose stack. |
 | `scripts/local/stop.ps1` | Stop the local Docker Compose stack. |
-| `scripts/local/seed-demo.ps1` | Create deterministic local demo data for review workflows. |
+| `scripts/local/seed-demo.ps1` | Create deterministic local demo data for review workflows against a validated local API base URL. |
 | `scripts/local/frontend-dev.ps1` | Start the Vite development server with a chosen host and port. |
-| `scripts/local/wait-backend.ps1` | Wait until the local backend readiness endpoint answers before browser/API proof starts. |
-| `scripts/quality/check.ps1` | Run backend, frontend, public-readiness, and Compose checks. |
+| `scripts/local/wait-backend.ps1` | Wait until the validated local backend readiness endpoint answers before browser/API proof starts. |
+| `scripts/quality/check.ps1` | Run backend, frontend, shared mobile shell, native sync, public-readiness, and Compose checks; use `-SkipMobile` only when a parent gate already ran mobile/native proof. Direct broad-gate runs accept `-NativeApiBaseUrl` for Android-bound sync. |
 | `scripts/quality/backend-check.ps1` | Run backend Maven tests. |
-| `scripts/quality/frontend-check.ps1` | Run frontend lint, build, unit tests, and optional Playwright checks. |
+| `scripts/quality/frontend-check.ps1` | Run frontend lint, build, deterministic unit tests, and optional Playwright checks. |
 | `scripts/quality/markdown-check.ps1` | Validate tracked markdown links, including supported wiki-style links, outside generated dependency and report folders. |
 | `scripts/quality/api-smoke.ps1` | Run the API smoke suite against a running backend or frontend proxy. |
-| `scripts/quality/api-docs.ps1` | Check local OpenAPI availability and print local documentation URLs. |
-| `scripts/quality/frontend-deploy-check.ps1` | Check the deployed frontend shell and API proxy. |
+| `scripts/quality/api-docs.ps1` | Check local OpenAPI availability with a validated HTTP(S) target and print local documentation URLs. |
+| `scripts/quality/frontend-deploy-check.ps1` | Check the deployed frontend shell and API proxy with a validated local HTTP(S) target. |
 | `scripts/quality/frontend-full-tour.ps1` | Run the browser tour against a running local stack. |
-| `scripts/quality/pwa-check.ps1` | Check mobile/PWA install metadata, manifest, icon references, and service worker markers. |
+| `scripts/quality/mobile-shell-check.ps1` | Check shared mobile shell metadata, manifest, icon references, and service worker markers used by web and native packaging. |
+| `scripts/quality/native-mobile-check.ps1` | Check the Capacitor Android wrapper, sync the frontend build into Android, and optionally assemble a debug APK. |
+| `scripts/quality/native-android-tour.ps1` | Install the debug APK on a running emulator, authenticate seeded roles, visit native routes, and capture APK screenshots. |
+| `scripts/quality/cross-surface-tour-check.ps1` | Compare browser and installed-APK tour reports for clean records, provenance, valid native screenshot evidence, exact normalized role/path set equality, and traceable pass output. |
+| `scripts/quality/performance-readiness.ps1` | Check local deployment-shaped performance readiness through frontend bundle budgets, paired browser/installed-APK report provenance and timing when reports are supplied, and optional API smoke timing. |
+| `scripts/quality/tour-report-lib.ps1` | Shared helper for reading, normalizing, and validating browser/native tour report records, including required role/path identity. |
+| `scripts/quality/url-guard-lib.ps1` | Shared helper for validating and normalizing non-blank absolute `http` or `https` local setup, native build, frontend proxy, OpenAPI docs, tour, smoke, performance, deployment, and report-provenance URLs. |
 | `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, CI naming, and Compose config. |
-| `scripts/quality/deployment-readiness.ps1` | Run the V16 deployment-ready local certification gate with local/mock proof and optional API smoke. |
+| `scripts/quality/deployment-readiness.ps1` | Run the V16.2 deployment-ready local certification gate with local/mock proof and optional timed API smoke. |
 | `scripts/maintenance/clean-reports.ps1` | Trim old local reports, logs, and screenshots. |
 
 ## Typical Local Flow
@@ -32,7 +38,7 @@ Start the full stack:
 .\scripts\local\start.ps1
 ```
 
-`start.ps1` waits for `http://localhost:8080/api/v1/health` before reporting the stack ready. Use the same readiness guard after rebuilding or restarting only the backend:
+`start.ps1` waits for `http://localhost:8080/api/v1/health` before reporting the stack ready. Use the same validated readiness guard after rebuilding or restarting only the backend:
 
 ```powershell
 docker compose up -d backend
@@ -81,6 +87,8 @@ Or use the repository wrapper:
 .\scripts\quality\frontend-check.ps1 -IncludeE2E
 ```
 
+The wrapper runs Vitest with `--no-file-parallelism` so the heavier jsdom route tests stay deterministic inside broad local gates after backend, native sync, parity, and performance proof have already consumed local worker and Docker resources. Direct `npm test -- --run` remains useful for fast local development, but wrapper output is the QC evidence used by repository gates.
+
 `frontend-check.ps1 -IncludeE2E` defaults the shared browser and API targets to the Docker frontend on port 3000 so every Playwright spec uses the same running app. To test another running frontend, override the shared browser target:
 
 ```powershell
@@ -88,6 +96,10 @@ $env:FRONTEND_TOUR_BASE_URL = "http://localhost:3000"
 .\scripts\quality\frontend-check.ps1 -SkipInstall -IncludeE2E
 Remove-Item Env:\FRONTEND_TOUR_BASE_URL
 ```
+
+The full browser tour validates `-BaseUrl` and `-ApiUrl` as non-blank absolute `http` or `https` URLs and validates `-OutputPath` as a non-blank report path before Playwright starts. Its wrapper prints the browser app URL, API URL, and resolved report path before the tour runs, then writes a main route report and companion action-proof reports under `reports/`. Route reports include browser provenance such as `appUrl`, `apiUrl`, `checkedAt`, `checkedRoutes`, and route records. Companion action reports include `checkedActions`, an acceptance standard, fixture context, and action records for hierarchy/denial proof, notification scope, notification preferences, and merchant/warehouse handoff workflows.
+
+`frontend-deploy-check.ps1` validates its frontend `-BaseUrl`, prints the normalized target, the frontend-proxy API smoke output destination, the frontend HTTP status, and the React shell marker before running API smoke through the frontend proxy.
 
 Password recovery proof has two local modes:
 
@@ -98,7 +110,7 @@ Password recovery proof has two local modes:
 .\scripts\quality\api-smoke.ps1 -ExpectRecoveryToken
 ```
 
-Keep token echo disabled for production-shaped checks. V16 certifies the local/mock recovery boundary; provider-backed reset delivery remains a V17 real activation item.
+Keep token echo disabled for production-shaped checks. V16.2 certifies the local/mock recovery boundary; provider-backed reset delivery remains a V17 real activation item.
 
 Validate markdown links after documentation changes:
 
@@ -106,19 +118,109 @@ Validate markdown links after documentation changes:
 .\scripts\quality\markdown-check.ps1
 ```
 
-Validate installable mobile web app metadata after frontend shell changes:
+Validate shared mobile shell metadata after frontend shell changes:
 
 ```powershell
-.\scripts\quality\pwa-check.ps1
+.\scripts\quality\mobile-shell-check.ps1
 ```
 
-Run the V16 deployment-ready local certification gate when the stack is ready for heavier proof:
+This also checks that the app icon still uses the MerHouse brand mark identity colors.
+The pass output prints the resolved frontend root, manifest identity, icon count, maskable-icon status, and service worker path for QC traceability.
+
+Validate the native Android wrapper without requiring Android SDK:
+
+```powershell
+.\scripts\quality\native-mobile-check.ps1
+```
+
+The structural check verifies the Capacitor wrapper, native manifest, launcher identity, and Android source boundary. It also rejects wrapper-side product API paths, React route definitions, direct fetch logic, or `VITE_API_BASE_URL` wiring so mobile stays a shell around the shared frontend instead of becoming a second workflow implementation.
+
+Build and sync the React app into the Android wrapper:
+
+```powershell
+.\scripts\quality\native-mobile-check.ps1 -Sync
+```
+
+The sync check validates and normalizes `-ApiBaseUrl` through the shared URL guard as a non-blank absolute `http` or `https` URL, applies the native build rule that it must not end with a trailing slash, defaults it to `http://10.0.2.2:8080` unless overridden, builds with `VITE_API_BASE_URL` set from the normalized value, verifies that the normalized backend base URL is present in the compiled JavaScript assets, prints the compiled asset path that proved the value, and then copies the same built frontend into the Android wrapper. This keeps web and native API routing explicit: the web build can use the frontend proxy, while the native APK uses the emulator or device-reachable backend URL without a second API client.
+
+Build the literal local Android debug APK when Android SDK is installed:
+
+```powershell
+.\scripts\quality\native-mobile-check.ps1 -Assemble -ApiBaseUrl "http://10.0.2.2:8080"
+```
+
+Use `http://10.0.2.2:8080` for the Android emulator. Use your computer LAN address for a physical phone on the same network. The script prefers `ANDROID_HOME` or `ANDROID_SDK_ROOT`, then standard Windows, macOS, and Linux Android SDK locations. For APK assembly, it uses `java` on `PATH`, a compatible `JAVA_HOME`, or common JDK 17/21 install locations. Newer unsupported Java runtimes are rejected with a setup message instead of producing a brittle local-only build. Successful assembly output prints the normalized API base, APK SHA-256, and APK byte size.
+
+Run the native Android APK tour after the local stack is running, seeded, and an emulator is booted:
+
+```powershell
+.\scripts\quality\native-android-tour.ps1
+```
+
+The tour validates `-ApiUrl` as a non-blank absolute `http` or `https` URL and validates `-ApkPath`, `-OutputPath`, and `-ScreenshotDirectory` as non-blank paths before Android tooling starts. Its wrapper prints the native API URL, resolved APK path, resolved report path, and resolved screenshot directory before SDK and device discovery. It then finds `adb` from `ANDROID_HOME`, `ANDROID_SDK_ROOT`, standard SDK locations, or `PATH`, installs `frontend/android/app/build/outputs/apk/debug/app-debug.apk`, checks public auth routes, authenticates seeded active owner, merchant, warehouse, support-admin, and auditor users, creates generated admin, empty merchant, and empty warehouse accounts, seeds platform relationship and inbound-stock detail routes where those roles are allowed, discovers additional operational detail routes from inside the APK, and writes screenshots plus a JSON report under `reports/`. Each pulled screenshot must be valid PNG evidence with positive dimensions before the route can pass, and protected routes that land on `/login` after token injection are bad records. The report records the API URL, APK path, APK SHA-256, APK byte size, checked timestamp, connected device serials, and active or empty stakeholder state for merchant and warehouse records so the installed-app proof can be tied back to a specific local artifact, runtime, proof time, and stakeholder-state coverage.
+
+Use the [cross-surface V&V convergence ledger](../architecture/cross-surface-convergence.md) when Android and web proof are being compared. That loop starts with installed APK proof, checks the matching web workflow, records gaps and fixes, and only starts broad refactoring after evidence identifies concrete coupling, redundancy, scalability, separability, or performance problems.
+
+Compare the latest browser and native tour reports after both have run:
+
+```powershell
+.\scripts\quality\cross-surface-tour-check.ps1 `
+  -WebReportPath ".\reports\v16.2-loop-163-frontend-full-tour.json" `
+  -NativeReportPath ".\reports\v16.2-loop-163-native-tour.json"
+```
+
+The comparison normalizes role names and generated detail-route ids, then fails if either report has loading shells, missing expected route content, overflow, unlabeled controls, unnamed controls, bad HTTP states, missing exact web and native active/empty stakeholder coverage, missing required role/path coverage, missing web browser provenance with absolute HTTP(S) app/API URLs, missing native APK/nonblank-device/timestamp/checked-route provenance with an absolute HTTP(S) API URL, or if the normalized web and native role/path sets do not match exactly. On success, it prints the resolved web/native report paths plus browser app/API URL, native API URL, APK SHA-256, device serials, checked timestamps, record counts, and normalized role/path pair count so the QC log can be traced back to the exact paired evidence.
+
+`cross-surface-tour-check.ps1` and `performance-readiness.ps1` both use `tour-report-lib.ps1` so tour-report parsing, role/path identity checks, absolute HTTP(S) web browser provenance checks, native APK/nonblank-device/timestamp/checked-route provenance checks, native PNG screenshot evidence checks, route normalization, and clean-record checks stay consistent across gates. Clean-record validation treats numeric HTTP status values of 400 or higher as bad records regardless of whether JSON parsing produced a narrow integer, wider number, or numeric string, and report-backed gates reject nonempty top-level `badRecords` arrays even if individual route records otherwise look clean.
+
+Run local performance readiness proof after frontend or deployment-shape changes:
+
+```powershell
+.\scripts\quality\performance-readiness.ps1
+```
+
+The default proof builds the frontend and enforces a 30-second local build budget plus raw and gzipped JavaScript/CSS bundle budgets. When supplied tour reports are checked, the proof requires timing fields on every relevant route record, requires browser target and checked-route provenance with absolute HTTP(S) app/API URLs for web reports, requires native APK/nonblank-device/timestamp/checked-route provenance with an absolute HTTP(S) API URL for installed-APK reports, requires each native route record to reference an existing PNG screenshot file with positive image dimensions, and enforces web route-ready, native route-ready, and native screenshot-complete timing budgets. When a seeded local stack is running, add API smoke timing:
+
+```powershell
+.\scripts\quality\performance-readiness.ps1 -IncludeApiSmoke -ApiBaseUrl "http://localhost:8080"
+```
+
+When browser and installed-APK tour reports are available, include them so the performance readiness pass also verifies paired route timing, route-report cleanliness, browser provenance, and installed-APK provenance:
+
+```powershell
+.\scripts\quality\performance-readiness.ps1 `
+  -WebReportPath ".\reports\v16.2-loop-163-frontend-full-tour.json" `
+  -NativeReportPath ".\reports\v16.2-loop-163-native-tour.json"
+```
+
+This is local deployment-shaped proof, not production load, monitoring, autoscaling, or provider-delivery certification.
+
+Performance report paths are paired evidence. `performance-readiness.ps1` rejects a lone `-WebReportPath` or lone `-NativeReportPath` before building the frontend so report-backed route timing cannot be claimed from one surface only. When both are supplied, it resolves and checks both report paths before the frontend build starts, then prints the resolved web/native report inputs and resolved performance report output path. Omit both only for bundle/API-only proof. Report-backed JSON and terminal output record the supplied and resolved web/native report paths plus validated browser and installed-APK provenance snapshots so timing evidence can be traced back to the exact paired reports.
+
+The GitHub quality gate runs the default performance readiness proof in the frontend job so bundle budgets stay enforced in CI as well as local heavy certification.
+
+Run the V16.2 deployment-ready local certification gate when the stack is ready for heavier proof:
 
 ```powershell
 .\scripts\quality\deployment-readiness.ps1 -IncludeE2E -SkipCompose
 ```
 
-Add `-IncludeApiSmoke` when the seeded local stack should also prove API smoke scenarios. The gate stays local and mocked; it does not provision cloud infrastructure, provider setup, or production delivery.
+When browser and installed-APK tour reports are available, pass both report paths so the deployment gate also runs cross-surface comparison, report-aware performance readiness, and API smoke in the same full local certification pass:
+
+```powershell
+.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose `
+  -NativeApiBaseUrl "http://10.0.2.2:8080" `
+  -WebTourReportPath ".\reports\v16.2-loop-163-frontend-full-tour.json" `
+  -NativeTourReportPath ".\reports\v16.2-loop-163-native-tour.json"
+```
+
+When `-IncludeApiSmoke` is supplied, deployment readiness validates `-ApiBaseUrl` as a non-blank absolute `http` or `https` URL, then passes it into `performance-readiness.ps1` so API smoke is timed against the local performance budget and recorded in `reports/performance-readiness.json`. Deployment readiness also validates `-NativeApiBaseUrl` and passes it into `native-mobile-check.ps1 -Sync` so the Android-bound JavaScript is compiled against the emulator or device-reachable backend URL instead of relying on an implicit native default. `-ApiBaseUrl` and `-NativeApiBaseUrl` are intentionally separate because host-side smoke often uses `http://localhost:8080` while the Android emulator normally uses `http://10.0.2.2:8080`. Omit API smoke only for a focused rerun when the seeded local stack is unavailable or API smoke is not part of the current claim. The gate stays local and mocked; it does not provision cloud infrastructure, provider setup, or production delivery.
+
+Report paths are all-or-none. `deployment-readiness.ps1` rejects a lone `-WebTourReportPath` or lone `-NativeTourReportPath` before running the gate so cross-surface parity and performance readiness cannot be claimed from one surface only. When both are supplied, it resolves and checks both report paths before markdown, public-readiness, mobile shell, native sync, cross-surface comparison, performance readiness, or broad quality proof starts, then passes the resolved paths to downstream report-aware checks.
+
+`deployment-readiness.ps1` runs shared mobile shell and native sync proof before the broad local quality gate, then calls `check.ps1 -SkipMobile` so those same mobile/native checks are not repeated in the same run. Running `check.ps1` directly still includes mobile shell and native sync proof by default, and direct broad-gate runs can pass `-NativeApiBaseUrl` when the Android build must target a physical-device LAN URL instead of the emulator default.
+
+After the browser tour, installed-APK tour, cross-surface comparison, and full deployment gate are green, switch from scripted verification to the [final live walkthrough checklist](../architecture/cross-surface-convergence.md#final-live-walkthrough-checklist). Record the reviewer/product-owner results with the manual walkthrough evidence template in that ledger; do not treat script output alone as final V16.2 convergence.
 
 Validate Compose configuration:
 
@@ -132,15 +234,19 @@ Run the API smoke suite after the stack is running:
 .\scripts\quality\api-smoke.ps1
 ```
 
+The API smoke wrapper and lower-level scenario runner both validate and normalize `-BaseUrl` as a non-blank absolute `http` or `https` URL before any smoke scenario starts. The wrapper prints the normalized target and either the resolved output path or the timestamped report pattern before delegating to the lower-level runner.
+
+The API docs helper validates `-BaseUrl` the same way before checking or opening Swagger/OpenAPI URLs.
+
 The API smoke suite includes the V14 assistant scenario. That scenario checks platform, merchant, and auditor assistant endpoints; assistant audit events; current-user history scoping; role and tenant refusals; read-only auditor behavior; and a smoke-scale concurrent assistant summary run.
 
 ## Script Families
 
-`scripts/api/` contains the lower-level smoke runner, assertion helpers, HTTP helpers, report helpers, and scenario files. The `scripts/quality/api-smoke.ps1` wrapper is the normal entry point. The smoke suite is broad functional proof, not production load certification; maximum practical load and stress limits are reserved for the Pre-V16 release gate.
+`scripts/api/` contains the lower-level smoke runner, assertion helpers, HTTP helpers, report helpers, and scenario files. The lower-level runner keeps the same validated target URL contract as the quality wrapper so direct scenario runs and saved smoke report provenance cannot drift from wrapper proof. The `scripts/quality/api-smoke.ps1` wrapper is the normal entry point. The smoke suite is broad functional proof, not production load certification; maximum practical load and stress limits are reserved for V17 production activation or later.
 
 Frontend browser-flow scripts expect the local stack to be running and use the React app URL as the browser entry point. Playwright tests live under `frontend/tests/e2e/`, with configuration in `frontend/playwright.config.ts`. The Docker frontend target is controlled with `FRONTEND_TOUR_BASE_URL`.
 
-Reports generated by scripts belong under `reports/`, which is ignored by Git.
+Reports generated by scripts belong under `reports/`, which is ignored by Git. Report-producing quality scripts normalize local output and report-input paths to canonical filesystem paths before passing them to downstream proof tools or writing provenance fields.
 
 ## What Scripts Should Leave In Git
 

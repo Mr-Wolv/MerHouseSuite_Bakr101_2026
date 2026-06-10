@@ -2,13 +2,19 @@ package com.merhouse.web;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.merhouse.config.JacksonConfig;
+import com.merhouse.dto.AuthResponse;
+import com.merhouse.dto.LoginRequest;
+import com.merhouse.dto.PasswordResetRequest;
+import com.merhouse.dto.PasswordResetRequestResponse;
 import com.merhouse.dto.SelfPasswordChangeRequest;
+import com.merhouse.dto.UserResponse;
 import com.merhouse.entity.UserRole;
 import com.merhouse.repository.AppUserRepository;
 import com.merhouse.security.JwtService;
@@ -19,6 +25,7 @@ import com.merhouse.service.AuthRecoveryService;
 import com.merhouse.service.AuthService;
 import com.merhouse.service.CurrentUserService;
 import com.merhouse.service.UserService;
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +69,54 @@ class AuthControllerTest {
 
     @MockitoBean
     private AppUserRepository appUserRepository;
+
+    @Test
+    void loginNormalizesCopiedEmailBeforeValidation() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID tenantId = UUID.randomUUID();
+        when(authService.login(new LoginRequest("owner@merhouse.local", " exact password ")))
+            .thenReturn(new AuthResponse(
+                "token",
+                "Bearer",
+                3600,
+                new UserResponse(userId, tenantId, "owner@merhouse.local", UserRole.OWNER, true, Instant.parse("2026-06-10T00:00:00Z"))
+            ));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType("application/json")
+                .content("""
+                    {
+                      "email": " owner@merhouse.local ",
+                      "password": " exact password "
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.user.email").value("owner@merhouse.local"));
+
+        verify(authService).login(new LoginRequest("owner@merhouse.local", " exact password "));
+    }
+
+    @Test
+    void passwordResetRequestNormalizesCopiedEmailBeforeValidation() throws Exception {
+        when(authRecoveryService.requestReset(new PasswordResetRequest("merchant@merhouse.local")))
+            .thenReturn(new PasswordResetRequestResponse(
+                "If an enabled account exists for that email, a password reset link has been prepared.",
+                null,
+                null
+            ));
+
+        mockMvc.perform(post("/api/v1/auth/password-reset/request")
+                .contentType("application/json")
+                .content("""
+                    {
+                      "email": " merchant@merhouse.local "
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.message").value("If an enabled account exists for that email, a password reset link has been prepared."));
+
+        verify(authRecoveryService).requestReset(new PasswordResetRequest("merchant@merhouse.local"));
+    }
 
     @Test
     void selfPasswordChangeRecordsAuditEvent() throws Exception {

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://localhost:3000'
 
-test('mobile web app metadata is installable and matches the app shell', async ({ page, request }) => {
+test('shared mobile shell metadata supports native packaging and matches the app shell', async ({ page, request }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto(`${APP_URL}/login`)
 
@@ -23,13 +23,13 @@ test('mobile web app metadata is installable and matches the app shell', async (
   expect(manifest.icons).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        src: '/pwa-icon.svg',
+        src: '/app-icon.svg',
         purpose: expect.stringContaining('maskable'),
       }),
     ]),
   )
 
-  const iconResponse = await request.get(`${APP_URL}/pwa-icon.svg`)
+  const iconResponse = await request.get(`${APP_URL}/app-icon.svg`)
   expect(iconResponse.ok()).toBeTruthy()
 
   const serviceWorkerResponse = await request.get(`${APP_URL}/sw.js`)

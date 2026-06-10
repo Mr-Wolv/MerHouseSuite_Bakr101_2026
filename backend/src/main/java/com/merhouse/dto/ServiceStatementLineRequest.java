@@ -18,4 +18,11 @@ public record ServiceStatementLineRequest(
     @Min(1) int quantity,
     @NotNull @DecimalMin("0.00") BigDecimal unitAmount
 ) {
+    public ServiceStatementLineRequest {
+        description = trim(description);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

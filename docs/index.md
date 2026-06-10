@@ -13,21 +13,22 @@ This repository is prepared as a public local-development project. It includes t
 - [Scripts guide](development/scripts.md): local helper scripts and when to use them.
 - [Knowledge system](development/knowledge-system.md): tracked docs, repo shape, and markdown proof.
 
-MerHouse is prepared here as a local development stack and future deployment-ready codebase. V16 uses local mocks, dry-run proof, and repository checks; actual production deployment is deferred to a later optional phase.
+MerHouse is prepared here as a local development stack and future deployment-ready codebase. V16.2 uses local mocks, dry-run proof, cross-surface V&V/QC/QA loops, and repository checks; actual production deployment is deferred to a later optional phase.
 
 ## Architecture
 
 - [Account lifecycle](architecture/account-lifecycle.md)
-- [Agentic operations assistance](architecture/agentic-operations-assistance.md): current deterministic assistant behavior and the V15.2 local AI-agent direction.
+- [Agentic operations assistance](architecture/agentic-operations-assistance.md): current deterministic assistant behavior and later model/provider-backed activation boundaries.
 - [Admin and authentication model](architecture/admin-auth.md)
 - [Allocation strategy](architecture/allocation-strategy.md)
 - [API documentation](architecture/api-documentation.md)
 - [Cancellation workflow](architecture/cancellation-workflow.md)
+- [Cross-surface V&V convergence](architecture/cross-surface-convergence.md): evidence ledger, final live walkthrough checklist, and manual walkthrough evidence template.
 - [Deployment-ready local certification](architecture/deployment-ready-local-certification.md)
 - [Idempotency](architecture/idempotency.md)
 - [Inventory locking](architecture/inventory-locking.md)
 - [Merchant-warehouse operating loop](architecture/merchant-warehouse-operating-loop.md)
-- [Mobile-ready local certification](architecture/mobile-ready-local-certification.md)
+- [Native Android local certification](architecture/native-android-local-certification.md)
 - [Notifications](architecture/notifications.md)
 - [Operational details and timelines](architecture/operational-details-timelines.md)
 - [Partial allocation and backorders](architecture/partial-allocation.md)

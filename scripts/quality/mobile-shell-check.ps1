@@ -6,9 +6,9 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $resolvedFrontendRoot = if ([System.IO.Path]::IsPathRooted($FrontendRoot)) {
-    $FrontendRoot
+    [System.IO.Path]::GetFullPath($FrontendRoot)
 } else {
-    Join-Path $projectRoot $FrontendRoot
+    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $FrontendRoot))
 }
 
 $indexPath = Join-Path $resolvedFrontendRoot "index.html"
@@ -19,7 +19,7 @@ if (-not (Test-Path -LiteralPath $indexPath)) {
     throw "Frontend index.html was not found at $indexPath."
 }
 if (-not (Test-Path -LiteralPath $manifestPath)) {
-    throw "PWA manifest was not found at $manifestPath."
+    throw "Mobile shell manifest was not found at $manifestPath."
 }
 if (-not (Test-Path -LiteralPath $serviceWorkerPath)) {
     throw "Service worker was not found at $serviceWorkerPath."
@@ -74,6 +74,15 @@ foreach ($icon in $icons) {
     if (($icon.purpose -as [string]) -match "maskable") {
         $hasMaskableIcon = $true
     }
+
+    if ($icon.src -eq "/app-icon.svg") {
+        $iconSvg = Get-Content -Raw -LiteralPath $iconPath
+        foreach ($expected in @("#10261f", "#d9f99d")) {
+            if (-not $iconSvg.Contains($expected)) {
+                throw "Mobile shell icon is missing MerHouse identity color: $expected"
+            }
+        }
+    }
 }
 
 if (-not $hasMaskableIcon) {
@@ -87,4 +96,13 @@ foreach ($required in @("install", "activate", "fetch", "/api/")) {
     }
 }
 
-Write-Host "PWA/mobile installability check passed."
+Write-Host "Shared mobile shell check passed."
+Write-Host "Frontend root: $resolvedFrontendRoot"
+Write-Host "Manifest: $manifestPath"
+Write-Host "Manifest name: $($manifest.name)"
+Write-Host "Manifest short name: $($manifest.short_name)"
+Write-Host "Manifest display: $($manifest.display)"
+Write-Host "Manifest theme color: $($manifest.theme_color)"
+Write-Host "Manifest icon count: $($icons.Count)"
+Write-Host "Manifest has maskable icon: $hasMaskableIcon"
+Write-Host "Service worker: $serviceWorkerPath"

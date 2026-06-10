@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
@@ -88,7 +87,7 @@ class AuthRecoveryServiceTest {
             eq(user),
             eq(NotificationTopic.ACCOUNT_LIFECYCLE),
             eq("Password reset prepared"),
-            contains("prototype-local"),
+            eq("A password reset was prepared for your account. This is a local delivery history record."),
             eq("PasswordResetToken"),
             isNull()
         );
@@ -139,6 +138,26 @@ class AuthRecoveryServiceTest {
 
         assertEquals("encoded-password", user.getPasswordHash());
         assertEquals(Instant.parse("2026-05-18T00:00:00Z"), token.getUsedAt());
+        verify(tokenRepository).save(token);
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void confirmResetAcceptsCopiedTokenWithSurroundingWhitespace() {
+        AppUser user = new AppUser();
+        user.setEnabled(true);
+        PasswordResetToken token = new PasswordResetToken();
+        token.setUser(user);
+        token.setExpiresAt(Instant.parse("2026-05-18T00:15:00Z"));
+        when(tokenRepository.findByTokenHash(any())).thenReturn(Optional.of(token));
+        when(passwordEncoder.encode("new-password")).thenReturn("encoded-password");
+
+        service.confirmReset(new PasswordResetConfirmRequest("  raw-token\r\n", "new-password"));
+
+        assertEquals("encoded-password", user.getPasswordHash());
+        ArgumentCaptor<String> hashCaptor = ArgumentCaptor.forClass(String.class);
+        verify(tokenRepository).findByTokenHash(hashCaptor.capture());
+        assertEquals("NNMoAJsSP7uw3JPxiz5t4ez3saV4PDPf9__hkm8J6UM", hashCaptor.getValue());
         verify(tokenRepository).save(token);
         verify(userRepository).save(user);
     }

@@ -12,4 +12,12 @@ public record CreateInventoryItemRequest(
     @NotBlank @Size(max = 200) String name,
     Map<String, Object> attributes
 ) {
+    public CreateInventoryItemRequest {
+        sku = trim(sku);
+        name = trim(name);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

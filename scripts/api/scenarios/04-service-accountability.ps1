@@ -128,7 +128,7 @@ $Context.ServiceDispute = Invoke-Json -Context $Context -Method Patch -Path "/ap
 }
 Assert-Equal -Actual $Context.ServiceDispute.status -Expected "RESOLVED" -Message "Service dispute resolved status mismatch."
 
-Write-Host "11g. Verifying production-grade order import validation"
+Write-Host "11g. Verifying deployment-shaped local order import validation"
 $Context.OrderImport = Invoke-Json -Context $Context -Method Post -Path "/api/v1/orders/imports" -Headers $Context.MerchantHeaders -Body @{
     merchantId = $Context.Merchant.id
     mode = "PARTIAL_ACCEPT"

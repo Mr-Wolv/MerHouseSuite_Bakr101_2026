@@ -52,10 +52,15 @@ const authState: AuthState = {
   logout: vi.fn(),
 }
 
-function renderWithRoute(element: ReactNode, path = '/orders/order-1', route = '/orders/:orderId') {
+function renderWithRoute(
+  element: ReactNode,
+  path = '/orders/order-1',
+  route = '/orders/:orderId',
+  state = authState,
+) {
   render(
     <MemoryRouter initialEntries={[path]}>
-      <AuthContext.Provider value={authState}>
+      <AuthContext.Provider value={state}>
         <Routes>
           <Route path={route} element={element} />
         </Routes>
@@ -115,6 +120,22 @@ describe('OrderDetailPage', () => {
     expect(screen.getByText('1 events')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Allocation allocati/i })).toHaveAttribute('href', '/fulfillment-allocations/allocation-1')
     expect(apiMock.orderDetail).toHaveBeenCalledWith('merchant-token', 'order-1')
+  })
+
+  it('renders role-aware order recovery for warehouse users', async () => {
+    apiMock.orderDetail.mockRejectedValue(new ApiError(403, 'Forbidden', ['You cannot access this order.']))
+
+    renderWithRoute(<OrderDetailPage />, '/orders/order-1', '/orders/:orderId', {
+      ...authState,
+      user: {
+        ...authState.user!,
+        role: 'WAREHOUSE_OPERATOR',
+      },
+    })
+
+    expect(await screen.findByRole('heading', { name: 'You cannot access this order.' })).toBeInTheDocument()
+    expect(screen.getByText(/no longer visible to this role/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to Warehouse' })).toHaveAttribute('href', '/warehouse')
   })
 })
 
@@ -199,8 +220,29 @@ describe('InventoryItemDetailPage', () => {
     renderWithRoute(<InventoryItemDetailPage />, '/inventory/items/missing-item', '/inventory/items/:inventoryItemId')
 
     expect(await screen.findByRole('heading', { name: 'Inventory item not found: missing-item' })).toBeInTheDocument()
-    expect(screen.getByText(/archived, removed, or belongs to another merchant context/i)).toBeInTheDocument()
+    expect(screen.getByText(/role-appropriate workspace/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back to Stock' })).toHaveAttribute('href', '/merchant/inventory')
+  })
+
+  it('renders platform-safe inventory recovery for auditor users', async () => {
+    apiMock.inventoryItemDetail.mockRejectedValue(new ApiError(403, 'Forbidden', ['Inventory access denied']))
+
+    renderWithRoute(
+      <InventoryItemDetailPage />,
+      '/inventory/items/denied',
+      '/inventory/items/:inventoryItemId',
+      {
+        ...authState,
+        user: {
+          ...authState.user!,
+          role: 'AUDITOR',
+        },
+      },
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Inventory access denied' })).toBeInTheDocument()
+    expect(screen.getByText(/role-appropriate workspace/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to Relationships' })).toHaveAttribute('href', '/admin/relationships')
   })
 })
 
@@ -447,6 +489,39 @@ describe('Warehouse operational detail pages', () => {
     expect(apiMock.fulfillmentAllocationDetail).toHaveBeenCalledWith('merchant-token', 'allocation-1')
   })
 
+  it('renders merchant shipment recovery without warehouse-only guidance', async () => {
+    apiMock.shipmentDetail.mockRejectedValue(new ApiError(404, 'Not found', ['Shipment not found: missing']))
+
+    renderWithRoute(<ShipmentDetailPage />, '/shipments/missing', '/shipments/:shipmentId')
+
+    expect(await screen.findByRole('heading', { name: 'Shipment not found: missing' })).toBeInTheDocument()
+    expect(screen.getByText(/role-appropriate workspace/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Return to Warehouse/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to Merchant' })).toHaveAttribute('href', '/merchant')
+  })
+
+  it('renders platform allocation recovery without warehouse-only guidance', async () => {
+    apiMock.fulfillmentAllocationDetail.mockRejectedValue(new ApiError(403, 'Forbidden', ['Allocation access denied']))
+
+    renderWithRoute(
+      <FulfillmentAllocationDetailPage />,
+      '/fulfillment-allocations/denied',
+      '/fulfillment-allocations/:allocationId',
+      {
+        ...authState,
+        user: {
+          ...authState.user!,
+          role: 'AUDITOR',
+        },
+      },
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Allocation access denied' })).toBeInTheDocument()
+    expect(screen.getByText(/role-appropriate workspace/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Return to Warehouse/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to Relationships' })).toHaveAttribute('href', '/admin/relationships')
+  })
+
   it('loads relationship boundary evidence with lifecycle, linked work, and outbox context', async () => {
     renderWithRoute(
       <MerchantWarehouseRelationshipDetailPage />,
@@ -465,5 +540,39 @@ describe('Warehouse operational detail pages', () => {
     expect(screen.getByText('Relationship activated')).toBeInTheDocument()
     expect(screen.getAllByText('Outbox events').length).toBeGreaterThanOrEqual(2)
     expect(apiMock.merchantWarehouseRelationshipDetail).toHaveBeenCalledWith('merchant-token', 'relationship-1')
+  })
+
+  it('renders merchant-safe relationship recovery instead of an admin-only dead end', async () => {
+    apiMock.merchantWarehouseRelationshipDetail.mockRejectedValue(new ApiError(404, 'Not found', ['Relationship not found: missing']))
+
+    renderWithRoute(
+      <MerchantWarehouseRelationshipDetailPage />,
+      '/merchant-warehouse/relationships/missing',
+      '/merchant-warehouse/relationships/:relationshipId',
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Relationship not found: missing' })).toBeInTheDocument()
+    expect(screen.getByText(/tenant boundary/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to Merchant' })).toHaveAttribute('href', '/merchant')
+  })
+
+  it('renders platform relationship recovery to relationship governance', async () => {
+    apiMock.merchantWarehouseRelationshipDetail.mockRejectedValue(new ApiError(403, 'Forbidden', ['Relationship access denied']))
+
+    renderWithRoute(
+      <MerchantWarehouseRelationshipDetailPage />,
+      '/merchant-warehouse/relationships/denied',
+      '/merchant-warehouse/relationships/:relationshipId',
+      {
+        ...authState,
+        user: {
+          ...authState.user!,
+          role: 'AUDITOR',
+        },
+      },
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Relationship access denied' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to Relationships' })).toHaveAttribute('href', '/admin/relationships')
   })
 })

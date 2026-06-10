@@ -12,4 +12,11 @@ public record CreateOrderRequest(
     @NotBlank String customerAddress,
     @NotEmpty List<@Valid CreateOrderItemRequest> items
 ) {
+    public CreateOrderRequest {
+        customerAddress = trim(customerAddress);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

@@ -6,7 +6,17 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'playwright-report', 'test-results']),
+  globalIgnores([
+    'dist',
+    'playwright-report',
+    'test-results',
+    'android/.gradle',
+    'android/build',
+    'android/app/build',
+    'android/app/src/main/assets',
+    'android/app/src/main/res/xml/config.xml',
+    'android/capacitor-cordova-android-plugins',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

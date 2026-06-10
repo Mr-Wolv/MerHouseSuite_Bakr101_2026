@@ -786,6 +786,21 @@ export type CreateServiceReviewPayload = {
   evidenceNote?: string | null
 }
 
+export type ResolveServiceDisputePayload = {
+  status: Exclude<ServiceDisputeStatus, 'OPEN'>
+  outcomeNote?: string | null
+}
+
+export type ResolveServiceClaimPayload = {
+  status: Exclude<ServiceClaimStatus, 'OPEN'>
+  outcomeNote?: string | null
+}
+
+export type ResolveServiceReviewPayload = {
+  status: Exclude<ServiceReviewStatus, 'PENDING'>
+  outcomeNote?: string | null
+}
+
 export type OrderImportRowPayload = {
   merchantOrderReference: string
   sku: string

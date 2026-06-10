@@ -4,7 +4,7 @@ This roadmap is the project planning and quality source of truth. It should stay
 
 ## Current Status
 
-MerHouse is a local-development fulfillment coordination system for merchants, warehouse providers, and platform operators. It is deployment-ready as a desktop web app and installable mobile web app in the local-certification sense: Docker Compose, local mocks, proof scripts, tests, docs, and CI are in place. It is not a SaaS production deployment.
+MerHouse is a local-development fulfillment coordination system for merchants, warehouse providers, and platform operators. It is deployment-ready as a desktop web app and has a native Android local-certification path that packages the same frontend shell through Capacitor: Docker Compose, local mocks, proof scripts, tests, docs, and CI are in place. It is not a SaaS production deployment or app-store release.
 
 The repository is intended to be public-readable. Keep source, docs, scripts, CI, compose files, and root guidance useful to a developer who just cloned the project. Runtime values belong in environment variables, ignored local files, explicit external files, or templates.
 
@@ -17,51 +17,67 @@ The repository is intended to be public-readable. Keep source, docs, scripts, CI
 - Platform workflows for tenants, users, access requests, relationship governance, audit, outbox diagnostics, attention queues, and support/auditor boundaries.
 - Service accountability for agreements, proposals, SLA review, service statements, disputes, claims, reviews, and import evidence.
 - Account settings with account context and current-password-verified password change.
-- Installable mobile web app foundation with PWA manifest, app icon, mobile metadata, online-first service worker, and mobile proof script.
+- Native Android wrapper that packages the same frontend build through Capacitor without duplicating product code.
+- Shared mobile shell metadata with manifest, app icon, and online-first service worker used by the web runtime and native package input.
 - Local notification records, preferences, action inbox, and delivery history without external provider delivery.
 - Deterministic local operations assistant with scoped summaries, review-only suggestions, refusals, decision audit, and no operational mutation.
-- Local deployment-readiness harness for checks, smoke flows, browser proof, publication readiness, and mock-provider boundaries.
+- Local deployment-readiness harness for checks, smoke flows, browser proof, bundle/performance budgets, publication readiness, and mock-provider boundaries.
 
 ## Recent Certification
 
-### V16.1: Mobile-Ready Local Certification
+### V16.1: Native Android Local Certification
 
-Status: locally and CI-certified on 2026-06-08.
+Status: native wrapper implemented; APK assembly and installed-APK route tour are proven locally when Android SDK and a running emulator are available.
 
-Goal: make MerHouse locally proven as both a desktop web app and an installable mobile web app while keeping one React codebase, one backend, one auth model, and one role-aware product surface.
+Goal: package the existing MerHouse React app as a literal Android debug APK for local proof without creating a second product implementation.
 
-Mobile in V16.1 means a progressive web app that can be opened from a phone browser, added to the home screen, launched from an app icon, and used across the same local roles and workflows. It does not mean native app-store packaging, native push delivery, offline sync, barcode hardware integration, or a second mobile codebase.
-
-Planned scope:
-
-- PWA install foundation: manifest, app icons, theme/background colors, mobile metadata, routing fallback, and installability proof.
-- Mobile app shell: touch-safe navigation, compact account access, safe-area padding, mobile-friendly menus, and no desktop-sidebar dependence.
-- Mobile workflow fit: merchant inventory/orders/service review, warehouse receiving/fulfillment/exceptions, notifications, assistant, account settings, and admin/support/auditor routes remain usable on phone viewports.
-- Mobile states: first-run empty state, active operating state, blocked/error state, attention/action-needed state, and resolved/history state.
-- Mobile proof: Playwright mobile route tour, manifest/installability checks, no horizontal overflow, no clipped controls, no unnamed controls, stable login/session behavior, and no console errors.
-- CI/CD proof: keep desktop quality gates and include mobile/PWA checks with uploaded proof reports.
-- Documentation: README, docs index, frontend/scripts docs, and this roadmap must explain the mobile boundary and local certification commands.
+Native mobile in V16.1 means a Capacitor Android wrapper under `frontend/android` that consumes `frontend/dist`, uses the existing API client and role workflows, and points local emulator builds at the local backend through `VITE_API_BASE_URL`. Shared manifest, service worker, mobile metadata, and icon files remain as frontend shell support for web and native packaging; they are not a second mobile product track. It is not an app-store release, native OS notification delivery, push provider rollout, barcode/camera API workflow, or offline sync implementation.
 
 Acceptance bar:
 
-- local desktop browser tour still passes
-- local mobile browser tour passes
-- installability/PWA checks pass
-- backend/frontend tests still pass
-- API smoke still passes
-- GitHub Actions quality gate passes
-- remaining native-only/mobile-provider work is documented as V17 or VInfinite work
+- native wrapper source exists under the same frontend package
+- no duplicated frontend pages, routes, API clients, auth model, or role workflows are introduced
+- shared mobile shell checks pass
+- native structural check passes
+- native sync check builds the React app and syncs it into Android
+- Android debug APK assembly passes on a machine or CI runner with Android SDK
+- installed-APK route tour passes on a running Android emulator
+- docs state that mobile local certification is native Android packaging backed by one shared frontend shell
+
+### V16.2: Cross-Surface Real-World Usage Convergence
+
+Status: active final QC bug-hunt track.
+
+Goal: hunt and close concrete cross-surface bugs until the app behaves coherently for real local users across supported roles, states, and surfaces. The track must prioritize stakeholder-facing defects, dense-state failures, permission mistakes, workflow handoff gaps, frontend/backend state mismatches, performance regressions, and local-boundary drift over repetitive proof-reference cleanup or broad aimless refactoring.
+
+Operating ledger: [Cross-surface V&V convergence](cross-surface-convergence.md) records the active bug-hunt entries, proof commands, tested stakeholder states, gaps, fixes, remaining risks, and the rule that broad refactoring starts only after bug evidence identifies concrete coupling, redundancy, scalability, separability, or performance issues.
+
+Scope:
+
+- Android native live tour through the installed debug APK, using public auth routes, seeded active owner, merchant, warehouse, support-admin, and auditor accounts, a generated admin account, generated empty merchant and warehouse accounts, and operational detail routes discovered from the APK.
+- Web browser live tour through public auth, authenticated role workspaces, account settings, notifications, service accountability, assistant, platform governance, and operational detail routes.
+- Real-world usage review for empty-state stakeholders, active stakeholders, role handoffs, attention-first work, local-only provider boundaries, and route-level clarity.
+- Documentation, tests, scripts, CI, and system diagrams updated from code and proof results, especially `docs/architecture/system-diagrams.html`.
+
+Acceptance bar:
+
+- Android tour screenshots show route-specific content across all supported stakeholder roles and empty/active states, not loading shells or browser-only simulations.
+- Web tour passes desktop and narrow viewports without console errors, horizontal overflow, unlabeled controls, or stale route assumptions.
+- Cross-surface report comparison passes with exact active/empty stakeholder coverage on both web and native Android plus exact normalized web/native route-set equality.
+- Local performance readiness proof passes frontend bundle budgets, required per-record timed web/native route readiness, required per-record native screenshot-complete timing, and timed API smoke when the seeded local stack and current reports are part of the claim.
+- `system-diagrams.html`, README, development docs, scripts docs, and roadmap agree with current backend/frontend/mobile behavior.
+- Any remaining limitation is documented as a local boundary, V17 production activation work, or VInfinite product expansion.
 
 ## Local Boundaries
 
-- Notification and password recovery delivery are local records, not real email, SMS, push, or webhook sends.
+- Notification and password recovery delivery are local records, not real email, SMS, phone OS push, lock-screen, notification-tray, or webhook sends.
 - Carrier/provider handoff is represented by local outbox and carrier-dispatch records.
 - Assistant behavior is deterministic local review assistance, not provider-backed AI.
 - Service statements are local service-unit records, not invoices or payment collection.
 - Dispute evidence is stored as notes and linked local records, not uploaded legal attachment packets.
 - Failed and returned shipments are delivery-state evidence, not full customer RMA/refund/inspection/disposition workflows.
 - Health, backup/restore, dependency, and publication-readiness proof are local or dry-run checks.
-- V16.1 mobile support is an installable web app, not native app-store deployment.
+- Native Android support is a local debug APK wrapper backed by the shared frontend shell, not app-store deployment.
 
 ## Next Work
 
@@ -123,6 +139,15 @@ Heavy local certification:
 .\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose
 ```
 
+When browser and installed-APK reports are available, include both report paths so heavy certification also proves cross-surface parity and report-backed performance readiness. Report paths are paired evidence: pass both web and native paths for report-backed claims, or omit both for the default local gate.
+
+```powershell
+.\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose `
+  -NativeApiBaseUrl "http://10.0.2.2:8080" `
+  -WebTourReportPath ".\reports\v16.2-loop-163-frontend-full-tour.json" `
+  -NativeTourReportPath ".\reports\v16.2-loop-163-native-tour.json"
+```
+
 ## Closeout Bar
 
 Do not call the project closed unless:
@@ -131,6 +156,11 @@ Do not call the project closed unless:
 - public-readiness passes
 - markdown links pass
 - backend and frontend tests pass
-- PWA/mobile installability checks pass
+- shared mobile shell checks pass
+- native Android sync or APK assembly passes for the local proof level being claimed
+- the installed Android APK tour passes when an emulator or device is part of the claim
 - the browser tour passes for the supported local roles and routes
+- cross-surface tour comparison passes when both browser and installed-APK reports are available
+- local performance readiness proof passes
+- a final live walkthrough is completed with the reviewer and product owner in the real browser and real installed Android app, covering supported roles, empty/active states, workflows, performance feel, and local-provider boundaries
 - any remaining limitation is documented as a local boundary, V17 work, or VInfinite expansion

@@ -5,6 +5,26 @@ describe('api client', () => {
     vi.restoreAllMocks()
   })
 
+  it('uses proxy-relative API paths by default for the web build', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({ accessToken: 'token' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await api.login('web.user@merhouse.local', 'web-password')
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/login', {
+      method: 'POST',
+      headers: expect.any(Headers),
+      body: JSON.stringify({
+        email: 'web.user@merhouse.local',
+        password: 'web-password',
+      }),
+    })
+  })
+
   it('sends authenticated JSON requests for shipment and backorder state changes', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -49,6 +69,8 @@ describe('api client', () => {
       enabled: false,
     })
     await api.notificationDeliveries('token', 25)
+    await api.notificationDeliveries('token', 50, 'RECORDED')
+    await api.notificationDeliveries('token', 50, 'RECORDED', 1)
     await api.markNotificationRead('token', 'delivery-1')
     await api.assistantInteractions('token', 10)
     await api.createAssistantInteraction('token', {
@@ -83,17 +105,27 @@ describe('api client', () => {
       headers: expect.any(Headers),
       body: undefined,
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/v1/notifications/deliveries/delivery-1/read', {
-      method: 'PATCH',
-      headers: expect.any(Headers),
-      body: undefined,
-    })
-    expect(fetchMock).toHaveBeenNthCalledWith(6, '/api/v1/assistant/interactions?limit=10', {
+    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/v1/notifications/deliveries?limit=50&status=RECORDED', {
       method: 'GET',
       headers: expect.any(Headers),
       body: undefined,
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(7, '/api/v1/assistant/interactions', {
+    expect(fetchMock).toHaveBeenNthCalledWith(6, '/api/v1/notifications/deliveries?limit=50&page=1&status=RECORDED', {
+      method: 'GET',
+      headers: expect.any(Headers),
+      body: undefined,
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(7, '/api/v1/notifications/deliveries/delivery-1/read', {
+      method: 'PATCH',
+      headers: expect.any(Headers),
+      body: undefined,
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(8, '/api/v1/assistant/interactions?limit=10', {
+      method: 'GET',
+      headers: expect.any(Headers),
+      body: undefined,
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(9, '/api/v1/assistant/interactions', {
       method: 'POST',
       headers: expect.any(Headers),
       body: JSON.stringify({
@@ -102,12 +134,12 @@ describe('api client', () => {
         prompt: 'Summarize my queues',
       }),
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(8, '/api/v1/assistant/interactions/interaction-1/accept', {
+    expect(fetchMock).toHaveBeenNthCalledWith(10, '/api/v1/assistant/interactions/interaction-1/accept', {
       method: 'POST',
       headers: expect.any(Headers),
       body: JSON.stringify({ reason: 'Looks right' }),
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(9, '/api/v1/assistant/interactions/interaction-2/reject', {
+    expect(fetchMock).toHaveBeenNthCalledWith(11, '/api/v1/assistant/interactions/interaction-2/reject', {
       method: 'POST',
       headers: expect.any(Headers),
       body: JSON.stringify({ reason: 'Not useful' }),
@@ -260,6 +292,35 @@ describe('api client', () => {
       })
   })
 
+  it('uses the configured backend base URL for native builds without changing API paths', async () => {
+    vi.resetModules()
+    vi.stubEnv('VITE_API_BASE_URL', 'http://10.0.2.2:8080')
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({ accessToken: 'token' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    try {
+      const { api: configuredApi } = await import('./client')
+
+      await configuredApi.login('native.user@merhouse.local', 'native-password')
+
+      expect(fetchMock).toHaveBeenCalledWith('http://10.0.2.2:8080/api/v1/auth/login', {
+        method: 'POST',
+        headers: expect.any(Headers),
+        body: JSON.stringify({
+          email: 'native.user@merhouse.local',
+          password: 'native-password',
+        }),
+      })
+    } finally {
+      vi.unstubAllEnvs()
+      vi.resetModules()
+    }
+  })
+
   it('sends service-accountability agreement and statement requests', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -334,6 +395,18 @@ describe('api client', () => {
     })
     await api.finalizeServiceStatement('token-1', 'statement-1')
     await api.markServiceStatementSettled('token-1', 'statement-1')
+    await api.resolveServiceDispute('token-1', 'dispute-1', {
+      status: 'RESOLVED',
+      outcomeNote: 'Accepted',
+    })
+    await api.resolveServiceClaim('token-1', 'claim-1', {
+      status: 'REJECTED',
+      outcomeNote: 'Denied',
+    })
+    await api.resolveServiceReview('token-1', 'review-1', {
+      status: 'APPROVED',
+      outcomeNote: 'Approved',
+    })
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/service-accountability/agreements', {
       method: 'POST',
@@ -448,6 +521,30 @@ describe('api client', () => {
       method: 'PATCH',
       headers: expect.any(Headers),
       body: undefined,
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(13, '/api/v1/service-accountability/disputes/dispute-1/resolve', {
+      method: 'PATCH',
+      headers: expect.any(Headers),
+      body: JSON.stringify({
+        status: 'RESOLVED',
+        outcomeNote: 'Accepted',
+      }),
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(14, '/api/v1/service-accountability/claims/claim-1/resolve', {
+      method: 'PATCH',
+      headers: expect.any(Headers),
+      body: JSON.stringify({
+        status: 'REJECTED',
+        outcomeNote: 'Denied',
+      }),
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(15, '/api/v1/service-accountability/reviews/review-1/resolve', {
+      method: 'PATCH',
+      headers: expect.any(Headers),
+      body: JSON.stringify({
+        status: 'APPROVED',
+        outcomeNote: 'Approved',
+      }),
     })
   })
 })

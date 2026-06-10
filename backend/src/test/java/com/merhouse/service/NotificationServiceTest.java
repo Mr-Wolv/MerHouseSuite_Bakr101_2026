@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -170,6 +171,44 @@ class NotificationServiceTest {
     }
 
     @Test
+    void deliveriesForUserCanFilterUnreadActionRecords() {
+        UUID userId = UUID.randomUUID();
+        NotificationDelivery unread = new NotificationDelivery();
+        when(deliveryRepository.findByRecipientIdAndStatusOrderByCreatedAtDesc(
+            eq(userId),
+            eq(NotificationDeliveryStatus.RECORDED),
+            any()
+        )).thenReturn(List.of(unread));
+
+        var deliveries = service.deliveriesForUser(userId, 50, NotificationDeliveryStatus.RECORDED);
+
+        assertEquals(List.of(unread), deliveries);
+        verify(deliveryRepository).findByRecipientIdAndStatusOrderByCreatedAtDesc(
+            eq(userId),
+            eq(NotificationDeliveryStatus.RECORDED),
+            any()
+        );
+    }
+
+    @Test
+    void deliveriesForUserUsesRequestedPageForDenseActionRecords() {
+        UUID userId = UUID.randomUUID();
+        NotificationDelivery unread = new NotificationDelivery();
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        when(deliveryRepository.findByRecipientIdAndStatusOrderByCreatedAtDesc(
+            eq(userId),
+            eq(NotificationDeliveryStatus.RECORDED),
+            pageableCaptor.capture()
+        )).thenReturn(List.of(unread));
+
+        var deliveries = service.deliveriesForUser(userId, 50, 2, NotificationDeliveryStatus.RECORDED);
+
+        assertEquals(List.of(unread), deliveries);
+        assertEquals(2, pageableCaptor.getValue().getPageNumber());
+        assertEquals(50, pageableCaptor.getValue().getPageSize());
+    }
+
+    @Test
     void summaryCountsUnreadRecordedDeliveriesForCurrentUser() {
         UUID userId = UUID.randomUUID();
         AppUser user = user(userId, UUID.randomUUID());
@@ -188,7 +227,11 @@ class NotificationServiceTest {
         when(userRepository.findWithTenantById(userId)).thenReturn(Optional.of(user));
         when(deliveryRepository.countByRecipientIdAndStatus(userId, NotificationDeliveryStatus.RECORDED)).thenReturn(3L);
         when(deliveryRepository.findLatestCreatedAtByRecipientId(userId)).thenReturn(latest);
-        when(deliveryRepository.findByRecipientIdOrderByCreatedAtDesc(eq(userId), any())).thenReturn(List.of(delivery));
+        when(deliveryRepository.findByRecipientIdAndStatusOrderByCreatedAtDesc(
+            eq(userId),
+            eq(NotificationDeliveryStatus.RECORDED),
+            any()
+        )).thenReturn(List.of(delivery));
 
         var summary = service.summaryForUser(userId);
 
@@ -215,7 +258,11 @@ class NotificationServiceTest {
         when(userRepository.findWithTenantById(userId)).thenReturn(Optional.of(user));
         when(deliveryRepository.countByRecipientIdAndStatus(userId, NotificationDeliveryStatus.RECORDED)).thenReturn(4L);
         when(deliveryRepository.findLatestCreatedAtByRecipientId(userId)).thenReturn(latest);
-        when(deliveryRepository.findByRecipientIdOrderByCreatedAtDesc(eq(userId), any())).thenReturn(List.of(
+        when(deliveryRepository.findByRecipientIdAndStatusOrderByCreatedAtDesc(
+            eq(userId),
+            eq(NotificationDeliveryStatus.RECORDED),
+            any()
+        )).thenReturn(List.of(
             order,
             backorder,
             exception,
@@ -230,6 +277,75 @@ class NotificationServiceTest {
         assertTrue(routes.contains("BackorderItem=/merchant/orders"));
         assertTrue(routes.contains("FulfillmentException=/service-accountability"));
         assertTrue(routes.contains("Shipment=/admin/outbox"));
+    }
+
+    @Test
+    void summaryRoutesOutboxHealthToDiagnosticsEvenWithoutSourceId() {
+        UUID userId = UUID.randomUUID();
+        AppUser user = user(userId, UUID.randomUUID());
+        Instant latest = Instant.parse("2026-05-29T11:58:00Z");
+        NotificationDelivery outbox = delivery(
+            user,
+            NotificationTopic.OUTBOX_HEALTH,
+            "Outbox retry failed",
+            "Platform review is needed.",
+            null,
+            null,
+            latest
+        );
+        when(userRepository.findWithTenantById(userId)).thenReturn(Optional.of(user));
+        when(deliveryRepository.countByRecipientIdAndStatus(userId, NotificationDeliveryStatus.RECORDED)).thenReturn(1L);
+        when(deliveryRepository.findLatestCreatedAtByRecipientId(userId)).thenReturn(latest);
+        when(deliveryRepository.findByRecipientIdAndStatusOrderByCreatedAtDesc(
+            eq(userId),
+            eq(NotificationDeliveryStatus.RECORDED),
+            any()
+        )).thenReturn(List.of(outbox));
+
+        var summary = service.summaryForUser(userId);
+
+        assertEquals("/admin/outbox", summary.attentionSignals().getFirst().route());
+    }
+
+    @Test
+    void summaryBuildsAttentionSignalsFromUnreadDeliveriesEvenWhenRecentHistoryIsRead() {
+        UUID userId = UUID.randomUUID();
+        AppUser user = user(userId, UUID.randomUUID());
+        Instant latest = Instant.parse("2026-05-29T11:58:00Z");
+        NotificationDelivery unread = delivery(
+            user,
+            NotificationTopic.OPERATIONS,
+            "Older unread inbound",
+            "Unread work should stay visible even when newer history is read.",
+            "InboundStockRequest",
+            UUID.randomUUID(),
+            latest.minusSeconds(60)
+        );
+        NotificationDelivery read = delivery(
+            user,
+            NotificationTopic.OPERATIONS,
+            "Newer read history",
+            "This should not crowd unread work out of the summary.",
+            "CustomerOrder",
+            UUID.randomUUID(),
+            latest
+        );
+        read.setStatus(NotificationDeliveryStatus.READ);
+        when(userRepository.findWithTenantById(userId)).thenReturn(Optional.of(user));
+        when(deliveryRepository.countByRecipientIdAndStatus(userId, NotificationDeliveryStatus.RECORDED)).thenReturn(1L);
+        when(deliveryRepository.findLatestCreatedAtByRecipientId(userId)).thenReturn(latest);
+        when(deliveryRepository.findByRecipientIdAndStatusOrderByCreatedAtDesc(
+            eq(userId),
+            eq(NotificationDeliveryStatus.RECORDED),
+            any()
+        )).thenReturn(List.of(unread));
+
+        var summary = service.summaryForUser(userId);
+
+        assertEquals(1L, summary.unreadCount());
+        assertEquals(1, summary.attentionSignals().size());
+        assertEquals("Older unread inbound", summary.attentionSignals().getFirst().title());
+        assertEquals("/inbound-stock-requests/" + unread.getSourceId(), summary.attentionSignals().getFirst().route());
     }
 
     private AppUser user(UUID userId, UUID tenantId) {

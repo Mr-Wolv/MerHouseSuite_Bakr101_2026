@@ -5,14 +5,17 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "..\quality\url-guard-lib.ps1")
+
+$readinessUrl = Assert-AbsoluteHttpUrl -Name "Url" -Value $Url
 
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 $lastError = $null
 
-Write-Host "Waiting for backend readiness at $Url..."
+Write-Host "Waiting for backend readiness at $readinessUrl..."
 while ((Get-Date) -lt $deadline) {
     try {
-        $response = Invoke-RestMethod -Method Get -Uri $Url -TimeoutSec 5
+        $response = Invoke-RestMethod -Method Get -Uri $readinessUrl -TimeoutSec 5
         if ($response.status -eq "UP") {
             Write-Host "Backend is ready."
             return

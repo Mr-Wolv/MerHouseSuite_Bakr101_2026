@@ -33,6 +33,9 @@ import type {
   CreateServiceReviewPayload,
   CreateServiceStatementPayload,
   GenerateServiceStatementPayload,
+  ResolveServiceClaimPayload,
+  ResolveServiceDisputePayload,
+  ResolveServiceReviewPayload,
   CreateInventoryItemPayload,
   UpdateInventoryItemPayload,
   CreateOrderPayload,
@@ -52,6 +55,7 @@ import type {
   MerchantWarehouseRelationship,
   MerchantWarehouseRelationshipDetail,
   NotificationDelivery,
+  NotificationDeliveryStatus,
   NotificationPreference,
   NotificationPreferencePayload,
   NotificationSummary,
@@ -191,8 +195,15 @@ export const api = {
       body,
     })
   },
-  notificationDeliveries(token: string, limit = 50) {
-    return request<NotificationDelivery[]>(`/api/v1/notifications/deliveries?limit=${limit}`, { token })
+  notificationDeliveries(token: string, limit = 50, status?: NotificationDeliveryStatus, page = 0) {
+    const params = new URLSearchParams({ limit: String(limit) })
+    if (page > 0) {
+      params.set('page', String(page))
+    }
+    if (status) {
+      params.set('status', status)
+    }
+    return request<NotificationDelivery[]>(`/api/v1/notifications/deliveries?${params.toString()}`, { token })
   },
   markNotificationRead(token: string, deliveryId: string) {
     return request<NotificationDelivery>(`/api/v1/notifications/deliveries/${deliveryId}/read`, {
@@ -520,8 +531,29 @@ export const api = {
   serviceClaims(token: string) {
     return request<ServiceClaim[]>('/api/v1/service-accountability/claims', { token })
   },
+  resolveServiceClaim(token: string, claimId: string, body: ResolveServiceClaimPayload) {
+    return request<ServiceClaim>(`/api/v1/service-accountability/claims/${claimId}/resolve`, {
+      method: 'PATCH',
+      token,
+      body,
+    })
+  },
   serviceReviews(token: string) {
     return request<ServiceReview[]>('/api/v1/service-accountability/reviews', { token })
+  },
+  resolveServiceReview(token: string, reviewId: string, body: ResolveServiceReviewPayload) {
+    return request<ServiceReview>(`/api/v1/service-accountability/reviews/${reviewId}/resolve`, {
+      method: 'PATCH',
+      token,
+      body,
+    })
+  },
+  resolveServiceDispute(token: string, disputeId: string, body: ResolveServiceDisputePayload) {
+    return request<ServiceDispute>(`/api/v1/service-accountability/disputes/${disputeId}/resolve`, {
+      method: 'PATCH',
+      token,
+      body,
+    })
   },
   inventoryItems(token: string) {
     return request<InventoryItem[]>('/api/v1/inventory/items', { token })

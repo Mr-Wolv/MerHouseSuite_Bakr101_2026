@@ -28,11 +28,21 @@ if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
     throw "npm was not found on PATH. Install Node.js or add npm to PATH before running the frontend tour."
 }
 
-$resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
-    $OutputPath
-} else {
-    Join-Path $projectRoot $OutputPath
+. (Join-Path $PSScriptRoot "url-guard-lib.ps1")
+
+$normalizedBaseUrl = Assert-AbsoluteHttpUrl -Name "BaseUrl" -Value $BaseUrl
+$normalizedApiUrl = Assert-AbsoluteHttpUrl -Name "ApiUrl" -Value $ApiUrl
+
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    throw "OutputPath must be a non-blank report path."
 }
+
+$resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
+    [System.IO.Path]::GetFullPath($OutputPath)
+} else {
+    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $OutputPath))
+}
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $resolvedOutputPath) | Out-Null
 
 $previousBaseUrl = $env:FRONTEND_TOUR_BASE_URL
 $previousApiUrl = $env:E2E_API_URL
@@ -50,8 +60,8 @@ $previousAuditorPassword = $env:FRONTEND_TOUR_AUDITOR_PASSWORD
 
 Push-Location $frontendRoot
 try {
-    $env:FRONTEND_TOUR_BASE_URL = $BaseUrl.TrimEnd("/")
-    $env:E2E_API_URL = $ApiUrl.TrimEnd("/")
+    $env:FRONTEND_TOUR_BASE_URL = $normalizedBaseUrl
+    $env:E2E_API_URL = $normalizedApiUrl
     $env:FRONTEND_TOUR_REPORT = $resolvedOutputPath
     $env:FRONTEND_TOUR_ADMIN_EMAIL = $AdminEmail
     $env:FRONTEND_TOUR_ADMIN_PASSWORD = $AdminPassword
@@ -64,7 +74,10 @@ try {
     $env:FRONTEND_TOUR_AUDITOR_EMAIL = $AuditorEmail
     $env:FRONTEND_TOUR_AUDITOR_PASSWORD = $AuditorPassword
 
-    Write-Host "Running full frontend route tour against $BaseUrl"
+    Write-Host "Frontend tour app URL: $normalizedBaseUrl"
+    Write-Host "Frontend tour API URL: $normalizedApiUrl"
+    Write-Host "Frontend tour report: $resolvedOutputPath"
+    Write-Host "Running full frontend route tour against $normalizedBaseUrl"
     npm exec -- playwright test tests/e2e/full-tour.spec.ts --project=chromium
     if ($LASTEXITCODE -ne 0) {
         throw "Full frontend route tour failed."

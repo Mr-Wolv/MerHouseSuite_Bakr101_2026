@@ -13,4 +13,11 @@ public record CreateUserRequest(
     @NotBlank @Size(min = 8, max = 120) String password,
     @NotNull UserRole role
 ) {
+    public CreateUserRequest {
+        email = trim(email);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

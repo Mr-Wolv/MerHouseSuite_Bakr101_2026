@@ -124,6 +124,28 @@ describe('AdminOutboxPage', () => {
   })
 
   it('keeps support admins in read-only diagnostic mode', async () => {
+    apiMock.outboxSummary.mockResolvedValue({
+      pending: 1,
+      processed: 12,
+      failed: 2,
+      retryableFailed: 1,
+      attentionSignals: [
+        {
+          id: 'outbox-failed',
+          severity: 'CRITICAL',
+          title: 'Outbox failures need reliability handling',
+          body: '2 failed events need owner/admin retry or dead-letter handling; review diagnostics before escalation.',
+          ownerRole: 'SUPPORT_ADMIN',
+          nextActionLabel: 'Review diagnostics',
+          route: '/admin/outbox',
+          sourceType: 'OutboxEvent',
+          sourceId: null,
+          createdAt: '2026-06-10T00:00:00Z',
+          resolved: false,
+        },
+      ],
+    })
+
     renderPage({
       ...authState,
       user: {
@@ -138,6 +160,9 @@ describe('AdminOutboxPage', () => {
     expect(screen.getByText('Read-only diagnostics')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Dead-letter' })).not.toBeInTheDocument()
+    expect(screen.getByText('Owner: SUPPORT ADMIN')).toHaveClass('data-chip')
+    expect(screen.getByRole('link', { name: 'Review diagnostics' })).toHaveAttribute('href', '/admin/outbox')
+    expect(screen.getByText(/owner\/admin retry or dead-letter handling/i)).toBeInTheDocument()
     expect(apiMock.processOutbox).not.toHaveBeenCalled()
   })
 
@@ -171,6 +196,47 @@ describe('AdminOutboxPage', () => {
     const row = screen.getByRole('row', { name: /ShipmentFailed/i })
     expect(within(row).getByRole('button', { name: 'Retry' })).toBeEnabled()
     expect(within(row).getByRole('button', { name: 'Dead-letter' })).toBeEnabled()
+  })
+
+  it('trims dead-letter governance reason before moving failed work', async () => {
+    const user = userEvent.setup()
+    apiMock.outboxEvents.mockResolvedValue([
+      {
+        id: 'failed-event-id',
+        eventType: 'ShipmentFailed',
+        aggregateType: 'Shipment',
+        aggregateId: 'shipment-id-654321',
+        status: 'FAILED',
+        attempts: 3,
+        createdAt: '2026-05-17T00:00:00Z',
+        nextAttemptAt: '2026-05-17T01:00:00Z',
+        processedAt: null,
+        lastError: 'Carrier endpoint unavailable',
+      },
+    ])
+    apiMock.deadLetterOutboxEvent.mockResolvedValue({
+      id: 'failed-event-id',
+      eventType: 'ShipmentFailed',
+      aggregateType: 'Shipment',
+      aggregateId: 'shipment-id-654321',
+      status: 'DEAD_LETTER',
+      attempts: 3,
+      createdAt: '2026-05-17T00:00:00Z',
+      nextAttemptAt: null,
+      processedAt: null,
+      lastError: 'Parked after review',
+    })
+
+    renderPage()
+
+    await user.clear(await screen.findByLabelText('Reason'))
+    await user.type(screen.getByLabelText('Reason'), ' Parked after review ')
+    const row = screen.getByRole('row', { name: /ShipmentFailed/i })
+    await user.click(within(row).getByRole('button', { name: 'Dead-letter' }))
+
+    expect(apiMock.deadLetterOutboxEvent).toHaveBeenCalledWith('admin-token', 'failed-event-id', {
+      reason: 'Parked after review',
+    })
   })
 
   it('shows settled owner outbox events as state instead of disabled retry controls', async () => {

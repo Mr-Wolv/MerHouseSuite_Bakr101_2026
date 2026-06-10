@@ -2,7 +2,6 @@ package com.merhouse.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -135,6 +134,10 @@ class AccessRequestServiceTest {
         accessRequest.setRequesterEmail("requester@merhouse.local");
         accessRequest.setRequestedRole(UserRole.MERCHANT);
         accessRequest.setStatus(AccessRequestStatus.APPROVED);
+        AppUser reviewer = new AppUser();
+        accessRequest.setReviewedBy(reviewer);
+        accessRequest.setReviewedAt(Instant.parse("2026-05-17T23:00:00Z"));
+        accessRequest.setReviewNote("Approved by support review");
         Tenant tenant = new Tenant();
         tenant.setName("Converted Org");
         tenant.setType(TenantType.MERCHANT);
@@ -155,11 +158,14 @@ class AccessRequestServiceTest {
         assertEquals(tenant, accessRequest.getConvertedTenant());
         assertEquals(user, accessRequest.getConvertedUser());
         assertEquals(Instant.parse("2026-05-18T00:00:00Z"), accessRequest.getConvertedAt());
+        assertEquals(reviewer, accessRequest.getReviewedBy());
+        assertEquals(Instant.parse("2026-05-17T23:00:00Z"), accessRequest.getReviewedAt());
+        assertEquals("Approved by support review", accessRequest.getReviewNote());
         verify(notificationService).recordForUser(
             eq(user),
             eq(NotificationTopic.ACCOUNT_LIFECYCLE),
             eq("Account ready"),
-            contains("prototype-local"),
+            eq("Your MerHouse account was created from an approved access request. This is a local delivery history record."),
             eq("AccessRequest"),
             eq(requestId)
         );

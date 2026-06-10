@@ -129,7 +129,7 @@ class ServiceAccountabilityServiceTest {
         assertEquals("Standard receiving", response.title());
         assertEquals(new BigDecimal("2.50"), response.rateCard().inboundReceivingFeePerUnit());
         assertEquals(48, response.slaPolicy().receivingSlaHours());
-        verify(currentUserService).requireAdminOrTenant(merchant.getId());
+        verify(currentUserService).requireMutatingAdminOrTenant(merchant.getId());
     }
 
     @Test
@@ -156,7 +156,7 @@ class ServiceAccountabilityServiceTest {
         service.acceptAgreement(agreement.getId());
 
         assertEquals(ServiceAgreementStatus.ACTIVE, agreement.getStatus());
-        verify(currentUserService).requireAdminOrTenant(provider.getId());
+        verify(currentUserService).requireMutatingAdminOrTenant(provider.getId());
         verify(alertService).recordMerchantAlert(
             eq(merchant.getId()),
             eq("Service agreement active"),
@@ -178,7 +178,7 @@ class ServiceAccountabilityServiceTest {
         service.proposeAgreement(agreement.getId());
 
         assertEquals(ServiceAgreementStatus.PROPOSED, agreement.getStatus());
-        verify(currentUserService).requireAdminOrTenant(merchant.getId());
+        verify(currentUserService).requireMutatingAdminOrTenant(merchant.getId());
         verify(alertService).recordWarehouseAlert(
             eq(provider.getId()),
             eq("Service agreement proposed"),
@@ -264,10 +264,58 @@ class ServiceAccountabilityServiceTest {
         ServiceStatement statement = statement(agreement, ServiceStatementStatus.MARKED_SETTLED);
 
         when(statementRepository.findWithDetailsById(statement.getId())).thenReturn(Optional.of(statement));
-        when(currentUserService.isAdmin()).thenReturn(true);
+        when(currentUserService.canMutatePlatform()).thenReturn(true);
 
         assertThrows(DomainConflictException.class, () -> service.finalizeStatement(statement.getId()));
         verify(statementRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void supportAndAuditorRolesCannotMutateServiceRecordsThroughServiceLayer() {
+        Tenant merchant = tenant(TenantType.MERCHANT, "Merchant");
+        Tenant provider = tenant(TenantType.WAREHOUSE_PROVIDER, "Provider");
+        ServiceAgreement agreement = agreement(merchant, provider, ServiceAgreementStatus.ACTIVE);
+        ServiceStatement statement = statement(agreement, ServiceStatementStatus.DRAFT);
+
+        when(statementRepository.findWithDetailsById(statement.getId())).thenReturn(Optional.of(statement));
+        when(currentUserService.canMutatePlatform()).thenReturn(false);
+        for (UserRole role : List.of(UserRole.SUPPORT_ADMIN, UserRole.AUDITOR)) {
+            when(currentUserService.required()).thenReturn(new UserPrincipal(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                role.name().toLowerCase() + "@example.test",
+                role,
+                true
+            ));
+
+            assertThrows(AccessDeniedException.class, () -> service.finalizeStatement(statement.getId()));
+        }
+        verify(statementRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void supportAdminCanReadSlaStatusesWithoutMutationAuthority() {
+        Tenant merchant = tenant(TenantType.MERCHANT, "Merchant");
+        Tenant provider = tenant(TenantType.WAREHOUSE_PROVIDER, "Provider");
+        ServiceAgreement agreement = agreement(merchant, provider, ServiceAgreementStatus.ACTIVE);
+
+        when(agreementRepository.findWithDetailsById(agreement.getId())).thenReturn(Optional.of(agreement));
+        when(currentUserService.isAdmin()).thenReturn(true);
+        when(currentUserService.required()).thenReturn(new UserPrincipal(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            "support@example.test",
+            UserRole.SUPPORT_ADMIN,
+            true
+        ));
+        when(inboundRepository.findByMerchantIdOrderByCreatedAtDesc(merchant.getId())).thenReturn(List.of());
+        when(allocationRepository.findByWarehouseTenantIdOrderByCreatedAtDesc(provider.getId())).thenReturn(List.of());
+
+        var statuses = service.findSlaStatuses(agreement.getId());
+
+        assertEquals(List.of(), statuses);
+        verify(agreementRepository).findWithDetailsById(agreement.getId());
+        verify(currentUserService, never()).canMutatePlatform();
     }
 
     @Test

@@ -21,4 +21,4 @@ requested quantity -> reserve available stock -> record remainder as backorder
 
 ## Backorder Lifecycle
 
-Open backorders can become `FULFILLED` or `CANCELLED`. Cancelling an order cancels its open backorders.
+Open backorders can become `FULFILLED` or `CANCELLED`. A fulfilled backorder records that the shortage row was resolved, but it does not synthesize warehouse allocation, reserved stock, or an `ALLOCATED` order status. Cancelling an order cancels its open backorders.

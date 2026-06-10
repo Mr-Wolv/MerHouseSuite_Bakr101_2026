@@ -65,7 +65,7 @@ public class AuthRecoveryService {
     @Transactional
     public MessageResponse confirmReset(PasswordResetConfirmRequest request) {
         Instant now = clock.instant();
-        PasswordResetToken token = tokenRepository.findByTokenHash(hashToken(request.token()))
+        PasswordResetToken token = tokenRepository.findByTokenHash(hashToken(normalizeToken(request.token())))
             .orElseThrow(() -> new DomainConflictException("Reset token is invalid or expired."));
         if (token.getUsedAt() != null || !token.getExpiresAt().isAfter(now) || !token.getUser().isEnabled()) {
             throw new DomainConflictException("Reset token is invalid or expired.");
@@ -88,7 +88,7 @@ public class AuthRecoveryService {
             user,
             NotificationTopic.ACCOUNT_LIFECYCLE,
             "Password reset prepared",
-            "A password reset was prepared for your account. This is a prototype-local delivery record.",
+            "A password reset was prepared for your account. This is a local delivery history record.",
             "PasswordResetToken",
             token.getId()
         );
@@ -120,5 +120,9 @@ public class AuthRecoveryService {
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase();
+    }
+
+    private String normalizeToken(String token) {
+        return token.trim();
     }
 }

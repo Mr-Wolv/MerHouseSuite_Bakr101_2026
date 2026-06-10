@@ -31,3 +31,5 @@ Order lines
 ## Related Mechanics
 
 Cancelling allocated work releases reserved stock and cancels open backorders.
+
+Marking a backorder row `FULFILLED` closes that shortage evidence and emits a backorder event. It does not create reserved stock, fulfillment allocation rows, or an `ALLOCATED` order status by itself; `ALLOCATED` remains reserved warehouse work.

@@ -166,7 +166,7 @@ class OrderServiceTest {
     }
 
     @Test
-    void updateBackorderCanFulfillOpenBackorderAndCloseFullyBackorderedOrder() {
+    void updateBackorderCanFulfillOpenBackorderWithoutSynthesizingAllocation() {
         UUID orderId = UUID.randomUUID();
         UUID backorderId = UUID.randomUUID();
         CustomerOrder order = backorderedOrder(orderId, backorderId, BackorderStatus.OPEN);
@@ -179,7 +179,8 @@ class OrderServiceTest {
         orderService.updateBackorder(orderId, backorderId, BackorderStatus.FULFILLED);
 
         assertEquals(BackorderStatus.FULFILLED, backorder.getStatus());
-        assertEquals(OrderStatus.ALLOCATED, order.getStatus());
+        assertEquals(OrderStatus.BACKORDERED, order.getStatus());
+        assertEquals(0, order.getAllocations().size());
         verify(currentUserService).requireAdminOrTenant(order.getMerchant().getId());
         verify(outboxService).publish(eq("BackorderFulfilled"), eq("BackorderItem"), eq(backorderId), any());
     }

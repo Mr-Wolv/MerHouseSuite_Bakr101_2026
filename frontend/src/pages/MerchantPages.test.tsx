@@ -216,8 +216,8 @@ describe('Merchant inventory', () => {
     expect(screen.getByRole('heading', { name: 'Create and connect' })).toBeInTheDocument()
     expect(screen.getByText('Work top to bottom: create the SKU, request warehouse service, then send stock only after the relationship is active.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Review stock and history' })).toBeInTheDocument()
-    await user.type(within(form).getByLabelText('SKU'), 'SKU-2')
-    await user.type(within(form).getByLabelText('Name'), 'New Merchant Item')
+    await user.type(within(form).getByLabelText('SKU'), ' SKU-2 ')
+    await user.type(within(form).getByLabelText('Name'), ' New Merchant Item ')
     await user.click(within(form).getByRole('button', { name: 'Create item' }))
 
     expect(apiMock.createInventoryItem).toHaveBeenCalledWith('merchant-token', {
@@ -281,7 +281,7 @@ describe('Merchant inventory', () => {
     renderWithAuth(<MerchantInventoryPage />)
 
     const relationshipForm = await screen.findByRole('form', { name: 'Request warehouse service form' })
-    await user.type(within(relationshipForm).getByLabelText('Service notes'), 'Fragile handling')
+    await user.type(within(relationshipForm).getByLabelText('Service notes'), ' Fragile handling ')
     await user.click(within(relationshipForm).getByRole('button', { name: 'Request service' }))
 
     expect(apiMock.createMerchantWarehouseRelationship).toHaveBeenCalledWith('merchant-token', {
@@ -294,7 +294,8 @@ describe('Merchant inventory', () => {
     const inboundForm = screen.getByRole('form', { name: 'Submit inbound stock form' })
     await user.clear(within(inboundForm).getByLabelText('Quantity'))
     await user.type(within(inboundForm).getByLabelText('Quantity'), '3')
-    await user.type(within(inboundForm).getByLabelText('Reference'), 'ASN-2')
+    await user.type(within(inboundForm).getByLabelText('Reference'), ' ASN-2 ')
+    await user.type(within(inboundForm).getByLabelText('Merchant note'), ' Arrives Wednesday ')
     await user.click(within(inboundForm).getByRole('button', { name: 'Submit inbound' }))
 
     expect(apiMock.submitInboundStockRequest).toHaveBeenCalledWith('merchant-token', {
@@ -303,7 +304,7 @@ describe('Merchant inventory', () => {
       inventoryItemId: 'item-1',
       requestedQuantity: 3,
       merchantReference: 'ASN-2',
-      merchantNote: '',
+      merchantNote: 'Arrives Wednesday',
     })
     expect(await screen.findByText('ASN-2')).toBeInTheDocument()
 
@@ -332,6 +333,21 @@ describe('Merchant inventory', () => {
     expect(await within(draftRow).findByText('Cancelled')).toHaveClass('data-chip')
     expect(within(draftRow).queryByRole('button', { name: 'Cancel inbound' })).not.toBeInTheDocument()
   }, 10_000)
+
+  it('blocks decimal inbound quantities before submission', async () => {
+    const user = userEvent.setup()
+    renderWithAuth(<MerchantInventoryPage />)
+
+    const inboundForm = await screen.findByRole('form', { name: 'Submit inbound stock form' })
+    await user.clear(within(inboundForm).getByLabelText('Quantity'))
+    await user.type(within(inboundForm).getByLabelText('Quantity'), '3.5')
+
+    expect(within(inboundForm).getByText('Inbound quantity must be a positive whole number.')).toBeInTheDocument()
+    expect(within(inboundForm).getByRole('button', { name: 'Save draft' })).toBeDisabled()
+    expect(within(inboundForm).getByRole('button', { name: 'Submit inbound' })).toBeDisabled()
+    expect(apiMock.createInboundStockDraft).not.toHaveBeenCalled()
+    expect(apiMock.submitInboundStockRequest).not.toHaveBeenCalled()
+  })
 
   it('shows settled inbound states as history chips instead of disabled controls', async () => {
     apiMock.inboundStockRequests.mockResolvedValue([
@@ -454,6 +470,15 @@ describe('Merchant orders', () => {
       backorders: [],
       createdAt: '2026-05-17T00:01:00Z',
     })
+    apiMock.createCustomerContact.mockResolvedValue({
+      id: 'contact-1',
+      merchantId: 'merchant-tenant',
+      label: 'Giza Ship-To',
+      contactName: 'Giza Buyer',
+      phone: '0100',
+      address: 'Giza Customer',
+      createdAt: '2026-05-17T00:01:00Z',
+    })
     apiMock.allocateOrder.mockResolvedValue({
       ...orders[0],
       status: 'BACKORDERED',
@@ -524,7 +549,7 @@ describe('Merchant orders', () => {
     expect(screen.getByText('Start with one customer order or build draft lines when a shipment needs multiple SKUs.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Audit imported rows' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Allocate, resolve, and follow shipments' })).toBeInTheDocument()
-    await user.type(within(form).getByLabelText('Customer address'), 'Giza Customer')
+    await user.type(within(form).getByLabelText('Customer address'), ' Giza Customer ')
     await user.clear(within(form).getByLabelText('Quantity'))
     await user.type(within(form).getByLabelText('Quantity'), '3')
     await user.click(within(form).getByRole('button', { name: 'Create order' }))
@@ -535,6 +560,42 @@ describe('Merchant orders', () => {
       items: [{ inventoryItemId: 'item-1', quantity: 3 }],
     })
     expect(await screen.findByText('SKU-1 x3')).toBeInTheDocument()
+  })
+
+  it('blocks decimal order quantities before creating orders or draft lines', async () => {
+    const user = userEvent.setup()
+    renderWithAuth(<MerchantOrdersPage />)
+
+    const form = await screen.findByRole('form', { name: 'Create order form' })
+    await user.type(within(form).getByLabelText('Customer address'), 'Giza Customer')
+    await user.clear(within(form).getByLabelText('Quantity'))
+    await user.type(within(form).getByLabelText('Quantity'), '2.5')
+
+    expect(within(form).getByText('Order quantity must be a positive whole number.')).toBeInTheDocument()
+    expect(within(form).getByText('Choose an item and quantity before adding a line.')).toBeInTheDocument()
+    expect(within(form).getByRole('button', { name: 'Create order' })).toBeDisabled()
+    expect(apiMock.createOrder).not.toHaveBeenCalled()
+  })
+
+  it('trims reusable customer contact text before saving', async () => {
+    const user = userEvent.setup()
+    renderWithAuth(<MerchantOrdersPage />)
+
+    const form = await screen.findByRole('form', { name: 'Create order form' })
+    await user.type(within(form).getByLabelText('Customer address'), ' Giza Customer ')
+    await user.type(within(form).getByLabelText('Contact label'), ' Giza Ship-To ')
+    await user.type(within(form).getByLabelText('Contact name'), ' Giza Buyer ')
+    await user.type(within(form).getByLabelText('Contact phone'), ' 0100 ')
+    await user.click(within(form).getByRole('button', { name: 'Save contact' }))
+
+    expect(apiMock.createCustomerContact).toHaveBeenCalledWith('merchant-token', {
+      merchantId: 'merchant-tenant',
+      label: 'Giza Ship-To',
+      contactName: 'Giza Buyer',
+      phone: '0100',
+      address: 'Giza Customer',
+    })
+    expect(await screen.findByText('Contact saved.')).toBeInTheDocument()
   })
 
   it('allocates and cancels orders from the queue', async () => {
@@ -554,6 +615,28 @@ describe('Merchant orders', () => {
     expect(within(card).queryByRole('button', { name: 'Allocate' })).not.toBeInTheDocument()
     expect(within(card).queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
     expect(within(card).getByText('No order actions available')).toBeInTheDocument()
+  })
+
+  it('lets dense merchant order queues reveal more than the first page', async () => {
+    const user = userEvent.setup()
+    apiMock.orders.mockResolvedValue(Array.from({ length: 22 }, (_, index) => ({
+      ...orders[0],
+      id: `order-${index + 1}`,
+      items: [{
+        ...orders[0].items[0],
+        id: `order-item-${index + 1}`,
+      }],
+    })))
+
+    renderWithAuth(<MerchantOrdersPage />)
+
+    expect(await screen.findByText('Showing 20 of 22')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'order-21' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Show 2 more orders' }))
+
+    expect(screen.getByText('Showing 22 of 22')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'order-21' })).toBeInTheDocument()
   })
 
   it('shows the status of each backorder in the order queue', async () => {
@@ -626,6 +709,18 @@ describe('Merchant orders', () => {
     })
     expect(await screen.findByText('PARTIAL ACCEPTED')).toBeInTheDocument()
     expect(screen.getByText('Unknown SKU for this merchant.')).toBeInTheDocument()
+  })
+
+  it('blocks pasted order imports with invalid quantities before submission', async () => {
+    const user = userEvent.setup()
+    renderWithAuth(<MerchantOrdersPage />)
+
+    await screen.findByRole('heading', { name: 'Audited Order Import' })
+    await user.type(screen.getByLabelText('Rows'), 'Giza Customer,SKU-1,abc')
+    await user.click(screen.getByRole('button', { name: 'Submit import batch' }))
+
+    expect(await screen.findByText('Import row 1 quantity must be a positive whole number.')).toBeInTheDocument()
+    expect(apiMock.createOrderImport).not.toHaveBeenCalled()
   })
 
   it('shows resolved fulfillment exceptions as state instead of disabled action buttons', async () => {

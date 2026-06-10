@@ -11,7 +11,7 @@
   "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "/pwa-icon.svg",
+      "src": "/app-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

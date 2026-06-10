@@ -6,7 +6,7 @@ MerHouse uses stateless API authentication with signed access tokens, BCrypt pas
 
 - `OWNER`: platform owner role with platform-admin management capabilities.
 - `ADMIN`: platform operator role for tenant, user, relationship, and operational administration.
-- `SUPPORT_ADMIN`: support role for account and operational assistance.
+- `SUPPORT_ADMIN`: support role for account and operational assistance. Support admins can review user context and reset supported user passwords, but they cannot enable, disable, create, or change roles for platform accounts.
 - `AUDITOR`: read-only platform review role.
 - `MERCHANT`: merchant tenant user.
 - `WAREHOUSE_OPERATOR`: warehouse-provider tenant user.
@@ -22,6 +22,10 @@ MerHouse uses stateless API authentication with signed access tokens, BCrypt pas
 Access tokens include user id, tenant id, email, role, issue time, and expiration.
 
 Self-service account settings do not change email, role, tenant, enabled state, or token lifetime. Platform account governance remains under `/api/v1/admin/users`.
+
+Admin user-management routes separate support from mutation: owner/admin roles can create users, enable or disable accounts, and change roles; support-admin can perform supported password resets; auditor stays read-only. Relationship governance follows the same platform-mutation boundary for suspend, reactivate, and end actions. Outbox diagnostics also follow the split: owner/admin users can process, retry, and dead-letter outbox events, while support-admin and auditor users see review/escalation attention language and read-only diagnostics.
+
+Admin account and governance forms normalize copied text before validation and audit capture. User emails, tenant names, warehouse names and addresses, and action reasons trim surrounding whitespace. Password and temporary reset password values remain exact.
 
 ## Runtime Configuration
 

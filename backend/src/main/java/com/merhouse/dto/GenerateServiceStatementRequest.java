@@ -17,4 +17,17 @@ public record GenerateServiceStatementRequest(
     List<UUID> fulfillmentAllocationIds,
     List<UUID> shipmentIds
 ) {
+    public GenerateServiceStatementRequest {
+        idempotencyKey = trimToNull(idempotencyKey);
+        note = trimToNull(note);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private static String trimToNull(String value) {
+        String trimmed = trim(value);
+        return trimmed == null || trimmed.isEmpty() ? null : trimmed;
+    }
 }

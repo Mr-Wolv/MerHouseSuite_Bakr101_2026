@@ -10,9 +10,10 @@ import type {
   OrderDetail,
   ShipmentDetail,
   TimelineEvent,
+  UserRole,
 } from '../api/types'
 import { useAuth } from '../auth/useAuth'
-import { EmptyState, ErrorState, LoadingState } from '../components/DataState'
+import { EmptyState, LoadingState } from '../components/DataState'
 import { shortId } from '../components/format'
 import { Metric } from '../components/Metric'
 import { PageHeading, QuantityCell } from '../components/PageChrome'
@@ -22,36 +23,66 @@ type DetailState<T> = {
   data: T | null
   loading: boolean
   error: string
+  key: string | null
 }
 
 function useDetail<T>(loader: (token: string, key: string) => Promise<T>, key: string | undefined) {
   const { token } = useAuth()
-  const [state, setState] = useState<DetailState<T>>({ data: null, loading: true, error: '' })
+  const [state, setState] = useState<DetailState<T>>({ data: null, loading: true, error: '', key: null })
 
   useEffect(() => {
     if (!token || !key) return
-    queueMicrotask(() => setState({ data: null, loading: true, error: '' }))
+    let active = true
     loader(token, key)
-      .then((data) => setState({ data, loading: false, error: '' }))
+      .then((data) => {
+        if (active) setState({ data, loading: false, error: '', key })
+      })
       .catch((caught) => {
+        if (!active) return
         setState({
           data: null,
           loading: false,
           error: caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load operational detail.',
+          key,
         })
       })
+    return () => {
+      active = false
+    }
   }, [key, loader, token])
 
+  if (!token || !key) return { data: null, loading: false, error: '', key: null }
+  if (state.key !== key) return { data: null, loading: true, error: '', key }
   return state
 }
 
 export function OrderDetailPage() {
   const { orderId } = useParams()
+  const { user } = useAuth()
+  const recovery = detailRecovery('order', user?.role)
   const load = useCallback((token: string, id: string) => api.orderDetail(token, id), [])
   const state = useDetail<OrderDetail>(load, orderId)
   if (state.loading) return <LoadingState />
-  if (state.error) return <ErrorState title={state.error} pageTitle />
-  if (!state.data) return <EmptyState label="Order detail is unavailable" guidance="Return to the order queue and open a current order link so allocation, shipment, timeline, and outbox evidence stay in sync." />
+  if (state.error) {
+    return (
+      <RecoverableDetailState
+        title={state.error}
+        guidance="This order may have been removed, belongs to another tenant, or is no longer visible to this role. Return to a role-appropriate workspace and open a current order, allocation, or relationship link."
+        actionLabel={recovery.label}
+        to={recovery.to}
+      />
+    )
+  }
+  if (!state.data) {
+    return (
+      <RecoverableDetailState
+        title="Order detail is unavailable"
+        guidance="Return to a role-appropriate workspace and open a current order link so allocation, shipment, timeline, and outbox evidence stay in sync."
+        actionLabel={recovery.label}
+        to={recovery.to}
+      />
+    )
+  }
 
   const { order, timeline, shipments, carrierDispatches, outboxEvents } = state.data
   return (
@@ -95,6 +126,8 @@ export function OrderDetailPage() {
 
 export function InventoryItemDetailPage() {
   const { inventoryItemId } = useParams()
+  const { user } = useAuth()
+  const recovery = detailRecovery('inventory', user?.role)
   const load = useCallback((token: string, id: string) => api.inventoryItemDetail(token, id), [])
   const state = useDetail<InventoryItemDetail>(load, inventoryItemId)
   if (state.loading) return <LoadingState />
@@ -102,9 +135,9 @@ export function InventoryItemDetailPage() {
     return (
       <RecoverableDetailState
         title={state.error}
-        guidance="This item may have been archived, removed, or belongs to another merchant context. Return to Stock and open a current item link."
-        actionLabel="Back to Stock"
-        to="/merchant/inventory"
+        guidance="This item may have been archived, removed, or belongs to another merchant context. Return to a role-appropriate workspace and open a current item or relationship link."
+        actionLabel={recovery.label}
+        to={recovery.to}
       />
     )
   }
@@ -112,9 +145,9 @@ export function InventoryItemDetailPage() {
     return (
       <RecoverableDetailState
         title="Inventory item detail is unavailable"
-        guidance="Return to Stock and open a current item link from the table to review stock and audit evidence."
-        actionLabel="Back to Stock"
-        to="/merchant/inventory"
+        guidance="Return to a role-appropriate workspace and open a current item or relationship link to review stock and audit evidence."
+        actionLabel={recovery.label}
+        to={recovery.to}
       />
     )
   }
@@ -145,11 +178,31 @@ export function InventoryItemDetailPage() {
 
 export function InboundStockRequestDetailPage() {
   const { inboundStockRequestId } = useParams()
+  const { user } = useAuth()
+  const recovery = detailRecovery('warehouseWork', user?.role)
   const load = useCallback((token: string, id: string) => api.inboundStockRequestDetail(token, id), [])
   const state = useDetail<InboundStockRequestDetail>(load, inboundStockRequestId)
   if (state.loading) return <LoadingState />
-  if (state.error) return <ErrorState title={state.error} pageTitle />
-  if (!state.data) return <EmptyState label="Inbound stock detail is unavailable" guidance="Return to inbound stock requests and open a current receiving record." />
+  if (state.error) {
+    return (
+      <RecoverableDetailState
+        title={state.error}
+        guidance="This inbound request may have moved, been removed, or belongs to another tenant relationship. Return to a role-appropriate workspace and open a current receiving or relationship record."
+        actionLabel={recovery.label}
+        to={recovery.to}
+      />
+    )
+  }
+  if (!state.data) {
+    return (
+      <RecoverableDetailState
+        title="Inbound stock detail is unavailable"
+        guidance="Return to a role-appropriate workspace and open a current receiving or relationship record."
+        actionLabel={recovery.label}
+        to={recovery.to}
+      />
+    )
+  }
 
   const { inboundStockRequest: inbound, relationship, auditLogs, outboxEvents, timeline } = state.data
   return (
@@ -185,11 +238,31 @@ export function InboundStockRequestDetailPage() {
 
 export function ShipmentDetailPage() {
   const { shipmentId } = useParams()
+  const { user } = useAuth()
+  const recovery = detailRecovery('warehouseWork', user?.role)
   const load = useCallback((token: string, id: string) => api.shipmentDetail(token, id), [])
   const state = useDetail<ShipmentDetail>(load, shipmentId)
   if (state.loading) return <LoadingState />
-  if (state.error) return <ErrorState title={state.error} pageTitle />
-  if (!state.data) return <EmptyState label="Shipment detail is unavailable" guidance="Return to the shipment or allocation queue and open a current shipment link." />
+  if (state.error) {
+    return (
+      <RecoverableDetailState
+        title={state.error}
+        guidance="This shipment may have moved, been removed, or belongs to another tenant relationship. Return to a role-appropriate workspace and open a current shipment, allocation, or relationship link."
+        actionLabel={recovery.label}
+        to={recovery.to}
+      />
+    )
+  }
+  if (!state.data) {
+    return (
+      <RecoverableDetailState
+        title="Shipment detail is unavailable"
+        guidance="Return to a role-appropriate workspace and open a current shipment or allocation link."
+        actionLabel={recovery.label}
+        to={recovery.to}
+      />
+    )
+  }
 
   const { shipment, allocation, order, carrierDispatches, outboxEvents, timeline } = state.data
   return (
@@ -225,11 +298,31 @@ export function ShipmentDetailPage() {
 
 export function FulfillmentAllocationDetailPage() {
   const { allocationId } = useParams()
+  const { user } = useAuth()
+  const recovery = detailRecovery('warehouseWork', user?.role)
   const load = useCallback((token: string, id: string) => api.fulfillmentAllocationDetail(token, id), [])
   const state = useDetail<FulfillmentAllocationDetail>(load, allocationId)
   if (state.loading) return <LoadingState />
-  if (state.error) return <ErrorState title={state.error} pageTitle />
-  if (!state.data) return <EmptyState label="Allocation detail is unavailable" guidance="Return to fulfillment allocations and open a current pick or ship record." />
+  if (state.error) {
+    return (
+      <RecoverableDetailState
+        title={state.error}
+        guidance="This allocation may have moved, been removed, or belongs to another tenant relationship. Return to a role-appropriate workspace and open a current pick, ship, or relationship record."
+        actionLabel={recovery.label}
+        to={recovery.to}
+      />
+    )
+  }
+  if (!state.data) {
+    return (
+      <RecoverableDetailState
+        title="Allocation detail is unavailable"
+        guidance="Return to a role-appropriate workspace and open a current pick or ship record."
+        actionLabel={recovery.label}
+        to={recovery.to}
+      />
+    )
+  }
 
   const { allocation, order, shipments, carrierDispatches, outboxEvents, timeline } = state.data
   return (
@@ -271,11 +364,31 @@ export function FulfillmentAllocationDetailPage() {
 
 export function MerchantWarehouseRelationshipDetailPage() {
   const { relationshipId } = useParams()
+  const { user } = useAuth()
+  const recovery = detailRecovery('relationship', user?.role)
   const load = useCallback((token: string, id: string) => api.merchantWarehouseRelationshipDetail(token, id), [])
   const state = useDetail<MerchantWarehouseRelationshipDetail>(load, relationshipId)
   if (state.loading) return <LoadingState />
-  if (state.error) return <ErrorState title={state.error} pageTitle />
-  if (!state.data) return <EmptyState label="Relationship detail is unavailable" guidance="Return to relationship governance and open a current merchant-warehouse relationship." />
+  if (state.error) {
+    return (
+      <RecoverableDetailState
+        title={state.error}
+        guidance="This relationship may have ended, been removed, or belongs to another tenant boundary. Return to the relationship workspace and open a current merchant-warehouse relationship."
+        actionLabel={recovery.label}
+        to={recovery.to}
+      />
+    )
+  }
+  if (!state.data) {
+    return (
+      <RecoverableDetailState
+        title="Relationship detail is unavailable"
+        guidance="Return to relationship governance and open a current merchant-warehouse relationship."
+        actionLabel={recovery.label}
+        to={recovery.to}
+      />
+    )
+  }
 
   const { relationship, inboundStockRequests, allocations, outboxEvents, timeline } = state.data
   return (
@@ -369,6 +482,28 @@ function DetailGuidancePanel({ title, children }: { title: string; children: Rea
       <p>{children}</p>
     </aside>
   )
+}
+
+function detailRecovery(
+  kind: 'order' | 'warehouseWork' | 'relationship' | 'inventory',
+  role: UserRole | undefined,
+) {
+  if (role === 'WAREHOUSE_OPERATOR') {
+    return { label: 'Back to Warehouse', to: '/warehouse' }
+  }
+  if (role === 'MERCHANT') {
+    if (kind === 'order') {
+      return { label: 'Back to Orders', to: '/merchant/orders' }
+    }
+    if (kind === 'inventory') {
+      return { label: 'Back to Stock', to: '/merchant/inventory' }
+    }
+    return { label: 'Back to Merchant', to: '/merchant' }
+  }
+  if (role === 'OWNER' || role === 'ADMIN' || role === 'SUPPORT_ADMIN' || role === 'AUDITOR') {
+    return { label: 'Back to Relationships', to: '/admin/relationships' }
+  }
+  return { label: 'Back to Dashboard', to: '/' }
 }
 
 function RecoverableDetailState({

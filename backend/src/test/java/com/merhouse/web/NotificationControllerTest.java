@@ -140,7 +140,7 @@ class NotificationControllerTest {
         UUID tenantId = UUID.randomUUID();
         NotificationDelivery delivery = delivery(userId, tenantId);
         when(currentUserService.required()).thenReturn(principal(userId, tenantId, UserRole.WAREHOUSE_OPERATOR));
-        when(notificationService.deliveriesForUser(userId, 25)).thenReturn(List.of(delivery));
+        when(notificationService.deliveriesForUser(userId, 25, 0, null)).thenReturn(List.of(delivery));
 
         mockMvc.perform(get("/api/v1/notifications/deliveries").param("limit", "25"))
             .andExpect(status().isOk())
@@ -150,7 +150,26 @@ class NotificationControllerTest {
             .andExpect(jsonPath("$[0].providerStatus").value("NOT_CONFIGURED"))
             .andExpect(jsonPath("$[0].title").value("Scoped alert"));
 
-        verify(notificationService).deliveriesForUser(userId, 25);
+        verify(notificationService).deliveriesForUser(userId, 25, 0, null);
+    }
+
+    @Test
+    void deliveriesCanBeFilteredByStatusForActionInbox() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID tenantId = UUID.randomUUID();
+        NotificationDelivery delivery = delivery(userId, tenantId);
+        when(currentUserService.required()).thenReturn(principal(userId, tenantId, UserRole.MERCHANT));
+        when(notificationService.deliveriesForUser(userId, 50, 1, NotificationDeliveryStatus.RECORDED)).thenReturn(List.of(delivery));
+
+        mockMvc.perform(get("/api/v1/notifications/deliveries")
+                .param("limit", "50")
+                .param("page", "1")
+                .param("status", "RECORDED"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].status").value("RECORDED"))
+            .andExpect(jsonPath("$[0].title").value("Scoped alert"));
+
+        verify(notificationService).deliveriesForUser(userId, 50, 1, NotificationDeliveryStatus.RECORDED);
     }
 
     @Test

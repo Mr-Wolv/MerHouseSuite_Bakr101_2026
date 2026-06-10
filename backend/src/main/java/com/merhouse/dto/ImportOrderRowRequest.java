@@ -12,4 +12,15 @@ public record ImportOrderRowRequest(
     @Size(max = 160) String customerName,
     @Size(max = 80) String customerPhone
 ) {
+    public ImportOrderRowRequest {
+        merchantOrderReference = trim(merchantOrderReference);
+        sku = trim(sku);
+        customerAddress = trim(customerAddress);
+        customerName = trim(customerName);
+        customerPhone = trim(customerPhone);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

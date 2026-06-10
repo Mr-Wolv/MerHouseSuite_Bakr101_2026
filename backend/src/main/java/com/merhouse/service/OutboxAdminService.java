@@ -24,17 +24,20 @@ public class OutboxAdminService {
     private final OutboxEventRepository outboxEventRepository;
     private final CarrierDispatchRepository carrierDispatchRepository;
     private final OutboxAlertService outboxAlertService;
+    private final CurrentUserService currentUserService;
     private final int maxAttempts;
 
     public OutboxAdminService(
         OutboxEventRepository outboxEventRepository,
         CarrierDispatchRepository carrierDispatchRepository,
         OutboxAlertService outboxAlertService,
+        CurrentUserService currentUserService,
         @Value("${warehouse.outbox.max-attempts:3}") int maxAttempts
     ) {
         this.outboxEventRepository = outboxEventRepository;
         this.carrierDispatchRepository = carrierDispatchRepository;
         this.outboxAlertService = outboxAlertService;
+        this.currentUserService = currentUserService;
         this.maxAttempts = maxAttempts;
     }
 
@@ -44,6 +47,8 @@ public class OutboxAdminService {
         long processed = outboxEventRepository.countByStatus(OutboxEventStatus.PROCESSED);
         long failed = outboxEventRepository.countByStatus(OutboxEventStatus.FAILED);
         long retryableFailed = outboxEventRepository.countByStatusAndAttemptsLessThan(OutboxEventStatus.FAILED, maxAttempts);
+        UserRole currentRole = currentUserService.required().role();
+        boolean canMutatePlatform = currentRole.canMutatePlatform();
         return new OutboxSummaryResponse(
             pending,
             processed,
@@ -54,11 +59,11 @@ public class OutboxAdminService {
                     "outbox-failed",
                     retryableFailed > 0 ? AttentionSeverity.CRITICAL : AttentionSeverity.REVIEW,
                     "Outbox failures need reliability handling",
-                    retryableFailed > 0
+                    retryableFailed > 0 && canMutatePlatform
                         ? retryableFailed + " failed events can be retried before the queue is healthy."
-                        : failed + " failed events should be reviewed or parked.",
-                    UserRole.ADMIN,
-                    retryableFailed > 0 ? "Retry failed work" : "Review failed work",
+                        : failed + " failed events need owner/admin retry or dead-letter handling; review diagnostics before escalation.",
+                    currentRole,
+                    retryableFailed > 0 && canMutatePlatform ? "Retry failed work" : "Review diagnostics",
                     "/admin/outbox",
                     "OutboxEvent",
                     null,

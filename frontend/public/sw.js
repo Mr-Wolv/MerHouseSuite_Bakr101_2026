@@ -1,5 +1,5 @@
 const CACHE_NAME = 'merhouse-shell-v1'
-const SHELL_ASSETS = ['/', '/manifest.webmanifest', '/pwa-icon.svg', '/favicon.svg']
+const SHELL_ASSETS = ['/', '/manifest.webmanifest', '/app-icon.svg', '/favicon.svg']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

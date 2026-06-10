@@ -16,6 +16,8 @@ The transactional outbox records side effects in the same database transaction a
 
 The admin outbox API exposes summary, event, carrier-dispatch, process, retry, and dead-letter operations under `/api/v1/admin/outbox`.
 
+Outbox diagnostics are visible to platform roles. Owner/admin users can process, retry, and dead-letter events. Support-admin and auditor users receive review/escalation attention language and read-only diagnostics instead of retry or dead-letter calls to action.
+
 ## Event Examples
 
 - `OrderCreated`

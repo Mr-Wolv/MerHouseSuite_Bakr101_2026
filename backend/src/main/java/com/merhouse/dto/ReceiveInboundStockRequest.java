@@ -8,4 +8,11 @@ public record ReceiveInboundStockRequest(
     @Min(0) int damagedQuantity,
     @Size(max = 1000) String receivingNote
 ) {
+    public ReceiveInboundStockRequest {
+        receivingNote = trim(receivingNote);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

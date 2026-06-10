@@ -39,7 +39,7 @@ describe('auth recovery pages', () => {
 
     render(<ForgotPasswordPage />, { wrapper: MemoryRouter })
 
-    await user.type(screen.getByLabelText('Email'), 'owner@example.test')
+    await user.type(screen.getByLabelText('Email'), ' owner@example.test ')
     await user.click(screen.getByRole('button', { name: 'Request reset' }))
 
     expect(apiMock.requestPasswordReset).toHaveBeenCalledWith('owner@example.test')
@@ -69,7 +69,20 @@ describe('auth recovery pages', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(/password has been reset/i)
   })
 
-  it('submits a merchant access request', async () => {
+  it('trims copied reset-token whitespace without changing the new password', async () => {
+    const user = userEvent.setup()
+    apiMock.confirmPasswordReset.mockResolvedValue({ message: 'Password has been reset.' })
+
+    render(<ResetPasswordPage />, { wrapper: MemoryRouter })
+
+    await user.type(screen.getByLabelText('Reset token'), '  copied-token  ')
+    await user.type(screen.getByLabelText('New password'), ' new-password ')
+    await user.click(screen.getByRole('button', { name: 'Reset password' }))
+
+    expect(apiMock.confirmPasswordReset).toHaveBeenCalledWith('copied-token', ' new-password ')
+  })
+
+  it('trims copied public access request fields before submitting', async () => {
     const user = userEvent.setup()
     apiMock.submitAccessRequest.mockResolvedValue({
       id: 'request-1',
@@ -86,9 +99,9 @@ describe('auth recovery pages', () => {
 
     render(<RequestAccessPage />, { wrapper: MemoryRouter })
 
-    await user.type(screen.getByLabelText('Organization'), 'Acme')
-    await user.type(screen.getByLabelText('Email'), 'owner@acme.test')
-    await user.type(screen.getByLabelText('Notes'), 'Please onboard')
+    await user.type(screen.getByLabelText('Organization'), ' Acme ')
+    await user.type(screen.getByLabelText('Email'), ' owner@acme.test ')
+    await user.type(screen.getByLabelText('Notes'), ' Please onboard ')
     await user.click(screen.getByRole('button', { name: 'Submit request' }))
 
     expect(apiMock.submitAccessRequest).toHaveBeenCalledWith({

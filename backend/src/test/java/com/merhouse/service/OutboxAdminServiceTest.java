@@ -12,9 +12,11 @@ import static org.mockito.Mockito.when;
 
 import com.merhouse.entity.OutboxEvent;
 import com.merhouse.entity.OutboxEventStatus;
+import com.merhouse.entity.UserRole;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.repository.CarrierDispatchRepository;
 import com.merhouse.repository.OutboxEventRepository;
+import com.merhouse.security.UserPrincipal;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -24,15 +26,18 @@ class OutboxAdminServiceTest {
     private final OutboxEventRepository outboxEventRepository = mock(OutboxEventRepository.class);
     private final CarrierDispatchRepository carrierDispatchRepository = mock(CarrierDispatchRepository.class);
     private final OutboxAlertService outboxAlertService = mock(OutboxAlertService.class);
+    private final CurrentUserService currentUserService = mock(CurrentUserService.class);
     private final OutboxAdminService service = new OutboxAdminService(
         outboxEventRepository,
         carrierDispatchRepository,
         outboxAlertService,
+        currentUserService,
         3
     );
 
     @Test
     void summaryExposesRetryableFailuresAsAttentionSignals() {
+        when(currentUserService.required()).thenReturn(principal(UserRole.ADMIN));
         when(outboxEventRepository.countByStatus(OutboxEventStatus.PENDING)).thenReturn(2L);
         when(outboxEventRepository.countByStatus(OutboxEventStatus.PROCESSED)).thenReturn(7L);
         when(outboxEventRepository.countByStatus(OutboxEventStatus.FAILED)).thenReturn(3L);
@@ -45,6 +50,22 @@ class OutboxAdminServiceTest {
         assertEquals(1, response.attentionSignals().size());
         assertTrue(response.attentionSignals().getFirst().route().equals("/admin/outbox"));
         assertEquals("CRITICAL", response.attentionSignals().getFirst().severity().name());
+        assertEquals(UserRole.ADMIN, response.attentionSignals().getFirst().ownerRole());
+        assertEquals("Retry failed work", response.attentionSignals().getFirst().nextActionLabel());
+    }
+
+    @Test
+    void supportSummaryDoesNotAskReadOnlyUsersToRetryFailedWork() {
+        when(currentUserService.required()).thenReturn(principal(UserRole.SUPPORT_ADMIN));
+        when(outboxEventRepository.countByStatus(OutboxEventStatus.FAILED)).thenReturn(2L);
+        when(outboxEventRepository.countByStatusAndAttemptsLessThan(OutboxEventStatus.FAILED, 3)).thenReturn(1L);
+
+        var response = service.summary();
+
+        assertEquals(1, response.attentionSignals().size());
+        assertEquals(UserRole.SUPPORT_ADMIN, response.attentionSignals().getFirst().ownerRole());
+        assertEquals("Review diagnostics", response.attentionSignals().getFirst().nextActionLabel());
+        assertTrue(response.attentionSignals().getFirst().body().contains("owner/admin retry or dead-letter handling"));
     }
 
     @Test
@@ -109,5 +130,9 @@ class OutboxAdminServiceTest {
         event.setAggregateId(UUID.randomUUID());
         event.setStatus(status);
         return event;
+    }
+
+    private UserPrincipal principal(UserRole role) {
+        return new UserPrincipal(UUID.randomUUID(), UUID.randomUUID(), role.name().toLowerCase() + "@merhouse.local", role, true);
     }
 }

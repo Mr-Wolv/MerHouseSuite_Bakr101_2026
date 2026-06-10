@@ -282,7 +282,7 @@ describe('Admin tenant management', () => {
 
     const createTenantForm = await screen.findByRole('form', { name: 'Create tenant form' })
     expect(screen.getByLabelText('Tenant governance controls')).toHaveTextContent('audit review has operational context')
-    await user.type(within(createTenantForm).getByLabelText('Name'), 'New Merchant')
+    await user.type(within(createTenantForm).getByLabelText('Name'), ' New Merchant ')
     await user.click(within(createTenantForm).getByRole('button', { name: 'Create tenant' }))
 
     expect(apiMock.createTenant).toHaveBeenCalledWith('admin-token', {
@@ -298,8 +298,8 @@ describe('Admin tenant management', () => {
 
     const warehouseForm = await screen.findByRole('form', { name: 'Register warehouse location form' })
     expect(within(warehouseForm).getByText(/Create at least one physical warehouse/)).toBeInTheDocument()
-    await user.type(within(warehouseForm).getByLabelText('Warehouse name'), 'Cairo Dock A')
-    await user.type(within(warehouseForm).getByLabelText('Address'), 'Cairo Dock 1')
+    await user.type(within(warehouseForm).getByLabelText('Warehouse name'), ' Cairo Dock A ')
+    await user.type(within(warehouseForm).getByLabelText('Address'), ' Cairo Dock 1 ')
     await user.clear(within(warehouseForm).getByLabelText('Capacity'))
     await user.type(within(warehouseForm).getByLabelText('Capacity'), '120')
     await user.click(within(warehouseForm).getByRole('button', { name: 'Register warehouse' }))
@@ -322,6 +322,79 @@ describe('Admin tenant management', () => {
 
     expect(screen.getByText('Cairo Warehouse')).toBeInTheDocument()
     expect(screen.queryByText('Acme Merchant')).not.toBeInTheDocument()
+  })
+
+  it('paginates tenant governance rows so large local proof datasets stay mobile-ready', async () => {
+    const user = userEvent.setup()
+    apiMock.tenants.mockResolvedValue(Array.from({ length: 30 }, (_, index) => ({
+      id: `tenant-${index + 1}`,
+      name: `Proof Tenant ${index + 1}`,
+      type: index % 2 === 0 ? 'MERCHANT' : 'WAREHOUSE_PROVIDER',
+      active: true,
+      suspensionReason: null,
+      suspendedAt: null,
+      createdAt: '2026-05-17T00:00:00Z',
+    })))
+    renderWithAuth(<AdminTenantsPage />)
+
+    expect(await screen.findByText('Proof Tenant 1')).toBeInTheDocument()
+    expect(screen.getByLabelText('Tenant result pagination')).toHaveTextContent('Showing 1-25 of 30 tenants')
+    expect(screen.queryByText('Proof Tenant 30')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+
+    expect(screen.getByLabelText('Tenant result pagination')).toHaveTextContent('Showing 26-30 of 30 tenants')
+    expect(screen.getByText('Proof Tenant 30')).toBeInTheDocument()
+    expect(screen.queryByText('Proof Tenant 1')).not.toBeInTheDocument()
+  })
+
+  it('surfaces a newly created tenant on the first governance page in dense datasets', async () => {
+    const user = userEvent.setup()
+    apiMock.tenants.mockResolvedValue(Array.from({ length: 30 }, (_, index) => ({
+      id: `tenant-${index + 1}`,
+      name: `Proof Tenant ${index + 1}`,
+      type: index % 2 === 0 ? 'MERCHANT' : 'WAREHOUSE_PROVIDER',
+      active: true,
+      suspensionReason: null,
+      suspendedAt: null,
+      createdAt: '2026-05-17T00:00:00Z',
+    })))
+    renderWithAuth(<AdminTenantsPage />)
+
+    await screen.findByText('Proof Tenant 1')
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+    expect(screen.getByLabelText('Tenant result pagination')).toHaveTextContent('Showing 26-30 of 30 tenants')
+
+    const createTenantForm = screen.getByRole('form', { name: 'Create tenant form' })
+    await user.type(within(createTenantForm).getByLabelText('Name'), 'New Merchant')
+    await user.click(within(createTenantForm).getByRole('button', { name: 'Create tenant' }))
+
+    expect(await screen.findByText('New Merchant')).toBeInTheDocument()
+    expect(screen.getByLabelText('Tenant result pagination')).toHaveTextContent('Showing 1-25 of 31 tenants')
+    expect(screen.queryByText('Proof Tenant 30')).not.toBeInTheDocument()
+  })
+
+  it('caps warehouse provider registration options for dense tenant datasets', async () => {
+    apiMock.tenants.mockResolvedValue(Array.from({ length: 60 }, (_, index) => ({
+      id: `provider-${index + 1}`,
+      name: `Provider Tenant ${index + 1}`,
+      type: 'WAREHOUSE_PROVIDER',
+      active: true,
+      suspensionReason: null,
+      suspendedAt: null,
+      createdAt: new Date(Date.UTC(2026, 4, index + 1)).toISOString(),
+    })))
+    renderWithAuth(<AdminTenantsPage />)
+
+    const warehouseForm = await screen.findByRole('form', { name: 'Register warehouse location form' })
+    const providerSelect = within(warehouseForm).getByLabelText('Provider tenant')
+    const optionValues = within(providerSelect).getAllByRole('option').map((option) => (option as HTMLOptionElement).value)
+
+    expect(optionValues).toHaveLength(50)
+    expect(optionValues).toContain('provider-60')
+    expect(optionValues).not.toContain('provider-1')
+    expect(within(providerSelect).getByRole('option', { name: /Provider Tenant 60/ })).toBeInTheDocument()
+    expect(within(warehouseForm).getByText('Showing the 50 most recent active warehouse provider tenants for this registration control.')).toBeInTheDocument()
   })
 
   it('shows the backend error when tenant creation fails', async () => {
@@ -390,6 +463,38 @@ describe('Admin relationship governance', () => {
     expect(within(activeRow).getByText('Read-only relationship review')).toHaveClass('data-chip')
     expect(within(activeRow).queryByRole('button', { name: 'Suspend' })).not.toBeInTheDocument()
     expect(apiMock.suspendMerchantWarehouseRelationship).not.toHaveBeenCalled()
+  })
+
+  it('renders relationship route chrome while review data is still loading', async () => {
+    apiMock.merchantWarehouseRelationships.mockReturnValue(new Promise(() => undefined))
+
+    renderWithAuth(<AdminRelationshipsPage />)
+
+    expect(await screen.findByRole('heading', { name: 'Relationships' })).toBeInTheDocument()
+    expect(screen.getByText('Loading relationships')).toBeInTheDocument()
+  })
+
+  it('paginates relationship review rows for accumulated proof data', async () => {
+    const user = userEvent.setup()
+    apiMock.merchantWarehouseRelationships.mockResolvedValue(Array.from({ length: 30 }, (_, index) => ({
+      ...relationships[0],
+      id: `relationship-${index + 1}`,
+      merchantName: `Merchant ${index + 1}`,
+      warehouseProviderName: `Warehouse ${index + 1}`,
+      createdAt: `2026-05-${String(index + 1).padStart(2, '0')}T00:00:00Z`,
+    })))
+
+    renderWithAuth(<AdminRelationshipsPage />)
+
+    expect(await screen.findByText('Merchant 30')).toBeInTheDocument()
+    expect(screen.getByLabelText('Relationship result pagination')).toHaveTextContent('Showing 1-25 of 30 relationships')
+    expect(screen.queryByText('Merchant 1')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+
+    expect(screen.getByLabelText('Relationship result pagination')).toHaveTextContent('Showing 26-30 of 30 relationships')
+    expect(screen.getByText('Merchant 1')).toBeInTheDocument()
+    expect(screen.queryByText('Merchant 30')).not.toBeInTheDocument()
   })
 })
 
@@ -543,6 +648,60 @@ describe('Admin access request management', () => {
     expect(within(convertedRow).queryByRole('button')).not.toBeInTheDocument()
   })
 
+  it('requires conversion reason before converting an approved access request', async () => {
+    const user = userEvent.setup()
+    apiMock.accessRequests.mockResolvedValue([
+      {
+        id: 'request-approved',
+        organizationName: 'Approved Merchant',
+        requesterEmail: 'approved@new.test',
+        requestedRole: 'MERCHANT',
+        notes: 'Ready',
+        status: 'APPROVED',
+        reviewedByUserId: 'admin-id',
+        reviewNote: 'Approved',
+        reviewedAt: '2026-05-18T00:10:00Z',
+        convertedTenantId: null,
+        convertedUserId: null,
+        convertedAt: null,
+        createdAt: '2026-05-18T00:00:00Z',
+      },
+    ])
+    apiMock.convertAccessRequest.mockResolvedValue({
+      id: 'request-approved',
+      organizationName: 'Approved Merchant',
+      requesterEmail: 'approved@new.test',
+      requestedRole: 'MERCHANT',
+      notes: 'Ready',
+      status: 'APPROVED',
+      reviewedByUserId: 'admin-id',
+      reviewNote: 'Approved',
+      reviewedAt: '2026-05-18T00:10:00Z',
+      convertedTenantId: 'tenant-1',
+      convertedUserId: 'user-1',
+      convertedAt: '2026-05-18T00:20:00Z',
+      createdAt: '2026-05-18T00:00:00Z',
+    })
+
+    renderWithAuth(<AdminAccessRequestsPage />)
+
+    const row = await screen.findByRole('row', { name: /approved@new\.test/i })
+    await user.type(screen.getByLabelText('Temporary setup password'), 'ready-password')
+    await user.clear(screen.getByLabelText('Conversion reason'))
+    expect(within(row).getByText('Enter conversion reason')).toHaveClass('warning-chip')
+    expect(within(row).queryByRole('button', { name: 'Convert' })).not.toBeInTheDocument()
+    expect(apiMock.convertAccessRequest).not.toHaveBeenCalled()
+
+    await user.type(screen.getByLabelText('Conversion reason'), '  Ready to provision  ')
+    await user.click(within(row).getByRole('button', { name: 'Convert' }))
+
+    expect(apiMock.convertAccessRequest).toHaveBeenCalledWith('admin-token', 'request-approved', {
+      tenantName: 'Approved Merchant',
+      temporaryPassword: 'ready-password',
+      reason: 'Ready to provision',
+    })
+  })
+
   it('renders injection-shaped access request text without creating executable elements', async () => {
     apiMock.accessRequests.mockResolvedValue([
       {
@@ -608,14 +767,14 @@ describe('Admin user management', () => {
     const createUserForm = screen.getByRole('form', { name: 'Create user form' })
     await user.selectOptions(within(createUserForm).getByLabelText('Tenant'), 'warehouse-tenant')
     await user.selectOptions(within(createUserForm).getByLabelText('Role'), 'WAREHOUSE_OPERATOR')
-    await user.type(within(createUserForm).getByLabelText('Email'), 'operator@merhouse.local')
-    await user.type(within(createUserForm).getByLabelText('Password'), 'operator-password')
+    await user.type(within(createUserForm).getByLabelText('Email'), ' operator@merhouse.local ')
+    await user.type(within(createUserForm).getByLabelText('Password'), ' operator-password ')
     await user.click(within(createUserForm).getByRole('button', { name: 'Create user' }))
 
     expect(apiMock.createUser).toHaveBeenCalledWith('admin-token', {
       tenantId: 'warehouse-tenant',
       email: 'operator@merhouse.local',
-      password: 'operator-password',
+      password: ' operator-password ',
       role: 'WAREHOUSE_OPERATOR',
     })
     expect(await screen.findByText('operator@merhouse.local')).toBeInTheDocument()
@@ -675,13 +834,15 @@ describe('Admin user management', () => {
     const row = screen.getByRole('row', { name: /merchant@merhouse.local/i })
     expect(within(row).getByText('Owner/admin action')).toHaveClass('data-chip')
     expect(within(row).queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument()
+    await user.clear(screen.getByLabelText('Reason for privileged actions'))
+    await user.type(screen.getByLabelText('Reason for privileged actions'), ' Support recovery ')
     await user.type(screen.getByLabelText('Temporary reset password'), 'support-reset-password')
     expect(screen.getByLabelText('Account action safety summary')).toHaveTextContent('RESET READY')
     await user.click(within(row).getByRole('button', { name: 'Reset' }))
 
     expect(apiMock.adminResetUserPassword).toHaveBeenCalledWith('admin-token', 'merchant-user', {
       newPassword: 'support-reset-password',
-      reason: 'Administrative account update',
+      reason: 'Support recovery',
     })
   })
 

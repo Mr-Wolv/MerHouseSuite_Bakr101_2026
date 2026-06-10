@@ -31,6 +31,7 @@ type ServiceData = {
 }
 
 const defaultAgreementScopes: ServiceScope[] = ['INBOUND_RECEIVING', 'STORAGE', 'PICK_PACK', 'SHIPMENT_HANDOFF']
+const serviceLedgerPageSize = 10
 
 export function ServiceAccountabilityPage() {
   const { token, user } = useAuth()
@@ -109,6 +110,7 @@ export function ServiceAccountabilityPage() {
     if (!token || !activeAgreement) return
     setSubmitting(true)
     setError('')
+    setMessage('')
     try {
       await api.createServiceReview(token, activeAgreement.id, {
         reviewType: 'MANUAL_ADJUSTMENT',
@@ -133,12 +135,12 @@ export function ServiceAccountabilityPage() {
     try {
       await api.createServiceAgreement(token, {
         relationshipId: agreementRelationshipId,
-        title: agreementTitle,
+        title: agreementTitle.trim(),
         effectiveDate: agreementEffectiveDate,
         renewalReviewDate: null,
         cancellationWindowDays: 30,
         serviceScopes: defaultAgreementScopes,
-        serviceNotes: agreementNotes,
+        serviceNotes: trimToNull(agreementNotes),
         rateCard: {
           coordinationFeePercent: 3,
           fixedCoordinationFee: 0,
@@ -175,6 +177,67 @@ export function ServiceAccountabilityPage() {
       await load()
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to update service agreement.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleResolveServiceIssue(
+    kind: 'dispute' | 'claim' | 'review',
+    id: string,
+    status: 'RESOLVED' | 'REJECTED' | 'APPROVED',
+  ) {
+    if (!token) return
+    setSubmitting(true)
+    setError('')
+    setMessage('')
+    try {
+      if (kind === 'dispute') {
+        if (status !== 'RESOLVED' && status !== 'REJECTED') return
+        await api.resolveServiceDispute(token, id, {
+          status,
+          outcomeNote: status === 'RESOLVED' ? 'Dispute resolved from the service accountability page.' : 'Dispute rejected from the service accountability page.',
+        })
+        setMessage(status === 'RESOLVED' ? 'Service dispute resolved.' : 'Service dispute rejected.')
+      } else if (kind === 'claim') {
+        if (status !== 'RESOLVED' && status !== 'REJECTED') return
+        await api.resolveServiceClaim(token, id, {
+          status,
+          outcomeNote: status === 'RESOLVED' ? 'Claim resolved from the service accountability page.' : 'Claim rejected from the service accountability page.',
+        })
+        setMessage(status === 'RESOLVED' ? 'Service claim resolved.' : 'Service claim rejected.')
+      } else {
+        if (status !== 'APPROVED' && status !== 'REJECTED') return
+        await api.resolveServiceReview(token, id, {
+          status,
+          outcomeNote: status === 'APPROVED' ? 'Review approved from the service accountability page.' : 'Review rejected from the service accountability page.',
+        })
+        setMessage(status === 'APPROVED' ? 'Service review approved.' : 'Service review rejected.')
+      }
+      await load()
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to resolve service record.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleUpdateStatement(statementId: string, action: 'finalize' | 'settle') {
+    if (!token) return
+    setSubmitting(true)
+    setError('')
+    setMessage('')
+    try {
+      if (action === 'finalize') {
+        await api.finalizeServiceStatement(token, statementId)
+        setMessage('Service statement finalized.')
+      } else {
+        await api.markServiceStatementSettled(token, statementId)
+        setMessage('Service statement marked settled.')
+      }
+      await load()
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to update service statement.')
     } finally {
       setSubmitting(false)
     }
@@ -300,6 +363,7 @@ export function ServiceAccountabilityPage() {
                     id="service-agreement-title"
                     value={agreementTitle}
                     onChange={(event) => setAgreementTitle(event.target.value)}
+                    onBlur={(event) => setAgreementTitle(event.target.value.trim())}
                     required
                   />
                 </label>
@@ -319,6 +383,7 @@ export function ServiceAccountabilityPage() {
                     id="service-agreement-notes"
                     value={agreementNotes}
                     onChange={(event) => setAgreementNotes(event.target.value)}
+                    onBlur={(event) => setAgreementNotes(event.target.value.trim())}
                   />
                 </label>
               </div>
@@ -415,71 +480,31 @@ export function ServiceAccountabilityPage() {
 
       <section className="table-section">
         <h2>Service Statements</h2>
-        {data.statements.length ? (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Status</th>
-                  <th>Period</th>
-                  <th>Due</th>
-                  <th>Lines</th>
-                  <th>Total</th>
-                  <th>Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.statements.map((statement) => (
-                  <tr key={statement.id}>
-                    <td><StatusBadge value={statement.status} /></td>
-                    <td>{statement.periodStart} to {statement.periodEnd}</td>
-                    <td>{statement.dueDate}</td>
-                    <td><QuantityCell value={statement.lines.length} tone="ready" /></td>
-                    <td>{money(statement.totalAmount)}</td>
-                    <td className="note-cell">{statement.note ?? 'None'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState label="No service statements yet" guidance="Statements appear after a service period closes; invoices, payments, and statement correction ledgers are outside the local model." />
-        )}
+        <ServiceStatementsTable
+          statements={data.statements}
+          canUpdate={canRequestReview}
+          submitting={submitting}
+          onUpdate={(statementId, action) => void handleUpdateStatement(statementId, action)}
+        />
       </section>
 
       <section className="table-section">
         <h2>Disputes, Claims, Reviews</h2>
-        <IssueTable disputes={data.disputes} claims={data.claims} reviews={data.reviews} />
+        <IssueTable
+          disputes={data.disputes}
+          claims={data.claims}
+          reviews={data.reviews}
+          canResolve={canRequestReview}
+          submitting={submitting}
+          onResolve={(kind, id, status) => void handleResolveServiceIssue(kind, id, status)}
+        />
       </section>
 
       {canUseOrderImport && (
         <section className="table-section">
           <h2>Order Import History</h2>
           {data.imports.length ? (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Source</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Rejected</th>
-                    <th>Summary</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.imports.map((batch) => (
-                    <tr key={batch.id}>
-                      <td>{batch.sourceLabel}</td>
-                      <td><StatusBadge value={batch.status} /></td>
-                      <td><QuantityCell value={batch.createdRows} tone={batch.createdRows > 0 ? 'ready' : 'neutral'} /></td>
-                      <td><QuantityCell value={batch.rejectedRows} tone={batch.rejectedRows > 0 ? 'risk' : 'neutral'} /></td>
-                      <td className="note-cell">{batch.createdRows} created from {batch.totalRows} rows on {batch.createdAt}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <OrderImportHistoryTable imports={data.imports} />
           ) : (
             <EmptyState label="No import batches yet" guidance="Import history appears after order-intake files are submitted." />
           )}
@@ -489,39 +514,129 @@ export function ServiceAccountabilityPage() {
   )
 }
 
+function ServiceStatementsTable({
+  statements,
+  canUpdate,
+  submitting,
+  onUpdate,
+}: {
+  statements: ServiceStatement[]
+  canUpdate: boolean
+  submitting: boolean
+  onUpdate: (statementId: string, action: 'finalize' | 'settle') => void
+}) {
+  const [visibleCount, setVisibleCount] = useState(serviceLedgerPageSize)
+  if (!statements.length) {
+    return (
+      <EmptyState label="No service statements yet" guidance="Statements appear after a service period closes; invoices, payments, and statement correction ledgers are outside the local model." />
+    )
+  }
+
+  const visibleStatements = statements.slice(0, visibleCount)
+  const remainingCount = Math.max(0, statements.length - visibleStatements.length)
+
+  return (
+    <>
+      <div className="inline-summary">Showing {visibleStatements.length} of {statements.length} statements</div>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Period</th>
+              <th>Due</th>
+              <th>Lines</th>
+              <th>Total</th>
+              <th>Note</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleStatements.map((statement) => (
+              <tr key={statement.id}>
+                <td><StatusBadge value={statement.status} /></td>
+                <td>{statement.periodStart} to {statement.periodEnd}</td>
+                <td>{statement.dueDate}</td>
+                <td><QuantityCell value={statement.lines.length} tone="ready" /></td>
+                <td>{money(statement.totalAmount)}</td>
+                <td className="note-cell">{statement.note ?? 'None'}</td>
+                <td>
+                  {canUpdate && statement.status === 'DRAFT' ? (
+                    <button className="table-button" type="button" disabled={submitting} onClick={() => onUpdate(statement.id, 'finalize')}>
+                      Finalize statement
+                    </button>
+                  ) : canUpdate && statement.status === 'FINALIZED' ? (
+                    <button className="table-button" type="button" disabled={submitting} onClick={() => onUpdate(statement.id, 'settle')}>
+                      Mark settled
+                    </button>
+                  ) : (
+                    <span className="data-chip">{canUpdate ? 'No statement action' : 'Read-only evidence review'}</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {remainingCount > 0 ? (
+        <button className="table-button" type="button" onClick={() => setVisibleCount((current) => current + serviceLedgerPageSize)}>
+          Show {Math.min(serviceLedgerPageSize, remainingCount)} more statements
+        </button>
+      ) : null}
+    </>
+  )
+}
+
 function IssueTable({
   disputes,
   claims,
   reviews,
+  canResolve,
+  submitting,
+  onResolve,
 }: {
   disputes: ServiceDispute[]
   claims: ServiceClaim[]
   reviews: ServiceReview[]
+  canResolve: boolean
+  submitting: boolean
+  onResolve: (
+    kind: 'dispute' | 'claim' | 'review',
+    id: string,
+    status: 'RESOLVED' | 'REJECTED' | 'APPROVED',
+  ) => void
 }) {
+  const [visibleCount, setVisibleCount] = useState(serviceLedgerPageSize)
   const rows = [
     ...disputes.map((item) => ({
       id: item.id,
       type: 'Dispute',
+      kind: 'dispute' as const,
       status: item.status,
       reason: item.reason,
       evidence: item.evidenceNote,
       outcome: item.outcomeNote,
+      open: item.status === 'OPEN',
     })),
     ...claims.map((item) => ({
       id: item.id,
       type: `Claim ${item.claimType}`,
+      kind: 'claim' as const,
       status: item.status,
       reason: item.reason,
       evidence: item.evidenceNote,
       outcome: item.outcomeNote,
+      open: item.status === 'OPEN',
     })),
     ...reviews.map((item) => ({
       id: item.id,
       type: `Review ${item.reviewType}`,
+      kind: 'review' as const,
       status: item.status,
       reason: item.reason,
       evidence: item.evidenceNote,
       outcome: item.outcomeNote,
+      open: item.status === 'PENDING',
     })),
   ]
   if (!rows.length) {
@@ -532,32 +647,111 @@ function IssueTable({
       />
     )
   }
+  const visibleRows = rows.slice(0, visibleCount)
+  const remainingCount = Math.max(0, rows.length - visibleRows.length)
 
   return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Reason</th>
-            <th>Evidence</th>
-            <th>Outcome</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.id}>
-              <td className="name-cell">{row.type.replaceAll('_', ' ')}</td>
-              <td><StatusBadge value={row.status} /></td>
-              <td className="note-cell">{row.reason}</td>
-              <td className="note-cell">{row.evidence ?? 'No evidence note'}</td>
-              <td className="note-cell">{row.outcome ?? 'Open'}</td>
+    <>
+      <div className="inline-summary">Showing {visibleRows.length} of {rows.length} issue records</div>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Reason</th>
+              <th>Evidence</th>
+              <th>Outcome</th>
+              <th>Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {visibleRows.map((row) => (
+              <tr key={row.id}>
+                <td className="name-cell">{row.type.replaceAll('_', ' ')}</td>
+                <td><StatusBadge value={row.status} /></td>
+                <td className="note-cell">{row.reason}</td>
+                <td className="note-cell">{row.evidence ?? 'No evidence note'}</td>
+                <td className="note-cell">{row.outcome ?? 'Open'}</td>
+                <td>
+                  {canResolve && row.open ? (
+                    <div className="button-row">
+                      {row.kind === 'review' ? (
+                        <>
+                          <button className="table-button" type="button" disabled={submitting} onClick={() => onResolve('review', row.id, 'APPROVED')}>
+                            Approve review
+                          </button>
+                          <button className="table-button warning-button" type="button" disabled={submitting} onClick={() => onResolve('review', row.id, 'REJECTED')}>
+                            Reject review
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button className="table-button" type="button" disabled={submitting} onClick={() => onResolve(row.kind, row.id, 'RESOLVED')}>
+                            Resolve {row.kind}
+                          </button>
+                          <button className="table-button warning-button" type="button" disabled={submitting} onClick={() => onResolve(row.kind, row.id, 'REJECTED')}>
+                            Reject {row.kind}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="data-chip">{canResolve ? 'Closed' : 'Read-only evidence review'}</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {remainingCount > 0 ? (
+        <button className="table-button" type="button" onClick={() => setVisibleCount((current) => current + serviceLedgerPageSize)}>
+          Show {Math.min(serviceLedgerPageSize, remainingCount)} more issue records
+        </button>
+      ) : null}
+    </>
+  )
+}
+
+function OrderImportHistoryTable({ imports }: { imports: OrderImportBatch[] }) {
+  const [visibleCount, setVisibleCount] = useState(serviceLedgerPageSize)
+  const visibleImports = imports.slice(0, visibleCount)
+  const remainingCount = Math.max(0, imports.length - visibleImports.length)
+
+  return (
+    <>
+      <div className="inline-summary">Showing {visibleImports.length} of {imports.length} import batches</div>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Rejected</th>
+              <th>Summary</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleImports.map((batch) => (
+              <tr key={batch.id}>
+                <td>{batch.sourceLabel}</td>
+                <td><StatusBadge value={batch.status} /></td>
+                <td><QuantityCell value={batch.createdRows} tone={batch.createdRows > 0 ? 'ready' : 'neutral'} /></td>
+                <td><QuantityCell value={batch.rejectedRows} tone={batch.rejectedRows > 0 ? 'risk' : 'neutral'} /></td>
+                <td className="note-cell">{batch.createdRows} created from {batch.totalRows} rows on {batch.createdAt}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {remainingCount > 0 ? (
+        <button className="table-button" type="button" onClick={() => setVisibleCount((current) => current + serviceLedgerPageSize)}>
+          Show {Math.min(serviceLedgerPageSize, remainingCount)} more import batches
+        </button>
+      ) : null}
+    </>
   )
 }
 
@@ -574,6 +768,11 @@ function PageHeading({ title, subtitle }: { title: string, subtitle: string }) {
 
 function money(value: number) {
   return `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} service units`
+}
+
+function trimToNull(value: string) {
+  const trimmed = value.trim()
+  return trimmed || null
 }
 
 function serviceSignal(

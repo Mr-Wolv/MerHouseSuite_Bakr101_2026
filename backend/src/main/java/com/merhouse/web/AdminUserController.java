@@ -62,6 +62,7 @@ public class AdminUserController {
     }
 
     @PatchMapping("/{id}/disable")
+    @PreAuthorize("@currentUserService.canMutatePlatform()")
     public UserResponse disable(@PathVariable UUID id, @Valid @RequestBody AdminActionRequest request) {
         UUID actorId = currentUserService.required().id();
         var disabled = userService.disable(id, actorId);
@@ -70,6 +71,7 @@ public class AdminUserController {
     }
 
     @PatchMapping("/{id}/enable")
+    @PreAuthorize("@currentUserService.canMutatePlatform()")
     public UserResponse enable(@PathVariable UUID id, @Valid @RequestBody AdminActionRequest request) {
         UUID actorId = currentUserService.required().id();
         var enabled = userService.enable(id, actorId);
@@ -78,6 +80,7 @@ public class AdminUserController {
     }
 
     @PatchMapping("/{id}/role")
+    @PreAuthorize("@currentUserService.canMutatePlatform()")
     public UserResponse changeRole(@PathVariable UUID id, @Valid @RequestBody ChangeUserRoleRequest request) {
         UUID actorId = currentUserService.required().id();
         var changed = userService.changeRole(id, actorId, request.role());

@@ -15,4 +15,17 @@ public record CreateServiceStatementRequest(
     @Size(max = 1000) String note,
     @NotEmpty List<@Valid ServiceStatementLineRequest> lines
 ) {
+    public CreateServiceStatementRequest {
+        idempotencyKey = trimToNull(idempotencyKey);
+        note = trimToNull(note);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private static String trimToNull(String value) {
+        String trimmed = trim(value);
+        return trimmed == null || trimmed.isEmpty() ? null : trimmed;
+    }
 }

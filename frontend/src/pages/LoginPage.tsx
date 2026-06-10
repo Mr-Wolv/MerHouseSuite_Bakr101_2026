@@ -25,7 +25,7 @@ export function LoginPage() {
     setError('')
     setSubmitting(true)
     try {
-      await login(email, password)
+      await login(email.trim(), password)
       const from = (location.state as { from?: Location } | null)?.from?.pathname ?? '/'
       navigate(from, { replace: true })
     } catch (caught) {

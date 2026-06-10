@@ -19,7 +19,7 @@ export function ForgotPasswordPage() {
     setResetPath(null)
     setSubmitting(true)
     try {
-      const response = await api.requestPasswordReset(email)
+      const response = await api.requestPasswordReset(email.trim())
       setMessage(response.message)
       setResetPath(response.resetPath)
     } catch (caught) {
@@ -85,7 +85,7 @@ export function ResetPasswordPage() {
     setMessage('')
     setSubmitting(true)
     try {
-      const response = await api.confirmPasswordReset(token, newPassword)
+      const response = await api.confirmPasswordReset(token.trim(), newPassword)
       setMessage(response.message)
       setNewPassword('')
     } catch (caught) {
@@ -159,7 +159,12 @@ export function RequestAccessPage() {
     setMessage('')
     setSubmitting(true)
     try {
-      const request = await api.submitAccessRequest({ organizationName, requesterEmail, requestedRole, notes })
+      const request = await api.submitAccessRequest({
+        organizationName: organizationName.trim(),
+        requesterEmail: requesterEmail.trim(),
+        requestedRole,
+        notes: notes.trim(),
+      })
       setMessage(`Access request ${request.status.toLowerCase()} for ${request.requesterEmail}.`)
       setOrganizationName('')
       setRequesterEmail('')

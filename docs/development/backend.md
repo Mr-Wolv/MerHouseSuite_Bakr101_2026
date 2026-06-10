@@ -40,6 +40,7 @@ Important environment variables:
 | `MERHOUSE_AUTH_SEED_ADMIN_ENABLED` | Local owner seeding switch |
 | `MERHOUSE_SWAGGER_ENABLED` | OpenAPI and Swagger UI switch |
 | `MERHOUSE_DEPLOYMENT_PUBLIC` | Deployment-shaped startup validation |
+| `MERHOUSE_CORS_ALLOWED_ORIGINS` | Comma-separated browser/native origins allowed to call `/api/**`; the local default includes Docker nginx, Vite dev/tour origins, and Capacitor local origins |
 
 ## Tests
 
@@ -74,6 +75,6 @@ Maven Surefire loads Mockito as an explicit Java agent during tests so newer JDK
 - Merchant-warehouse relationships and inbound stock
 - Operational details and timelines
 - Service accountability, agreements, statements, SLA review, disputes, claims, and order imports
-- Deterministic prototype-local operations assistance with scoped summaries, review suggestions, refusals, and auditable human decisions
-- Prototype-local notification action inbox, recipient-scoped delivery history, preferences, and app-shell unread summary
+- Deterministic local operations assistance with scoped summaries, review suggestions, refusals, and auditable human decisions
+- Local notification action inbox, recipient-scoped delivery history, preferences, and app-shell unread summary
 - Transactional outbox administration

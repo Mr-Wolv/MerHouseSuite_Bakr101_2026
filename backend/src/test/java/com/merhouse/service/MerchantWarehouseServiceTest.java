@@ -174,6 +174,46 @@ class MerchantWarehouseServiceTest {
     }
 
     @Test
+    void suspendRelationshipRequiresOwnerAdminMutationPermission() {
+        Tenant merchant = tenant(TenantType.MERCHANT);
+        Tenant provider = tenant(TenantType.WAREHOUSE_PROVIDER);
+        MerchantWarehouseRelationship relationship = relationship(merchant, provider, MerchantWarehouseRelationshipStatus.ACTIVE);
+
+        when(relationshipRepository.findWithDetailsById(relationship.getId())).thenReturn(Optional.of(relationship));
+        when(currentUserService.canMutatePlatform()).thenReturn(false);
+
+        assertThrows(DomainConflictException.class, () -> service.suspendRelationship(relationship.getId(), "Support review"));
+        verify(relationshipRepository, never()).saveAndFlush(any());
+        verify(outboxService, never()).publish(eq("MerchantWarehouseRelationshipSuspended"), eq("MerchantWarehouseRelationship"), any(), any());
+    }
+
+    @Test
+    void ownerAdminCanSuspendReactivateAndEndRelationship() {
+        Tenant merchant = tenant(TenantType.MERCHANT);
+        Tenant provider = tenant(TenantType.WAREHOUSE_PROVIDER);
+        MerchantWarehouseRelationship relationship = relationship(merchant, provider, MerchantWarehouseRelationshipStatus.ACTIVE);
+
+        when(relationshipRepository.findWithDetailsById(relationship.getId())).thenReturn(Optional.of(relationship));
+        when(currentUserService.canMutatePlatform()).thenReturn(true);
+        when(relationshipRepository.saveAndFlush(relationship)).thenReturn(relationship);
+
+        service.suspendRelationship(relationship.getId(), "  governance pause  ");
+        assertEquals(MerchantWarehouseRelationshipStatus.SUSPENDED, relationship.getStatus());
+        assertEquals("governance pause", relationship.getStatusReason());
+
+        service.reactivateRelationship(relationship.getId(), "resume");
+        assertEquals(MerchantWarehouseRelationshipStatus.ACTIVE, relationship.getStatus());
+        assertEquals("resume", relationship.getStatusReason());
+
+        service.endRelationship(relationship.getId(), "end service");
+        assertEquals(MerchantWarehouseRelationshipStatus.ENDED, relationship.getStatus());
+        assertEquals("end service", relationship.getStatusReason());
+        verify(outboxService).publish(eq("MerchantWarehouseRelationshipSuspended"), eq("MerchantWarehouseRelationship"), eq(relationship.getId()), any());
+        verify(outboxService).publish(eq("MerchantWarehouseRelationshipReactivated"), eq("MerchantWarehouseRelationship"), eq(relationship.getId()), any());
+        verify(outboxService).publish(eq("MerchantWarehouseRelationshipEnded"), eq("MerchantWarehouseRelationship"), eq(relationship.getId()), any());
+    }
+
+    @Test
     void findAuthorizedStockCombinesWarehouseStockAndOpenInboundForMerchant() {
         Tenant merchant = tenant(TenantType.MERCHANT);
         merchant.setName("Adidas");

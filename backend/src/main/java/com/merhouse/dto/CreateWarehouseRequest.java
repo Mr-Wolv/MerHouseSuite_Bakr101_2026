@@ -15,4 +15,12 @@ public record CreateWarehouseRequest(
     BigDecimal longitude,
     @Min(0) int capacity
 ) {
+    public CreateWarehouseRequest {
+        name = trim(name);
+        address = trim(address);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

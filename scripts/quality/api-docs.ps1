@@ -9,6 +9,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+. (Join-Path $PSScriptRoot "url-guard-lib.ps1")
+
 function Join-Url {
     param(
         [Parameter(Mandatory = $true)] [string] $Root,
@@ -18,7 +20,7 @@ function Join-Url {
     "$($Root.TrimEnd('/'))/$($Path.TrimStart('/'))"
 }
 
-$normalizedBaseUrl = $BaseUrl.TrimEnd("/")
+$normalizedBaseUrl = Assert-AbsoluteHttpUrl -Name "BaseUrl" -Value $BaseUrl
 $swaggerUrl = Join-Url -Root $normalizedBaseUrl -Path "/swagger-ui.html"
 $jsonUrl = Join-Url -Root $normalizedBaseUrl -Path "/v3/api-docs"
 $yamlUrl = Join-Url -Root $normalizedBaseUrl -Path "/v3/api-docs.yaml"

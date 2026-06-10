@@ -38,7 +38,7 @@ try {
     }
 
     Write-Host "Running frontend tests..."
-    npm test -- --run
+    npm test -- --run --no-file-parallelism
     if ($LASTEXITCODE -ne 0) {
         throw "Frontend tests failed."
     }

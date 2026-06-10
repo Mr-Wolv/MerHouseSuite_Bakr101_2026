@@ -273,10 +273,11 @@ public class OperationalDetailService {
         ).stream()
             .filter(request -> request.getRelationship().getId().equals(relationship.getId()))
             .toList();
-        List<FulfillmentAllocation> allocations = allocationRepository.findAll().stream()
-            .filter(allocation -> allocation.getOrder().getMerchant().getId().equals(relationship.getMerchant().getId()))
-            .filter(allocation -> allocation.getWarehouse().getTenant().getId().equals(relationship.getWarehouseProvider().getId()))
-            .toList();
+        List<FulfillmentAllocation> allocations = allocationRepository
+            .findByOrderMerchantIdAndWarehouseTenantIdOrderByCreatedAtDesc(
+                relationship.getMerchant().getId(),
+                relationship.getWarehouseProvider().getId()
+            );
         List<UUID> aggregateIds = new ArrayList<>();
         aggregateIds.add(relationship.getId());
         inboundRequests.forEach(request -> aggregateIds.add(request.getId()));

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import type { AuthState } from '../auth/AuthContextValue'
@@ -8,6 +8,7 @@ import { NotificationCenterPage } from './NotificationCenterPage'
 
 const apiMock = vi.hoisted(() => ({
   notificationPreferences: vi.fn(),
+  notificationSummary: vi.fn(),
   updateNotificationPreference: vi.fn(),
   notificationDeliveries: vi.fn(),
   markNotificationRead: vi.fn(),
@@ -93,6 +94,11 @@ describe('NotificationCenterPage', () => {
       },
     ])
     apiMock.notificationDeliveries.mockResolvedValue([deliveryFixture()])
+    apiMock.notificationSummary.mockResolvedValue({
+      unreadCount: 1,
+      latestDeliveryAt: '2026-05-29T00:00:00Z',
+      attentionSignals: [],
+    })
     apiMock.updateNotificationPreference.mockResolvedValue({
       id: 'pref-1',
       topic: 'ACCOUNT_LIFECYCLE',
@@ -115,7 +121,7 @@ describe('NotificationCenterPage', () => {
     const sections = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
     expect(sections.indexOf('Action inbox')).toBeLessThan(sections.indexOf('Preferences'))
     expect(screen.getAllByText('Account lifecycle')).toHaveLength(2)
-    expect(screen.getByText('Email channel')).toBeInTheDocument()
+    expect(screen.getByText('Local email record')).toBeInTheDocument()
     expect(screen.getByText('Account ready')).toBeInTheDocument()
     expect(screen.getAllByText('Unread').some((node) => node.classList.contains('warning-chip'))).toBe(true)
     expect(screen.getByText('Account ready').closest('article')).toHaveClass('notification-action')
@@ -129,6 +135,150 @@ describe('NotificationCenterPage', () => {
     expect(screen.getByRole('button', { name: 'Disable' })).toHaveClass('warning-button')
     expect(apiMock.notificationPreferences).toHaveBeenCalledWith('notification-token')
     expect(apiMock.notificationDeliveries).toHaveBeenCalledWith('notification-token', 50)
+    expect(apiMock.notificationDeliveries).toHaveBeenCalledWith('notification-token', 50, 'RECORDED')
+    expect(apiMock.notificationSummary).toHaveBeenCalledWith('notification-token')
+  })
+
+  it('uses the backend summary unread count when dense alert history exceeds the loaded delivery page', async () => {
+    apiMock.notificationDeliveries.mockResolvedValue(
+      Array.from({ length: 50 }, (_, index) => deliveryFixture({
+        id: `delivery-${index}`,
+        title: `Loaded alert ${index + 1}`,
+        sourceType: null,
+        sourceId: null,
+      })),
+    )
+    apiMock.notificationSummary.mockResolvedValue({
+      unreadCount: 73,
+      latestDeliveryAt: '2026-05-29T00:00:00Z',
+      attentionSignals: [],
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Loaded alert 1')).toBeInTheDocument()
+    const unreadMetric = within(screen.getByLabelText('Notification summary')).getByText('Unread').closest('.metric')
+    expect(unreadMetric).toHaveTextContent('73')
+    expect(screen.getByText('Showing 50 of 73 active')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Load more alerts' })).toBeInTheDocument()
+  })
+
+  it('loads additional unread action pages when summary count exceeds visible actions', async () => {
+    const user = userEvent.setup()
+    const firstPage = Array.from({ length: 50 }, (_, index) => deliveryFixture({
+      id: `delivery-${index + 1}`,
+      title: `Loaded alert ${index + 1}`,
+      sourceType: null,
+      sourceId: null,
+    }))
+    const secondPage = Array.from({ length: 23 }, (_, index) => deliveryFixture({
+      id: `delivery-${index + 51}`,
+      title: `Loaded alert ${index + 51}`,
+      sourceType: null,
+      sourceId: null,
+    }))
+    apiMock.notificationDeliveries.mockImplementation(
+      (_token: string, _limit: number, status?: string, page = 0) => {
+        if (status === 'RECORDED') {
+          return Promise.resolve(page === 1 ? secondPage : firstPage)
+        }
+        return Promise.resolve([])
+      },
+    )
+    apiMock.notificationSummary.mockResolvedValue({
+      unreadCount: 73,
+      latestDeliveryAt: '2026-05-29T00:00:00Z',
+      attentionSignals: [],
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Loaded alert 1')).toBeInTheDocument()
+    expect(screen.getByText('Showing 50 of 73 active')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Load more alerts' }))
+
+    expect(await screen.findByText('Loaded alert 73')).toBeInTheDocument()
+    expect(screen.getByText('73 active')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Load more alerts' })).not.toBeInTheDocument()
+    expect(apiMock.notificationDeliveries).toHaveBeenCalledWith('notification-token', 50, 'RECORDED', 1)
+  })
+
+  it('clears stale success feedback before showing load-more alert failures', async () => {
+    const user = userEvent.setup()
+    const firstPage = Array.from({ length: 50 }, (_, index) => deliveryFixture({
+      id: `delivery-${index + 1}`,
+      title: `Loaded alert ${index + 1}`,
+      sourceType: null,
+      sourceId: null,
+    }))
+    apiMock.notificationDeliveries.mockImplementation(
+      (_token: string, _limit: number, status?: string, page = 0) => {
+        if (status === 'RECORDED') {
+          return page === 1
+            ? Promise.reject(new Error('Paged alert load failed'))
+            : Promise.resolve(firstPage)
+        }
+        return Promise.resolve([])
+      },
+    )
+    apiMock.notificationSummary.mockResolvedValue({
+      unreadCount: 73,
+      latestDeliveryAt: '2026-05-29T00:00:00Z',
+      attentionSignals: [],
+    })
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Disable' }))
+    expect(await screen.findByText('Account lifecycle in app updated.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Load more alerts' }))
+
+    expect(await screen.findByText('Unable to load more alerts.')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByText('Account lifecycle in app updated.')).not.toBeInTheDocument()
+    })
+  })
+
+  it('keeps unread actions visible even when recent delivery history is already read', async () => {
+    apiMock.notificationDeliveries.mockImplementation((_token: string, _limit: number, status?: string) => {
+      if (status === 'RECORDED') {
+        return Promise.resolve([
+          deliveryFixture({
+            id: 'older-unread',
+            title: 'Older unread inbound',
+            body: 'This older unread alert still needs action.',
+            sourceType: 'InboundStockRequest',
+            sourceId: 'inbound-older',
+            createdAt: '2026-05-28T23:00:00Z',
+          }),
+        ])
+      }
+      return Promise.resolve([
+        deliveryFixture({
+          id: 'recent-read',
+          status: 'READ',
+          title: 'Recent read alert',
+          body: 'This newer alert was already cleared.',
+          sourceType: 'CustomerOrder',
+          sourceId: 'order-recent',
+          createdAt: '2026-05-29T00:05:00Z',
+          readAt: '2026-05-29T00:06:00Z',
+        }),
+      ])
+    })
+    apiMock.notificationSummary.mockResolvedValue({
+      unreadCount: 1,
+      latestDeliveryAt: '2026-05-29T00:05:00Z',
+      attentionSignals: [],
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Older unread inbound')).toBeInTheDocument()
+    expect(screen.getByText('1 active')).toBeInTheDocument()
+    expect(screen.getByText('Recent read alert')).toBeInTheDocument()
+    expect(screen.getByText('1 records')).toBeInTheDocument()
   })
 
   it('updates preferences and marks delivery records read', async () => {
@@ -155,6 +305,7 @@ describe('NotificationCenterPage', () => {
     })
     expect(unreadListener).toHaveBeenCalledTimes(1)
     expect(unreadListener.mock.calls[0][0]).toMatchObject({ detail: { delta: -1 } })
+    expect(screen.getByText('Unread').closest('.metric')).toHaveTextContent('0')
     window.removeEventListener(notificationUnreadChangedEvent, unreadListener)
   })
 
@@ -277,6 +428,14 @@ describe('NotificationCenterPage', () => {
         sourceId: null,
       }),
       deliveryFixture({
+        id: 'delivery-service-review',
+        topic: 'SERVICE_ACCOUNTABILITY',
+        title: 'Service review requested',
+        body: 'Manual service adjustment needs partner review.',
+        sourceType: 'ServiceReviewRequest',
+        sourceId: 'review-12345678',
+      }),
+      deliveryFixture({
         id: 'delivery-resolved',
         topic: 'OUTBOX_HEALTH',
         status: 'READ',
@@ -293,12 +452,13 @@ describe('NotificationCenterPage', () => {
     expect(screen.getByText('Outbox dead-lettered').closest('article')).toHaveClass('notification-critical')
     expect(screen.getByText('Returned shipment').closest('article')).toHaveClass('notification-action')
     expect(screen.getByText('Preference recorded').closest('article')).toHaveClass('notification-review')
+    expect(screen.getByText('Service review requested').closest('article')).toHaveClass('notification-action')
     expect(screen.getByText('Failed event resolved').closest('article')).toHaveClass('notification-cleared')
     expect(screen.getByText('Critical')).toHaveClass('severity-critical')
     expect(screen.getAllByText('Action needed').some((node) => node.classList.contains('severity-action'))).toBe(true)
     expect(screen.getByText('Review')).toHaveClass('severity-review')
     expect(screen.getByText('Cleared')).toHaveClass('severity-cleared')
-    expect(screen.getAllByText('Action needed').find((node) => node.closest('.metric'))?.closest('.metric')).toHaveTextContent('2')
+    expect(screen.getAllByText('Action needed').find((node) => node.closest('.metric'))?.closest('.metric')).toHaveTextContent('3')
   })
 
   it('guides users when there are no alert records yet', async () => {

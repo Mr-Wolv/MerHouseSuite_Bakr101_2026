@@ -311,6 +311,28 @@ describe('WarehousePage', () => {
     expect(within(card).getByRole('button', { name: 'Pack' })).toBeInTheDocument()
   })
 
+  it('lets dense fulfillment queues reveal more than the first page', async () => {
+    const user = userEvent.setup()
+    apiMock.fulfillmentAllocations.mockResolvedValue(Array.from({ length: 22 }, (_, index) => ({
+      ...allocations[0],
+      id: `allocation-${index + 1}`,
+      orderId: `order-${index + 1}`,
+      customerAddress: `Customer ${index + 1}`,
+    })))
+
+    renderWithAuth(<WarehousePage />)
+
+    const queue = (await screen.findByRole('heading', { name: 'Fulfillment Queue' })).closest('section')
+    expect(queue).not.toBeNull()
+    expect(within(queue!).getByText('Showing 20 of 22')).toBeInTheDocument()
+    expect(within(queue!).queryByText('Customer 21')).not.toBeInTheDocument()
+
+    await user.click(within(queue!).getByRole('button', { name: 'Show 2 more allocations' }))
+
+    expect(within(queue!).getByText('Showing 22 of 22')).toBeInTheDocument()
+    expect(within(queue!).getByText('Customer 21')).toBeInTheDocument()
+  })
+
   it('activates merchant relationships and receives inbound stock', async () => {
     const user = userEvent.setup()
     renderWithAuth(<WarehousePage />)
@@ -334,11 +356,17 @@ describe('WarehousePage', () => {
     expect(apiMock.startReceivingInboundStock).toHaveBeenCalledWith('operator-token', 'inbound-1')
     expect(await within(inboundRow).findByText('RECEIVING')).toBeInTheDocument()
 
-    await user.click(within(inboundRow).getByRole('button', { name: 'Receive all' }))
+    await user.clear(within(inboundRow).getByLabelText('Received'))
+    await user.type(within(inboundRow).getByLabelText('Received'), '4')
+    await user.clear(within(inboundRow).getByLabelText('Damaged'))
+    await user.type(within(inboundRow).getByLabelText('Damaged'), '1')
+    await user.clear(within(inboundRow).getByLabelText('Receiving note'))
+    await user.type(within(inboundRow).getByLabelText('Receiving note'), ' One carton damaged ')
+    await user.click(within(inboundRow).getByRole('button', { name: 'Post receipt' }))
     expect(apiMock.receiveInboundStock).toHaveBeenCalledWith('operator-token', 'inbound-1', {
-      receivedQuantity: 5,
-      damagedQuantity: 0,
-      receivingNote: 'Received from warehouse console',
+      receivedQuantity: 4,
+      damagedQuantity: 1,
+      receivingNote: 'One carton damaged',
     })
     expect(await within(inboundRow).findByText('RECEIVED')).toBeInTheDocument()
     expect(await within(inboundRow).findByText('This inbound request has already been received.')).toBeInTheDocument()
@@ -409,7 +437,7 @@ describe('WarehousePage', () => {
     expect(await screen.findByText('Inbound stock needs receiving')).toBeInTheDocument()
     expect(screen.queryByText('Inbound request needs review')).not.toBeInTheDocument()
 
-    await user.click(within(inboundRow!).getByRole('button', { name: 'Receive all' }))
+    await user.click(within(inboundRow!).getByRole('button', { name: 'Post receipt' }))
 
     expect(apiMock.receiveInboundStock).toHaveBeenCalledWith('operator-token', 'inbound-1', {
       receivedQuantity: 5,
@@ -421,24 +449,42 @@ describe('WarehousePage', () => {
     expect(apiMock.warehouseDashboard).toHaveBeenCalledTimes(3)
   })
 
+  it('blocks decimal inbound receipt quantities before they reach the API', async () => {
+    const user = userEvent.setup()
+    apiMock.inboundStockRequests.mockResolvedValue([{ ...inboundRequests[0], status: 'APPROVED' }])
+    renderWithAuth(<WarehousePage />)
+
+    const inboundRow = await screen.findByRole('row', { name: /Post receipt/i })
+    await user.clear(within(inboundRow).getByLabelText('Received'))
+    await user.type(within(inboundRow).getByLabelText('Received'), '2.5')
+
+    expect(await within(inboundRow).findByText('Received plus damaged must be whole numbers between 1 and 5.')).toBeInTheDocument()
+    expect(within(inboundRow).getByRole('button', { name: 'Post receipt' })).toBeDisabled()
+    expect(apiMock.receiveInboundStock).not.toHaveBeenCalled()
+  })
+
   it('creates and delivers a shipment for a packed allocation', async () => {
     const user = userEvent.setup()
     apiMock.fulfillmentAllocations.mockResolvedValue([{ ...allocations[0], status: 'PACKED' }])
     renderWithAuth(<WarehousePage />)
 
     const card = await screen.findByLabelText(/Allocation allocati Adidas Merchant PACKED/i)
+    await user.clear(within(card).getByLabelText('Tracking'))
+    await user.type(within(card).getByLabelText('Tracking'), ' TRACK-PASTED ')
+    await user.clear(within(card).getByLabelText('Packing note'))
+    await user.type(within(card).getByLabelText('Packing note'), ' Packed at dock 4 ')
     await user.click(within(card).getByRole('button', { name: 'Ship' }))
 
     expect(apiMock.createShipment).toHaveBeenCalledWith('operator-token', {
       allocationId: 'allocation-1',
       carrier: 'FedEx',
-      trackingNumber: 'MH-allocati',
+      trackingNumber: 'TRACK-PASTED',
       packageCount: 2,
       packageWeightKg: 2,
       packageLengthCm: 40,
       packageWidthCm: 30,
       packageHeightCm: 20,
-      packingNote: 'Packed with operator-entered package evidence for shipment handoff.',
+      packingNote: 'Packed at dock 4',
       metadata: { source: 'warehouse-console', evidence: 'operator-entered' },
     })
     expect(await within(card).findByText(/IN_TRANSIT/)).toBeInTheDocument()
@@ -447,6 +493,20 @@ describe('WarehousePage', () => {
     await user.click(within(card).getByRole('button', { name: 'Deliver' }))
     expect(apiMock.markShipmentDelivered).toHaveBeenCalledWith('operator-token', 'shipment-1')
     expect(await within(card).findByText(/DELIVERED/)).toBeInTheDocument()
+  })
+
+  it('blocks decimal package counts and dimensions before shipment evidence reaches the API', async () => {
+    const user = userEvent.setup()
+    apiMock.fulfillmentAllocations.mockResolvedValue([{ ...allocations[0], status: 'PACKED' }])
+    renderWithAuth(<WarehousePage />)
+
+    const card = await screen.findByLabelText(/Allocation allocati Adidas Merchant PACKED/i)
+    await user.clear(within(card).getByLabelText('Packages'))
+    await user.type(within(card).getByLabelText('Packages'), '1.5')
+
+    expect(await within(card).findByText('Package count and dimensions must be whole numbers, and weight must be at least 0.01 kg.')).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'Ship' })).toBeDisabled()
+    expect(apiMock.createShipment).not.toHaveBeenCalled()
   })
 
   it('clears allocation attention immediately after shipping leaves the active work state', async () => {
@@ -587,6 +647,44 @@ describe('WarehousePage', () => {
     expect(await within(returnedCard).findByText(/RETURNED/)).toBeInTheDocument()
   })
 
+  it('lets dense recent shipment records reveal terminal evidence after the first page', async () => {
+    const user = userEvent.setup()
+    apiMock.fulfillmentAllocations.mockResolvedValue(Array.from({ length: 10 }, (_, index) => ({
+      ...allocations[0],
+      id: `allocation-${index + 1}`,
+      shipment: {
+        id: `shipment-${index + 1}`,
+        allocationId: `allocation-${index + 1}`,
+        orderId: `order-${index + 1}`,
+        warehouseId: 'warehouse-1',
+        carrier: 'Local Carrier',
+        trackingNumber: `TRACK-${index + 1}`,
+        packageCount: 1,
+        packageWeightKg: 2,
+        packageLengthCm: 40,
+        packageWidthCm: 30,
+        packageHeightCm: 20,
+        packingNote: `Evidence ${index + 1}`,
+        status: index % 2 === 0 ? 'FAILED' : 'RETURNED',
+        packages: [],
+        metadata: { source: 'warehouse-console' },
+        createdAt: `2026-05-17T00:${String(index).padStart(2, '0')}:00Z`,
+      },
+    })))
+
+    renderWithAuth(<WarehousePage />)
+
+    expect(await screen.findByText('Showing 8 of 10')).toBeInTheDocument()
+    const recentShipments = screen.getByRole('heading', { name: 'Recent Shipments' }).closest('section')
+    expect(recentShipments).not.toBeNull()
+    expect(within(recentShipments!).queryByText(/TRACK-2/)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Show 2 more shipments' }))
+
+    expect(within(recentShipments!).getByText('Showing 10 of 10')).toBeInTheDocument()
+    expect(within(recentShipments!).getByText(/TRACK-2/)).toBeInTheDocument()
+  })
+
   it('applies reason-coded stock adjustments from the warehouse inventory table', async () => {
     const user = userEvent.setup()
     renderWithAuth(<WarehousePage />)
@@ -595,7 +693,7 @@ describe('WarehousePage', () => {
     fireEvent.change(within(row).getByLabelText('Delta'), { target: { value: '-1' } })
     await user.selectOptions(within(row).getByLabelText('Reason'), 'DAMAGED_STOCK')
     await user.clear(within(row).getByLabelText('Note'))
-    await user.type(within(row).getByLabelText('Note'), 'Damaged during cycle count.')
+    await user.type(within(row).getByLabelText('Note'), ' Damaged during cycle count. ')
     await user.click(within(row).getByRole('button', { name: 'Apply adjustment' }))
 
     expect(apiMock.adjustStock).toHaveBeenCalledWith('operator-token', {
@@ -606,6 +704,18 @@ describe('WarehousePage', () => {
       reasonNote: 'Damaged during cycle count.',
     })
     expect(await within(row).findByText('9')).toBeInTheDocument()
+  })
+
+  it('trims pasted workload scan codes before updating allocation evidence', async () => {
+    const user = userEvent.setup()
+    renderWithAuth(<WarehousePage />)
+
+    const card = await screen.findByLabelText(/Allocation allocati Adidas Merchant PENDING/i)
+    const scan = within(card).getByLabelText('Scan')
+    await user.type(scan, ' SCAN-PASTED ')
+    fireEvent.blur(scan)
+
+    expect(apiMock.updateAllocationWorkload).toHaveBeenCalledWith('operator-token', 'allocation-1', { scanCode: 'SCAN-PASTED' })
   })
 
   it('shows backend errors when an invalid transition is attempted', async () => {

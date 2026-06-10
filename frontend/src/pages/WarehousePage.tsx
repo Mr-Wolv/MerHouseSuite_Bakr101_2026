@@ -31,6 +31,12 @@ type ShipmentDraft = {
   packingNote: string
 }
 
+type ReceivingDraft = {
+  receivedQuantity: number
+  damagedQuantity: number
+  receivingNote: string
+}
+
 const carrierOptions = ['Local Carrier', 'FedEx', 'DHL', 'UPS', 'Aramex']
 const adjustmentReasons = [
   'CYCLE_COUNT_GAIN',
@@ -52,6 +58,7 @@ export function WarehousePage() {
   const [inboundRequests, setInboundRequests] = useState<InboundStockRequest[]>([])
   const [statusFilter, setStatusFilter] = useState<'ALL' | FulfillmentStatus>('ALL')
   const [shipmentDrafts, setShipmentDrafts] = useState<Record<string, ShipmentDraft>>({})
+  const [receivingDrafts, setReceivingDrafts] = useState<Record<string, ReceivingDraft>>({})
   const [adjustmentDrafts, setAdjustmentDrafts] = useState<Record<string, { quantityDelta: number; reasonCode: string; reasonNote: string }>>({})
   const [loading, setLoading] = useState(true)
   const [inventoryLoading, setInventoryLoading] = useState(false)
@@ -204,16 +211,36 @@ export function WarehousePage() {
     }
   }
 
-  async function receiveAll(request: InboundStockRequest) {
+  function receivingDraft(request: InboundStockRequest): ReceivingDraft {
+    return receivingDrafts[request.id] ?? defaultReceivingDraft(request)
+  }
+
+  function updateReceivingDraft(request: InboundStockRequest, patch: Partial<ReceivingDraft>) {
+    setReceivingDrafts((current) => ({
+      ...current,
+      [request.id]: {
+        ...(current[request.id] ?? defaultReceivingDraft(request)),
+        ...patch,
+      },
+    }))
+  }
+
+  async function receiveInbound(request: InboundStockRequest) {
     if (!token) return
     setActionError('')
+    const draft = receivingDraft(request)
     try {
       const updated = await api.receiveInboundStock(token, request.id, {
-        receivedQuantity: request.requestedQuantity,
-        damagedQuantity: 0,
-        receivingNote: 'Received from warehouse console',
+        receivedQuantity: draft.receivedQuantity,
+        damagedQuantity: draft.damagedQuantity,
+        receivingNote: draft.receivingNote.trim() || 'Received from warehouse console',
       })
       setInboundRequests((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      setReceivingDrafts((current) => {
+        const next = { ...current }
+        delete next[request.id]
+        return next
+      })
       if (request.warehouseId === selectedWarehouseId) {
         const nextInventory = await api.warehouseInventory(token, selectedWarehouseId)
         setInventory(nextInventory)
@@ -271,14 +298,14 @@ export function WarehousePage() {
     try {
       const shipment = await api.createShipment(token, {
         allocationId: allocation.id,
-        carrier: draft.carrier,
-        trackingNumber: draft.trackingNumber,
+        carrier: draft.carrier.trim(),
+        trackingNumber: draft.trackingNumber.trim(),
         packageCount: draft.packageCount,
         packageWeightKg: draft.packageWeightKg,
         packageLengthCm: draft.packageLengthCm,
         packageWidthCm: draft.packageWidthCm,
         packageHeightCm: draft.packageHeightCm,
-        packingNote: draft.packingNote,
+        packingNote: draft.packingNote.trim(),
         metadata: { source: 'warehouse-console', evidence: 'operator-entered' },
       })
       setAllocations((current) => current.map((item) => (
@@ -342,8 +369,8 @@ export function WarehousePage() {
       const created = await api.reportFulfillmentException(token, {
         allocationId: allocation.id,
         shipmentId: allocation.shipment?.id ?? null,
-        reasonCode,
-        description: `${reasonCode} reported from warehouse console for allocation ${shortId(allocation.id)}.`,
+        reasonCode: reasonCode.trim(),
+        description: `${reasonCode} reported from warehouse console for allocation ${shortId(allocation.id)}.`.trim(),
       })
       setExceptions((current) => [created, ...current])
       await refreshDashboard()
@@ -361,8 +388,8 @@ export function WarehousePage() {
         warehouseId: row.warehouseId,
         inventoryItemId: row.inventoryItemId,
         quantityDelta: draft.quantityDelta,
-        reasonCode: draft.reasonCode,
-        reasonNote: draft.reasonNote,
+        reasonCode: draft.reasonCode.trim(),
+        reasonNote: draft.reasonNote.trim(),
       })
       setInventory((current) => current.map((item) => (
         item.warehouseId === updated.warehouseId && item.inventoryItemId === updated.inventoryItemId ? updated : item
@@ -510,7 +537,9 @@ export function WarehousePage() {
             requests={warehouseInboundRequests}
             onApprove={(request) => void approveInbound(request)}
             onStart={(request) => void startReceiving(request)}
-            onReceive={(request) => void receiveAll(request)}
+            receivingDraft={(request) => receivingDraft(request)}
+            onReceivingDraftChange={(request, patch) => updateReceivingDraft(request, patch)}
+            onReceive={(request) => void receiveInbound(request)}
             onReject={(request) => void rejectInbound(request)}
           />
 
@@ -548,13 +577,22 @@ function RecentShipmentsPanel({
 }: {
   rows: Array<{ allocation: FulfillmentAllocation; shipment: NonNullable<FulfillmentAllocation['shipment']> }>
 }) {
+  const pageSize = 8
+  const [visibleCount, setVisibleCount] = useState(pageSize)
+
   if (!rows.length) {
     return <EmptyState label="No recent shipments for this warehouse" guidance="Shipment records appear after allocations are packed and handed to a carrier." />
   }
 
+  const visibleRows = rows.slice(0, visibleCount)
+  const hiddenCount = rows.length - visibleRows.length
+
   return (
     <section className="table-section">
-      <h2>Recent Shipments</h2>
+      <div className="section-heading-row">
+        <h2>Recent Shipments</h2>
+        <span>Showing {visibleRows.length} of {rows.length}</span>
+      </div>
       <div className="table-wrap">
         <table>
           <thead>
@@ -568,7 +606,7 @@ function RecentShipmentsPanel({
             </tr>
           </thead>
           <tbody>
-            {rows.slice(0, 8).map(({ allocation, shipment }) => (
+            {visibleRows.map(({ allocation, shipment }) => (
               <tr key={shipment.id}>
                 <td className="mono-cell">
                   <Link className="text-link" to={`/shipments/${shipment.id}`}>{shortId(shipment.id)}</Link>
@@ -589,6 +627,13 @@ function RecentShipmentsPanel({
           </tbody>
         </table>
       </div>
+      {hiddenCount > 0 ? (
+        <div className="action-cluster">
+          <button className="secondary-button fit-button" type="button" onClick={() => setVisibleCount((current) => current + pageSize)}>
+            Show {Math.min(pageSize, hiddenCount)} more shipments
+          </button>
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -657,24 +702,40 @@ function AllocationsTable({
   ) => void
   onReportException: (allocation: FulfillmentAllocation, reasonCode: string) => void
 }) {
+  const pageSize = 20
+  const [visibleCount, setVisibleCount] = useState(pageSize)
+
   if (!allocations.length) {
     return <EmptyState label="No fulfillment allocations for this warehouse" guidance="No pick work yet. Confirm partner access, received stock, and merchant orders." />
   }
+
+  const visibleAllocations = allocations.slice(0, visibleCount)
+  const hiddenCount = allocations.length - visibleAllocations.length
 
   return (
     <section className="table-section">
       <div className="section-heading-row">
         <h2>Fulfillment Queue</h2>
-        <span>{allocations.length} active allocations</span>
+        <span>Showing {visibleAllocations.length} of {allocations.length}</span>
       </div>
       <div className="queue-list">
-        {allocations.map((allocation) => {
+        {visibleAllocations.map((allocation) => {
           const canPick = allocation.status === 'PENDING'
           const canPack = allocation.status === 'PICKING'
           const canShip = allocation.status === 'PACKED'
           const canResolveShipment = allocation.status === 'SHIPPED' && allocation.shipment?.status === 'IN_TRANSIT'
           const needsShipmentEvidence = canShip || canResolveShipment
           const draft = shipmentDraft(allocation)
+          const shipmentDimensionsAreWholeNumbers = Number.isInteger(draft.packageCount)
+            && Number.isInteger(draft.packageLengthCm)
+            && Number.isInteger(draft.packageWidthCm)
+            && Number.isInteger(draft.packageHeightCm)
+          const shipmentEvidenceValid = shipmentDimensionsAreWholeNumbers
+            && draft.packageCount >= 1
+            && draft.packageWeightKg >= 0.01
+            && draft.packageLengthCm >= 1
+            && draft.packageWidthCm >= 1
+            && draft.packageHeightCm >= 1
           const fieldPrefix = `warehouse-allocation-${allocation.id}`
           return (
             <article
@@ -746,7 +807,7 @@ function AllocationsTable({
                     <input
                       id={`${fieldPrefix}-scan`}
                       defaultValue={allocation.scanCode ?? ''}
-                      onBlur={(event) => onWorkload(allocation, { scanCode: event.target.value })}
+                      onBlur={(event) => onWorkload(allocation, { scanCode: event.target.value.trim() })}
                     />
                   </label>
                   <button className="table-button" type="button" onClick={() => onWorkload(allocation, { markPickSheetPrinted: true })}>
@@ -783,6 +844,7 @@ function AllocationsTable({
                           id={`${fieldPrefix}-packages`}
                           type="number"
                           min="1"
+                          step="1"
                           value={draft.packageCount}
                           onChange={(event) => onShipmentDraftChange(allocation, { packageCount: numberValue(event.target.value, 1) })}
                         />
@@ -804,6 +866,7 @@ function AllocationsTable({
                           id={`${fieldPrefix}-length-cm`}
                           type="number"
                           min="1"
+                          step="1"
                           value={draft.packageLengthCm}
                           onChange={(event) => onShipmentDraftChange(allocation, { packageLengthCm: numberValue(event.target.value, 1) })}
                         />
@@ -814,6 +877,7 @@ function AllocationsTable({
                           id={`${fieldPrefix}-width-cm`}
                           type="number"
                           min="1"
+                          step="1"
                           value={draft.packageWidthCm}
                           onChange={(event) => onShipmentDraftChange(allocation, { packageWidthCm: numberValue(event.target.value, 1) })}
                         />
@@ -824,6 +888,7 @@ function AllocationsTable({
                           id={`${fieldPrefix}-height-cm`}
                           type="number"
                           min="1"
+                          step="1"
                           value={draft.packageHeightCm}
                           onChange={(event) => onShipmentDraftChange(allocation, { packageHeightCm: numberValue(event.target.value, 1) })}
                         />
@@ -837,6 +902,9 @@ function AllocationsTable({
                         onChange={(event) => onShipmentDraftChange(allocation, { packingNote: event.target.value })}
                       />
                     </label>
+                    {!shipmentEvidenceValid ? (
+                      <p className="field-help prerequisite-help">Package count and dimensions must be whole numbers, and weight must be at least 0.01 kg.</p>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -853,7 +921,7 @@ function AllocationsTable({
                   </button>
                 ) : null}
                 {canShip ? (
-                  <button className="table-button" type="button" onClick={() => onShip(allocation)}>
+                  <button className="table-button" type="button" disabled={!shipmentEvidenceValid} onClick={() => onShip(allocation)}>
                     Ship
                   </button>
                 ) : null}
@@ -881,6 +949,13 @@ function AllocationsTable({
           )
         })}
       </div>
+      {hiddenCount > 0 ? (
+        <div className="action-cluster">
+          <button className="secondary-button fit-button" type="button" onClick={() => setVisibleCount((current) => current + pageSize)}>
+            Show {Math.min(pageSize, hiddenCount)} more allocations
+          </button>
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -950,12 +1025,16 @@ function InboundRequestsTable({
   requests,
   onApprove,
   onStart,
+  receivingDraft,
+  onReceivingDraftChange,
   onReceive,
   onReject,
 }: {
   requests: InboundStockRequest[]
   onApprove: (request: InboundStockRequest) => void
   onStart: (request: InboundStockRequest) => void
+  receivingDraft: (request: InboundStockRequest) => ReceivingDraft
+  onReceivingDraftChange: (request: InboundStockRequest, patch: Partial<ReceivingDraft>) => void
   onReceive: (request: InboundStockRequest) => void
   onReject: (request: InboundStockRequest) => void
 }) {
@@ -983,6 +1062,11 @@ function InboundRequestsTable({
               const canApprove = request.status === 'SUBMITTED'
               const canStart = request.status === 'APPROVED'
               const canResolve = request.status === 'APPROVED' || request.status === 'RECEIVING'
+              const draft = receivingDraft(request)
+              const receiptTotal = draft.receivedQuantity + draft.damagedQuantity
+              const receiptValuesAreWholeNumbers = Number.isInteger(draft.receivedQuantity) && Number.isInteger(draft.damagedQuantity)
+              const receiptValid = receiptValuesAreWholeNumbers && receiptTotal > 0 && receiptTotal <= request.requestedQuantity
+              const fieldPrefix = `inbound-receipt-${request.id}`
               const inboundActionHint = request.status === 'DRAFT'
                 ? 'Merchant still needs to submit this draft.'
                 : request.status === 'RECEIVED'
@@ -1015,8 +1099,45 @@ function InboundRequestsTable({
                       ) : null}
                       {canResolve ? (
                         <>
-                          <button className="table-button" type="button" onClick={() => onReceive(request)}>
-                            Receive all
+                          <div className="shipment-form compact-form" aria-label={`Receipt evidence for ${request.sku}`}>
+                            <label htmlFor={`${fieldPrefix}-received`}>
+                              <span>Received</span>
+                              <input
+                                id={`${fieldPrefix}-received`}
+                                type="number"
+                                min="0"
+                                max={request.requestedQuantity}
+                                step="1"
+                                value={draft.receivedQuantity}
+                                onChange={(event) => onReceivingDraftChange(request, { receivedQuantity: nonNegativeNumberValue(event.target.value) })}
+                              />
+                            </label>
+                            <label htmlFor={`${fieldPrefix}-damaged`}>
+                              <span>Damaged</span>
+                              <input
+                                id={`${fieldPrefix}-damaged`}
+                                type="number"
+                                min="0"
+                                max={request.requestedQuantity}
+                                step="1"
+                                value={draft.damagedQuantity}
+                                onChange={(event) => onReceivingDraftChange(request, { damagedQuantity: nonNegativeNumberValue(event.target.value) })}
+                              />
+                            </label>
+                            <label htmlFor={`${fieldPrefix}-note`}>
+                              <span>Receiving note</span>
+                              <input
+                                id={`${fieldPrefix}-note`}
+                                value={draft.receivingNote}
+                                onChange={(event) => onReceivingDraftChange(request, { receivingNote: event.target.value })}
+                              />
+                            </label>
+                          </div>
+                          {!receiptValid ? (
+                            <p className="field-help prerequisite-help">Received plus damaged must be whole numbers between 1 and {request.requestedQuantity}.</p>
+                          ) : null}
+                          <button className="table-button" type="button" disabled={!receiptValid} onClick={() => onReceive(request)}>
+                            Post receipt
                           </button>
                           <button className="table-button destructive-button" type="button" onClick={() => onReject(request)}>
                             Reject inbound
@@ -1145,9 +1266,21 @@ function defaultShipmentDraft(allocation: FulfillmentAllocation): ShipmentDraft 
   }
 }
 
+function defaultReceivingDraft(request: InboundStockRequest): ReceivingDraft {
+  return {
+    receivedQuantity: request.requestedQuantity,
+    damagedQuantity: 0,
+    receivingNote: 'Received from warehouse console',
+  }
+}
+
 function numberValue(value: string, fallback: number) {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function nonNegativeNumberValue(value: string) {
+  return Math.max(0, numberValue(value, 0))
 }
 
 function defaultAdjustmentDraft(row: WarehouseInventory) {

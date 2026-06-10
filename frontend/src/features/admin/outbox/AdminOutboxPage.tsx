@@ -80,7 +80,7 @@ export function AdminOutboxPage() {
     if (!token) return
     setError('')
     try {
-      const updated = await api.deadLetterOutboxEvent(token, eventId, { reason })
+      const updated = await api.deadLetterOutboxEvent(token, eventId, { reason: reason.trim() })
       setEvents((current) => current.map((event) => (event.id === updated.id ? updated : event)))
       await refreshOutbox()
     } catch (caught) {

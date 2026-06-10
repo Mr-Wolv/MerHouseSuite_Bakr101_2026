@@ -21,4 +21,16 @@ public record RateCardRequest(
     @DecimalMin("0.00") BigDecimal fixedCoordinationFee,
     @Size(max = 500) String carrierPassThroughNote
 ) {
+    public RateCardRequest {
+        carrierPassThroughNote = trimToNull(carrierPassThroughNote);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private static String trimToNull(String value) {
+        String trimmed = trim(value);
+        return trimmed == null || trimmed.isEmpty() ? null : trimmed;
+    }
 }

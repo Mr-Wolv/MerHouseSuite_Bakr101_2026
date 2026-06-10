@@ -10,4 +10,12 @@ public record UpdateInventoryItemRequest(
     Map<String, Object> attributes,
     boolean archived
 ) {
+    public UpdateInventoryItemRequest {
+        sku = trim(sku);
+        name = trim(name);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

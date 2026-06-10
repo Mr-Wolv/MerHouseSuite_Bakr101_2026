@@ -255,12 +255,15 @@
       </p>
       <div class="meta" aria-label="diagram scope">
         <span class="pill">Local-development baseline</span>
-        <span class="pill">V1-V16 local product surface</span>
+        <span class="pill">V1-V16.2 local product surface</span>
         <span class="pill">17 Flyway migrations</span>
         <span class="pill">37 database tables</span>
-        <span class="pill">25 business frontend routes + 2 router guard paths</span>
+        <span class="pill">25 explicit frontend route paths + 2 router guard paths</span>
         <span class="pill">17 web controllers</span>
-        <span class="pill">Local certification in V16; real activation in V17</span>
+        <span class="pill">One shared React shell for web + Android APK</span>
+        <span class="pill">Cross-surface V&V convergence ledger</span>
+        <span class="pill">Bundle/performance readiness gate</span>
+        <span class="pill">Local certification in V16.2; real activation in V17</span>
       </div>
     </header>
 
@@ -271,7 +274,7 @@
           <h3>1. Platform Onboards A Merchant</h3>
           <p>A public request becomes a governed tenant and login, with review state kept visible to platform users.</p>
           <div class="scenario">
-            <div class="scenario-row"><b>Trigger</b><span>A company submits an access request with organization, email, requested role, and notes.</span></div>
+            <div class="scenario-row"><b>Trigger</b><span>A company submits an access request with organization, email, requested role, and notes; copied whitespace is normalized before validation.</span></div>
             <div class="scenario-row"><b>Flow</b><span>The request is reviewed, accepted, and converted into an organization account with an initial user.</span></div>
             <div class="scenario-row"><b>Outcome</b><span>The requester can log in, and conversion links remain on the access request record.</span></div>
           </div>
@@ -293,9 +296,9 @@
           <h3>3. Warehouse Fulfills Customer Demand</h3>
           <p>Orders turn authorized stock into warehouse work, shipment evidence, and customer-visible progress.</p>
           <div class="scenario">
-            <div class="scenario-row"><b>Trigger</b><span>A merchant creates or imports orders for stocked items.</span></div>
+            <div class="scenario-row"><b>Trigger</b><span>A merchant creates orders or imports pasted rows with positive whole-number quantities for stocked items.</span></div>
             <div class="scenario-row"><b>Flow</b><span>The order is allocated to authorized stock, assigned as warehouse work, picked, packed, and shipped.</span></div>
-            <div class="scenario-row"><b>Outcome</b><span>Allocated stock is reserved, packages are recorded, and exceptions can be reported or resolved.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>Allocated stock is reserved, packages are recorded, exceptions can be reported or resolved, and fulfilled backorders close shortage evidence without pretending an allocation exists.</span></div>
           </div>
           <div class="arrow">Order -> allocation -> package evidence</div>
         </article>
@@ -324,7 +327,7 @@
 
         <article class="step" style="--accent: var(--platform)">
           <h3>6. Users See Local Action Alerts</h3>
-          <p>V13-V16 record account-lifecycle and operational alert history without connecting to external email, SMS, push, or webhook providers.</p>
+          <p>V13-V16.2 record account-lifecycle and operational alert history without connecting to external email, SMS, phone OS push, lock-screen, notification-tray, or webhook providers.</p>
           <div class="scenario">
             <div class="scenario-row"><b>Trigger</b><span>An enabled user requests a password reset, or an approved access request is converted into an account.</span></div>
             <div class="scenario-row"><b>Flow</b><span>The system stores recipient-scoped notification deliveries for lifecycle, operations, service-accountability, and outbox-health events, then refreshes the app-shell Alerts badge through lightweight polling.</span></div>
@@ -346,13 +349,35 @@
 
         <article class="step" style="--accent: var(--platform)">
           <h3>8. Users Maintain Account Security</h3>
-          <p>V16 adds authenticated account settings for local account context and current-password-verified password changes.</p>
+          <p>V16 introduced authenticated account settings for local account context, copied-email normalization on public auth routes, and current-password-verified password changes.</p>
           <div class="scenario">
             <div class="scenario-row"><b>Trigger</b><span>A signed-in user opens their topbar identity and reviews account, role, tenant, enabled-state, and local delivery-boundary context.</span></div>
             <div class="scenario-row"><b>Flow</b><span>The user submits current password and a valid new password through <code>PATCH /api/v1/auth/me/password</code>.</span></div>
             <div class="scenario-row"><b>Outcome</b><span>The password hash changes, a <code>USER_PASSWORD_CHANGED</code> audit event is recorded, and email, role, tenant, and enabled-state governance remain platform-managed.</span></div>
           </div>
           <div class="arrow">Account page -> password verification -> audit event</div>
+        </article>
+
+        <article class="step" style="--accent: var(--warehouse)">
+          <h3>9. The Same App Runs In Web And Android</h3>
+          <p>V16.1 packages the existing React shell as a local Android debug APK through Capacitor without adding duplicate mobile workflows.</p>
+          <div class="scenario">
+            <div class="scenario-row"><b>Trigger</b><span>A local operator builds the frontend, syncs it into the Android wrapper, and installs the debug APK on an emulator.</span></div>
+            <div class="scenario-row"><b>Flow</b><span>The APK WebView uses the same routes, API client, role model, account settings, notifications, and attention-first workflows as the web app.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>Native and web proof scripts tour the same product behavior; app-store release, native OS notification delivery, push provider rollout, barcode/camera APIs, and offline sync remain future work.</span></div>
+          </div>
+          <div class="arrow">React build -> Capacitor sync -> installed APK tour + web tour</div>
+        </article>
+
+        <article class="step" style="--accent: var(--ops)">
+          <h3>10. Bug Hunts Drive Convergence</h3>
+          <p>V16.2 keeps Android, web, code, tests, scripts, docs, and diagrams aligned through focused bug hunts rather than repetitive proof churn.</p>
+          <div class="scenario">
+            <div class="scenario-row"><b>Trigger</b><span>A reviewer starts with the roadmap QC rules, the latest bug-hunt ledger entry, and one concrete file, workflow, dense-state, permission, or frontend/backend contract risk.</span></div>
+            <div class="scenario-row"><b>Flow</b><span>The suspected bug is inspected from code and proof evidence, fixed only when evidenced, then covered with focused tests before broader gates are rerun when needed.</span></div>
+            <div class="scenario-row"><b>Outcome</b><span>Each bug-hunt entry records the defect class, affected files, tests, scripts, docs, diagram impact, remaining risk, and next file-audit target so the same gap is not reopened aimlessly.</span></div>
+          </div>
+          <div class="arrow">File/workflow audit -> concrete bug -> focused fix -> proof + docs/diagram update -> next target</div>
         </article>
       </div>
     </section>
@@ -371,7 +396,7 @@
               <div class="entity">
                 <h4>Public access</h4>
                 <div class="keys"><span class="key">/login</span><span class="key">/forgot-password</span><span class="key">/reset-password</span><span class="key">/request-access</span></div>
-                <ul><li>Public users can sign in, request account access, and request local password-recovery proof without provider-delivery claims.</li></ul>
+                <ul><li>Public users can sign in, request account access, and request local password-recovery proof without provider-delivery claims; reset confirmation tolerates copied-token whitespace while preserving the new password value exactly.</li></ul>
               </div>
               <div class="entity">
                 <h4>Signed-in account</h4>
@@ -398,17 +423,17 @@
               <div class="entity">
                 <h4>Platform console</h4>
                 <div class="keys"><span class="key">/admin</span><span class="key">/admin/tenants</span><span class="key">/admin/users</span><span class="key">/admin/access-requests</span></div>
-                <ul><li>Owner/admin roles govern organizations, user accounts, public onboarding, and platform attention queues; support-admin is narrower and auditor is read-only.</li></ul>
+                <ul><li>Owner/admin roles govern organizations, user accounts, public onboarding, and platform attention queues; support-admin can review and recover supported accounts, auditor is read-only, and copied admin text fields normalize before validation while passwords remain exact.</li></ul>
               </div>
               <div class="entity">
                 <h4>Evidence and reliability</h4>
                 <div class="keys"><span class="key">/admin/relationships</span><span class="key">/admin/outbox</span><span class="key">/admin/audit</span></div>
-                <ul><li>Relationship governance, outbox diagnostics, carrier-dispatch records, and privileged audit events remain separate from daily merchant/warehouse execution.</li></ul>
+                <ul><li>Relationship governance, role-aware outbox diagnostics, carrier-dispatch records, and privileged audit events remain separate from daily merchant/warehouse execution; support/auditor roles review relationship state without suspend/reactivate/end controls.</li></ul>
               </div>
             </div>
             <div class="relations">
               <span class="rel">AdminControlController returns summary, tenant health, and audit events</span>
-              <span class="rel">TenantController, AdminUserController, AdminOutboxController, and MerchantWarehouseController own platform mutations</span>
+              <span class="rel">TenantController, AdminUserController, AdminOutboxController, and MerchantWarehouseController own platform mutations with owner/admin method guards; AdminOutboxController and relationship governance expose read-only diagnostics to support/auditor roles</span>
             </div>
           </div>
         </article>
@@ -420,12 +445,12 @@
               <div class="entity">
                 <h4>Merchant operations</h4>
                 <div class="keys"><span class="key">/merchant</span><span class="key">/merchant/inventory</span><span class="key">/merchant/orders</span></div>
-                <ul><li>Merchants manage stock readiness, warehouse relationships, inbound requests, customer contacts, orders, imports, allocation, backorders, and exception follow-up.</li></ul>
+                <ul><li>Merchants manage stock readiness, warehouse relationships, inbound requests, customer contacts, orders, imports, allocation, backorders, and exception follow-up; copied merchant text fields normalize before validation, inbound stock quantities, order quantities, draft order line quantities, and pasted import quantities must be positive whole numbers before submission, dense order queues disclose additional matching orders explicitly, and fulfilled backorders do not synthesize allocation state.</li></ul>
               </div>
               <div class="entity">
                 <h4>Merchant evidence routes</h4>
                 <div class="keys"><span class="key">/orders/:orderId</span><span class="key">/inventory/items/:inventoryItemId</span><span class="key">/merchant-warehouse/relationships/:relationshipId</span></div>
-                <ul><li>Detail routes show role-scoped operational timelines and linked records instead of exposing cross-tenant data.</li></ul>
+                <ul><li>Detail routes show role-scoped operational timelines and linked records instead of exposing cross-tenant data; denied or missing detail records show role-aware recovery links and role-appropriate recovery copy, including platform-safe inventory-detail recovery and shared warehouse-work detail recovery for merchant, warehouse, and platform roles, and relationship detail loads fulfillment allocations through a merchant/provider-scoped query rather than scanning all allocations.</li></ul>
               </div>
             </div>
             <div class="relations">
@@ -442,12 +467,12 @@
               <div class="entity">
                 <h4>Warehouse execution</h4>
                 <div class="keys"><span class="key">/warehouse</span><span class="key">/inbound-stock-requests/:inboundStockRequestId</span><span class="key">/fulfillment-allocations/:allocationId</span><span class="key">/shipments/:shipmentId</span></div>
-                <ul><li>Warehouse operators activate relationships, approve and receive inbound stock, pick, pack, ship, deliver, fail, return, and report exceptions.</li></ul>
+                <ul><li>Warehouse operators activate relationships, approve and receive inbound stock, pick, pack, ship, deliver, fail, return, and report exceptions; shared web/native receiving controls capture whole-number received quantity, whole-number damaged quantity, and receiving-note evidence before posting receipt; shared shipment controls require whole-number package count and dimensions while keeping package weight decimal-capable; copied warehouse evidence text normalizes before validation while quantities, dimensions, priorities, statuses, and ids stay structured, and dense fulfillment and shipment queues disclose additional work explicitly.</li></ul>
               </div>
               <div class="entity">
                 <h4>Warehouse APIs</h4>
                 <div class="keys"><span class="key">GET /api/v1/dashboard/warehouse</span><span class="key">GET/POST /api/v1/warehouses</span><span class="key">PATCH /api/v1/fulfillment-allocations/{id}/status</span><span class="key">POST/PATCH /api/v1/shipments</span></div>
-                <ul><li>Warehouse work is scoped to authorized provider relationships and warehouse inventory records.</li></ul>
+                <ul><li>Warehouse work is scoped to authorized provider relationships and warehouse inventory records; shipment, scan, adjustment, exception, receiving, and rejection text trim at the shared route and API boundary.</li></ul>
               </div>
             </div>
             <div class="relations">
@@ -464,7 +489,7 @@
               <div class="entity">
                 <h4>Service, assistant, and alerts</h4>
                 <div class="keys"><span class="key">/service-accountability</span><span class="key">/assistant</span><span class="key">/notifications</span></div>
-                <ul><li>All authenticated roles can reach shared review surfaces, but service methods, assistant scopes, and notification reads stay role- and tenant-scoped.</li></ul>
+                <ul><li>All authenticated roles can reach shared review surfaces, but service methods, assistant scopes, and notification reads stay role- and tenant-scoped; allowed stakeholders can finalize draft statements, mark finalized statements settled, resolve or reject open disputes/claims, and approve or reject pending reviews, while support-admin and auditor inspect service evidence without mutation authority. Review-request retries clear stale success feedback before showing a failure, and unread service-review-request alerts render as action-needed local inbox work.</li></ul>
               </div>
               <div class="entity">
                 <h4>AttentionSignalResponse</h4>
@@ -474,7 +499,7 @@
             </div>
             <div class="relations">
               <span class="rel">ServiceAccountabilityController owns agreements, statements, SLA statuses, disputes, claims, and reviews</span>
-              <span class="rel">AssistantController and NotificationController own review assistance and recipient-scoped local alerts</span>
+              <span class="rel">AssistantController and NotificationController own review assistance plus recipient-scoped local alerts, with unread action deliveries queried and paged separately from mixed delivery history</span>
             </div>
           </div>
         </article>
@@ -485,8 +510,13 @@
             <div class="entity-grid">
               <div class="entity">
                 <h4>Local-only proof</h4>
-                <div class="keys"><span class="key">GET /api/v1/health</span><span class="key">local notification delivery</span><span class="key">local recovery token proof mode</span><span class="key">local carrier dispatch record</span><span class="key">deterministic assistant</span></div>
-                <ul><li>V16 certifies deployment readiness locally through mocks, dry runs, scripts, and docs; it does not provision cloud services or real provider setup.</li></ul>
+                <div class="keys"><span class="key">GET /api/v1/health</span><span class="key">local notification delivery</span><span class="key">local recovery token proof mode</span><span class="key">local carrier dispatch record</span><span class="key">deterministic assistant</span><span class="key">native Android route tour</span><span class="key">web browser route tour</span><span class="key">Vite dev CORS origins</span><span class="key">url-guard-lib</span><span class="key">absolute HTTP(S) proof targets</span><span class="key">appUrl</span><span class="key">apiUrl</span><span class="key">tour report path</span><span class="key">APK path</span><span class="key">screenshot directory</span><span class="key">checkedAt</span><span class="key">checkedRoutes</span><span class="key">routeReadyMs</span><span class="key">screenshotMs</span><span class="key">apkSha256</span><span class="key">deviceSerials</span><span class="key">webReportProvenance</span><span class="key">nativeReportProvenance</span><span class="key">apiSmokeSeconds</span><span class="key">cross-surface tour check</span><span class="key">performance-readiness</span><span class="key">live walkthrough</span></div>
+                <ul><li>V16.2 certifies deployment readiness locally through mocks, dry runs, scripts, browser target/report provenance, timed route reports, Android API/APK/report/screenshot provenance, Android APK fingerprint/device/timestamp/checked-route provenance, Android screenshot-complete proof, timed API smoke, bundle budgets, and docs. Each bug-hunt iteration closes only after matching tests and the relevant live browser or installed-APK behavior show the intended effect, or after the live-surface blocker is recorded and the work pivots to a non-blocked target. V16.2 cannot be called converged until final live browser and installed-app validation is recorded; it does not provision cloud services or real provider setup.</li></ul>
+              </div>
+              <div class="entity">
+                <h4>Shared mobile shell</h4>
+                <div class="keys"><span class="key">frontend/src/App.tsx</span><span class="key">frontend/src/api/client.ts</span><span class="key">VITE_API_BASE_URL</span><span class="key">frontend/public/app-icon.svg</span><span class="key">frontend/public/manifest.webmanifest</span><span class="key">frontend/public/sw.js</span><span class="key">frontend/capacitor.config.ts</span><span class="key">frontend/android</span></div>
+                <ul><li>The web runtime and Android wrapper share shell metadata, the MerHouse brand mark icon, one route tree, and one API client. Shared shell proof prints manifest identity, icon count, maskable-icon status, and service worker path. Native proof rejects wrapper-side product API paths, React route definitions, direct fetch logic, and frontend API-base wiring, then compiles the emulator or device backend URL into the Android-bound frontend build.</li></ul>
               </div>
               <div class="entity">
                 <h4>Future activation</h4>
@@ -495,7 +525,18 @@
               </div>
             </div>
             <div class="relations">
-              <span class="rel">HealthController exposes the local readiness endpoint used by startup and proof scripts</span>
+              <span class="rel">HealthController exposes the local readiness endpoint used by startup and proof scripts, with local wait and seed helpers sharing validated HTTP(S) setup targets</span>
+              <span class="rel">Capacitor packages the same built React app for native Android local proof</span>
+              <span class="rel">native-mobile-check uses url-guard-lib for nonblank absolute HTTP(S) native API-base validation, rejects trailing slashes and wrapper-side product route/API duplication, proves the compiled Android assets use the configured backend base URL, prints the proving asset path during sync, and prints APK SHA-256 plus byte size after assembly</span>
+              <span class="rel">check passes its explicit native API base through to native sync when direct broad quality proof includes mobile checks</span>
+              <span class="rel">frontend-full-tour rejects blank report paths and prints browser app URL, API URL, and resolved report path before Playwright starts</span>
+              <span class="rel">native-android-tour rejects blank APK, report, and screenshot paths, validates each pulled screenshot as PNG evidence with positive dimensions, records active/empty stakeholder state for merchant and warehouse routes, rejects protected-route login landings after token injection, seeds platform relationship and inbound-stock detail coverage, prints API URL, resolved APK path, resolved report path, and resolved screenshot directory before Android SDK/device discovery, then records APK SHA-256, APK size, API URL, checked timestamp, checked-route count, and connected device serials in the installed-app report</span>
+              <span class="rel">CI assembles the Android debug APK with the explicit emulator backend URL</span>
+              <span class="rel">url-guard-lib centralizes nonblank absolute HTTP(S) setup and proof-target validation for local readiness and seed helpers, native build API bases, frontend proxy checks, OpenAPI docs, browser tours, installed-APK tours, API smoke, performance readiness, deployment readiness, and saved tour report provenance</span>
+              <span class="rel">cross-surface-tour-check enforces browser report provenance with absolute HTTP(S) app/API URLs, exact normalized web/native route-set equality, and installed-APK APK/nonblank-device/timestamp/checked-route report provenance with an absolute HTTP(S) API URL, then prints resolved web/native report paths, browser/native targets, APK SHA-256, device serials, checked timestamps, and record counts for QC traceability</span>
+              <span class="rel">performance-readiness enforces local frontend bundle budgets, all-or-none web/native report pairing for route timing claims, resolves and checks paired report paths before the frontend build, prints resolved web/native report inputs plus the performance report output, writes validated webReportProvenance and nativeReportProvenance snapshots, checks absolute HTTP(S) web browser provenance, requires per-record web route-ready timing, requires per-record native route-ready timing, requires valid PNG native screenshot evidence with positive dimensions and per-record native screenshot-complete timing, checks native APK/nonblank-device/timestamp/checked-route provenance with an absolute HTTP(S) API URL, and records API smoke timing when the seeded local stack is included</span>
+              <span class="rel">deployment-readiness enforces all-or-none browser/native tour report inputs, resolves and checks paired report files before markdown, repository, mobile shell, native sync, cross-surface, performance, or broad quality proof starts, validates separate host API-smoke and native Android API-base URLs, passes the native API base into native sync, then passes resolved report paths to downstream report-aware checks</span>
+              <span class="rel">final V&V closeout requires live browser and installed-app walkthroughs with the product owner before convergence can be claimed</span>
             </div>
           </div>
         </article>
@@ -505,7 +546,7 @@
     <section>
       <h2>ERD Cards: UML From Current Database Schema</h2>
       <p class="lede">
-        These cards summarize the Flyway schema through migration 17. Each entity card lists the relationship-defining columns and the important connections without drawing every line across the page. Account settings and attention signals do not add tables in V16; they use `app_users`, `admin_audit_events`, and derived summary DTOs.
+        These cards summarize the Flyway schema through migration 17. Each entity card lists the relationship-defining columns and the important connections without drawing every line across the page. Account settings and attention signals introduced in V16 do not add tables; they use `app_users`, `admin_audit_events`, and derived summary DTOs.
       </p>
 
       <div class="domain-grid">
@@ -531,7 +572,7 @@
               <div class="entity">
                 <h4><code>access_requests</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK reviewed_by_user_id</span><span class="key fk">FK converted_tenant_id</span><span class="key fk">FK converted_user_id</span></div>
-                <ul><li>Captures onboarding requests, approve/reject review data, and conversion results.</li></ul>
+                <ul><li>Captures onboarding requests, approve/reject review data, and conversion results; conversion preserves the original reviewer while the conversion actor is captured in admin audit.</li></ul>
               </div>
               <div class="entity">
                 <h4><code>admin_audit_events</code></h4>
@@ -546,12 +587,12 @@
               <div class="entity">
                 <h4><code>notification_deliveries</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK recipient_user_id</span><span class="key fk">FK tenant_id</span><span class="key">status</span><span class="key">delivery_stage</span><span class="key">provider_status</span></div>
-                <ul><li>Prototype-local recipient delivery history for account lifecycle, operations, service accountability, and outbox health topics.</li></ul>
+                <ul><li>Recipient-scoped, paged local delivery history for account lifecycle, operations, service accountability, and outbox health topics; outbox-health action routes always land on diagnostics even when a local health alert has no source record id.</li></ul>
               </div>
               <div class="entity">
                 <h4><code>assistant_interactions</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK actor_user_id</span><span class="key fk">FK actor_tenant_id</span><span class="key fk">FK decided_by_user_id</span><span class="key">scope</span><span class="key">response_type</span><span class="key">action_status</span></div>
-                <ul><li>Prototype-local assistant summaries, suggestions, refusals, decisions, and scoped metadata.</li></ul>
+                <ul><li>Deterministic local assistant summaries, suggestions, refusals, decisions, and scoped metadata; model-backed or provider-backed activation remains V17 or later.</li></ul>
               </div>
               <div class="entity">
                 <h4><code>idempotency_records</code></h4>

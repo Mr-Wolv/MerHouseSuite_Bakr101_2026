@@ -15,6 +15,12 @@ Relationship states:
 
 Only active relationships can be used for inbound stock and allocation.
 
+Warehouse operators can activate requested relationships for their own warehouse-provider tenant. Platform suspend, reactivate, and end actions are owner/admin governance controls; support-admin and auditor users can review relationship lifecycle evidence without mutation controls.
+
+Merchant-facing text fields normalize copied whitespace before validation and storage. SKU, item name, service notes, inbound reference and note, customer address, reusable contact fields, and order-import row text trim surrounding spaces; quantity fields and selected ids remain structured values. Inbound stock quantities, single-order quantities, draft order line quantities, and pasted order-import row quantities must be positive whole numbers before the shared web/native route submits to the integer-based backend contract, so bad copied or typed quantities cannot silently become malformed orders or inbound requests.
+
+Warehouse-facing evidence fields also normalize copied whitespace before validation and storage. Shipment carrier, tracking number, packing note, allocation scan code, stock-adjustment reason code and note, fulfillment-exception reason and description, inbound receiving notes, and rejection reasons trim surrounding spaces; quantities, dimensions, priorities, statuses, and ids remain structured values. Shared receiving controls require whole-number received and damaged quantities before posting to the integer-based backend contract. Shared shipment controls require whole-number package count and package dimensions before posting package evidence, while package weight remains decimal-capable.
+
 ## Inbound Stock
 
 Inbound stock requests represent merchant-owned goods moving into a provider warehouse.
@@ -29,7 +35,7 @@ Inbound request states:
 - `REJECTED`
 - `CANCELLED`
 
-Receiving records accepted, damaged, and short quantities. Only received quantity becomes available warehouse inventory.
+Receiving records accepted, damaged, and short quantities. Only received quantity becomes available warehouse inventory. The shared warehouse console used by web and Android exposes received quantity, damaged quantity, and receiving-note evidence before posting receipt, so operators can record partial or damaged inbound arrivals instead of being forced into a full clean receipt.
 
 ## Fulfillment Loop
 
@@ -53,8 +59,10 @@ The workflow is implemented through:
 - merchant-safe warehouse provider discovery
 - authorized-stock projections
 - relationship-aware allocation
-- inbound receiving and rejection actions
-- fulfillment queue context for provider work
+- bounded dense order queues with explicit "show more" controls when more than the first page is present
+- inbound receiving evidence with received, damaged, and note fields plus rejection actions
+- bounded fulfillment queue context for provider work
+- bounded dense shipment history with explicit "show more" controls for terminal delivery evidence
 - connected local notification alerts for relationship, inbound, allocation, shipment, exception, service-accountability, and outbox handoffs
 - attention-first dashboard signals for the role that owns the next action or review
 - service-agreement setup, proposal, and acceptance tied to active relationships

@@ -22,4 +22,13 @@ public record CreateShipmentRequest(
     @NotBlank @Size(max = 500) String packingNote,
     Map<String, Object> metadata
 ) {
+    public CreateShipmentRequest {
+        carrier = trim(carrier);
+        trackingNumber = trim(trackingNumber);
+        packingNote = trim(packingNote);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

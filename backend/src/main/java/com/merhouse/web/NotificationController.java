@@ -4,6 +4,7 @@ import com.merhouse.dto.NotificationDeliveryResponse;
 import com.merhouse.dto.NotificationPreferenceResponse;
 import com.merhouse.dto.NotificationPreferenceUpdateRequest;
 import com.merhouse.dto.NotificationSummaryResponse;
+import com.merhouse.entity.NotificationDeliveryStatus;
 import com.merhouse.service.CurrentUserService;
 import com.merhouse.service.NotificationService;
 import jakarta.validation.Valid;
@@ -49,8 +50,12 @@ public class NotificationController {
     }
 
     @GetMapping("/deliveries")
-    public List<NotificationDeliveryResponse> deliveries(@RequestParam(defaultValue = "50") int limit) {
-        return notificationService.deliveriesForUser(currentUserService.required().id(), limit).stream()
+    public List<NotificationDeliveryResponse> deliveries(
+        @RequestParam(defaultValue = "50") int limit,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(required = false) NotificationDeliveryStatus status
+    ) {
+        return notificationService.deliveriesForUser(currentUserService.required().id(), limit, page, status).stream()
             .map(NotificationDeliveryResponse::from)
             .toList();
     }

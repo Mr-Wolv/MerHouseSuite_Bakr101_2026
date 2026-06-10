@@ -27,3 +27,5 @@ Each response includes the primary record, related rows needed for inspection, a
 ## Boundaries
 
 Admin users can inspect cross-tenant detail views. Merchant and warehouse users receive detail views only for work connected to their tenant.
+
+Denied, missing, and stale detail routes must remain recoverable in the shared web/native route tree. Merchant inventory-detail failures return to merchant stock, merchant warehouse-work detail failures return to the merchant workspace, warehouse-operator detail failures return to the warehouse queue, and platform/support/auditor failures return to relationship governance instead of linking to merchant-only or warehouse-only routes. Recovery copy must use role-appropriate wording whenever a detail route is shared by multiple stakeholder roles.

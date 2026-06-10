@@ -7,6 +7,9 @@ const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://localhost:3000'
 const API_URL = process.env.E2E_API_URL ?? APP_URL
 const REPORT_PATH = process.env.FRONTEND_TOUR_REPORT ?? '../reports/latest-frontend-full-tour.json'
 const TOKEN_KEY = 'warehouse-console-token'
+const DETAIL_DISCOVERY_HEADING_TIMEOUT_MS = 45_000
+const ROUTE_HEADING_TIMEOUT_MS = 45_000
+const WORKFLOW_ACTION_TIMEOUT_MS = 30_000
 
 type Role = 'public' | 'owner' | 'admin' | 'supportAdmin' | 'auditor' | 'merchant' | 'warehouse'
 type AuthenticatedRole = Exclude<Role, 'public'>
@@ -20,10 +23,13 @@ type TourCase = {
   role: Role
   path: string
   viewport: 'desktop' | 'narrow'
+  stakeholderState?: 'active' | 'empty'
+  account?: Account
 }
 
 type TourRecord = TourCase & {
   status: number
+  routeReadyMs: number
   title: string
   heading: string
   overflow: boolean
@@ -40,6 +46,32 @@ type TourRecord = TourCase & {
 type ApiEntity = {
   id: string
   [key: string]: unknown
+}
+
+function writeActionReport(
+  reportSuffix: string,
+  acceptanceStandard: string,
+  records: Array<Record<string, unknown>>,
+  fixture?: Record<string, unknown>,
+) {
+  const resolvedReportPath = resolve(process.cwd(), REPORT_PATH)
+  mkdirSync(dirname(resolvedReportPath), { recursive: true })
+  writeFileSync(
+    resolvedReportPath.replace(/\.json$/, `.${reportSuffix}.json`),
+    `${JSON.stringify(
+      {
+        appUrl: APP_URL,
+        apiUrl: API_URL,
+        checkedAt: new Date().toISOString(),
+        checkedActions: records.length,
+        acceptanceStandard,
+        fixture,
+        records,
+      },
+      null,
+      2,
+    )}\n`,
+  )
 }
 
 const baseAccounts: Record<'owner' | 'supportAdmin' | 'auditor' | 'merchant' | 'warehouse', Account> = {
@@ -137,6 +169,13 @@ const detailPathKinds = [
 
 function detailPathKind(path: string) {
   return detailPathKinds.find((kind) => path.startsWith(`/${kind}/`))
+}
+
+function addUniquePath(paths: Map<string, string>, path: string) {
+  const kind = detailPathKind(path)
+  if (kind && detailPathPattern.test(path) && !paths.has(kind)) {
+    paths.set(kind, path)
+  }
 }
 
 async function loginToken(request: APIRequestContext, account: Account) {
@@ -293,6 +332,52 @@ async function createPlatformHierarchyFixture(request: APIRequestContext) {
   }
 }
 
+async function getPlatformRelationshipDetailPath(request: APIRequestContext) {
+  const ownerToken = await loginToken(request, baseAccounts.owner)
+  const relationships = await apiJson<ApiEntity[]>(request, 'get', '/api/v1/merchant-warehouse/relationships', ownerToken)
+  const relationship = relationships.find((candidate) => candidate.id)
+  return relationship ? `/merchant-warehouse/relationships/${relationship.id}` : undefined
+}
+
+async function createEmptyStakeholderFixture(request: APIRequestContext) {
+  const ownerToken = await loginToken(request, baseAccounts.owner)
+  const suffix = `empty-${Date.now().toString(36)}`
+  const password = 'tour-password'
+
+  const emptyMerchantTenant = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', ownerToken, {
+    name: `Empty Tour Merchant ${suffix}`,
+    type: 'MERCHANT',
+  })
+  const emptyWarehouseTenant = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', ownerToken, {
+    name: `Empty Tour Warehouse ${suffix}`,
+    type: 'WAREHOUSE_PROVIDER',
+  })
+
+  const emptyMerchant = {
+    email: `tour.empty.merchant.${suffix}@merhouse.local`,
+    password,
+  }
+  const emptyWarehouse = {
+    email: `tour.empty.operator.${suffix}@merhouse.local`,
+    password,
+  }
+
+  await apiJson<ApiEntity>(request, 'post', '/api/v1/admin/users', ownerToken, {
+    tenantId: emptyMerchantTenant.id,
+    email: emptyMerchant.email,
+    password,
+    role: 'MERCHANT',
+  })
+  await apiJson<ApiEntity>(request, 'post', '/api/v1/admin/users', ownerToken, {
+    tenantId: emptyWarehouseTenant.id,
+    email: emptyWarehouse.email,
+    password,
+    role: 'WAREHOUSE_OPERATOR',
+  })
+
+  return { emptyMerchant, emptyWarehouse }
+}
+
 async function newAuthedPage(
   browser: Browser,
   role: AuthenticatedRole,
@@ -348,22 +433,31 @@ async function collectDetailPaths(
   browser: Browser,
   role: AuthenticatedRole,
   account: Account,
+  seedPaths: string[] = [],
 ) {
   const { context, page } = await newAuthedPageForAccount(browser, account, 'desktop')
   const pathsByKind = new Map<string, string>()
+  for (const seedPath of seedPaths) {
+    addUniquePath(pathsByKind, seedPath)
+  }
 
-  for (const path of rolePaths[role]) {
+  for (const path of [...rolePaths[role], ...seedPaths]) {
     await page.goto(`${APP_URL}${path}`, { waitUntil: 'domcontentloaded' })
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('h1').first(), `${role} ${path} h1 should render while discovering detail routes`).toBeVisible({ timeout: DETAIL_DISCOVERY_HEADING_TIMEOUT_MS })
+    await page.waitForFunction(
+      () => {
+        const text = document.body?.innerText ?? ''
+        return !/(^|\n)\s*Loading(?:\s+[A-Za-z ]+)?\s*(\n|$)/.test(text) && !/(^|\n)\s*Restoring session\s*(\n|$)/.test(text)
+      },
+      undefined,
+      { timeout: DETAIL_DISCOVERY_HEADING_TIMEOUT_MS },
+    )
     const hrefs = await page.locator('a[href]').evaluateAll((anchors) =>
       anchors.map((anchor) => (anchor as HTMLAnchorElement).href),
     )
     for (const href of hrefs) {
       const url = new URL(href)
-      const kind = detailPathKind(url.pathname)
-      if (kind && detailPathPattern.test(url.pathname) && !pathsByKind.has(kind)) {
-        pathsByKind.set(kind, url.pathname)
-      }
+      addUniquePath(pathsByKind, url.pathname)
       if (pathsByKind.size === detailPathKinds.length) {
         break
       }
@@ -377,7 +471,13 @@ async function collectDetailPaths(
   return [...pathsByKind.values()]
 }
 
-async function inspectPage(page: Page, role: Role, path: string, viewport: 'desktop' | 'narrow') {
+async function inspectPage(
+  page: Page,
+  role: Role,
+  path: string,
+  viewport: 'desktop' | 'narrow',
+  stakeholderState?: 'active' | 'empty',
+) {
   page.removeAllListeners('console')
   page.removeAllListeners('pageerror')
   const consoleErrors: string[] = []
@@ -390,12 +490,14 @@ async function inspectPage(page: Page, role: Role, path: string, viewport: 'desk
     consoleErrors.push(error.message)
   })
 
+  const routeStart = Date.now()
   const response = await page.goto(`${APP_URL}${path}`, { waitUntil: 'domcontentloaded' })
   expect(response, `${role} ${path} should return a response`).toBeTruthy()
-  await expect(page.locator('h1').first(), `${role} ${path} h1 should render`).toBeVisible({ timeout: 20_000 })
+  await expect(page.locator('h1').first(), `${role} ${path} h1 should render`).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
+  const routeReadyMs = Date.now() - routeStart
 
   const record = await page.evaluate(
-    ({ roleName, routePath, viewportName, errors }) => {
+    ({ roleName, routePath, viewportName, state, readyMs, errors }) => {
       const heading = document.querySelector('h1')?.textContent?.trim() ?? ''
       const visible = (element: Element) => {
         const htmlElement = element as HTMLElement
@@ -454,7 +556,9 @@ async function inspectPage(page: Page, role: Role, path: string, viewport: 'desk
         role: roleName,
         path: routePath,
         viewport: viewportName,
+        stakeholderState: state,
         status: 0,
+        routeReadyMs: readyMs,
         title: document.title,
         heading,
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
@@ -468,7 +572,7 @@ async function inspectPage(page: Page, role: Role, path: string, viewport: 'desk
         consoleErrors: errors,
       }
     },
-    { roleName: role, routePath: path, viewportName: viewport, errors: consoleErrors },
+    { roleName: role, routePath: path, viewportName: viewport, state: stakeholderState, readyMs: routeReadyMs, errors: consoleErrors },
   )
 
   record.status = response?.status() ?? 0
@@ -486,13 +590,18 @@ async function inspectPage(page: Page, role: Role, path: string, viewport: 'desk
 test('full frontend route tour passes with seeded accounts', async ({ browser, request }) => {
   test.setTimeout(420_000)
   const hierarchy = await createPlatformHierarchyFixture(request)
+  const emptyStakeholders = await createEmptyStakeholderFixture(request)
   const records: TourRecord[] = []
   const detailCases: TourCase[] = []
   const detailPathsByRole: Partial<Record<AuthenticatedRole, string[]>> = {}
   const accounts = hierarchy.accounts
+  const platformRelationshipDetailPath = await getPlatformRelationshipDetailPath(request)
 
   for (const role of ['owner', 'admin', 'supportAdmin', 'auditor', 'merchant', 'warehouse'] as const) {
-    const detailPaths = await collectDetailPaths(browser, role, accounts[role])
+    const platformDetailSeeds = platformRelationshipDetailPath && ['owner', 'admin', 'supportAdmin', 'auditor'].includes(role)
+      ? [platformRelationshipDetailPath]
+      : []
+    const detailPaths = await collectDetailPaths(browser, role, accounts[role], platformDetailSeeds)
     detailPathsByRole[role] = detailPaths
     for (const path of detailPaths) {
       detailCases.push({ role, path, viewport: 'desktop' }, { role, path, viewport: 'narrow' })
@@ -506,10 +615,28 @@ test('full frontend route tour passes with seeded accounts', async ({ browser, r
     ]),
     ...Object.entries(rolePaths).flatMap(([role, paths]) =>
       paths.flatMap((path) => [
-        { role: role as AuthenticatedRole, path, viewport: 'desktop' as const },
-        { role: role as AuthenticatedRole, path, viewport: 'narrow' as const },
+        {
+          role: role as AuthenticatedRole,
+          path,
+          viewport: 'desktop' as const,
+          stakeholderState: role === 'merchant' || role === 'warehouse' ? 'active' as const : undefined,
+        },
+        {
+          role: role as AuthenticatedRole,
+          path,
+          viewport: 'narrow' as const,
+          stakeholderState: role === 'merchant' || role === 'warehouse' ? 'active' as const : undefined,
+        },
       ]),
     ),
+    ...rolePaths.merchant.flatMap((path) => [
+      { role: 'merchant' as const, path, viewport: 'desktop' as const, stakeholderState: 'empty' as const, account: emptyStakeholders.emptyMerchant },
+      { role: 'merchant' as const, path, viewport: 'narrow' as const, stakeholderState: 'empty' as const, account: emptyStakeholders.emptyMerchant },
+    ]),
+    ...rolePaths.warehouse.flatMap((path) => [
+      { role: 'warehouse' as const, path, viewport: 'desktop' as const, stakeholderState: 'empty' as const, account: emptyStakeholders.emptyWarehouse },
+      { role: 'warehouse' as const, path, viewport: 'narrow' as const, stakeholderState: 'empty' as const, account: emptyStakeholders.emptyWarehouse },
+    ]),
   ]
 
   const cases = [...baseCases, ...detailCases]
@@ -518,19 +645,25 @@ test('full frontend route tour passes with seeded accounts', async ({ browser, r
     const publicContext = await browser.newContext({ viewport: viewports[viewport] })
     const publicPage = await publicContext.newPage()
     for (const tourCase of cases.filter((candidate) => candidate.role === 'public' && candidate.viewport === viewport)) {
-      records.push(await inspectPage(publicPage, tourCase.role, tourCase.path, tourCase.viewport))
+      records.push(await inspectPage(publicPage, tourCase.role, tourCase.path, tourCase.viewport, tourCase.stakeholderState))
     }
     await publicContext.close()
 
     for (const role of ['owner', 'admin', 'supportAdmin', 'auditor', 'merchant', 'warehouse'] as const) {
-      const roleCases = cases.filter((candidate) => candidate.role === role && candidate.viewport === viewport)
+      const roleCases = cases.filter((candidate) => candidate.role === role && candidate.viewport === viewport && !candidate.account)
       if (roleCases.length === 0) {
         continue
       }
       const { context, page } = await newAuthedPage(browser, role, viewport, accounts)
       for (const tourCase of roleCases) {
-        records.push(await inspectPage(page, tourCase.role, tourCase.path, tourCase.viewport))
+        records.push(await inspectPage(page, tourCase.role, tourCase.path, tourCase.viewport, tourCase.stakeholderState))
       }
+      await context.close()
+    }
+
+    for (const tourCase of cases.filter((candidate) => candidate.viewport === viewport && candidate.account)) {
+      const { context, page } = await newAuthedPageForAccount(browser, tourCase.account, viewport)
+      records.push(await inspectPage(page, tourCase.role, tourCase.path, tourCase.viewport, tourCase.stakeholderState))
       await context.close()
     }
   }
@@ -660,30 +793,21 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   records.push({ role: 'owner', action: 'saw platform-admin role management controls' })
   await ownerContext.close()
 
-  const resolvedReportPath = resolve(process.cwd(), REPORT_PATH)
-  mkdirSync(dirname(resolvedReportPath), { recursive: true })
-  writeFileSync(
-    resolvedReportPath.replace(/\.json$/, '.hierarchy.json'),
-    `${JSON.stringify(
-      {
-        appUrl: APP_URL,
-        apiUrl: API_URL,
-        checkedAt: new Date().toISOString(),
-        fixture: {
-          suffix: hierarchy.suffix,
-          tenant: hierarchy.tenant.id,
-        },
-        records,
-      },
-      null,
-      2,
-    )}\n`,
+  writeActionReport(
+    'hierarchy',
+    'Platform hierarchy action proof records allowed actions and denied controls for owner, admin, support-admin, and auditor users.',
+    records,
+    {
+      suffix: hierarchy.suffix,
+      tenant: hierarchy.tenant.id,
+    },
   )
 })
 
 test('notification delivery history remains scoped to the recipient account', async ({ browser, request }) => {
   test.setTimeout(120_000)
   const hierarchy = await createPlatformHierarchyFixture(request)
+  const records: Array<Record<string, unknown>> = []
 
   await publicApiJson<ApiEntity>(request, 'post', '/api/v1/auth/password-reset/request', {
     email: hierarchy.accounts.admin.email,
@@ -698,6 +822,7 @@ test('notification delivery history remains scoped to the recipient account', as
   await expect(supportPage.getByRole('heading', { name: 'Notifications' })).toBeVisible()
   await expect(supportPage.getByText('Password reset prepared')).toHaveCount(0)
   await expect(supportPage.locator('[aria-label="1 unread alerts"]')).toHaveCount(0)
+  records.push({ role: 'supportAdmin', action: 'did not see another user password reset notification' })
   await supportContext.close()
 
   const { context: adminContext, page: adminPage } = await newAuthedPageForAccount(
@@ -709,12 +834,25 @@ test('notification delivery history remains scoped to the recipient account', as
   await expect(adminPage.getByRole('heading', { name: 'Notifications' })).toBeVisible()
   await expect(adminPage.getByText('Password reset prepared')).toBeVisible()
   await expect(adminPage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
+  records.push({ role: 'admin', action: 'saw own password reset notification and unread alert count' })
   await adminContext.close()
+
+  writeActionReport(
+    'notification-scope',
+    'Notification scope proof records that local delivery history and unread counts stay recipient-scoped.',
+    records,
+    {
+      suffix: hierarchy.suffix,
+      recipient: hierarchy.accounts.admin.email,
+      nonRecipient: hierarchy.accounts.supportAdmin.email,
+    },
+  )
 })
 
 test('notification preferences change visible delivery state across merchant and warehouse roles', async ({ browser, request }) => {
   test.setTimeout(180_000)
   const fixture = await createHarmonicFixture(request)
+  const records: Array<Record<string, unknown>> = []
 
   await publicApiJson<ApiEntity>(request, 'post', '/api/v1/auth/password-reset/request', {
     email: fixture.merchantAccount.email,
@@ -731,6 +869,7 @@ test('notification preferences change visible delivery state across merchant and
   await expect(merchantPage.getByText('Local recorded')).toBeVisible()
   await expect(merchantPage.getByText('Channel recorded')).toBeVisible()
   await expect(merchantPage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
+  records.push({ actor: 'merchant', action: 'saw local password reset delivery and unread alert before preference change' })
 
   const { context: warehouseContext, page: warehousePage } = await newAuthedPageForAccount(
     browser,
@@ -741,6 +880,7 @@ test('notification preferences change visible delivery state across merchant and
   await expect(warehousePage.getByRole('heading', { name: 'Notifications' })).toBeVisible()
   await expect(warehousePage.getByText('Password reset prepared')).toHaveCount(0)
   await expect(warehousePage.locator('[aria-label="1 unread alerts"]')).toHaveCount(0)
+  records.push({ actor: 'warehouse', action: 'did not see merchant password reset delivery or unread alert' })
 
   const accountLifecycleInAppRow = merchantPage
     .locator('tr')
@@ -758,6 +898,7 @@ test('notification preferences change visible delivery state across merchant and
   await expect(merchantPage.getByText('Skipped by preference', { exact: true })).toBeVisible()
   await expect(merchantPage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
   await expect(merchantPage.locator('[aria-label="2 unread alerts"]')).toHaveCount(0)
+  records.push({ actor: 'merchant', action: 'disabled in-app preference and saw skipped delivery without extra unread alert' })
 
   await publicApiJson<ApiEntity>(request, 'post', '/api/v1/auth/password-reset/request', {
     email: fixture.warehouseAccount.email,
@@ -768,9 +909,21 @@ test('notification preferences change visible delivery state across merchant and
   await expect(warehousePage.getByText('Channel recorded')).toBeVisible()
   await expect(warehousePage.getByText('1 active')).toBeVisible()
   await expect(warehousePage.locator('[aria-label="1 unread alerts"]')).toBeVisible()
+  records.push({ actor: 'warehouse', action: 'kept default preference and saw own local delivery plus unread alert' })
 
   await merchantContext.close()
   await warehouseContext.close()
+
+  writeActionReport(
+    'notification-preferences',
+    'Notification preference proof records local delivery visibility, skipped delivery state, and unread alert behavior across merchant and warehouse users.',
+    records,
+    {
+      suffix: fixture.suffix,
+      merchant: fixture.merchant.name,
+      warehouseProvider: fixture.provider.name,
+    },
+  )
 })
 
 test('full frontend harmonic workflow proves admin merchant and warehouse coherence', async ({ browser, request }) => {
@@ -838,7 +991,7 @@ test('full frontend harmonic workflow proves admin merchant and warehouse cohere
   await orderForm.getByLabel('Quantity').fill('2')
   await orderForm.getByLabel('Customer address').fill(`Harmonic customer ${fixture.suffix}`)
   await orderForm.getByRole('button', { name: 'Create order' }).click()
-  await expect(merchantOrderPage.getByText('Order created.')).toBeVisible()
+  await expect(merchantOrderPage.getByText('Order created.')).toBeVisible({ timeout: WORKFLOW_ACTION_TIMEOUT_MS })
   const newOrder = merchantOrderPage.locator('article').filter({ hasText: fixture.item.sku as string }).first()
   await expect(newOrder).toBeVisible()
   await newOrder.getByRole('button', { name: 'Allocate' }).click()
@@ -890,26 +1043,16 @@ test('full frontend harmonic workflow proves admin merchant and warehouse cohere
   records.push({ actor: 'admin', action: 'observed governed relationship after merchant warehouse work' })
   await adminContext.close()
 
-  const resolvedReportPath = resolve(process.cwd(), REPORT_PATH)
-  mkdirSync(dirname(resolvedReportPath), { recursive: true })
-  writeFileSync(
-    resolvedReportPath.replace(/\.json$/, '.harmonic.json'),
-    `${JSON.stringify(
-      {
-        appUrl: APP_URL,
-        apiUrl: API_URL,
-        checkedAt: new Date().toISOString(),
-        fixture: {
-          suffix: fixture.suffix,
-          merchant: fixture.merchant.name,
-          provider: fixture.provider.name,
-          warehouse: fixture.warehouse.name,
-          item: fixture.item.sku,
-        },
-        records,
-      },
-      null,
-      2,
-    )}\n`,
+  writeActionReport(
+    'harmonic',
+    'Harmonic workflow action proof records merchant, warehouse, and admin handoffs across inbound stock, allocation, notifications, and relationship governance.',
+    records,
+    {
+      suffix: fixture.suffix,
+      merchant: fixture.merchant.name,
+      provider: fixture.provider.name,
+      warehouse: fixture.warehouse.name,
+      item: fixture.item.sku,
+    },
   )
 })

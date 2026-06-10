@@ -13,4 +13,12 @@ public record CreateInboundStockRequest(
     @Size(max = 160) String merchantReference,
     @Size(max = 1000) String merchantNote
 ) {
+    public CreateInboundStockRequest {
+        merchantReference = trim(merchantReference);
+        merchantNote = trim(merchantNote);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

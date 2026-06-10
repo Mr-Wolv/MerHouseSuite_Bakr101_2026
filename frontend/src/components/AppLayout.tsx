@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { appIcons } from './AppIcons'
+import { BrandMark } from './BrandMark'
 import { ThemeToggle } from './ThemeToggle'
 import { notificationUnreadChangedEvent } from '../notifications/notificationEvents'
 import type { NotificationUnreadChangedDetail } from '../notifications/notificationEvents'
@@ -95,11 +96,7 @@ export function AppLayout() {
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 40 40" role="img">
-              <path d="M8 30V10l12-6 12 6v20l-12 6-12-6Z" />
-              <path d="M14 27V15l6 5 6-5v12" />
-              <path d="M20 20v11" />
-            </svg>
+            <BrandMark />
           </span>
           <div>
             <strong>MerHouse</strong>

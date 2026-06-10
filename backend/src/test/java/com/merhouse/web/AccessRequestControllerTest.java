@@ -4,11 +4,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.merhouse.config.JacksonConfig;
+import com.merhouse.dto.AccessRequestCreateRequest;
 import com.merhouse.dto.AccessRequestReviewRequest;
 import com.merhouse.entity.AccessRequest;
 import com.merhouse.entity.AccessRequestStatus;
@@ -58,6 +60,38 @@ class AccessRequestControllerTest {
 
     @MockitoBean
     private AppUserRepository appUserRepository;
+
+    @Test
+    void submitNormalizesCopiedPublicFieldsBeforeValidation() throws Exception {
+        AccessRequest pending = accessRequest(UUID.randomUUID(), AccessRequestStatus.PENDING);
+        when(accessRequestService.submit(eq(new AccessRequestCreateRequest(
+            "New Merchant",
+            "merchant@merhouse.local",
+            UserRole.MERCHANT,
+            "Please onboard us"
+        )))).thenReturn(pending);
+
+        mockMvc.perform(post("/api/v1/access-requests")
+                .contentType("application/json")
+                .content("""
+                    {
+                      "organizationName": " New Merchant ",
+                      "requesterEmail": " merchant@merhouse.local ",
+                      "requestedRole": "MERCHANT",
+                      "notes": " Please onboard us "
+                    }
+                    """))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.requesterEmail").value("merchant@merhouse.local"))
+            .andExpect(jsonPath("$.status").value("PENDING"));
+
+        verify(accessRequestService).submit(new AccessRequestCreateRequest(
+            "New Merchant",
+            "merchant@merhouse.local",
+            UserRole.MERCHANT,
+            "Please onboard us"
+        ));
+    }
 
     @Test
     void approveRecordsPrivilegedAuditEvent() throws Exception {

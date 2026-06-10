@@ -19,5 +19,8 @@ public interface FulfillmentAllocationRepository extends JpaRepository<Fulfillme
     @EntityGraph(attributePaths = {"order", "order.merchant", "warehouse", "warehouse.tenant", "assignedUser", "shipment", "shipment.packages", "shipment.packages.events", "items", "items.inventoryItem"})
     List<FulfillmentAllocation> findByWarehouseIdOrderByCreatedAtDesc(UUID warehouseId);
 
+    @EntityGraph(attributePaths = {"order", "order.merchant", "warehouse", "warehouse.tenant", "assignedUser", "shipment", "shipment.packages", "shipment.packages.events", "items", "items.inventoryItem"})
+    List<FulfillmentAllocation> findByOrderMerchantIdAndWarehouseTenantIdOrderByCreatedAtDesc(UUID merchantId, UUID warehouseProviderId);
+
     long countByWarehouseTenantId(UUID tenantId);
 }

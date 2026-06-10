@@ -24,4 +24,17 @@ public record CreateServiceAgreementRequest(
     @Valid RateCardRequest rateCard,
     @Valid SlaPolicyRequest slaPolicy
 ) {
+    public CreateServiceAgreementRequest {
+        title = trim(title);
+        serviceNotes = trimToNull(serviceNotes);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private static String trimToNull(String value) {
+        String trimmed = trim(value);
+        return trimmed == null || trimmed.isEmpty() ? null : trimmed;
+    }
 }

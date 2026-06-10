@@ -10,4 +10,12 @@ public record ReportExceptionRequest(
     @NotBlank @Size(max = 80) String reasonCode,
     @NotBlank @Size(max = 1000) String description
 ) {
+    public ReportExceptionRequest {
+        reasonCode = trim(reasonCode);
+        description = trim(description);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

@@ -115,7 +115,7 @@ public class ServiceAccountabilityService {
     @Transactional
     public ServiceAgreementResponse createAgreement(CreateServiceAgreementRequest request) {
         MerchantWarehouseRelationship relationship = getRequiredRelationship(request.relationshipId());
-        currentUserService.requireAdminOrTenant(relationship.getMerchant().getId());
+        currentUserService.requireMutatingAdminOrTenant(relationship.getMerchant().getId());
         if (relationship.getStatus() != MerchantWarehouseRelationshipStatus.ACTIVE) {
             throw new DomainConflictException("Service agreements require an active merchant-warehouse relationship.");
         }
@@ -176,7 +176,7 @@ public class ServiceAccountabilityService {
     @Transactional
     public ServiceAgreementResponse proposeAgreement(UUID agreementId) {
         ServiceAgreement agreement = getRequiredAgreement(agreementId);
-        currentUserService.requireAdminOrTenant(agreement.getMerchant().getId());
+        currentUserService.requireMutatingAdminOrTenant(agreement.getMerchant().getId());
         if (agreement.getStatus() != ServiceAgreementStatus.DRAFT) {
             throw new DomainConflictException("Only DRAFT service agreements can be proposed.");
         }
@@ -196,7 +196,7 @@ public class ServiceAccountabilityService {
     @Transactional
     public ServiceAgreementResponse acceptAgreement(UUID agreementId) {
         ServiceAgreement agreement = getRequiredAgreement(agreementId);
-        currentUserService.requireAdminOrTenant(agreement.getWarehouseProvider().getId());
+        currentUserService.requireMutatingAdminOrTenant(agreement.getWarehouseProvider().getId());
         if (agreement.getStatus() != ServiceAgreementStatus.PROPOSED) {
             throw new DomainConflictException("Only PROPOSED service agreements can be accepted.");
         }
@@ -223,7 +223,7 @@ public class ServiceAccountabilityService {
     @Transactional
     public ServiceAgreementResponse suspendAgreement(UUID agreementId) {
         ServiceAgreement agreement = getRequiredAgreement(agreementId);
-        requireAgreementPartyAccess(agreement);
+        requireAgreementPartyMutation(agreement);
         if (agreement.getStatus() != ServiceAgreementStatus.ACTIVE) {
             throw new DomainConflictException("Only ACTIVE service agreements can be suspended.");
         }
@@ -243,7 +243,7 @@ public class ServiceAccountabilityService {
     @Transactional
     public ServiceAgreementResponse endAgreement(UUID agreementId) {
         ServiceAgreement agreement = getRequiredAgreement(agreementId);
-        requireAgreementPartyAccess(agreement);
+        requireAgreementPartyMutation(agreement);
         if (agreement.getStatus() != ServiceAgreementStatus.ACTIVE
             && agreement.getStatus() != ServiceAgreementStatus.SUSPENDED) {
             throw new DomainConflictException("Only ACTIVE or SUSPENDED service agreements can be ended.");
@@ -264,7 +264,7 @@ public class ServiceAccountabilityService {
     @Transactional
     public ServiceStatementResponse createStatement(UUID agreementId, CreateServiceStatementRequest request) {
         ServiceAgreement agreement = getRequiredAgreement(agreementId);
-        requireAgreementPartyAccess(agreement);
+        requireAgreementPartyMutation(agreement);
         if (agreement.getStatus() != ServiceAgreementStatus.ACTIVE) {
             throw new DomainConflictException("Service statements require an ACTIVE service agreement.");
         }
@@ -281,7 +281,7 @@ public class ServiceAccountabilityService {
                     if (!existing.getAgreement().getId().equals(agreement.getId())) {
                         throw new DomainConflictException("Service statement idempotency key belongs to another agreement.");
                     }
-                    requireStatementAccess(existing);
+                    requireStatementMutation(existing);
                     return ServiceStatementResponse.from(existing);
                 })
                 .orElseGet(() -> createStatementRecord(agreement, request, idempotencyKey));
@@ -293,7 +293,7 @@ public class ServiceAccountabilityService {
     public ServiceStatementResponse generateStatement(UUID agreementId, GenerateServiceStatementRequest request) {
         List<ServiceStatementLineRequest> lines = new ArrayList<>();
         ServiceAgreement agreement = getRequiredAgreement(agreementId);
-        requireAgreementPartyAccess(agreement);
+        requireAgreementPartyMutation(agreement);
         ReferenceRateCard rateCard = agreement.getRateCard();
 
         for (UUID inboundId : safeIds(request.inboundStockRequestIds())) {
@@ -382,14 +382,14 @@ public class ServiceAccountabilityService {
     @Transactional(readOnly = true)
     public ServiceStatementResponse getStatement(UUID statementId) {
         ServiceStatement statement = getRequiredStatement(statementId);
-        requireStatementAccess(statement);
+        requireStatementMutation(statement);
         return ServiceStatementResponse.from(statement);
     }
 
     @Transactional
     public ServiceStatementResponse finalizeStatement(UUID statementId) {
         ServiceStatement statement = getRequiredStatement(statementId);
-        requireStatementAccess(statement);
+        requireStatementMutation(statement);
         if (statement.getStatus() != ServiceStatementStatus.DRAFT) {
             throw new DomainConflictException("Only DRAFT service statements can be finalized.");
         }
@@ -410,7 +410,7 @@ public class ServiceAccountabilityService {
     @Transactional
     public ServiceStatementResponse markStatementSettled(UUID statementId) {
         ServiceStatement statement = getRequiredStatement(statementId);
-        requireStatementAccess(statement);
+        requireStatementMutation(statement);
         if (statement.getStatus() != ServiceStatementStatus.FINALIZED) {
             throw new DomainConflictException("Only FINALIZED service statements can be marked settled.");
         }
@@ -450,7 +450,7 @@ public class ServiceAccountabilityService {
     @Transactional
     public ServiceDisputeResponse createDispute(UUID statementId, CreateServiceDisputeRequest request) {
         ServiceStatement statement = getRequiredStatement(statementId);
-        requireStatementAccess(statement);
+        requireStatementMutation(statement);
         ServiceStatementLine line = null;
         if (request.statementLineId() != null) {
             line = statement.getLines().stream()
@@ -496,7 +496,7 @@ public class ServiceAccountabilityService {
     public ServiceDisputeResponse resolveDispute(UUID disputeId, ResolveServiceDisputeRequest request) {
         ServiceDispute dispute = disputeRepository.findWithDetailsById(disputeId)
             .orElseThrow(() -> new ResourceNotFoundException("Service dispute not found: " + disputeId));
-        requireAgreementPartyAccess(dispute.getAgreement());
+        requireAgreementPartyMutation(dispute.getAgreement());
         if (dispute.getStatus() != ServiceDisputeStatus.OPEN) {
             throw new DomainConflictException("Only OPEN service disputes can be resolved.");
         }
@@ -520,7 +520,7 @@ public class ServiceAccountabilityService {
     @Transactional
     public ServiceClaimResponse createClaim(UUID agreementId, CreateServiceClaimRequest request) {
         ServiceAgreement agreement = getRequiredAgreement(agreementId);
-        requireAgreementPartyAccess(agreement);
+        requireAgreementPartyMutation(agreement);
         ServiceClaim claim = new ServiceClaim();
         claim.setAgreement(agreement);
         claim.setMerchant(agreement.getMerchant());
@@ -559,7 +559,7 @@ public class ServiceAccountabilityService {
     public ServiceClaimResponse resolveClaim(UUID claimId, ResolveServiceClaimRequest request) {
         ServiceClaim claim = claimRepository.findWithDetailsById(claimId)
             .orElseThrow(() -> new ResourceNotFoundException("Service claim not found: " + claimId));
-        requireAgreementPartyAccess(claim.getAgreement());
+        requireAgreementPartyMutation(claim.getAgreement());
         if (claim.getStatus() != ServiceClaimStatus.OPEN) {
             throw new DomainConflictException("Only OPEN service claims can be resolved.");
         }
@@ -583,7 +583,7 @@ public class ServiceAccountabilityService {
     @Transactional
     public ServiceReviewResponse createReview(UUID agreementId, CreateServiceReviewRequest request) {
         ServiceAgreement agreement = getRequiredAgreement(agreementId);
-        requireAgreementPartyAccess(agreement);
+        requireAgreementPartyMutation(agreement);
         ServiceReviewRequest review = new ServiceReviewRequest();
         review.setAgreement(agreement);
         review.setMerchant(agreement.getMerchant());
@@ -621,7 +621,7 @@ public class ServiceAccountabilityService {
     public ServiceReviewResponse resolveReview(UUID reviewId, ResolveServiceReviewRequest request) {
         ServiceReviewRequest review = reviewRepository.findWithDetailsById(reviewId)
             .orElseThrow(() -> new ResourceNotFoundException("Service review request not found: " + reviewId));
-        requireAgreementPartyAccess(review.getAgreement());
+        requireAgreementPartyMutation(review.getAgreement());
         if (review.getStatus() != ServiceReviewStatus.PENDING) {
             throw new DomainConflictException("Only PENDING service reviews can be resolved.");
         }
@@ -759,6 +759,16 @@ public class ServiceAccountabilityService {
         }
     }
 
+    private void requireAgreementPartyMutation(ServiceAgreement agreement) {
+        if (currentUserService.canMutatePlatform()) {
+            return;
+        }
+        UUID tenantId = currentUserService.required().tenantId();
+        if (!tenantId.equals(agreement.getMerchant().getId()) && !tenantId.equals(agreement.getWarehouseProvider().getId())) {
+            throw new AccessDeniedException("You cannot mutate service records for another relationship.");
+        }
+    }
+
     private void requireStatementAccess(ServiceStatement statement) {
         if (currentUserService.isAdmin()) {
             return;
@@ -766,6 +776,16 @@ public class ServiceAccountabilityService {
         UUID tenantId = currentUserService.required().tenantId();
         if (!tenantId.equals(statement.getMerchant().getId()) && !tenantId.equals(statement.getWarehouseProvider().getId())) {
             throw new AccessDeniedException("You cannot access service statements for another relationship.");
+        }
+    }
+
+    private void requireStatementMutation(ServiceStatement statement) {
+        if (currentUserService.canMutatePlatform()) {
+            return;
+        }
+        UUID tenantId = currentUserService.required().tenantId();
+        if (!tenantId.equals(statement.getMerchant().getId()) && !tenantId.equals(statement.getWarehouseProvider().getId())) {
+            throw new AccessDeniedException("You cannot mutate service statements for another relationship.");
         }
     }
 

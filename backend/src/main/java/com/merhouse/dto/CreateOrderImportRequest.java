@@ -14,4 +14,11 @@ public record CreateOrderImportRequest(
     @Size(max = 160) String sourceLabel,
     @NotEmpty List<@Valid ImportOrderRowRequest> rows
 ) {
+    public CreateOrderImportRequest {
+        sourceLabel = trim(sourceLabel);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

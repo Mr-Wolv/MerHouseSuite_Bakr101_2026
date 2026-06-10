@@ -239,8 +239,8 @@ public class MerchantWarehouseService {
     @Transactional
     public MerchantWarehouseRelationshipResponse suspendRelationship(UUID relationshipId, String reason) {
         MerchantWarehouseRelationship relationship = getRequiredRelationship(relationshipId);
-        if (!currentUserService.isAdmin()) {
-            throw new DomainConflictException("Only platform admins can suspend merchant-warehouse relationships.");
+        if (!currentUserService.canMutatePlatform()) {
+            throw new DomainConflictException("Only owner/admin users can suspend merchant-warehouse relationships.");
         }
         if (relationship.getStatus() != MerchantWarehouseRelationshipStatus.ACTIVE) {
             throw new DomainConflictException("Only ACTIVE relationships can be suspended.");
@@ -261,8 +261,8 @@ public class MerchantWarehouseService {
     @Transactional
     public MerchantWarehouseRelationshipResponse reactivateRelationship(UUID relationshipId, String reason) {
         MerchantWarehouseRelationship relationship = getRequiredRelationship(relationshipId);
-        if (!currentUserService.isAdmin()) {
-            throw new DomainConflictException("Only platform admins can reactivate merchant-warehouse relationships.");
+        if (!currentUserService.canMutatePlatform()) {
+            throw new DomainConflictException("Only owner/admin users can reactivate merchant-warehouse relationships.");
         }
         if (relationship.getStatus() != MerchantWarehouseRelationshipStatus.SUSPENDED) {
             throw new DomainConflictException("Only SUSPENDED relationships can be reactivated.");
@@ -283,8 +283,8 @@ public class MerchantWarehouseService {
     @Transactional
     public MerchantWarehouseRelationshipResponse endRelationship(UUID relationshipId, String reason) {
         MerchantWarehouseRelationship relationship = getRequiredRelationship(relationshipId);
-        if (!currentUserService.isAdmin()) {
-            throw new DomainConflictException("Only platform admins can end merchant-warehouse relationships.");
+        if (!currentUserService.canMutatePlatform()) {
+            throw new DomainConflictException("Only owner/admin users can end merchant-warehouse relationships.");
         }
         if (relationship.getStatus() == MerchantWarehouseRelationshipStatus.ENDED) {
             return MerchantWarehouseRelationshipResponse.from(relationship);

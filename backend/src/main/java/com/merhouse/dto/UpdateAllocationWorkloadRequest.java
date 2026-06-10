@@ -11,4 +11,11 @@ public record UpdateAllocationWorkloadRequest(
     @Size(max = 80) String scanCode,
     Boolean markPickSheetPrinted
 ) {
+    public UpdateAllocationWorkloadRequest {
+        scanCode = trim(scanCode);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

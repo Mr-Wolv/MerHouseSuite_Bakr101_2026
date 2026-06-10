@@ -12,4 +12,12 @@ public record AdjustStockRequest(
     @NotBlank @Size(max = 80) String reasonCode,
     @NotBlank @Size(max = 500) String reasonNote
 ) {
+    public AdjustStockRequest {
+        reasonCode = trim(reasonCode);
+        reasonNote = trim(reasonNote);
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
+    }
 }

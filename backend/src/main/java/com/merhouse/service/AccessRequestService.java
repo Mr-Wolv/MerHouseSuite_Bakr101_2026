@@ -99,15 +99,13 @@ public class AccessRequestService {
             user,
             NotificationTopic.ACCOUNT_LIFECYCLE,
             "Account ready",
-            "Your MerHouse account was created from an approved access request. This is a prototype-local delivery record.",
+            "Your MerHouse account was created from an approved access request. This is a local delivery history record.",
             "AccessRequest",
             accessRequest.getId()
         );
-        AppUser actor = userService.getRequired(actorId);
         accessRequest.setConvertedTenant(tenant);
         accessRequest.setConvertedUser(user);
         accessRequest.setConvertedAt(clock.instant());
-        accessRequest.setReviewedBy(actor);
         return requestRepository.save(accessRequest);
     }
 

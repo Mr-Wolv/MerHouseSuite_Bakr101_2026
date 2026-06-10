@@ -28,16 +28,16 @@ describe('LoginPage', () => {
     expect(screen.getByLabelText('Password')).toHaveValue('')
   })
 
-  it('submits entered credentials', async () => {
+  it('trims copied email whitespace without changing the password', async () => {
     const user = userEvent.setup()
     authMock.login.mockResolvedValue(undefined)
 
     render(<LoginPage />, { wrapper: MemoryRouter })
 
-    await user.type(screen.getByLabelText('Email'), 'merchant@example.test')
-    await user.type(screen.getByLabelText('Password'), 'typed-password')
+    await user.type(screen.getByLabelText('Email'), ' merchant@example.test ')
+    await user.type(screen.getByLabelText('Password'), ' typed-password ')
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    expect(authMock.login).toHaveBeenCalledWith('merchant@example.test', 'typed-password')
+    expect(authMock.login).toHaveBeenCalledWith('merchant@example.test', ' typed-password ')
   })
 })

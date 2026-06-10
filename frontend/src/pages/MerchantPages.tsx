@@ -175,7 +175,13 @@ export function MerchantInventoryPage() {
   ), [selectedRelationship, warehouseOptions])
   const selectedWarehouse = inboundWarehouseOptions.find((option) => option.warehouseId === warehouseId)
   const warehouseMatchesRelationship = Boolean(selectedRelationship && selectedWarehouse)
-  const canCreateInbound = activeRelationships.length > 0 && items.length > 0 && Boolean(inventoryItemId) && warehouseMatchesRelationship
+  const inboundQuantityIsWhole = Number.isInteger(requestedQuantity) && requestedQuantity >= 1
+  const inboundQuantityBlocker = inboundQuantityIsWhole ? '' : 'Inbound quantity must be a positive whole number.'
+  const canCreateInbound = activeRelationships.length > 0
+    && items.length > 0
+    && Boolean(inventoryItemId)
+    && warehouseMatchesRelationship
+    && inboundQuantityIsWhole
   const inboundBlocker = !activeRelationships.length
     ? 'Create or activate a warehouse relationship before submitting inbound stock.'
     : !items.length
@@ -184,7 +190,7 @@ export function MerchantInventoryPage() {
         ? 'The selected relationship has no warehouse available for inbound stock.'
         : !warehouseMatchesRelationship
           ? 'Choose a warehouse that belongs to the selected active service relationship.'
-          : ''
+          : inboundQuantityBlocker
   const inboundReadinessMessage = inboundBlocker || 'Ready to send stock to the selected warehouse.'
   const providerBlocker = providerOptions.length === 0
     ? 'No warehouse providers are available yet. Ask a platform admin to create a warehouse provider first.'
@@ -207,8 +213,8 @@ export function MerchantInventoryPage() {
     try {
       const created = await api.createInventoryItem(token, {
         merchantId: user.tenantId,
-        sku,
-        name,
+        sku: sku.trim(),
+        name: name.trim(),
         attributes: { source: 'merchant-console' },
       })
       setItems((current) => [...current, created])
@@ -230,7 +236,7 @@ export function MerchantInventoryPage() {
       const created = await api.createMerchantWarehouseRelationship(token, {
         merchantId: user.tenantId,
         warehouseProviderId,
-        serviceNotes: relationshipNote,
+        serviceNotes: relationshipNote.trim(),
       })
       setRelationships((current) => [created, ...current])
       setRelationshipNote('')
@@ -260,8 +266,8 @@ export function MerchantInventoryPage() {
         warehouseId,
         inventoryItemId,
         requestedQuantity,
-        merchantReference,
-        merchantNote,
+        merchantReference: merchantReference.trim(),
+        merchantNote: merchantNote.trim(),
       }
       const created = mode === 'draft'
         ? await api.createInboundStockDraft(token, payload)
@@ -301,8 +307,8 @@ export function MerchantInventoryPage() {
     setError('')
     try {
       const updated = await api.updateInventoryItem(token, item.id, {
-        sku: patch.sku ?? item.sku,
-        name: patch.name ?? item.name,
+        sku: patch.sku?.trim() ?? item.sku,
+        name: patch.name?.trim() ?? item.name,
         attributes: patch.attributes ?? item.attributes,
         archived: patch.archived ?? item.archived,
       })
@@ -433,7 +439,15 @@ export function MerchantInventoryPage() {
           </label>
           <label htmlFor="merchant-inbound-quantity">
             <span>Quantity</span>
-            <input id="merchant-inbound-quantity" value={requestedQuantity} min={1} onChange={(event) => setRequestedQuantity(Number(event.target.value))} type="number" required />
+            <input
+              id="merchant-inbound-quantity"
+              value={requestedQuantity}
+              min={1}
+              step={1}
+              onChange={(event) => setRequestedQuantity(Number(event.target.value))}
+              type="number"
+              required
+            />
           </label>
           <label htmlFor="merchant-inbound-reference">
             <span>Reference</span>
@@ -445,7 +459,6 @@ export function MerchantInventoryPage() {
           </label>
         </div>
         <div className="form-actions">
-          {inboundBlocker ? <p className="field-help prerequisite-help">{inboundBlocker}</p> : null}
           <button
             className="secondary-button fit-button"
             type="button"
@@ -526,19 +539,26 @@ export function MerchantOrdersPage() {
       .catch(() => setImportBatches([]))
   }, [token, user])
 
-  const filteredOrders = orders.filter((order) => statusFilter === 'ALL' || order.status === statusFilter)
+  const filteredOrders = useMemo(
+    () => orders.filter((order) => statusFilter === 'ALL' || order.status === statusFilter),
+    [orders, statusFilter],
+  )
   const recentShipments = recentOrderShipments(filteredOrders)
 
   async function handleCreateOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!token || !user) return
+    if (!canCreateOrder) {
+      setActionError(createOrderBlocker || orderQuantityBlocker)
+      return
+    }
     setSubmitting(true)
     setActionError('')
     setActionMessage('')
     try {
       const created = await api.createOrder(token, {
         merchantId: user.tenantId,
-        customerAddress,
+        customerAddress: customerAddress.trim(),
         items: draftItems.length ? draftItems : [{ inventoryItemId, quantity }],
       })
       setOrders((current) => [created, ...current])
@@ -575,16 +595,16 @@ export function MerchantOrdersPage() {
   }
 
   async function createContact() {
-    if (!token || !user || !customerAddress || !contactLabel || !contactName) return
+    if (!token || !user || !customerAddress.trim() || !contactLabel.trim() || !contactName.trim()) return
     setActionError('')
     setActionMessage('')
     try {
       const created = await api.createCustomerContact(token, {
         merchantId: user.tenantId,
-        label: contactLabel,
-        contactName,
-        phone: contactPhone,
-        address: customerAddress,
+        label: contactLabel.trim(),
+        contactName: contactName.trim(),
+        phone: contactPhone.trim(),
+        address: customerAddress.trim(),
       })
       setContacts((current) => [created, ...current])
       setContactLabel('')
@@ -642,10 +662,14 @@ export function MerchantOrdersPage() {
           if (!customerAddress || !sku) {
             throw new Error(`Import row ${index + 1} must use address, sku, quantity.`)
           }
+          const quantity = Number(qty)
+          if (!Number.isInteger(quantity) || quantity < 1) {
+            throw new Error(`Import row ${index + 1} quantity must be a positive whole number.`)
+          }
           return {
             merchantOrderReference: `merchant-paste-${startedAt}-${index + 1}`,
             sku,
-            quantity: Number(qty) || 1,
+            quantity,
             customerAddress,
             customerName: customerName || null,
             customerPhone: customerPhone || null,
@@ -668,8 +692,11 @@ export function MerchantOrdersPage() {
   if (!data) return <EmptyState label="No merchant orders available" guidance="Add inventory, confirm stock availability, then create the first customer order from this page." />
 
   const createOrderBlocker = data.items.length === 0 ? 'Create a stock item before creating an order.' : ''
-  const canAddDraftLine = Boolean(inventoryItemId) && quantity >= 1
-  const canSaveContact = Boolean(customerAddress && contactLabel && contactName)
+  const orderQuantityIsWhole = Number.isInteger(quantity) && quantity >= 1
+  const orderQuantityBlocker = orderQuantityIsWhole ? '' : 'Order quantity must be a positive whole number.'
+  const canAddDraftLine = Boolean(inventoryItemId) && orderQuantityIsWhole
+  const canCreateOrder = data.items.length > 0 && (draftItems.length > 0 || orderQuantityIsWhole)
+  const canSaveContact = Boolean(customerAddress.trim() && contactLabel.trim() && contactName.trim())
   const canImportRows = Boolean(csvText.trim()) && !submitting
 
   return (
@@ -705,11 +732,13 @@ export function MerchantOrdersPage() {
               id="merchant-order-quantity"
               value={quantity}
               min={1}
+              step={1}
               onChange={(event) => setQuantity(Number(event.target.value))}
               type="number"
               required
             />
           </label>
+          {orderQuantityBlocker ? <small className="field-help">{orderQuantityBlocker}</small> : null}
           <label className="wide-field" htmlFor="merchant-order-customer-address">
             <span>Customer address</span>
             <input
@@ -769,7 +798,7 @@ export function MerchantOrdersPage() {
             })}
           </div>
         ) : null}
-        <button className="primary-button fit-button" type="submit" disabled={submitting || data.items.length === 0} title={createOrderBlocker || undefined}>
+        <button className="primary-button fit-button" type="submit" disabled={submitting || !canCreateOrder} title={createOrderBlocker || orderQuantityBlocker || undefined}>
           {submitting ? 'Creating' : 'Create order'}
         </button>
       </form>
@@ -1156,18 +1185,26 @@ function OrdersTable({
   onCancel?: (orderId: string) => void
   onBackorder?: (orderId: string, backorderId: string, nextStatus: BackorderStatus) => void
 }) {
+  const pageSize = 20
+  const orderWindowKey = useMemo(() => orders.map((order) => order.id).join('|'), [orders])
+  const [pagination, setPagination] = useState({ key: orderWindowKey, visibleCount: pageSize })
+
   if (!orders.length) {
     return <EmptyState label="No orders yet" guidance="Create the first order once inventory can allocate." />
   }
+
+  const visibleCount = pagination.key === orderWindowKey ? pagination.visibleCount : pageSize
+  const visibleOrders = orders.slice(0, visibleCount)
+  const hiddenCount = orders.length - visibleOrders.length
 
   return (
     <section className="table-section">
       <div className="section-heading-row">
         <h2>Recent Orders</h2>
-        <span>{orders.slice(0, 20).length} shown</span>
+        <span>Showing {visibleOrders.length} of {orders.length}</span>
       </div>
       <div className="queue-list orders-list">
-        {orders.slice(0, 20).map((order) => {
+        {visibleOrders.map((order) => {
           const canAllocate = order.status === 'CREATED'
           const canCancel = ['CREATED', 'ALLOCATED', 'PARTIALLY_ALLOCATED', 'BACKORDERED'].includes(order.status)
           const cancelLabel = canCancel ? 'Cancel' : order.status === 'CANCELLED' ? 'Cancelled' : 'Locked'
@@ -1258,6 +1295,17 @@ function OrdersTable({
           )
         })}
       </div>
+      {hiddenCount > 0 ? (
+        <div className="action-cluster">
+          <button
+            className="secondary-button fit-button"
+            type="button"
+            onClick={() => setPagination({ key: orderWindowKey, visibleCount: visibleCount + pageSize })}
+          >
+            Show {Math.min(pageSize, hiddenCount)} more orders
+          </button>
+        </div>
+      ) : null}
     </section>
   )
 }
