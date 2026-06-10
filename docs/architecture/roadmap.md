@@ -103,6 +103,8 @@ Current private implementation direction:
 - read-plus-draft agent runtime interface with deterministic fallback metadata and no mutations
 - small B2B pilot capacity proof before public production claims
 
+V17 refactoring rule: do not refactor code, scripts, docs, CI, deployment configuration, or repository shape during production activation unless a concrete problem requires it. Valid reasons include a failing proof, deployment blocker, security/runtime boundary issue, performance bottleneck, real duplication or coupling that blocks the deployment path, or a documented V&V/QC/QA defect. Cosmetic, speculative, or architecture-ideal refactoring is out of scope until the deployed web/backend, signed Android release, and live V&V proof are complete.
+
 ### VInfinite: Product Expansion Backlog
 
 These are useful future ideas, not blockers for local readiness:

@@ -40,6 +40,8 @@ The current public-facing posture is local-certified project/codebase, not produ
 
 V17 production work is private until the deployment is proven. Keep VPS env files, SMTP credentials, Android keystores, deployment logs, backup artifacts, provider details, and live URLs out of Git unless the roadmap and public docs deliberately publish sanitized values.
 
+During V17 production activation, do not refactor unless a concrete problem requires it: failing proof, deployment blocker, security/runtime boundary issue, performance bottleneck, real duplication or coupling that blocks deployment, or a documented V&V/QC/QA defect. Do not start cosmetic, speculative, or architecture-ideal refactors while deployment proof is waiting on real external inputs.
+
 Keep local-only values and working context out of Git. Use environment variables, templates, ignored files, or explicit external paths for anything that belongs to one machine or one deployment.
 
 Local/demo credentials may exist only when they are obviously fake, development-scoped, and documented as such. If there is doubt, keep the value out of the repository or ask for clarification before implementing.
