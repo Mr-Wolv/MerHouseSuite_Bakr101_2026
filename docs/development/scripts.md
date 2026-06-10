@@ -24,6 +24,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/mobile-shell-check.ps1` | Check shared mobile shell metadata, manifest, icon references, and service worker markers used by web and native packaging. |
 | `scripts/quality/native-mobile-check.ps1` | Check the Capacitor Android wrapper, sync the frontend build into Android, and optionally assemble a debug APK. |
 | `scripts/quality/native-android-tour.ps1` | Install the debug APK on a running emulator, authenticate seeded roles, visit native routes, and capture APK screenshots. |
+| `scripts/quality/native-android-release-shape-check.ps1` | Statically verify the Android release Gradle/manifest shape: release cleartext disabled, signing sourced from external env vars, and no hardcoded keystore material. |
 | `scripts/quality/native-android-release-check.ps1` | Build a signed internal Android APK or AAB against an HTTPS API URL using keystore values supplied outside Git and write a sanitized release manifest. |
 | `scripts/quality/cross-surface-tour-check.ps1` | Compare browser and installed-APK tour reports for clean records, provenance, valid native screenshot evidence, exact normalized role/path set equality, and traceable pass output. |
 | `scripts/quality/performance-readiness.ps1` | Check local deployment-shaped performance readiness through frontend bundle budgets, paired browser/installed-APK report provenance and timing when reports are supplied, and optional API smoke timing. |
@@ -168,6 +169,8 @@ Use `http://10.0.2.2:8080` for the Android emulator. Use your computer LAN addre
 Build the signed internal Android release artifact only with an HTTPS API URL and keystore values supplied outside Git:
 
 ```powershell
+.\scripts\quality\native-android-release-shape-check.ps1
+
 $env:MERHOUSE_ANDROID_KEYSTORE_PATH = "D:\secure\merhouse-release.jks"
 $env:MERHOUSE_ANDROID_KEYSTORE_PASSWORD = "<secret>"
 $env:MERHOUSE_ANDROID_KEY_ALIAS = "merhouse"
@@ -235,7 +238,7 @@ Run the V17 deployment preflight before a staging or production rollout:
 .\scripts\quality\v17-production-readiness.ps1
 ```
 
-The default preflight parses PowerShell scripts, validates the rendered VPS Compose output including public-mode safety flags, checks markdown, checks public-facing repository boundaries, and rebuilds the frontend for performance budgets. It intentionally skips live load smoke and signed Android release proof until a real HTTPS target and external signing secrets exist. When a staging or production target is reachable, include those proof slices:
+The default preflight parses PowerShell scripts, validates the rendered VPS Compose output including public-mode safety flags, checks the Android release Gradle/manifest shape, checks markdown, checks public-facing repository boundaries, and rebuilds the frontend for performance budgets. It intentionally skips live load smoke and signed Android artifact proof until a real HTTPS target and external signing secrets exist. When a staging or production target is reachable, include those proof slices:
 
 ```powershell
 .\scripts\quality\v17-production-readiness.ps1 `
@@ -244,7 +247,7 @@ The default preflight parses PowerShell scripts, validates the rendered VPS Comp
   -ApiBaseUrl "https://api.example.com"
 ```
 
-The signed Android slice requires the `MERHOUSE_ANDROID_KEYSTORE_*` environment variables documented above. The load-smoke slice uses the same `-ApiBaseUrl`, `-ConcurrentUsers`, and `-RequestsPerUser` values to record a small-pilot readiness signal against the deployed API health endpoint.
+The default Android release-shape check proves the release build is configured to disable cleartext traffic and source signing from external `MERHOUSE_ANDROID_KEYSTORE_*` values without requiring the secrets. The signed Android slice requires those environment variables and writes the sanitized artifact manifest. The load-smoke slice uses the same `-ApiBaseUrl`, `-ConcurrentUsers`, and `-RequestsPerUser` values to record a small-pilot readiness signal against the deployed API health endpoint.
 
 Performance report paths are paired evidence. `performance-readiness.ps1` rejects a lone `-WebReportPath` or lone `-NativeReportPath` before building the frontend so report-backed route timing cannot be claimed from one surface only. When both are supplied, it resolves and checks both report paths before the frontend build starts, then prints the resolved web/native report inputs and resolved performance report output path. Omit both only for bundle/API-only proof. Report-backed JSON and terminal output record the supplied and resolved web/native report paths plus validated browser and installed-APK provenance snapshots so timing evidence can be traced back to the exact paired reports.
 

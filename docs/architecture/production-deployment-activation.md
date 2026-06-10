@@ -71,6 +71,7 @@ The first V17 implementation target is VPS + Docker Compose:
 - `scripts/deploy/backup-postgres.ps1`, `restore-postgres.ps1`, and `rollback-compose.ps1` define the first operations hooks.
 - `scripts/deploy/backup-restore-drill.ps1` records a guarded restore drill manifest for staging or drill environments.
 - `scripts/deploy/rollback-drill.ps1` records a guarded rollback rehearsal manifest after env audit, Compose shape proof, confirmed rollback/up, and optional deployed monitoring samples.
+- `scripts/quality/native-android-release-shape-check.ps1` statically verifies that the Android release build disables cleartext traffic and sources signing from external environment variables without hardcoded keystore material.
 - `scripts/quality/deployed-monitoring-proof.ps1` samples deployed frontend and API health repeatedly with latency budgets.
 - `scripts/quality/deployed-v17-proof.ps1` runs deployed frontend/API proof against explicit public URLs after rollout and writes a sanitized deployment evidence manifest.
 
@@ -123,7 +124,7 @@ If the Android app is part of the release claim, assemble the native shell again
 .\scripts\quality\native-android-release-check.ps1 -ApiBaseUrl "https://<staging-api-origin>" -Bundle -OutputPath ".\reports\v17-android-release.json"
 ```
 
-The signed release check writes a sanitized Android release manifest with commit SHA, API URL, artifact kind/path, SHA-256, byte size, cleartext policy, and external-keystore signing boundary. Keep the manifest with deployment evidence; keep keystores outside Git.
+The default V17 preflight runs the Android release-shape check without needing signing secrets. The signed release check writes a sanitized Android release manifest with commit SHA, API URL, artifact kind/path, SHA-256, byte size, cleartext policy, and external-keystore signing boundary. Keep the manifest with deployment evidence; keep keystores outside Git.
 
 ## Production Cutover Proof
 

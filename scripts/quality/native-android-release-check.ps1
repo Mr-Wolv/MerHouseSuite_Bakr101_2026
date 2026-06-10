@@ -7,6 +7,11 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "url-guard-lib.ps1")
 
+& (Join-Path $PSScriptRoot "native-android-release-shape-check.ps1")
+if ($LASTEXITCODE -ne 0) {
+    throw "Android release shape check failed."
+}
+
 if ([string]::IsNullOrWhiteSpace($ApiBaseUrl)) {
     throw "ApiBaseUrl is required for a signed Android release build."
 }
