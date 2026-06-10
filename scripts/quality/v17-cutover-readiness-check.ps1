@@ -320,7 +320,7 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
         vpsShape = "passed"
     }
     postRollbackMonitoring = @{
-        ran = $true
+        ran = $false
         frontendBaseUrl = "https://wrong-app.example.com"
         apiBaseUrl = "https://wrong-api.example.com"
         reportPath = (Join-Path $resolvedOutputDirectory "missing-rollback-monitoring.json")
@@ -383,7 +383,7 @@ try {
         $_.Exception.Message -match "backupRestore.path artifact backupSha256" -and
         $_.Exception.Message -match "rollback.path artifact rollbackRan" -and
         $_.Exception.Message -match "rollback.path artifact preflight.envAudit" -and
-        $_.Exception.Message -match "rollback.path artifact postRollbackMonitoring.apiBaseUrl" -and
+        $_.Exception.Message -match "rollback.path artifact postRollbackMonitoring.ran" -and
         $_.Exception.Message -match "outputFiles.directApiSmoke status" -and
         $_.Exception.Message -match "outputFiles.directApiSmoke testRun" -and
         $_.Exception.Message -match "outputFiles.directApiSmoke apiResponses" -and

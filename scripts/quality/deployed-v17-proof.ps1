@@ -251,7 +251,10 @@ function Resolve-EvidenceAttachment {
         if ([string]::IsNullOrWhiteSpace($json.secretPolicy)) {
             throw "RollbackManifestPath must include secretPolicy."
         }
-        if ($null -ne $json.postRollbackMonitoring -and [bool]$json.postRollbackMonitoring.ran) {
+        if ($null -eq $json.postRollbackMonitoring -or -not [bool]$json.postRollbackMonitoring.ran) {
+            throw "RollbackManifestPath postRollbackMonitoring.ran must be true."
+        }
+        if ([bool]$json.postRollbackMonitoring.ran) {
             if ([string]::IsNullOrWhiteSpace($json.postRollbackMonitoring.frontendBaseUrl)) {
                 throw "RollbackManifestPath postRollbackMonitoring.frontendBaseUrl must be present when monitoring ran."
             }

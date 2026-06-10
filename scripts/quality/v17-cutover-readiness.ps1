@@ -298,7 +298,9 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             if ([string]::IsNullOrWhiteSpace($proofArtifact.secretPolicy)) {
                 $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact secretPolicy must be non-blank."
             }
-            if ($null -ne $proofArtifact.postRollbackMonitoring -and [bool]$proofArtifact.postRollbackMonitoring.ran) {
+            if ($null -eq $proofArtifact.postRollbackMonitoring -or -not [bool]$proofArtifact.postRollbackMonitoring.ran) {
+                $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.ran must be true."
+            } else {
                 if ($proofArtifact.postRollbackMonitoring.apiBaseUrl -ne $manifest.apiBaseUrl) {
                     $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.apiBaseUrl must match apiBaseUrl."
                 }

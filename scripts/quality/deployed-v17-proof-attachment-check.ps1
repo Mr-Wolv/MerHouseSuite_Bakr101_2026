@@ -184,7 +184,7 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
         vpsShape = "passed"
     }
     postRollbackMonitoring = @{
-        ran = $true
+        ran = $false
         frontendBaseUrl = "https://app.example.com"
         apiBaseUrl = "https://api.example.com"
         reportPath = (Join-Path $resolvedOutputDirectory "missing-rollback-monitoring-proof-check.json")
@@ -421,6 +421,39 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Incomplete rollback attachment was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    $noMonitoringRollbackPath = Join-Path $resolvedOutputDirectory "v17-rollback-proof-check-no-monitoring.json"
+    @{
+        schema = "merhouse.v17.rollback-rehearsal.v1"
+        generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+        rollbackRan = $true
+        preflight = @{
+            envAudit = "passed"
+            vpsShape = "passed"
+        }
+        postRollbackMonitoring = @{
+            ran = $false
+            frontendBaseUrl = ""
+            apiBaseUrl = ""
+            reportPath = ""
+        }
+        secretPolicy = "Private env values, provider credentials, deployment logs, keystores, and backup archives are excluded from this manifest."
+    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $noMonitoringRollbackPath -Encoding utf8
+
+    Invoke-AttachmentResolver -Name "RollbackManifestPath" -Path $noMonitoringRollbackPath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "postRollbackMonitoring.ran must be true") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Rollback attachment without post-rollback monitoring was accepted."
 }
 
 $failedAsExpected = $false
