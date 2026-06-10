@@ -20,6 +20,8 @@ $validAndroidReleasePath = Join-Path $resolvedOutputDirectory "v17-android-relea
 $wrongAndroidReleasePath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-wrong.json"
 $validAndroidArtifactPath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check.aab"
 $wrongAndroidArtifactPath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-wrong.aab"
+$validEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-valid.json"
+$wrongEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-wrong.json"
 
 Set-Content -LiteralPath $validAndroidArtifactPath -Value "fixture signed Android artifact" -Encoding utf8
 Set-Content -LiteralPath $wrongAndroidArtifactPath -Value "changed Android artifact" -Encoding utf8
@@ -49,6 +51,28 @@ $validAndroidArtifactBytes = (Get-Item -LiteralPath $validAndroidArtifactPath).L
     cleartextTraffic = "true"
     signing = "embedded-keystore"
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongAndroidReleasePath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.email-provider-proof.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    providerStatus = "smtp-staging-proven"
+    workflowsProven = @("password-recovery", "access-request", "notification-email")
+    deliveryEvidence = "operator-confirmed-smtp-staging-fixture"
+    secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, or message bodies are stored in this parser proof fixture."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validEmailProviderPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.email-provider-proof.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://wrong-api.example.com"
+    providerStatus = "smtp-staging-configured"
+    workflowsProven = @("password-recovery")
+    deliveryEvidence = ""
+    secretPolicy = "No SMTP credentials are stored."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongEmailProviderPath -Encoding utf8
 
 @{
     schema = "merhouse.v17.alert-routing.v1"
@@ -135,6 +159,17 @@ if ($androidRelease.sha256 -ne $validAndroidArtifactHash -or [long]$androidRelea
     throw "Valid Android release attachment did not preserve artifact hash and size."
 }
 
+$emailProvider = Invoke-AttachmentResolver -Name "EmailProviderProofManifestPath" -Path $validEmailProviderPath | ConvertFrom-Json
+if ($emailProvider.schema -ne "merhouse.v17.email-provider-proof.v1") {
+    throw "Valid email-provider attachment did not resolve with the expected schema."
+}
+if ($emailProvider.frontendBaseUrl -ne "https://app.example.com" -or $emailProvider.apiBaseUrl -ne "https://api.example.com") {
+    throw "Valid email-provider attachment did not preserve deployed target URLs."
+}
+if ($emailProvider.providerStatus -ne "smtp-staging-proven") {
+    throw "Valid email-provider attachment did not preserve provider status."
+}
+
 $resolved = Invoke-AttachmentResolver -Name "AlertRoutingManifestPath" -Path $validAlertPath | ConvertFrom-Json
 if ($resolved.schema -ne "merhouse.v17.alert-routing.v1") {
     throw "Valid alert-routing attachment did not resolve with the expected schema."
@@ -179,6 +214,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Wrong-schema alert-routing attachment was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    Invoke-AttachmentResolver -Name "EmailProviderProofManifestPath" -Path $wrongEmailProviderPath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "providerStatus must be a proven provider label") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Incomplete email-provider attachment was accepted."
 }
 
 $failedAsExpected = $false

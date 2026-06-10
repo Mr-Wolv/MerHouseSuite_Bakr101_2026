@@ -47,6 +47,11 @@ $expectedAttachmentSchemas = @{
     liveStakeholderWalkthrough = "merhouse.v17.live-stakeholder-walkthrough.v1"
 }
 
+$providerStatus = if ($null -eq $manifest.providerStatus) { "" } else { $manifest.providerStatus.Trim().ToLowerInvariant() }
+if ($providerStatus -in @("smtp-staging-proven", "smtp-production-proven", "email-provider-proven")) {
+    $expectedAttachmentSchemas.emailProvider = "merhouse.v17.email-provider-proof.v1"
+}
+
 function Resolve-ProofPath {
     param([string]$Path)
 
@@ -122,6 +127,32 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
         if ($attachmentName -eq "installedAndroidTour" -and $proofArtifact.apiUrl -ne $manifest.apiBaseUrl) {
             $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact apiUrl must match apiBaseUrl."
         }
+        if ($attachmentName -eq "emailProvider") {
+            if ($proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
+                $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact apiBaseUrl must match apiBaseUrl."
+            }
+            if ($proofArtifact.frontendBaseUrl -ne $manifest.frontendBaseUrl) {
+                $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact frontendBaseUrl must match frontendBaseUrl."
+            }
+            $proofProviderStatus = if ($null -eq $proofArtifact.providerStatus) { "" } else { $proofArtifact.providerStatus.Trim().ToLowerInvariant() }
+            if ($proofProviderStatus -ne $providerStatus) {
+                $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact providerStatus must match providerStatus."
+            }
+            foreach ($workflow in @("password-recovery", "access-request", "notification-email")) {
+                if (@($proofArtifact.workflowsProven) -notcontains $workflow) {
+                    $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact workflowsProven must include $workflow."
+                }
+            }
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.deliveryEvidence)) {
+                $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact deliveryEvidence must be non-blank."
+            }
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.completedAt)) {
+                $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact completedAt must be non-blank."
+            }
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.secretPolicy)) {
+                $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact secretPolicy must be non-blank."
+            }
+        }
         if ($attachmentName -eq "alertRouting") {
             if ($proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
                 $failures += "Deployment evidence manifest attachedEvidence.alertRouting.path artifact apiBaseUrl must match apiBaseUrl."
@@ -177,6 +208,15 @@ if ($null -ne $attached.androidRelease -and $attached.androidRelease.apiBaseUrl 
 if ($null -ne $attached.installedAndroidTour -and $attached.installedAndroidTour.apiUrl -ne $manifest.apiBaseUrl) {
     $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.apiUrl must match apiBaseUrl."
 }
+if ($null -ne $attached.emailProvider -and $attached.emailProvider.apiBaseUrl -ne $manifest.apiBaseUrl) {
+    $failures += "Deployment evidence manifest attachedEvidence.emailProvider.apiBaseUrl must match apiBaseUrl."
+}
+if ($null -ne $attached.emailProvider -and $attached.emailProvider.frontendBaseUrl -ne $manifest.frontendBaseUrl) {
+    $failures += "Deployment evidence manifest attachedEvidence.emailProvider.frontendBaseUrl must match frontendBaseUrl."
+}
+if ($null -ne $attached.emailProvider -and $attached.emailProvider.providerStatus.ToString().ToLowerInvariant() -ne $providerStatus) {
+    $failures += "Deployment evidence manifest attachedEvidence.emailProvider.providerStatus must match providerStatus."
+}
 if ($null -ne $attached.alertRouting -and $attached.alertRouting.apiBaseUrl -ne $manifest.apiBaseUrl) {
     $failures += "Deployment evidence manifest attachedEvidence.alertRouting.apiBaseUrl must match apiBaseUrl."
 }
@@ -190,7 +230,6 @@ if ($null -ne $attached.liveStakeholderWalkthrough -and $attached.liveStakeholde
     $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.frontendBaseUrl must match frontendBaseUrl."
 }
 
-$providerStatus = if ($null -eq $manifest.providerStatus) { "" } else { $manifest.providerStatus.Trim().ToLowerInvariant() }
 if ($providerStatus -notin @("smtp-staging-proven", "smtp-production-proven", "email-provider-proven", "email-disabled-by-policy")) {
     $failures += "Deployment evidence manifest providerStatus must be proven or explicitly disabled for cutover readiness."
 }

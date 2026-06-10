@@ -27,6 +27,8 @@ $artifactPaths = [ordered]@{
     installedAndroidTour = Join-Path $resolvedOutputDirectory "v17-cutover-check-installed-android-tour.json"
     backupRestore = Join-Path $resolvedOutputDirectory "v17-cutover-check-backup-restore.json"
     rollback = Join-Path $resolvedOutputDirectory "v17-cutover-check-rollback.json"
+    emailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-email-provider.json"
+    invalidEmailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-email-provider.json"
     alertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-routing.json"
     liveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-live-walkthrough.json"
     invalidLiveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-live-walkthrough.json"
@@ -55,6 +57,17 @@ $androidArtifactBytes = (Get-Item -LiteralPath $artifactPaths.androidReleaseArti
 @{ schema = "merhouse.v17.rollback-rehearsal.v1" } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.rollback -Encoding utf8
 @{
+    schema = "merhouse.v17.email-provider-proof.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    providerStatus = "smtp-staging-proven"
+    workflowsProven = @("password-recovery", "access-request", "notification-email")
+    deliveryEvidence = "operator-confirmed-smtp-staging-fixture"
+    secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, or message bodies are stored in this parser proof fixture."
+} |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.emailProvider -Encoding utf8
+@{
     schema = "merhouse.v17.alert-routing.v1"
     frontendBaseUrl = "https://app.example.com"
     apiBaseUrl = "https://api.example.com"
@@ -81,6 +94,7 @@ $attached = [ordered]@{
     installedAndroidTour = [ordered]@{ schema = "merhouse.native-android-tour.report.v1"; path = $artifactPaths.installedAndroidTour; apiUrl = "https://api.example.com" }
     backupRestore = [ordered]@{ schema = "merhouse.v17.backup-restore-drill.v1"; path = $artifactPaths.backupRestore }
     rollback = [ordered]@{ schema = "merhouse.v17.rollback-rehearsal.v1"; path = $artifactPaths.rollback }
+    emailProvider = [ordered]@{ schema = "merhouse.v17.email-provider-proof.v1"; path = $artifactPaths.emailProvider; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com"; providerStatus = "smtp-staging-proven" }
     alertRouting = [ordered]@{ schema = "merhouse.v17.alert-routing.v1"; path = $artifactPaths.alertRouting; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" }
     liveStakeholderWalkthrough = [ordered]@{ schema = "merhouse.v17.live-stakeholder-walkthrough.v1"; path = $artifactPaths.liveStakeholderWalkthrough; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" }
 }
@@ -92,7 +106,7 @@ $baseManifest = [ordered]@{
     commitSha = "fixture"
     frontendBaseUrl = "https://app.example.com"
     apiBaseUrl = "https://api.example.com"
-    providerStatus = "email-disabled-by-policy"
+    providerStatus = "smtp-staging-proven"
     includedProof = [ordered]@{
         frontendProxySmoke = $true
         directApiSmoke = $true
@@ -119,6 +133,7 @@ $wrongAttachmentManifest.attachedEvidence.androidRelease.schema = "merhouse.load
 $wrongAttachmentManifest.attachedEvidence.androidRelease.path = $artifactPaths.invalidAndroidRelease
 $wrongAttachmentManifest.attachedEvidence.alertRouting.apiBaseUrl = "https://wrong-api.example.com"
 $wrongAttachmentManifest.attachedEvidence.rollback.path = (Join-Path $resolvedOutputDirectory "missing-rollback-proof.json")
+$wrongAttachmentManifest.attachedEvidence.emailProvider.path = $artifactPaths.invalidEmailProvider
 $wrongAttachmentManifest.attachedEvidence.liveStakeholderWalkthrough.path = $artifactPaths.invalidLiveStakeholderWalkthrough
 $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $wrongAttachmentManifestPath -Encoding utf8
 
@@ -132,6 +147,17 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
     cleartextTraffic = "true"
     signing = "embedded-keystore"
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidAndroidRelease -Encoding utf8
+
+@{
+    schema = "merhouse.v17.email-provider-proof.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://wrong-api.example.com"
+    providerStatus = "smtp-staging-configured"
+    workflowsProven = @("password-recovery")
+    deliveryEvidence = ""
+    secretPolicy = "No SMTP credentials are stored."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidEmailProvider -Encoding utf8
 
 @{
     schema = "merhouse.v17.live-stakeholder-walkthrough.v1"
@@ -171,6 +197,9 @@ try {
         $_.Exception.Message -match "androidRelease.path artifact sha256" -and
         $_.Exception.Message -match "androidRelease.path artifact cleartextTraffic" -and
         $_.Exception.Message -match "androidRelease.path artifact signing" -and
+        $_.Exception.Message -match "emailProvider.path artifact apiBaseUrl" -and
+        $_.Exception.Message -match "emailProvider.path artifact providerStatus" -and
+        $_.Exception.Message -match "workflowsProven must include access-request" -and
         $_.Exception.Message -match "alertRouting.apiBaseUrl" -and
         $_.Exception.Message -match "rollback.path" -and
         $_.Exception.Message -match "liveStakeholderWalkthrough.path artifact apiBaseUrl" -and

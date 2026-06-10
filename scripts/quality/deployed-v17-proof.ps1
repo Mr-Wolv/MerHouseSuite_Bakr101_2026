@@ -18,6 +18,7 @@ param(
     [string]$InstalledAndroidTourReportPath = "",
     [string]$BackupRestoreManifestPath = "",
     [string]$RollbackManifestPath = "",
+    [string]$EmailProviderProofManifestPath = "",
     [string]$AlertRoutingManifestPath = "",
     [string]$LiveStakeholderWalkthroughManifestPath = "",
     [switch]$IncludeBrowserTour,
@@ -98,6 +99,7 @@ function Resolve-EvidenceAttachment {
         InstalledAndroidTourReportPath = @("merhouse.native-android-tour.report.v1")
         BackupRestoreManifestPath = @("merhouse.v17.backup-restore-drill.v1")
         RollbackManifestPath = @("merhouse.v17.rollback-rehearsal.v1")
+        EmailProviderProofManifestPath = @("merhouse.v17.email-provider-proof.v1")
         AlertRoutingManifestPath = @("merhouse.v17.alert-routing.v1")
         LiveStakeholderWalkthroughManifestPath = @("merhouse.v17.live-stakeholder-walkthrough.v1")
     }
@@ -138,6 +140,31 @@ function Resolve-EvidenceAttachment {
         }
         if ($json.signing -ne "external-keystore-env") {
             throw "AndroidReleaseManifestPath signing must be external-keystore-env."
+        }
+    }
+    if ($Name -eq "EmailProviderProofManifestPath") {
+        if ([string]::IsNullOrWhiteSpace($json.frontendBaseUrl)) {
+            throw "EmailProviderProofManifestPath must include frontendBaseUrl."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.apiBaseUrl)) {
+            throw "EmailProviderProofManifestPath must include apiBaseUrl."
+        }
+        if ($json.providerStatus -notin @("smtp-staging-proven", "smtp-production-proven", "email-provider-proven")) {
+            throw "EmailProviderProofManifestPath providerStatus must be a proven provider label."
+        }
+        foreach ($workflow in @("password-recovery", "access-request", "notification-email")) {
+            if (@($json.workflowsProven) -notcontains $workflow) {
+                throw "EmailProviderProofManifestPath workflowsProven must include $workflow."
+            }
+        }
+        if ([string]::IsNullOrWhiteSpace($json.deliveryEvidence)) {
+            throw "EmailProviderProofManifestPath must include deliveryEvidence."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.completedAt)) {
+            throw "EmailProviderProofManifestPath must include completedAt."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.secretPolicy)) {
+            throw "EmailProviderProofManifestPath must include secretPolicy."
         }
     }
     if ($Name -eq "AlertRoutingManifestPath") {
@@ -192,6 +219,7 @@ function Resolve-EvidenceAttachment {
         frontendBaseUrl = $json.frontendBaseUrl
         apiBaseUrl = $json.apiBaseUrl
         apiUrl = $json.apiUrl
+        providerStatus = $json.providerStatus
         artifactKind = $json.artifactKind
         artifactPath = $json.artifactPath
         sha256 = $json.sha256
@@ -249,6 +277,7 @@ $androidReleaseEvidence = Resolve-EvidenceAttachment -Name "AndroidReleaseManife
 $installedAndroidTourEvidence = Resolve-EvidenceAttachment -Name "InstalledAndroidTourReportPath" -Path $InstalledAndroidTourReportPath
 $backupRestoreEvidence = Resolve-EvidenceAttachment -Name "BackupRestoreManifestPath" -Path $BackupRestoreManifestPath
 $rollbackEvidence = Resolve-EvidenceAttachment -Name "RollbackManifestPath" -Path $RollbackManifestPath
+$emailProviderEvidence = Resolve-EvidenceAttachment -Name "EmailProviderProofManifestPath" -Path $EmailProviderProofManifestPath
 $alertRoutingEvidence = Resolve-EvidenceAttachment -Name "AlertRoutingManifestPath" -Path $AlertRoutingManifestPath
 $liveStakeholderWalkthroughEvidence = Resolve-EvidenceAttachment -Name "LiveStakeholderWalkthroughManifestPath" -Path $LiveStakeholderWalkthroughManifestPath
 
@@ -257,6 +286,15 @@ if ($androidReleaseEvidence -and $androidReleaseEvidence.apiBaseUrl -ne $normali
 }
 if ($installedAndroidTourEvidence -and $installedAndroidTourEvidence.apiUrl -ne $normalizedApiBaseUrl) {
     throw "InstalledAndroidTourReportPath apiUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($installedAndroidTourEvidence.apiUrl)."
+}
+if ($emailProviderEvidence -and $emailProviderEvidence.apiBaseUrl -ne $normalizedApiBaseUrl) {
+    throw "EmailProviderProofManifestPath apiBaseUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($emailProviderEvidence.apiBaseUrl)."
+}
+if ($emailProviderEvidence -and $emailProviderEvidence.frontendBaseUrl -ne $normalizedFrontendBaseUrl) {
+    throw "EmailProviderProofManifestPath frontendBaseUrl must match deployed FrontendBaseUrl. Expected $normalizedFrontendBaseUrl but found $($emailProviderEvidence.frontendBaseUrl)."
+}
+if ($emailProviderEvidence -and $emailProviderEvidence.providerStatus.ToString().ToLowerInvariant() -ne $ProviderStatus.Trim().ToLowerInvariant()) {
+    throw "EmailProviderProofManifestPath providerStatus must match ProviderStatus. Expected $ProviderStatus but found $($emailProviderEvidence.providerStatus)."
 }
 if ($alertRoutingEvidence -and $alertRoutingEvidence.apiBaseUrl -ne $normalizedApiBaseUrl) {
     throw "AlertRoutingManifestPath apiBaseUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($alertRoutingEvidence.apiBaseUrl)."
@@ -393,6 +431,8 @@ if (-not $rollbackEvidence) {
 }
 if ($providerEvidenceState -eq "open") {
     $nextRequiredEvidence += "provider-backed recovery, access-request, and notification email proof or an explicit email-disabled production policy"
+} elseif ($ProviderStatus.Trim().ToLowerInvariant() -ne "email-disabled-by-policy" -and -not $emailProviderEvidence) {
+    $nextRequiredEvidence += "email provider proof artifact for recovery, access-request, and notification email workflows"
 }
 if (-not $alertRoutingEvidence) {
     $nextRequiredEvidence += "monitoring alert routing proof"
@@ -431,6 +471,7 @@ $manifest = [ordered]@{
         installedAndroidTour = $installedAndroidTourEvidence
         backupRestore = $backupRestoreEvidence
         rollback = $rollbackEvidence
+        emailProvider = $emailProviderEvidence
         alertRouting = $alertRoutingEvidence
         liveStakeholderWalkthrough = $liveStakeholderWalkthroughEvidence
     }
