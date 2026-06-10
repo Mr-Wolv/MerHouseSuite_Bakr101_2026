@@ -19,6 +19,7 @@ param(
     [string]$BackupRestoreManifestPath = "",
     [string]$RollbackManifestPath = "",
     [string]$AlertRoutingManifestPath = "",
+    [string]$LiveStakeholderWalkthroughManifestPath = "",
     [switch]$IncludeBrowserTour,
     [switch]$IncludeLoadSmoke,
     [int]$ConcurrentUsers = 25,
@@ -98,6 +99,7 @@ function Resolve-EvidenceAttachment {
         BackupRestoreManifestPath = @("merhouse.v17.backup-restore-drill.v1")
         RollbackManifestPath = @("merhouse.v17.rollback-rehearsal.v1")
         AlertRoutingManifestPath = @("merhouse.v17.alert-routing.v1")
+        LiveStakeholderWalkthroughManifestPath = @("merhouse.v17.live-stakeholder-walkthrough.v1")
     }
     if ($expectedSchemas.ContainsKey($Name) -and $schema -notin $expectedSchemas[$Name]) {
         throw "$Name schema must be one of: $($expectedSchemas[$Name] -join ', '). Found: $schema."
@@ -117,6 +119,34 @@ function Resolve-EvidenceAttachment {
         }
         if ([string]::IsNullOrWhiteSpace($json.secretPolicy)) {
             throw "AlertRoutingManifestPath must include secretPolicy."
+        }
+    }
+    if ($Name -eq "LiveStakeholderWalkthroughManifestPath") {
+        if ([string]::IsNullOrWhiteSpace($json.frontendBaseUrl)) {
+            throw "LiveStakeholderWalkthroughManifestPath must include frontendBaseUrl."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.apiBaseUrl)) {
+            throw "LiveStakeholderWalkthroughManifestPath must include apiBaseUrl."
+        }
+        if (-not [bool]$json.browserWalkthroughCompleted) {
+            throw "LiveStakeholderWalkthroughManifestPath must set browserWalkthroughCompleted to true."
+        }
+        if (-not [bool]$json.installedAndroidWalkthroughCompleted) {
+            throw "LiveStakeholderWalkthroughManifestPath must set installedAndroidWalkthroughCompleted to true."
+        }
+        foreach ($role in @("owner", "merchant", "warehouse", "support-admin", "auditor")) {
+            if (@($json.rolesCovered) -notcontains $role) {
+                throw "LiveStakeholderWalkthroughManifestPath rolesCovered must include $role."
+            }
+        }
+        if ([string]::IsNullOrWhiteSpace($json.reviewer)) {
+            throw "LiveStakeholderWalkthroughManifestPath must include reviewer."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.completedAt)) {
+            throw "LiveStakeholderWalkthroughManifestPath must include completedAt."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.secretPolicy)) {
+            throw "LiveStakeholderWalkthroughManifestPath must include secretPolicy."
         }
     }
 
@@ -180,6 +210,7 @@ $installedAndroidTourEvidence = Resolve-EvidenceAttachment -Name "InstalledAndro
 $backupRestoreEvidence = Resolve-EvidenceAttachment -Name "BackupRestoreManifestPath" -Path $BackupRestoreManifestPath
 $rollbackEvidence = Resolve-EvidenceAttachment -Name "RollbackManifestPath" -Path $RollbackManifestPath
 $alertRoutingEvidence = Resolve-EvidenceAttachment -Name "AlertRoutingManifestPath" -Path $AlertRoutingManifestPath
+$liveStakeholderWalkthroughEvidence = Resolve-EvidenceAttachment -Name "LiveStakeholderWalkthroughManifestPath" -Path $LiveStakeholderWalkthroughManifestPath
 
 if ($androidReleaseEvidence -and $androidReleaseEvidence.apiBaseUrl -ne $normalizedApiBaseUrl) {
     throw "AndroidReleaseManifestPath apiBaseUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($androidReleaseEvidence.apiBaseUrl)."
@@ -192,6 +223,12 @@ if ($alertRoutingEvidence -and $alertRoutingEvidence.apiBaseUrl -ne $normalizedA
 }
 if ($alertRoutingEvidence -and $alertRoutingEvidence.frontendBaseUrl -ne $normalizedFrontendBaseUrl) {
     throw "AlertRoutingManifestPath frontendBaseUrl must match deployed FrontendBaseUrl. Expected $normalizedFrontendBaseUrl but found $($alertRoutingEvidence.frontendBaseUrl)."
+}
+if ($liveStakeholderWalkthroughEvidence -and $liveStakeholderWalkthroughEvidence.apiBaseUrl -ne $normalizedApiBaseUrl) {
+    throw "LiveStakeholderWalkthroughManifestPath apiBaseUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($liveStakeholderWalkthroughEvidence.apiBaseUrl)."
+}
+if ($liveStakeholderWalkthroughEvidence -and $liveStakeholderWalkthroughEvidence.frontendBaseUrl -ne $normalizedFrontendBaseUrl) {
+    throw "LiveStakeholderWalkthroughManifestPath frontendBaseUrl must match deployed FrontendBaseUrl. Expected $normalizedFrontendBaseUrl but found $($liveStakeholderWalkthroughEvidence.frontendBaseUrl)."
 }
 
 $resolvedOutputDirectory = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
@@ -320,9 +357,9 @@ if ($providerEvidenceState -eq "open") {
 if (-not $alertRoutingEvidence) {
     $nextRequiredEvidence += "monitoring alert routing proof"
 }
-$nextRequiredEvidence += @(
-    "manual owner, merchant, warehouse, support-admin, and auditor live walkthrough"
-)
+if (-not $liveStakeholderWalkthroughEvidence) {
+    $nextRequiredEvidence += "manual owner, merchant, warehouse, support-admin, and auditor live browser plus installed-Android walkthrough"
+}
 
 $manifest = [ordered]@{
     schema = "merhouse.v17.deployment-evidence.v1"
@@ -355,9 +392,10 @@ $manifest = [ordered]@{
         backupRestore = $backupRestoreEvidence
         rollback = $rollbackEvidence
         alertRouting = $alertRoutingEvidence
+        liveStakeholderWalkthrough = $liveStakeholderWalkthroughEvidence
     }
     productionClaim = $false
-    claimBoundary = "Deployment smoke evidence only; production claim still requires attached Android, backup/restore, rollback, alert-routing, and live stakeholder proof."
+    claimBoundary = "Deployment evidence manifest only; productionClaim remains false until an explicit cutover decision is recorded after reviewing nextRequiredEvidence."
     nextRequiredEvidence = $nextRequiredEvidence
 }
 

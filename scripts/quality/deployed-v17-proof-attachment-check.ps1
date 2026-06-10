@@ -14,6 +14,8 @@ New-Item -ItemType Directory -Force -Path $resolvedOutputDirectory | Out-Null
 
 $validAlertPath = Join-Path $resolvedOutputDirectory "v17-alert-routing-proof-check-valid.json"
 $wrongAlertPath = Join-Path $resolvedOutputDirectory "v17-alert-routing-proof-check-wrong.json"
+$validWalkthroughPath = Join-Path $resolvedOutputDirectory "v17-live-walkthrough-proof-check-valid.json"
+$wrongWalkthroughPath = Join-Path $resolvedOutputDirectory "v17-live-walkthrough-proof-check-wrong.json"
 
 @{
     schema = "merhouse.v17.alert-routing.v1"
@@ -29,6 +31,30 @@ $wrongAlertPath = Join-Path $resolvedOutputDirectory "v17-alert-routing-proof-ch
     schema = "merhouse.load-smoke.v1"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongAlertPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.live-stakeholder-walkthrough.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    browserWalkthroughCompleted = $true
+    installedAndroidWalkthroughCompleted = $true
+    rolesCovered = @("owner", "merchant", "warehouse", "support-admin", "auditor")
+    reviewer = "local-proof-fixture"
+    secretPolicy = "No smoke credentials, screenshots, or private endpoint tokens are stored in this parser proof fixture."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validWalkthroughPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.live-stakeholder-walkthrough.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    browserWalkthroughCompleted = $true
+    installedAndroidWalkthroughCompleted = $false
+    rolesCovered = @("owner", "merchant")
+    reviewer = "local-proof-fixture"
+    secretPolicy = "No smoke credentials are stored."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongWalkthroughPath -Encoding utf8
 
 $tokens = $null
 $parseErrors = $null
@@ -73,6 +99,14 @@ if ($resolved.frontendBaseUrl -ne "https://app.example.com" -or $resolved.apiBas
     throw "Valid alert-routing attachment did not preserve deployed target URLs."
 }
 
+$walkthrough = Invoke-AttachmentResolver -Name "LiveStakeholderWalkthroughManifestPath" -Path $validWalkthroughPath | ConvertFrom-Json
+if ($walkthrough.schema -ne "merhouse.v17.live-stakeholder-walkthrough.v1") {
+    throw "Valid live walkthrough attachment did not resolve with the expected schema."
+}
+if ($walkthrough.frontendBaseUrl -ne "https://app.example.com" -or $walkthrough.apiBaseUrl -ne "https://api.example.com") {
+    throw "Valid live walkthrough attachment did not preserve deployed target URLs."
+}
+
 $failedAsExpected = $false
 try {
     Invoke-AttachmentResolver -Name "AlertRoutingManifestPath" -Path $wrongAlertPath | Out-Null
@@ -86,6 +120,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Wrong-schema alert-routing attachment was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    Invoke-AttachmentResolver -Name "LiveStakeholderWalkthroughManifestPath" -Path $wrongWalkthroughPath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "installedAndroidWalkthroughCompleted") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Incomplete live walkthrough attachment was accepted."
 }
 
 Write-Host "Deployed V17 proof attachment schema check passed."
