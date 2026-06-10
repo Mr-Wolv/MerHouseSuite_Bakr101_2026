@@ -110,7 +110,7 @@ Minimum staging proof:
 
 `deployed-v17-proof.ps1` requires explicit staging or production smoke credentials and rejects local demo values. The owner credential is required for API smoke; role-specific stakeholder credentials are required when the deployed browser tour is included.
 
-When signed Android release, installed Android tour, backup restore drill, or rollback rehearsal proof has already run, pass those generated JSON paths through `-AndroidReleaseManifestPath`, `-InstalledAndroidTourReportPath`, `-BackupRestoreManifestPath`, and `-RollbackManifestPath`. The deployed evidence manifest validates and records each attached artifact path plus schema, removes attached items from `nextRequiredEvidence`, and still records `productionClaim=false` until alert routing and the final live stakeholder walkthrough are complete.
+When signed Android release, installed Android tour, backup restore drill, or rollback rehearsal proof has already run, pass those generated JSON paths through `-AndroidReleaseManifestPath`, `-InstalledAndroidTourReportPath`, `-BackupRestoreManifestPath`, and `-RollbackManifestPath`. The deployed evidence manifest validates and records each attached artifact path plus schema; Android release `apiBaseUrl` and installed Android tour `apiUrl` must match the deployed `-ApiBaseUrl` before those items can clear `nextRequiredEvidence`. The manifest still records `productionClaim=false` until alert routing and the final live stakeholder walkthrough are complete.
 
 Staging must also include a production-shaped load and operations rehearsal before the production claim:
 

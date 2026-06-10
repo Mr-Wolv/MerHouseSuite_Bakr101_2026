@@ -94,6 +94,8 @@ function Resolve-EvidenceAttachment {
     return [ordered]@{
         path = $resolvedPath
         schema = $schema
+        apiBaseUrl = $json.apiBaseUrl
+        apiUrl = $json.apiUrl
     }
 }
 
@@ -117,6 +119,13 @@ $androidReleaseEvidence = Resolve-EvidenceAttachment -Name "AndroidReleaseManife
 $installedAndroidTourEvidence = Resolve-EvidenceAttachment -Name "InstalledAndroidTourReportPath" -Path $InstalledAndroidTourReportPath
 $backupRestoreEvidence = Resolve-EvidenceAttachment -Name "BackupRestoreManifestPath" -Path $BackupRestoreManifestPath
 $rollbackEvidence = Resolve-EvidenceAttachment -Name "RollbackManifestPath" -Path $RollbackManifestPath
+
+if ($androidReleaseEvidence -and $androidReleaseEvidence.apiBaseUrl -ne $normalizedApiBaseUrl) {
+    throw "AndroidReleaseManifestPath apiBaseUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($androidReleaseEvidence.apiBaseUrl)."
+}
+if ($installedAndroidTourEvidence -and $installedAndroidTourEvidence.apiUrl -ne $normalizedApiBaseUrl) {
+    throw "InstalledAndroidTourReportPath apiUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($installedAndroidTourEvidence.apiUrl)."
+}
 
 $resolvedOutputDirectory = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
     [System.IO.Path]::GetFullPath($OutputDirectory)
