@@ -44,17 +44,20 @@ class AssistantServiceTest {
     private final AdminControlService adminControlService = mock(AdminControlService.class);
     private final AdminAuditService adminAuditService = mock(AdminAuditService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-30T12:00:00Z"), ZoneOffset.UTC);
+    private final AssistantRuntime assistantRuntime = new DeterministicAssistantRuntime(
+        tenantRepository,
+        dashboardService,
+        adminControlService,
+        "deterministic",
+        ""
+    );
     private final AssistantService service = new AssistantService(
         interactionRepository,
         userRepository,
-        tenantRepository,
         currentUserService,
-        dashboardService,
-        adminControlService,
         adminAuditService,
-        clock,
-        "deterministic",
-        ""
+        assistantRuntime,
+        clock
     );
 
     @Test
@@ -80,6 +83,7 @@ class AssistantServiceTest {
         assertEquals(Instant.parse("2026-05-30T12:00:00Z"), response.createdAt());
         assertEquals("read-plus-draft", response.metadata().get("agenticWork"));
         assertEquals("human-executes", response.metadata().get("mutationPolicy"));
+        assertEquals("deterministic", response.metadata().get("runtime"));
         verify(dashboardService).merchantSummary(tenantId);
         verify(adminAuditService).record(
             org.mockito.ArgumentMatchers.eq(userId),

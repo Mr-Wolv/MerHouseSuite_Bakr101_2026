@@ -100,7 +100,7 @@ Current private implementation direction:
 - VPS + Docker Compose deployment shape
 - Gmail/Google Workspace SMTP staging proof for recovery, access invitation, and email notifications
 - signed internal Android APK/AAB release proof
-- read-plus-draft agent runtime metadata with no mutations
+- read-plus-draft agent runtime interface with deterministic fallback metadata and no mutations
 - small B2B pilot capacity proof before public production claims
 
 ### VInfinite: Product Expansion Backlog

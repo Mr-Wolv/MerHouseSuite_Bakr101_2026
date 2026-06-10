@@ -338,10 +338,10 @@
 
         <article class="step" style="--accent: var(--ops)">
           <h3>7. Users Ask For Scoped Assistance</h3>
-          <p>V14 starts with deterministic assistant summaries, risk-ranked review suggestions, and refusal records before any later V17 provider-backed AI activation.</p>
+          <p>V14 starts with deterministic assistant summaries, risk-ranked review suggestions, and refusal records; V17 separates that behavior behind a read-plus-draft runtime interface before any later provider-backed AI activation.</p>
           <div class="scenario">
             <div class="scenario-row"><b>Trigger</b><span>A platform, merchant, or warehouse user asks for an operational summary or review-only suggestion.</span></div>
-            <div class="scenario-row"><b>Flow</b><span>The assistant checks role and tenant scope, reads only authorized local services, ranks the allowed risk metrics, records the interaction, and keeps suggestion decisions explicit.</span></div>
+            <div class="scenario-row"><b>Flow</b><span>AssistantService checks role and tenant scope, passes a bounded request to AssistantRuntime, reads only authorized local services, ranks the allowed risk metrics, records the interaction, and keeps suggestion decisions explicit.</span></div>
             <div class="scenario-row"><b>Outcome</b><span>Summaries, reasoned suggestions, refusals, and accept/reject decisions are visible in the user's assistant history and platform audit trail.</span></div>
           </div>
           <div class="arrow">Prompt -> scope check -> response + history + audit; decision -> audit</div>
@@ -521,7 +521,7 @@
               <div class="entity">
                 <h4>Future activation</h4>
                 <div class="keys"><span class="key">VPS Compose target</span><span class="key">MERHOUSE_DEPLOYMENT_PUBLIC=true</span><span class="key">env-audit</span><span class="key">reverse-proxy-check</span><span class="key">TLS + security headers</span><span class="key">container healthchecks</span><span class="key">deployed monitoring proof</span><span class="key">backup restore drill manifest</span><span class="key">rollback rehearsal manifest</span><span class="key">deploy-vps</span><span class="key">deployed-v17-proof</span><span class="key">deployment evidence manifest</span><span class="key">Android release manifest</span><span class="key">SMTP recovery + invitations</span><span class="key">email notifications</span><span class="key">VITE_API_BASE_URL build arg</span><span class="key">signed Android release proof</span><span class="key">v17-production-readiness</span><span class="key">load + concurrency</span><span class="key">cross-platform release</span><span class="key">production monitoring</span><span class="key">backup/restore activation</span></div>
-                <ul><li>Real production activation is now private V17 work with a VPS Compose target, private env auditing without secret output, rendered Compose boundary checks, nginx TLS/security-header template checks, PostgreSQL/backend/frontend healthchecks, deployed monitoring samples, guarded backup/restore and rollback rehearsal manifests, repeatable deploy and deployed-proof wrappers, sanitized deployment evidence manifests, sanitized Android release manifests, SMTP-backed email attempt records, signed internal Android release checks, load-smoke proof, backup/restore/rollback hooks, frontend/API URL injection for split-origin deployments, and read-plus-draft agent metadata. It still must externalize secrets, prove managed data and rollback against staging/production, keep Android OS notifications out of scope unless deliberately reopened, and validate staging/production with smoke, browser, performance, operations, and live stakeholder proof before any public production claim.</li></ul>
+                <ul><li>Real production activation is now private V17 work with a VPS Compose target, private env auditing without secret output, rendered Compose boundary checks, nginx TLS/security-header template checks, PostgreSQL/backend/frontend healthchecks, deployed monitoring samples, guarded backup/restore and rollback rehearsal manifests, repeatable deploy and deployed-proof wrappers, sanitized deployment evidence manifests, sanitized Android release manifests, SMTP-backed email attempt records, signed internal Android release checks, load-smoke proof, backup/restore/rollback hooks, frontend/API URL injection for split-origin deployments, and a read-plus-draft agent runtime interface with deterministic fallback metadata. It still must externalize secrets, prove managed data and rollback against staging/production, keep Android OS notifications out of scope unless deliberately reopened, and validate staging/production with smoke, browser, performance, operations, and live stakeholder proof before any public production claim.</li></ul>
               </div>
             </div>
             <div class="relations">
@@ -598,7 +598,7 @@
               <div class="entity">
                 <h4><code>assistant_interactions</code></h4>
                 <div class="keys"><span class="key pk">PK id</span><span class="key fk">FK actor_user_id</span><span class="key fk">FK actor_tenant_id</span><span class="key fk">FK decided_by_user_id</span><span class="key">scope</span><span class="key">response_type</span><span class="key">action_status</span></div>
-                <ul><li>Deterministic local assistant summaries, suggestions, refusals, decisions, and scoped metadata; model-backed or provider-backed activation remains V17 or later.</li></ul>
+                <ul><li>Deterministic local assistant summaries, suggestions, refusals, decisions, and scoped runtime metadata; model-backed or provider-backed activation must stay behind the V17 read-plus-draft runtime boundary.</li></ul>
               </div>
               <div class="entity">
                 <h4><code>idempotency_records</code></h4>
