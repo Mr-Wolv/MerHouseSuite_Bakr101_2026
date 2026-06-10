@@ -14,6 +14,10 @@ param(
     [string]$SupportAdminPassword = "",
     [string]$AuditorEmail = "",
     [string]$AuditorPassword = "",
+    [string]$AndroidReleaseManifestPath = "",
+    [string]$InstalledAndroidTourReportPath = "",
+    [string]$BackupRestoreManifestPath = "",
+    [string]$RollbackManifestPath = "",
     [switch]$IncludeBrowserTour,
     [switch]$IncludeLoadSmoke,
     [int]$ConcurrentUsers = 25,
@@ -48,6 +52,51 @@ function Assert-DeployedCredential {
     }
 }
 
+function Resolve-EvidenceAttachment {
+    param(
+        [Parameter(Mandatory = $true)] [string] $Name,
+        [AllowNull()] [string] $Path
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $null
+    }
+
+    $resolvedPath = if ([System.IO.Path]::IsPathRooted($Path)) {
+        [System.IO.Path]::GetFullPath($Path)
+    } else {
+        [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
+    }
+    if (-not (Test-Path -LiteralPath $resolvedPath)) {
+        throw "$Name was not found: $resolvedPath"
+    }
+
+    try {
+        $json = Get-Content -Raw -LiteralPath $resolvedPath | ConvertFrom-Json
+    } catch {
+        throw "$Name must be a JSON proof artifact with a schema field."
+    }
+    $schema = $json.schema
+    if ([string]::IsNullOrWhiteSpace($schema) -and $Name -eq "InstalledAndroidTourReportPath") {
+        $hasNativeTourProvenance =
+            -not [string]::IsNullOrWhiteSpace($json.apkSha256) -and
+            -not [string]::IsNullOrWhiteSpace($json.apiUrl) -and
+            $null -ne $json.checkedRoutes -and
+            @($json.deviceSerials).Count -gt 0
+        if ($hasNativeTourProvenance) {
+            $schema = "merhouse.native-android-tour.report.v1"
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($schema)) {
+        throw "$Name must include a non-blank schema field or recognized installed Android tour provenance."
+    }
+
+    return [ordered]@{
+        path = $resolvedPath
+        schema = $schema
+    }
+}
+
 $normalizedFrontendBaseUrl = Assert-AbsoluteHttpUrl -Name "FrontendBaseUrl" -Value $FrontendBaseUrl
 $normalizedApiBaseUrl = Assert-AbsoluteHttpUrl -Name "ApiBaseUrl" -Value $ApiBaseUrl
 Assert-DeployedCredential -Name "AdminEmail" -Value $AdminEmail
@@ -63,6 +112,11 @@ if ($IncludeBrowserTour) {
     Assert-DeployedCredential -Name "AuditorEmail" -Value $AuditorEmail
     Assert-DeployedCredential -Name "AuditorPassword" -Value $AuditorPassword
 }
+
+$androidReleaseEvidence = Resolve-EvidenceAttachment -Name "AndroidReleaseManifestPath" -Path $AndroidReleaseManifestPath
+$installedAndroidTourEvidence = Resolve-EvidenceAttachment -Name "InstalledAndroidTourReportPath" -Path $InstalledAndroidTourReportPath
+$backupRestoreEvidence = Resolve-EvidenceAttachment -Name "BackupRestoreManifestPath" -Path $BackupRestoreManifestPath
+$rollbackEvidence = Resolve-EvidenceAttachment -Name "RollbackManifestPath" -Path $RollbackManifestPath
 
 $resolvedOutputDirectory = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
     [System.IO.Path]::GetFullPath($OutputDirectory)
@@ -160,6 +214,24 @@ if ($IncludeBrowserTour) {
     Write-Host "Skipping deployed browser tour. Pass -IncludeBrowserTour after the target is seeded with stakeholder proof data."
 }
 
+$nextRequiredEvidence = @()
+if (-not $androidReleaseEvidence) {
+    $nextRequiredEvidence += "signed Android release proof against the same API URL"
+}
+if (-not $installedAndroidTourEvidence) {
+    $nextRequiredEvidence += "installed Android walkthrough against deployed target"
+}
+if (-not $backupRestoreEvidence) {
+    $nextRequiredEvidence += "backup restore drill"
+}
+if (-not $rollbackEvidence) {
+    $nextRequiredEvidence += "rollback rehearsal"
+}
+$nextRequiredEvidence += @(
+    "monitoring alert routing proof",
+    "manual owner, merchant, warehouse, support-admin, and auditor live walkthrough"
+)
+
 $manifest = [ordered]@{
     schema = "merhouse.v17.deployment-evidence.v1"
     deploymentLabel = $DeploymentLabel
@@ -185,14 +257,15 @@ $manifest = [ordered]@{
         browserTour = if ($IncludeBrowserTour) { $tourOutput } else { $null }
         manifest = $manifestOutput
     }
-    nextRequiredEvidence = @(
-        "signed Android release proof against the same API URL",
-        "installed Android walkthrough against deployed target",
-        "backup restore drill",
-        "rollback rehearsal",
-        "monitoring alert routing proof",
-        "manual owner, merchant, warehouse, support-admin, and auditor live walkthrough"
-    )
+    attachedEvidence = [ordered]@{
+        androidRelease = $androidReleaseEvidence
+        installedAndroidTour = $installedAndroidTourEvidence
+        backupRestore = $backupRestoreEvidence
+        rollback = $rollbackEvidence
+    }
+    productionClaim = $false
+    claimBoundary = "Deployment smoke evidence only; production claim still requires attached Android, backup/restore, rollback, alert-routing, and live stakeholder proof."
+    nextRequiredEvidence = $nextRequiredEvidence
 }
 
 $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $manifestOutput -Encoding utf8

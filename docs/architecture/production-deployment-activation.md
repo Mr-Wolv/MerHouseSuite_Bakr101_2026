@@ -109,6 +109,8 @@ Minimum staging proof:
 
 `deployed-v17-proof.ps1` requires explicit staging or production smoke credentials and rejects local demo values. The owner credential is required for API smoke; role-specific stakeholder credentials are required when the deployed browser tour is included.
 
+When signed Android release, installed Android tour, backup restore drill, or rollback rehearsal proof has already run, pass those generated JSON paths through `-AndroidReleaseManifestPath`, `-InstalledAndroidTourReportPath`, `-BackupRestoreManifestPath`, and `-RollbackManifestPath`. The deployed evidence manifest validates and records each attached artifact path plus schema, removes attached items from `nextRequiredEvidence`, and still records `productionClaim=false` until alert routing and the final live stakeholder walkthrough are complete.
+
 Staging must also include a production-shaped load and operations rehearsal before the production claim:
 
 - browser and API smoke against seeded-but-realistic role data
@@ -164,7 +166,7 @@ Before public production use, record:
 - manual live owner, merchant, warehouse, support-admin, and auditor walkthrough
 - rollback procedure and the proof that it was rehearsed
 
-`deployed-v17-proof.ps1` writes a sanitized `v17-deployment-evidence-*.json` manifest that covers the deployed commit SHA, public frontend/API URLs, proof-output paths, included proof slices including monitoring samples and optional load-smoke report, provider-status label, and remaining required evidence. It validates that deployed proof credentials were passed explicitly and are not the local demo defaults, but it never records those credentials in the manifest. Keep the manifest with release proof artifacts; do not add secrets, private env files, provider credentials, deployment logs, or backup archives to Git.
+`deployed-v17-proof.ps1` writes a sanitized `v17-deployment-evidence-*.json` manifest that covers the deployed commit SHA, public frontend/API URLs, proof-output paths, included proof slices including monitoring samples and optional load-smoke report, provider-status label, attached sibling proof schemas, `productionClaim=false`, and remaining required evidence. It validates that deployed proof credentials were passed explicitly and are not the local demo defaults, but it never records those credentials in the manifest. Keep the manifest with release proof artifacts; do not add secrets, private env files, provider credentials, deployment logs, or backup archives to Git.
 
 ## Production Acceptance Bar
 
