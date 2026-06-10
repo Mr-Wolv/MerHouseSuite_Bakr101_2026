@@ -179,7 +179,7 @@ $env:MERHOUSE_ANDROID_KEY_PASSWORD = "<secret>"
 .\scripts\quality\native-android-release-check.ps1 -ApiBaseUrl "https://api.example.com" -Bundle -OutputPath ".\reports\v17-android-release.json"
 ```
 
-Release builds force Android cleartext traffic off. The script prints the artifact path, SHA-256, byte size, and manifest path. The manifest records commit SHA, API URL, artifact kind/path, SHA-256, byte size, cleartext policy, and external-keystore signing boundary without recording keystore details. Keep keystores and credentials outside Git.
+Release builds force Android cleartext traffic off. The script prefers `ANDROID_HOME` or `ANDROID_SDK_ROOT`, then standard Windows, macOS, and Linux Android SDK locations before invoking Gradle. It prints the artifact path, SHA-256, byte size, and manifest path. The manifest records commit SHA, API URL, artifact kind/path, SHA-256, byte size, cleartext policy, and external-keystore signing boundary without recording keystore details. Keep keystores and credentials outside Git.
 
 Run the native Android APK tour after the local stack is running, seeded, and an emulator is booted:
 

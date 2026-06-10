@@ -36,6 +36,12 @@ foreach ($pattern in $requiredGradlePatterns) {
 if ($manifest -notmatch 'android:usesCleartextTraffic="\$\{usesCleartextTraffic\}"') {
     throw "AndroidManifest.xml must use the usesCleartextTraffic manifest placeholder."
 }
+if ($manifest -notmatch 'xmlns:tools="http://schemas\.android\.com/tools"') {
+    throw "AndroidManifest.xml must declare the tools namespace for release cleartext override."
+}
+if ($manifest -notmatch 'tools:replace="android:usesCleartextTraffic"') {
+    throw "AndroidManifest.xml must override plugin cleartext declarations with tools:replace."
+}
 
 $forbiddenGradlePatterns = @(
     'storePassword\s+["''][^"'']+["'']',

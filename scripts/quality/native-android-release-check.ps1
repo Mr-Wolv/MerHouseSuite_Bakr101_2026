@@ -7,6 +7,40 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "url-guard-lib.ps1")
 
+function Use-AndroidSdk {
+    if ($env:ANDROID_HOME -and (Test-Path $env:ANDROID_HOME)) {
+        $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
+        return
+    }
+
+    if ($env:ANDROID_SDK_ROOT -and (Test-Path $env:ANDROID_SDK_ROOT)) {
+        $env:ANDROID_HOME = $env:ANDROID_SDK_ROOT
+        return
+    }
+
+    $sdkCandidates = @(
+        "$env:LOCALAPPDATA\Android\Sdk",
+        "$env:USERPROFILE\AppData\Local\Android\Sdk",
+        "C:\Android\Sdk",
+        "$HOME/Android/Sdk",
+        "$HOME/Library/Android/sdk",
+        "/opt/android-sdk",
+        "/usr/local/lib/android/sdk"
+    )
+
+    foreach ($candidate in $sdkCandidates) {
+        if ($candidate -and (Test-Path $candidate)) {
+            $env:ANDROID_HOME = $candidate
+            $env:ANDROID_SDK_ROOT = $candidate
+            $env:PATH = "$(Join-Path $candidate "platform-tools")$([System.IO.Path]::PathSeparator)$(Join-Path $candidate "cmdline-tools\latest\bin")$([System.IO.Path]::PathSeparator)$(Join-Path $candidate "emulator")$([System.IO.Path]::PathSeparator)$env:PATH"
+            return
+        }
+    }
+
+    throw "Android SDK was not found. Install Android Studio or set ANDROID_HOME/ANDROID_SDK_ROOT, then rerun this script."
+}
+
+$global:LASTEXITCODE = 0
 & (Join-Path $PSScriptRoot "native-android-release-shape-check.ps1")
 if ($LASTEXITCODE -ne 0) {
     throw "Android release shape check failed."
@@ -28,6 +62,7 @@ if (-not (Test-Path $env:MERHOUSE_ANDROID_KEYSTORE_PATH)) {
     throw "Android keystore was not found at MERHOUSE_ANDROID_KEYSTORE_PATH."
 }
 
+$global:LASTEXITCODE = 0
 & (Join-Path $PSScriptRoot "native-mobile-check.ps1") -Sync -ApiBaseUrl $normalizedApiBaseUrl
 if ($LASTEXITCODE -ne 0) {
     throw "Native sync failed before release assembly."
@@ -37,15 +72,18 @@ $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $androidRoot = Join-Path $repoRoot "frontend\android"
 Push-Location $androidRoot
 try {
+    Use-AndroidSdk
     $gradleCommand = if ($IsWindows -or $env:OS -eq "Windows_NT") {
         ".\gradlew.bat"
     } else {
         "./gradlew"
     }
     if ($Bundle) {
+        $global:LASTEXITCODE = 0
         & $gradleCommand bundleRelease
         $artifact = Join-Path $androidRoot "app\build\outputs\bundle\release\app-release.aab"
     } else {
+        $global:LASTEXITCODE = 0
         & $gradleCommand assembleRelease
         $artifact = Join-Path $androidRoot "app\build\outputs\apk\release\app-release.apk"
     }
