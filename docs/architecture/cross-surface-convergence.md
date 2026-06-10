@@ -131,6 +131,63 @@ Use this checklist only after the current scripted full gate is green. The goal 
 9. Record every mismatch as a bug-hunt entry before closing the session. Fix high-impact gaps before expanding scope.
 10. Close V16.2 only when the reviewer and product owner agree that the real browser and real installed Android app behave coherently for the supported local workflows, and any remaining limitation is documented as a local boundary, V17 activation, or VInfinite backlog.
 
+## Manual Walkthrough Evidence Template
+
+Copy this template into a new top-of-ledger `BH-*` entry when the final live walkthrough starts. Keep the evidence short, factual, and tied to what the reviewer and product owner actually observed.
+
+```markdown
+### BH-XXX: Final Live Browser And Installed-APK Walkthrough
+
+Date:
+Reviewer:
+Product owner:
+Local stack:
+- Browser app URL:
+- API URL:
+- Native API base used for APK assembly:
+- APK path:
+- APK SHA-256:
+- Android device or emulator:
+
+Scripted gate prerequisite:
+- Frontend browser tour report:
+- Native Android tour report:
+- Cross-surface comparison:
+- Performance readiness:
+- Deployment readiness:
+
+Android walkthrough evidence:
+- Public auth/recovery/access-request routes:
+- Owner/admin/support/auditor role boundaries:
+- Active merchant workflow:
+- Empty merchant state:
+- Active warehouse workflow:
+- Empty warehouse state:
+- Merchant-to-warehouse handoff:
+- Allocation/fulfillment/shipment evidence:
+- Notifications, account, assistant, and service review:
+- Performance feel:
+- Local-provider boundary wording:
+
+Browser walkthrough evidence:
+- Desktop routes and workflows:
+- Narrow viewport routes and workflows:
+- Role/permission parity with Android:
+- Labels, empty states, badges, alerts, and local-boundary copy:
+- Performance feel:
+
+Mismatches found:
+- None, or link each mismatch to a new `BH-*` entry.
+
+Fixes completed during walkthrough:
+- None, or link each fix to proof.
+
+Decision:
+- Converged / not converged.
+- Reviewer/product-owner notes:
+- Remaining limitations recorded as local boundary, V17 activation, or VInfinite backlog:
+```
+
 ## Bug-Hunt Entry Template
 
 Each entry should include:
@@ -145,6 +202,45 @@ Each entry should include:
 - Remaining risk and next target.
 
 ## Current Bug-Hunt Ledger
+
+### BH-051: Final Walkthrough Evidence Template Was Promised But Missing
+
+Date: 2026-06-10.
+
+Target and suspected bug:
+
+- Final live walkthrough closeout documentation in `docs/architecture/cross-surface-convergence.md`.
+- The docs index and scripts guide referenced a manual walkthrough evidence template, but the convergence ledger only had a checklist.
+
+Why this target matters:
+
+- The remaining V16.2 closeout blocker is the live reviewer/product-owner walkthrough, not more speculative refactoring.
+- Without a structured template, the final session could become another chat promise instead of durable V&V/QC/QA evidence.
+
+Working-tree scope for this iteration:
+
+- `docs/architecture/cross-surface-convergence.md`
+
+Evidence found:
+
+- `docs/index.md` described the convergence page as containing a manual walkthrough evidence template.
+- `docs/development/scripts.md` instructed maintainers to record reviewer/product-owner results with that template.
+- No `Manual Walkthrough Evidence Template` section existed in the convergence page.
+
+Fix or decision:
+
+- Added a `Manual Walkthrough Evidence Template` section directly after the final live walkthrough checklist.
+- The template records local stack details, APK fingerprint/device evidence, scripted gate prerequisites, Android and browser walkthrough observations, mismatches, fixes, convergence decision, and remaining limitations.
+
+Proof run:
+
+- `.\scripts\quality\markdown-check.ps1` passed.
+- `git diff --check` passed.
+- `rg -n "Manual Walkthrough Evidence Template|manual walkthrough evidence template|Final Live Browser And Installed-APK Walkthrough" docs README.md -S` confirmed the docs index and scripts guide references now resolve to the template section in this ledger.
+
+Remaining risk and next target:
+
+- Final human live walkthrough remains required before the active goal can be completed.
 
 ### BH-050: Current Proof References Drifted Across Docs And Script Defaults
 
