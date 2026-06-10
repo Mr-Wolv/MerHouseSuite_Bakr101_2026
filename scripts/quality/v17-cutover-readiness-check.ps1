@@ -26,6 +26,7 @@ $artifactPaths = [ordered]@{
     rollback = Join-Path $resolvedOutputDirectory "v17-cutover-check-rollback.json"
     alertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-routing.json"
     liveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-live-walkthrough.json"
+    invalidLiveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-live-walkthrough.json"
 }
 
 @{ schema = "merhouse.v17.android-release.v1"; apiBaseUrl = "https://api.example.com" } |
@@ -36,9 +37,26 @@ $artifactPaths = [ordered]@{
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.backupRestore -Encoding utf8
 @{ schema = "merhouse.v17.rollback-rehearsal.v1" } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.rollback -Encoding utf8
-@{ schema = "merhouse.v17.alert-routing.v1"; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
+@{
+    schema = "merhouse.v17.alert-routing.v1"
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    routedSignals = @("api-health", "frontend-health", "failed-provider-delivery")
+    deliveryEvidence = "operator-confirmed-alert-routing-fixture"
+    secretPolicy = "No provider credentials or alert endpoints are stored in this parser proof fixture."
+} |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.alertRouting -Encoding utf8
-@{ schema = "merhouse.v17.live-stakeholder-walkthrough.v1"; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
+@{
+    schema = "merhouse.v17.live-stakeholder-walkthrough.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    browserWalkthroughCompleted = $true
+    installedAndroidWalkthroughCompleted = $true
+    rolesCovered = @("owner", "merchant", "warehouse", "support-admin", "auditor")
+    reviewer = "local-proof-fixture"
+    secretPolicy = "No smoke credentials, screenshots, or private endpoint tokens are stored in this parser proof fixture."
+} |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.liveStakeholderWalkthrough -Encoding utf8
 
 $attached = [ordered]@{
@@ -83,7 +101,20 @@ $wrongAttachmentManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom
 $wrongAttachmentManifest.attachedEvidence.androidRelease.schema = "merhouse.load-smoke.v1"
 $wrongAttachmentManifest.attachedEvidence.alertRouting.apiBaseUrl = "https://wrong-api.example.com"
 $wrongAttachmentManifest.attachedEvidence.rollback.path = (Join-Path $resolvedOutputDirectory "missing-rollback-proof.json")
+$wrongAttachmentManifest.attachedEvidence.liveStakeholderWalkthrough.path = $artifactPaths.invalidLiveStakeholderWalkthrough
 $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $wrongAttachmentManifestPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.live-stakeholder-walkthrough.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://wrong-api.example.com"
+    browserWalkthroughCompleted = $true
+    installedAndroidWalkthroughCompleted = $false
+    rolesCovered = @("owner", "merchant")
+    reviewer = "local-proof-fixture"
+    secretPolicy = "No smoke credentials are stored."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidLiveStakeholderWalkthrough -Encoding utf8
 
 & (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $validManifestPath -OutputPath $validOutputPath
 
@@ -106,7 +137,14 @@ $failedAsExpected = $false
 try {
     & (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $wrongAttachmentManifestPath -OutputPath $wrongAttachmentOutputPath
 } catch {
-    if ($_.Exception.Message -match "androidRelease schema" -and $_.Exception.Message -match "alertRouting.apiBaseUrl" -and $_.Exception.Message -match "rollback.path") {
+    if (
+        $_.Exception.Message -match "androidRelease schema" -and
+        $_.Exception.Message -match "alertRouting.apiBaseUrl" -and
+        $_.Exception.Message -match "rollback.path" -and
+        $_.Exception.Message -match "liveStakeholderWalkthrough.path artifact apiBaseUrl" -and
+        $_.Exception.Message -match "installedAndroidWalkthroughCompleted" -and
+        $_.Exception.Message -match "rolesCovered must include warehouse"
+    ) {
         $failedAsExpected = $true
     } else {
         throw

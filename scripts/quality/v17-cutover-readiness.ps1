@@ -88,6 +88,57 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
         if ($proofSchema -ne $expectedAttachmentSchemas[$attachmentName]) {
             $failures += "Deployment evidence manifest attachedEvidence.$attachmentName.path artifact schema must be $($expectedAttachmentSchemas[$attachmentName])."
         }
+        if ($attachmentName -eq "androidRelease" -and $proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
+            $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact apiBaseUrl must match apiBaseUrl."
+        }
+        if ($attachmentName -eq "installedAndroidTour" -and $proofArtifact.apiUrl -ne $manifest.apiBaseUrl) {
+            $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact apiUrl must match apiBaseUrl."
+        }
+        if ($attachmentName -eq "alertRouting") {
+            if ($proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
+                $failures += "Deployment evidence manifest attachedEvidence.alertRouting.path artifact apiBaseUrl must match apiBaseUrl."
+            }
+            if ($proofArtifact.frontendBaseUrl -ne $manifest.frontendBaseUrl) {
+                $failures += "Deployment evidence manifest attachedEvidence.alertRouting.path artifact frontendBaseUrl must match frontendBaseUrl."
+            }
+            if (@($proofArtifact.routedSignals).Count -lt 1) {
+                $failures += "Deployment evidence manifest attachedEvidence.alertRouting.path artifact routedSignals must include at least one signal."
+            }
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.deliveryEvidence)) {
+                $failures += "Deployment evidence manifest attachedEvidence.alertRouting.path artifact deliveryEvidence must be non-blank."
+            }
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.secretPolicy)) {
+                $failures += "Deployment evidence manifest attachedEvidence.alertRouting.path artifact secretPolicy must be non-blank."
+            }
+        }
+        if ($attachmentName -eq "liveStakeholderWalkthrough") {
+            if ($proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
+                $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact apiBaseUrl must match apiBaseUrl."
+            }
+            if ($proofArtifact.frontendBaseUrl -ne $manifest.frontendBaseUrl) {
+                $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact frontendBaseUrl must match frontendBaseUrl."
+            }
+            if (-not [bool]$proofArtifact.browserWalkthroughCompleted) {
+                $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact browserWalkthroughCompleted must be true."
+            }
+            if (-not [bool]$proofArtifact.installedAndroidWalkthroughCompleted) {
+                $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact installedAndroidWalkthroughCompleted must be true."
+            }
+            foreach ($role in @("owner", "merchant", "warehouse", "support-admin", "auditor")) {
+                if (@($proofArtifact.rolesCovered) -notcontains $role) {
+                    $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact rolesCovered must include $role."
+                }
+            }
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.reviewer)) {
+                $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact reviewer must be non-blank."
+            }
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.completedAt)) {
+                $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact completedAt must be non-blank."
+            }
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.secretPolicy)) {
+                $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact secretPolicy must be non-blank."
+            }
+        }
     } catch {
         $failures += "Deployment evidence manifest attachedEvidence.$attachmentName.path must be readable JSON proof."
     }
