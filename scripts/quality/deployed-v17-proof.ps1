@@ -92,6 +92,17 @@ function Resolve-EvidenceAttachment {
         throw "$Name must include a non-blank schema field or recognized installed Android tour provenance."
     }
 
+    $expectedSchemas = @{
+        AndroidReleaseManifestPath = @("merhouse.v17.android-release.v1")
+        InstalledAndroidTourReportPath = @("merhouse.native-android-tour.report.v1")
+        BackupRestoreManifestPath = @("merhouse.v17.backup-restore-drill.v1")
+        RollbackManifestPath = @("merhouse.v17.rollback-rehearsal.v1")
+        AlertRoutingManifestPath = @("merhouse.v17.alert-routing.v1")
+    }
+    if ($expectedSchemas.ContainsKey($Name) -and $schema -notin $expectedSchemas[$Name]) {
+        throw "$Name schema must be one of: $($expectedSchemas[$Name] -join ', '). Found: $schema."
+    }
+
     return [ordered]@{
         path = $resolvedPath
         schema = $schema
