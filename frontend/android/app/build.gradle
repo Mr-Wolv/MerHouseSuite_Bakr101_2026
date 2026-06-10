@@ -7,8 +7,10 @@ android {
         applicationId "com.merhouse.operations"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        def merhouseVersionCode = System.getenv("MERHOUSE_ANDROID_VERSION_CODE")
+        def merhouseVersionName = System.getenv("MERHOUSE_ANDROID_VERSION_NAME")
+        versionCode merhouseVersionCode ? merhouseVersionCode.toInteger() : 1
+        versionName merhouseVersionName ?: "1.0"
         manifestPlaceholders = [usesCleartextTraffic: "true"]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

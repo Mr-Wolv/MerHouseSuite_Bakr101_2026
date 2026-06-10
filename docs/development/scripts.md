@@ -179,10 +179,12 @@ $env:MERHOUSE_ANDROID_KEYSTORE_PATH = "D:\secure\merhouse-release.jks"
 $env:MERHOUSE_ANDROID_KEYSTORE_PASSWORD = "<secret>"
 $env:MERHOUSE_ANDROID_KEY_ALIAS = "merhouse"
 $env:MERHOUSE_ANDROID_KEY_PASSWORD = "<secret>"
+$env:MERHOUSE_ANDROID_VERSION_CODE = "17"
+$env:MERHOUSE_ANDROID_VERSION_NAME = "17.0.0-internal"
 .\scripts\quality\native-android-release-check.ps1 -ApiBaseUrl "https://api.example.com" -Bundle -OutputPath ".\reports\v17-android-release.json"
 ```
 
-Release builds force Android cleartext traffic off. The script prefers `ANDROID_HOME` or `ANDROID_SDK_ROOT`, then standard Windows, macOS, and Linux Android SDK locations before invoking Gradle. It prints the artifact path, SHA-256, byte size, and manifest path. The manifest records commit SHA, API URL, artifact kind/path, SHA-256, byte size, cleartext policy, and external-keystore signing boundary without recording keystore details. Keep keystores and credentials outside Git.
+Release builds force Android cleartext traffic off. The script prefers `ANDROID_HOME` or `ANDROID_SDK_ROOT`, then standard Windows, macOS, and Linux Android SDK locations before invoking Gradle. It prints the artifact path, SHA-256, byte size, and manifest path. The manifest records commit SHA, API URL, artifact kind/path, SHA-256, byte size, version code, version name, cleartext policy, and external-keystore signing boundary without recording keystore details. Keep keystores and credentials outside Git.
 
 Run the native Android APK tour after the local stack is running, seeded, and an emulator is booted:
 
@@ -251,7 +253,7 @@ The default preflight parses PowerShell scripts, audits the deployment env templ
   -ApiBaseUrl "https://api.example.com"
 ```
 
-The default Android release-shape check proves the release build is configured to disable cleartext traffic and source signing from external `MERHOUSE_ANDROID_KEYSTORE_*` values without requiring the secrets. The signed Android slice requires those environment variables and writes the sanitized artifact manifest. The load-smoke slice uses the same `-ApiBaseUrl`, `-ConcurrentUsers`, and `-RequestsPerUser` values to record a small-pilot readiness signal against the deployed API health endpoint.
+The default Android release-shape check proves the release build is configured to disable cleartext traffic and source signing/versioning from external `MERHOUSE_ANDROID_KEYSTORE_*` and `MERHOUSE_ANDROID_VERSION_*` values without requiring the secrets. The signed Android slice requires those environment variables and writes the sanitized artifact manifest. The load-smoke slice uses the same `-ApiBaseUrl`, `-ConcurrentUsers`, and `-RequestsPerUser` values to record a small-pilot readiness signal against the deployed API health endpoint.
 
 Performance report paths are paired evidence. `performance-readiness.ps1` rejects a lone `-WebReportPath` or lone `-NativeReportPath` before building the frontend so report-backed route timing cannot be claimed from one surface only. When both are supplied, it resolves and checks both report paths before the frontend build starts, then prints the resolved web/native report inputs and resolved performance report output path. Omit both only for bundle/API-only proof. Report-backed JSON and terminal output record the supplied and resolved web/native report paths plus validated browser and installed-APK provenance snapshots so timing evidence can be traced back to the exact paired reports.
 

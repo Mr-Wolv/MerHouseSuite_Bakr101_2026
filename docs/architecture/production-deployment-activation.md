@@ -148,7 +148,7 @@ If the Android app is part of the release claim, assemble the native shell again
 .\scripts\quality\native-android-release-check.ps1 -ApiBaseUrl "https://<staging-api-origin>" -Bundle -OutputPath ".\reports\v17-android-release.json"
 ```
 
-The default V17 preflight runs the Android release-shape check without needing signing secrets. The signed release check writes a sanitized Android release manifest with commit SHA, API URL, artifact kind/path, SHA-256, byte size, cleartext policy, and external-keystore signing boundary. Keep the manifest with deployment evidence; keep keystores outside Git.
+The default V17 preflight runs the Android release-shape check without needing signing secrets. The signed release check requires external keystore and version environment variables, then writes a sanitized Android release manifest with commit SHA, API URL, artifact kind/path, SHA-256, byte size, version code, version name, cleartext policy, and external-keystore signing boundary. Keep the manifest with deployment evidence; keep keystores outside Git.
 
 ## Production Cutover Proof
 

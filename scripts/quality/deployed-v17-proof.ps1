@@ -135,6 +135,12 @@ function Resolve-EvidenceAttachment {
         if ([long]$json.bytes -ne $artifactBytes -or $artifactBytes -le 0) {
             throw "AndroidReleaseManifestPath bytes must match a non-empty artifactPath file."
         }
+        if ($null -eq $json.versionCode -or $json.versionCode.ToString() -notmatch '^[1-9][0-9]*$') {
+            throw "AndroidReleaseManifestPath versionCode must be a positive integer."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.versionName)) {
+            throw "AndroidReleaseManifestPath must include versionName."
+        }
         if ($json.cleartextTraffic -ne "disabled-for-release") {
             throw "AndroidReleaseManifestPath cleartextTraffic must be disabled-for-release."
         }
@@ -292,6 +298,8 @@ function Resolve-EvidenceAttachment {
         artifactPath = $json.artifactPath
         sha256 = $json.sha256
         bytes = $json.bytes
+        versionCode = $json.versionCode
+        versionName = $json.versionName
         postRollbackMonitoringFrontendBaseUrl = $json.postRollbackMonitoring.frontendBaseUrl
         postRollbackMonitoringApiBaseUrl = $json.postRollbackMonitoring.apiBaseUrl
     }

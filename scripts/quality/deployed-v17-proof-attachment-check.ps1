@@ -45,6 +45,8 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     artifactPath = $validAndroidArtifactPath
     sha256 = $validAndroidArtifactHash
     bytes = $validAndroidArtifactBytes
+    versionCode = 17
+    versionName = "17.0.0-internal"
     cleartextTraffic = "disabled-for-release"
     signing = "external-keystore-env"
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validAndroidReleasePath -Encoding utf8
@@ -57,6 +59,8 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     artifactPath = $wrongAndroidArtifactPath
     sha256 = $validAndroidArtifactHash
     bytes = $validAndroidArtifactBytes
+    versionCode = 0
+    versionName = ""
     cleartextTraffic = "true"
     signing = "embedded-keystore"
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongAndroidReleasePath -Encoding utf8
@@ -226,6 +230,9 @@ if ($androidRelease.apiBaseUrl -ne "https://api.example.com" -or $androidRelease
 }
 if ($androidRelease.sha256 -ne $validAndroidArtifactHash -or [long]$androidRelease.bytes -ne $validAndroidArtifactBytes) {
     throw "Valid Android release attachment did not preserve artifact hash and size."
+}
+if ([int]$androidRelease.versionCode -ne 17 -or $androidRelease.versionName -ne "17.0.0-internal") {
+    throw "Valid Android release attachment did not preserve release version metadata."
 }
 
 $emailProvider = Invoke-AttachmentResolver -Name "EmailProviderProofManifestPath" -Path $validEmailProviderPath | ConvertFrom-Json

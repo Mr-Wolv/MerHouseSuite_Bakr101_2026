@@ -58,6 +58,16 @@ foreach ($required in @("MERHOUSE_ANDROID_KEYSTORE_PATH", "MERHOUSE_ANDROID_KEYS
         throw "$required must be set outside Git for signed Android release builds."
     }
 }
+foreach ($required in @("MERHOUSE_ANDROID_VERSION_CODE", "MERHOUSE_ANDROID_VERSION_NAME")) {
+    if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($required))) {
+        throw "$required must be set outside Git for signed Android release builds."
+    }
+}
+$androidVersionCode = [Environment]::GetEnvironmentVariable("MERHOUSE_ANDROID_VERSION_CODE")
+$androidVersionName = [Environment]::GetEnvironmentVariable("MERHOUSE_ANDROID_VERSION_NAME")
+if ($androidVersionCode -notmatch '^[1-9][0-9]*$') {
+    throw "MERHOUSE_ANDROID_VERSION_CODE must be a positive integer."
+}
 if (-not (Test-Path $env:MERHOUSE_ANDROID_KEYSTORE_PATH)) {
     throw "Android keystore was not found at MERHOUSE_ANDROID_KEYSTORE_PATH."
 }
@@ -132,6 +142,8 @@ $manifest = [ordered]@{
     artifactPath = $artifact
     sha256 = $hash
     bytes = $bytes
+    versionCode = [int]$androidVersionCode
+    versionName = $androidVersionName
     cleartextTraffic = "disabled-for-release"
     signing = "external-keystore-env"
 }

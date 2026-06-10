@@ -24,6 +24,10 @@ $requiredGradlePatterns = @(
     'System\.getenv\("MERHOUSE_ANDROID_KEYSTORE_PASSWORD"\)',
     'System\.getenv\("MERHOUSE_ANDROID_KEY_ALIAS"\)',
     'System\.getenv\("MERHOUSE_ANDROID_KEY_PASSWORD"\)',
+    'System\.getenv\("MERHOUSE_ANDROID_VERSION_CODE"\)',
+    'System\.getenv\("MERHOUSE_ANDROID_VERSION_NAME"\)',
+    'versionCode\s+merhouseVersionCode\s*\?\s*merhouseVersionCode\.toInteger\(\)\s*:\s*1',
+    'versionName\s+merhouseVersionName\s*\?:\s*"1\.0"',
     'if\s*\(System\.getenv\("MERHOUSE_ANDROID_KEYSTORE_PATH"\)\)\s*\{[\s\S]*signingConfig signingConfigs\.release'
 )
 
@@ -59,3 +63,4 @@ foreach ($pattern in $forbiddenGradlePatterns) {
 Write-Host "Android release shape check passed."
 Write-Host "Release cleartext traffic: disabled through manifest placeholder."
 Write-Host "Release signing: external MERHOUSE_ANDROID_KEYSTORE_* environment variables."
+Write-Host "Release versioning: external MERHOUSE_ANDROID_VERSION_* environment variables with local defaults."

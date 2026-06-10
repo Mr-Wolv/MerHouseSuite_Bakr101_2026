@@ -80,6 +80,8 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     artifactPath = $artifactPaths.androidReleaseArtifact
     sha256 = $androidArtifactHash
     bytes = $androidArtifactBytes
+    versionCode = 17
+    versionName = "17.0.0-internal"
     cleartextTraffic = "disabled-for-release"
     signing = "external-keystore-env"
 } |
@@ -210,6 +212,8 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
     artifactPath = $artifactPaths.invalidAndroidReleaseArtifact
     sha256 = $androidArtifactHash
     bytes = $androidArtifactBytes
+    versionCode = 0
+    versionName = ""
     cleartextTraffic = "true"
     signing = "embedded-keystore"
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidAndroidRelease -Encoding utf8
@@ -286,6 +290,8 @@ try {
     if (
         $_.Exception.Message -match "androidRelease schema" -and
         $_.Exception.Message -match "androidRelease.path artifact sha256" -and
+        $_.Exception.Message -match "androidRelease.path artifact versionCode" -and
+        $_.Exception.Message -match "androidRelease.path artifact versionName" -and
         $_.Exception.Message -match "androidRelease.path artifact cleartextTraffic" -and
         $_.Exception.Message -match "androidRelease.path artifact signing" -and
         $_.Exception.Message -match "backupRestore.path artifact restored" -and
