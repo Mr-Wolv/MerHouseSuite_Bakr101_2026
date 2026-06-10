@@ -8,7 +8,7 @@ It models the operating relationship between a brand or merchant and a warehouse
 
 ## Project Status
 
-MerHouse is public-facing as a codebase and local product proof: it has a documented local runtime, tested backend and frontend workflows, browser route proof, native Android debug-APK proof, cross-surface parity checks, performance-readiness checks, and a recorded final live browser/installed-APK walkthrough. It is not yet a production SaaS deployment. Private V17 work adds a VPS/Compose deployment shape, opt-in SMTP email delivery attempts, signed internal Android release checks, backup/restore/rollback hooks, and preflight proof. Actual cloud deployment, provider credentials, production monitoring, incident response, and final web/Android staging proof remain unpublished until verified.
+MerHouse is public-facing as a codebase and local product proof: it has a documented local runtime, tested backend and frontend workflows, browser route proof, native Android debug-APK proof, cross-surface parity checks, performance-readiness checks, and a recorded final live browser/installed-APK walkthrough. It is not yet a production SaaS deployment. Private V17 work adds a VPS/Compose deployment shape, opt-in SMTP email delivery attempts, signed internal Android release checks, backup/restore/rollback rehearsal hooks, and preflight proof. Actual cloud deployment, provider credentials, production monitoring, incident response, and final web/Android staging proof remain unpublished until verified.
 
 ## Product Surface
 

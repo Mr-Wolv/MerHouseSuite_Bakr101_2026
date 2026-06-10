@@ -70,6 +70,7 @@ The first V17 implementation target is VPS + Docker Compose:
 - `scripts/deploy/deploy-vps.ps1` applies the VPS Compose stack only from a private env file after explicit confirmation, optional backup, optional pull, and optional build.
 - `scripts/deploy/backup-postgres.ps1`, `restore-postgres.ps1`, and `rollback-compose.ps1` define the first operations hooks.
 - `scripts/deploy/backup-restore-drill.ps1` records a guarded restore drill manifest for staging or drill environments.
+- `scripts/deploy/rollback-drill.ps1` records a guarded rollback rehearsal manifest after env audit, Compose shape proof, confirmed rollback/up, and optional deployed monitoring samples.
 - `scripts/quality/deployed-monitoring-proof.ps1` samples deployed frontend and API health repeatedly with latency budgets.
 - `scripts/quality/deployed-v17-proof.ps1` runs deployed frontend/API proof against explicit public URLs after rollout and writes a sanitized deployment evidence manifest.
 
@@ -103,6 +104,14 @@ The restore drill command is destructive and must target staging or a dedicated 
 ```
 
 The drill writes a sanitized `v17-restore-drill-*.json` manifest with commit SHA, host-copied backup path, backup SHA-256, byte size, env file name only, and restore status.
+
+The rollback rehearsal command is also deployment-changing and must target staging, a drill environment, or an explicitly selected production rollback window:
+
+```powershell
+.\scripts\deploy\rollback-drill.ps1 -EnvFile ".env.staging" -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>" -ConfirmRollbackDrill
+```
+
+The rollback drill writes a sanitized `v17-rollback-rehearsal-*.json` manifest with commit SHA, Compose path, env file name only, env/Compose preflight status, rollback status, optional monitoring report path, and the remaining live proof required before declaring rollback readiness.
 
 If the Android app is part of the release claim, assemble the native shell against the staging API URL and run an installed-app tour on the staging backend:
 
@@ -152,6 +161,6 @@ V17 is complete only when:
 
 ## Current Status
 
-As of 2026-06-10, V17 is in private implementation on a deployment branch, not publicly deployed. The selected first target is VPS + Docker Compose with PostgreSQL, backend, frontend, container healthchecks, nginx/TLS template with public-edge hardening checks, public-mode startup validation, private env auditing, backup/restore drill manifests, rollback/deploy scripts, deployed proof wrappers, deployed monitoring samples, opt-in SMTP email attempts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight.
+As of 2026-06-10, V17 is in private implementation on a deployment branch, not publicly deployed. The selected first target is VPS + Docker Compose with PostgreSQL, backend, frontend, container healthchecks, nginx/TLS template with public-edge hardening checks, public-mode startup validation, private env auditing, backup/restore drill manifests, rollback rehearsal manifests, rollback/deploy scripts, deployed proof wrappers, deployed monitoring samples, opt-in SMTP email attempts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight.
 
-The following remain required before any production claim: real VPS access, frontend/API domain values, TLS/certificate setup, deployment secret storage, Gmail or provider SMTP credentials for staging proof, production database credentials, Android signing keystore, monitoring/alerting configuration, deployed staging URL, deployed production URL, backup restore drill, rollback rehearsal, load/soak proof, live browser walkthrough, and live installed-Android walkthrough against the deployed target.
+The following remain required before any production claim: real VPS access, frontend/API domain values, TLS/certificate setup, deployment secret storage, Gmail or provider SMTP credentials for staging proof, production database credentials, Android signing keystore, monitoring/alerting configuration, deployed staging URL, deployed production URL, deployed backup restore drill, deployed rollback rehearsal, load/soak proof, live browser walkthrough, and live installed-Android walkthrough against the deployed target.

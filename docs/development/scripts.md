@@ -41,6 +41,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/deploy/restore-postgres.ps1` | Restore a PostgreSQL backup after explicit confirmation. |
 | `scripts/deploy/backup-restore-drill.ps1` | Create a host-copied PostgreSQL backup, restore it into the selected drill/staging environment after explicit confirmation, and write a sanitized drill manifest. |
 | `scripts/deploy/rollback-compose.ps1` | Re-apply the selected Compose image/tag set after explicit rollback confirmation. |
+| `scripts/deploy/rollback-drill.ps1` | Audit a private deployment env, validate the Compose shape, run a confirmed rollback/up, optionally sample deployed health, and write a sanitized rollback rehearsal manifest. |
 | `scripts/maintenance/clean-reports.ps1` | Trim old local reports, logs, and screenshots. |
 
 ## Typical Local Flow
