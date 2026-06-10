@@ -68,7 +68,7 @@ The first V17 implementation target is VPS + Docker Compose:
 - `scripts/deploy/vps-check.ps1` validates the Compose shape before rollout.
 - `scripts/deploy/deploy-vps.ps1` applies the VPS Compose stack only from a private env file after explicit confirmation, optional backup, optional pull, and optional build.
 - `scripts/deploy/backup-postgres.ps1`, `restore-postgres.ps1`, and `rollback-compose.ps1` define the first operations hooks.
-- `scripts/quality/deployed-v17-proof.ps1` runs deployed frontend/API proof against explicit public URLs after rollout.
+- `scripts/quality/deployed-v17-proof.ps1` runs deployed frontend/API proof against explicit public URLs after rollout and writes a sanitized deployment evidence manifest.
 
 Minimum staging proof:
 
@@ -79,7 +79,7 @@ Minimum staging proof:
 .\scripts\quality\frontend-full-tour.ps1 -BaseUrl "https://<staging-frontend-origin>" -ApiUrl "https://<staging-api-or-frontend-origin>"
 .\scripts\quality\performance-readiness.ps1 -IncludeApiSmoke -ApiBaseUrl "https://<staging-api-or-frontend-origin>"
 .\scripts\quality\load-smoke.ps1 -BaseUrl "https://<staging-api-or-frontend-origin>" -ConcurrentUsers 25 -RequestsPerUser 8
-.\scripts\quality\deployed-v17-proof.ps1 -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>" -IncludeLoadSmoke -IncludeBrowserTour
+.\scripts\quality\deployed-v17-proof.ps1 -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>" -DeploymentLabel "staging-v17" -ProviderStatus "smtp-staging-configured" -IncludeLoadSmoke -IncludeBrowserTour
 ```
 
 Staging must also include a production-shaped load and operations rehearsal before the production claim:
@@ -118,6 +118,8 @@ Before public production use, record:
 - cross-platform proof for the supported browser/mobile/Android release surfaces
 - manual live owner, merchant, warehouse, support-admin, and auditor walkthrough
 - rollback procedure and the proof that it was rehearsed
+
+`deployed-v17-proof.ps1` writes a sanitized `v17-deployment-evidence-*.json` manifest that covers the deployed commit SHA, public frontend/API URLs, proof-output paths, included proof slices, provider-status label, and remaining required evidence. Keep the manifest with release proof artifacts; do not add secrets, private env files, provider credentials, deployment logs, or backup archives to Git.
 
 ## Production Acceptance Bar
 

@@ -2,6 +2,8 @@ param(
     [Parameter(Mandatory = $true)] [string]$FrontendBaseUrl,
     [Parameter(Mandatory = $true)] [string]$ApiBaseUrl,
     [string]$OutputDirectory = "reports",
+    [string]$DeploymentLabel = "v17-deployed-proof",
+    [string]$ProviderStatus = "not-recorded",
     [string]$AdminEmail = "admin@merhouse.local",
     [string]$AdminPassword = "local-owner-password",
     [string]$MerchantEmail = "review.merchant@merhouse.local",
@@ -37,6 +39,7 @@ $apiSmokeOutput = Join-Path $resolvedOutputDirectory "v17-deployed-api-smoke-$ti
 $frontendSmokeOutput = Join-Path $resolvedOutputDirectory "v17-deployed-frontend-proxy-smoke-$timestamp.json"
 $performanceOutput = Join-Path $resolvedOutputDirectory "v17-deployed-performance-$timestamp.json"
 $tourOutput = Join-Path $resolvedOutputDirectory "v17-deployed-frontend-tour-$timestamp.json"
+$manifestOutput = Join-Path $resolvedOutputDirectory "v17-deployment-evidence-$timestamp.json"
 
 function Invoke-Checked {
     param(
@@ -56,6 +59,16 @@ function Invoke-Checked {
 Write-Host "V17 deployed proof frontend target: $normalizedFrontendBaseUrl"
 Write-Host "V17 deployed proof API target: $normalizedApiBaseUrl"
 Write-Host "V17 deployed proof output directory: $resolvedOutputDirectory"
+
+$commitSha = ""
+try {
+    Push-Location $projectRoot
+    $commitSha = (git rev-parse HEAD).Trim()
+} catch {
+    $commitSha = "unavailable"
+} finally {
+    Pop-Location
+}
 
 Invoke-Checked "Checking deployed frontend shell and proxy smoke..." {
     & (Join-Path $PSScriptRoot "frontend-deploy-check.ps1") -BaseUrl $normalizedFrontendBaseUrl -OutputPath $frontendSmokeOutput
@@ -100,5 +113,40 @@ if ($IncludeBrowserTour) {
     Write-Host "Skipping deployed browser tour. Pass -IncludeBrowserTour after the target is seeded with stakeholder proof data."
 }
 
+$manifest = [ordered]@{
+    schema = "merhouse.v17.deployment-evidence.v1"
+    deploymentLabel = $DeploymentLabel
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    commitSha = $commitSha
+    frontendBaseUrl = $normalizedFrontendBaseUrl
+    apiBaseUrl = $normalizedApiBaseUrl
+    providerStatus = $ProviderStatus
+    includedProof = [ordered]@{
+        frontendProxySmoke = $true
+        directApiSmoke = $true
+        performanceApiTiming = $true
+        loadSmoke = [bool]$IncludeLoadSmoke
+        browserTour = [bool]$IncludeBrowserTour
+    }
+    outputFiles = [ordered]@{
+        frontendProxySmoke = $frontendSmokeOutput
+        directApiSmoke = $apiSmokeOutput
+        performance = $performanceOutput
+        browserTour = if ($IncludeBrowserTour) { $tourOutput } else { $null }
+        manifest = $manifestOutput
+    }
+    nextRequiredEvidence = @(
+        "signed Android release proof against the same API URL",
+        "installed Android walkthrough against deployed target",
+        "backup restore drill",
+        "rollback rehearsal",
+        "monitoring and alert routing proof",
+        "manual owner, merchant, warehouse, support-admin, and auditor live walkthrough"
+    )
+}
+
+$manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $manifestOutput -Encoding utf8
+
 Write-Host ""
+Write-Host "V17 deployment evidence manifest: $manifestOutput"
 Write-Host "V17 deployed proof completed for $normalizedFrontendBaseUrl / $normalizedApiBaseUrl."
