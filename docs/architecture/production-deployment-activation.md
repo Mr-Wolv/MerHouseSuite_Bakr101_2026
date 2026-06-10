@@ -172,6 +172,8 @@ Before public production use, record:
 
 `deployed-v17-proof.ps1` writes a sanitized `v17-deployment-evidence-*.json` manifest that covers the deployed commit SHA, public frontend/API URLs, proof-output paths, included proof slices including monitoring samples and optional load-smoke report, provider-status label, attached sibling proof schemas, `productionClaim=false`, and remaining required evidence. Provider status remains conservative: configured-only labels keep provider-backed recovery, access-request, and notification email proof in `nextRequiredEvidence`; only proven provider labels or an explicit `email-disabled-by-policy` label close that evidence item. Alert-routing and live stakeholder walkthrough readiness are also attachment-driven: health samples alone do not close alert routing, and scripted tours alone do not close the live reviewer walkthrough. The wrapper validates that deployed proof credentials were passed explicitly and are not the local demo defaults, but it never records those credentials in the manifest. Keep the manifest with release proof artifacts; do not add secrets, private env files, provider credentials, deployment logs, or backup archives to Git.
 
+`v17-cutover-readiness.ps1` validates the sanitized deployment evidence manifest after all sibling proof artifacts are attached. It fails if required proof is missing, `nextRequiredEvidence` is nonempty, provider status is only configured, or a manifest tries to set `productionClaim=true`. A passing cutover-readiness report means the evidence package is ready for a separate human production cutover decision; it is not itself a deployment, publication, or production claim.
+
 ## Production Acceptance Bar
 
 V17 is complete only when:

@@ -51,6 +51,7 @@ try {
     Invoke-Checked "Checking V17 reverse proxy template..." { & ".\scripts\deploy\reverse-proxy-check.ps1" }
     Invoke-Checked "Checking V17 Android release shape..." { & ".\scripts\quality\native-android-release-shape-check.ps1" }
     Invoke-Checked "Checking V17 deployed evidence attachment schemas..." { & ".\scripts\quality\deployed-v17-proof-attachment-check.ps1" }
+    Invoke-Checked "Checking V17 cutover readiness guard..." { & ".\scripts\quality\v17-cutover-readiness-check.ps1" }
     Invoke-Checked "Checking markdown links..." { & ".\scripts\quality\markdown-check.ps1" }
     Invoke-Checked "Checking public-facing repository readiness..." { & ".\scripts\quality\public-readiness.ps1" -SkipCompose }
     Invoke-Checked "Checking frontend performance readiness..." { & ".\scripts\quality\performance-readiness.ps1" }
