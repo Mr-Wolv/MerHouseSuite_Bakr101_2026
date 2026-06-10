@@ -104,6 +104,42 @@ function Resolve-EvidenceAttachment {
     if ($expectedSchemas.ContainsKey($Name) -and $schema -notin $expectedSchemas[$Name]) {
         throw "$Name schema must be one of: $($expectedSchemas[$Name] -join ', '). Found: $schema."
     }
+    if ($Name -eq "AndroidReleaseManifestPath") {
+        if ([string]::IsNullOrWhiteSpace($json.apiBaseUrl)) {
+            throw "AndroidReleaseManifestPath must include apiBaseUrl."
+        }
+        if ($json.artifactKind -notin @("apk", "aab")) {
+            throw "AndroidReleaseManifestPath artifactKind must be apk or aab."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.artifactPath)) {
+            throw "AndroidReleaseManifestPath must include artifactPath."
+        }
+        $artifactPath = if ([System.IO.Path]::IsPathRooted($json.artifactPath)) {
+            [System.IO.Path]::GetFullPath($json.artifactPath)
+        } else {
+            [System.IO.Path]::GetFullPath((Join-Path $projectRoot $json.artifactPath))
+        }
+        if (-not (Test-Path -LiteralPath $artifactPath)) {
+            throw "AndroidReleaseManifestPath artifactPath was not found: $artifactPath"
+        }
+        if ($json.sha256 -notmatch '^[a-fA-F0-9]{64}$') {
+            throw "AndroidReleaseManifestPath sha256 must be a 64-character hex digest."
+        }
+        $artifactHash = (Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($artifactHash -ne $json.sha256.ToLowerInvariant()) {
+            throw "AndroidReleaseManifestPath sha256 must match artifactPath content."
+        }
+        $artifactBytes = (Get-Item -LiteralPath $artifactPath).Length
+        if ([long]$json.bytes -ne $artifactBytes -or $artifactBytes -le 0) {
+            throw "AndroidReleaseManifestPath bytes must match a non-empty artifactPath file."
+        }
+        if ($json.cleartextTraffic -ne "disabled-for-release") {
+            throw "AndroidReleaseManifestPath cleartextTraffic must be disabled-for-release."
+        }
+        if ($json.signing -ne "external-keystore-env") {
+            throw "AndroidReleaseManifestPath signing must be external-keystore-env."
+        }
+    }
     if ($Name -eq "AlertRoutingManifestPath") {
         if ([string]::IsNullOrWhiteSpace($json.frontendBaseUrl)) {
             throw "AlertRoutingManifestPath must include frontendBaseUrl."
@@ -156,6 +192,10 @@ function Resolve-EvidenceAttachment {
         frontendBaseUrl = $json.frontendBaseUrl
         apiBaseUrl = $json.apiBaseUrl
         apiUrl = $json.apiUrl
+        artifactKind = $json.artifactKind
+        artifactPath = $json.artifactPath
+        sha256 = $json.sha256
+        bytes = $json.bytes
     }
 }
 

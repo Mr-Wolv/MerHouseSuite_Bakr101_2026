@@ -21,6 +21,9 @@ $wrongAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-che
 
 $artifactPaths = [ordered]@{
     androidRelease = Join-Path $resolvedOutputDirectory "v17-cutover-check-android-release.json"
+    invalidAndroidRelease = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-android-release.json"
+    androidReleaseArtifact = Join-Path $resolvedOutputDirectory "v17-cutover-check-app-release.aab"
+    invalidAndroidReleaseArtifact = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-app-release.aab"
     installedAndroidTour = Join-Path $resolvedOutputDirectory "v17-cutover-check-installed-android-tour.json"
     backupRestore = Join-Path $resolvedOutputDirectory "v17-cutover-check-backup-restore.json"
     rollback = Join-Path $resolvedOutputDirectory "v17-cutover-check-rollback.json"
@@ -29,7 +32,21 @@ $artifactPaths = [ordered]@{
     invalidLiveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-live-walkthrough.json"
 }
 
-@{ schema = "merhouse.v17.android-release.v1"; apiBaseUrl = "https://api.example.com" } |
+Set-Content -LiteralPath $artifactPaths.androidReleaseArtifact -Value "fixture signed Android artifact" -Encoding utf8
+Set-Content -LiteralPath $artifactPaths.invalidAndroidReleaseArtifact -Value "changed Android artifact" -Encoding utf8
+$androidArtifactHash = (Get-FileHash -LiteralPath $artifactPaths.androidReleaseArtifact -Algorithm SHA256).Hash.ToLowerInvariant()
+$androidArtifactBytes = (Get-Item -LiteralPath $artifactPaths.androidReleaseArtifact).Length
+
+@{
+    schema = "merhouse.v17.android-release.v1"
+    apiBaseUrl = "https://api.example.com"
+    artifactKind = "aab"
+    artifactPath = $artifactPaths.androidReleaseArtifact
+    sha256 = $androidArtifactHash
+    bytes = $androidArtifactBytes
+    cleartextTraffic = "disabled-for-release"
+    signing = "external-keystore-env"
+} |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.androidRelease -Encoding utf8
 @{ schema = "merhouse.native-android-tour.report.v1"; apiUrl = "https://api.example.com" } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.installedAndroidTour -Encoding utf8
@@ -99,10 +116,22 @@ $missingManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $missingEv
 
 $wrongAttachmentManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
 $wrongAttachmentManifest.attachedEvidence.androidRelease.schema = "merhouse.load-smoke.v1"
+$wrongAttachmentManifest.attachedEvidence.androidRelease.path = $artifactPaths.invalidAndroidRelease
 $wrongAttachmentManifest.attachedEvidence.alertRouting.apiBaseUrl = "https://wrong-api.example.com"
 $wrongAttachmentManifest.attachedEvidence.rollback.path = (Join-Path $resolvedOutputDirectory "missing-rollback-proof.json")
 $wrongAttachmentManifest.attachedEvidence.liveStakeholderWalkthrough.path = $artifactPaths.invalidLiveStakeholderWalkthrough
 $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $wrongAttachmentManifestPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.android-release.v1"
+    apiBaseUrl = "https://api.example.com"
+    artifactKind = "aab"
+    artifactPath = $artifactPaths.invalidAndroidReleaseArtifact
+    sha256 = $androidArtifactHash
+    bytes = $androidArtifactBytes
+    cleartextTraffic = "true"
+    signing = "embedded-keystore"
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidAndroidRelease -Encoding utf8
 
 @{
     schema = "merhouse.v17.live-stakeholder-walkthrough.v1"
@@ -139,6 +168,9 @@ try {
 } catch {
     if (
         $_.Exception.Message -match "androidRelease schema" -and
+        $_.Exception.Message -match "androidRelease.path artifact sha256" -and
+        $_.Exception.Message -match "androidRelease.path artifact cleartextTraffic" -and
+        $_.Exception.Message -match "androidRelease.path artifact signing" -and
         $_.Exception.Message -match "alertRouting.apiBaseUrl" -and
         $_.Exception.Message -match "rollback.path" -and
         $_.Exception.Message -match "liveStakeholderWalkthrough.path artifact apiBaseUrl" -and

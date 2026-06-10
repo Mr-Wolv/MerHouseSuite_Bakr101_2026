@@ -16,6 +16,39 @@ $validAlertPath = Join-Path $resolvedOutputDirectory "v17-alert-routing-proof-ch
 $wrongAlertPath = Join-Path $resolvedOutputDirectory "v17-alert-routing-proof-check-wrong.json"
 $validWalkthroughPath = Join-Path $resolvedOutputDirectory "v17-live-walkthrough-proof-check-valid.json"
 $wrongWalkthroughPath = Join-Path $resolvedOutputDirectory "v17-live-walkthrough-proof-check-wrong.json"
+$validAndroidReleasePath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-valid.json"
+$wrongAndroidReleasePath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-wrong.json"
+$validAndroidArtifactPath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check.aab"
+$wrongAndroidArtifactPath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-wrong.aab"
+
+Set-Content -LiteralPath $validAndroidArtifactPath -Value "fixture signed Android artifact" -Encoding utf8
+Set-Content -LiteralPath $wrongAndroidArtifactPath -Value "changed Android artifact" -Encoding utf8
+$validAndroidArtifactHash = (Get-FileHash -LiteralPath $validAndroidArtifactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$validAndroidArtifactBytes = (Get-Item -LiteralPath $validAndroidArtifactPath).Length
+
+@{
+    schema = "merhouse.v17.android-release.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    apiBaseUrl = "https://api.example.com"
+    artifactKind = "aab"
+    artifactPath = $validAndroidArtifactPath
+    sha256 = $validAndroidArtifactHash
+    bytes = $validAndroidArtifactBytes
+    cleartextTraffic = "disabled-for-release"
+    signing = "external-keystore-env"
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validAndroidReleasePath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.android-release.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    apiBaseUrl = "https://api.example.com"
+    artifactKind = "aab"
+    artifactPath = $wrongAndroidArtifactPath
+    sha256 = $validAndroidArtifactHash
+    bytes = $validAndroidArtifactBytes
+    cleartextTraffic = "true"
+    signing = "embedded-keystore"
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongAndroidReleasePath -Encoding utf8
 
 @{
     schema = "merhouse.v17.alert-routing.v1"
@@ -91,6 +124,17 @@ Resolve-EvidenceAttachment -Name '$Name' -Path '$escapedPath' | ConvertTo-Json -
     & $scriptBlock
 }
 
+$androidRelease = Invoke-AttachmentResolver -Name "AndroidReleaseManifestPath" -Path $validAndroidReleasePath | ConvertFrom-Json
+if ($androidRelease.schema -ne "merhouse.v17.android-release.v1") {
+    throw "Valid Android release attachment did not resolve with the expected schema."
+}
+if ($androidRelease.apiBaseUrl -ne "https://api.example.com" -or $androidRelease.artifactKind -ne "aab") {
+    throw "Valid Android release attachment did not preserve release target metadata."
+}
+if ($androidRelease.sha256 -ne $validAndroidArtifactHash -or [long]$androidRelease.bytes -ne $validAndroidArtifactBytes) {
+    throw "Valid Android release attachment did not preserve artifact hash and size."
+}
+
 $resolved = Invoke-AttachmentResolver -Name "AlertRoutingManifestPath" -Path $validAlertPath | ConvertFrom-Json
 if ($resolved.schema -ne "merhouse.v17.alert-routing.v1") {
     throw "Valid alert-routing attachment did not resolve with the expected schema."
@@ -105,6 +149,21 @@ if ($walkthrough.schema -ne "merhouse.v17.live-stakeholder-walkthrough.v1") {
 }
 if ($walkthrough.frontendBaseUrl -ne "https://app.example.com" -or $walkthrough.apiBaseUrl -ne "https://api.example.com") {
     throw "Valid live walkthrough attachment did not preserve deployed target URLs."
+}
+
+$failedAsExpected = $false
+try {
+    Invoke-AttachmentResolver -Name "AndroidReleaseManifestPath" -Path $wrongAndroidReleasePath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "sha256 must match artifactPath content") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Wrong Android release artifact attachment was accepted."
 }
 
 $failedAsExpected = $false

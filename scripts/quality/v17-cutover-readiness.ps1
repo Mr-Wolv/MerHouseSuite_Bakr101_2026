@@ -91,6 +91,34 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
         if ($attachmentName -eq "androidRelease" -and $proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
             $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact apiBaseUrl must match apiBaseUrl."
         }
+        if ($attachmentName -eq "androidRelease") {
+            if ($proofArtifact.artifactKind -notin @("apk", "aab")) {
+                $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact artifactKind must be apk or aab."
+            }
+            $androidArtifactPath = Resolve-ProofPath -Path $proofArtifact.artifactPath
+            if ([string]::IsNullOrWhiteSpace($androidArtifactPath) -or -not (Test-Path -LiteralPath $androidArtifactPath)) {
+                $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact artifactPath must point to an existing APK/AAB."
+            } else {
+                if ($proofArtifact.sha256 -notmatch '^[a-fA-F0-9]{64}$') {
+                    $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact sha256 must be a 64-character hex digest."
+                } else {
+                    $androidArtifactHash = (Get-FileHash -LiteralPath $androidArtifactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                    if ($androidArtifactHash -ne $proofArtifact.sha256.ToLowerInvariant()) {
+                        $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact sha256 must match artifactPath content."
+                    }
+                }
+                $androidArtifactBytes = (Get-Item -LiteralPath $androidArtifactPath).Length
+                if ([long]$proofArtifact.bytes -ne $androidArtifactBytes -or $androidArtifactBytes -le 0) {
+                    $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact bytes must match a non-empty APK/AAB."
+                }
+            }
+            if ($proofArtifact.cleartextTraffic -ne "disabled-for-release") {
+                $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact cleartextTraffic must be disabled-for-release."
+            }
+            if ($proofArtifact.signing -ne "external-keystore-env") {
+                $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact signing must be external-keystore-env."
+            }
+        }
         if ($attachmentName -eq "installedAndroidTour" -and $proofArtifact.apiUrl -ne $manifest.apiBaseUrl) {
             $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact apiUrl must match apiBaseUrl."
         }
