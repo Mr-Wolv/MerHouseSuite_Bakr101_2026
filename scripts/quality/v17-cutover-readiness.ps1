@@ -38,6 +38,52 @@ foreach ($proofName in @("frontendProxySmoke", "directApiSmoke", "monitoringSamp
 }
 
 $attached = $manifest.attachedEvidence
+$outputFiles = $manifest.outputFiles
+
+function Resolve-ProofPath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ""
+    }
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return [System.IO.Path]::GetFullPath($Path)
+    }
+    return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
+}
+
+function Test-OutputFile {
+    param(
+        [string]$ProofName,
+        [string]$ExpectedSchema = "",
+        [switch]$RequirePassedStatus
+    )
+
+    $proofPath = Resolve-ProofPath -Path $outputFiles.$ProofName
+    if ([string]::IsNullOrWhiteSpace($proofPath) -or -not (Test-Path -LiteralPath $proofPath)) {
+        $script:failures += "Deployment evidence manifest outputFiles.$ProofName must point to an existing proof report."
+        return
+    }
+    try {
+        $proofReport = Get-Content -Raw -LiteralPath $proofPath | ConvertFrom-Json
+        if (-not [string]::IsNullOrWhiteSpace($ExpectedSchema) -and $proofReport.schema -ne $ExpectedSchema) {
+            $script:failures += "Deployment evidence manifest outputFiles.$ProofName schema must be $ExpectedSchema."
+        }
+        if ($RequirePassedStatus -and $proofReport.status -ne "PASSED") {
+            $script:failures += "Deployment evidence manifest outputFiles.$ProofName status must be PASSED."
+        }
+    } catch {
+        $script:failures += "Deployment evidence manifest outputFiles.$ProofName must be readable JSON proof."
+    }
+}
+
+Test-OutputFile -ProofName "frontendProxySmoke"
+Test-OutputFile -ProofName "directApiSmoke"
+Test-OutputFile -ProofName "monitoring" -ExpectedSchema "merhouse.v17.deployed-monitoring.v1"
+Test-OutputFile -ProofName "performance" -RequirePassedStatus
+Test-OutputFile -ProofName "loadSmoke" -ExpectedSchema "merhouse.load-smoke.v1"
+Test-OutputFile -ProofName "browserTour"
+
 $expectedAttachmentSchemas = @{
     androidRelease = "merhouse.v17.android-release.v1"
     installedAndroidTour = "merhouse.native-android-tour.report.v1"
@@ -50,18 +96,6 @@ $expectedAttachmentSchemas = @{
 $providerStatus = if ($null -eq $manifest.providerStatus) { "" } else { $manifest.providerStatus.Trim().ToLowerInvariant() }
 if ($providerStatus -in @("smtp-staging-proven", "smtp-production-proven", "email-provider-proven")) {
     $expectedAttachmentSchemas.emailProvider = "merhouse.v17.email-provider-proof.v1"
-}
-
-function Resolve-ProofPath {
-    param([string]$Path)
-
-    if ([string]::IsNullOrWhiteSpace($Path)) {
-        return ""
-    }
-    if ([System.IO.Path]::IsPathRooted($Path)) {
-        return [System.IO.Path]::GetFullPath($Path)
-    }
-    return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
 }
 
 foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {

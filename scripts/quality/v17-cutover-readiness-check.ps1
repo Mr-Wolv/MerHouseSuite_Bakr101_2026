@@ -20,6 +20,12 @@ $missingOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-missi
 $wrongAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment-report.json"
 
 $artifactPaths = [ordered]@{
+    frontendProxySmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-frontend-proxy-smoke.json"
+    directApiSmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-direct-api-smoke.json"
+    monitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-monitoring.json"
+    performance = Join-Path $resolvedOutputDirectory "v17-cutover-check-performance.json"
+    loadSmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-load-smoke.json"
+    browserTour = Join-Path $resolvedOutputDirectory "v17-cutover-check-browser-tour.json"
     androidRelease = Join-Path $resolvedOutputDirectory "v17-cutover-check-android-release.json"
     invalidAndroidRelease = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-android-release.json"
     androidReleaseArtifact = Join-Path $resolvedOutputDirectory "v17-cutover-check-app-release.aab"
@@ -33,6 +39,19 @@ $artifactPaths = [ordered]@{
     liveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-live-walkthrough.json"
     invalidLiveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-live-walkthrough.json"
 }
+
+@{ status = "PASSED"; checkedActions = @("api-smoke") } |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.frontendProxySmoke -Encoding utf8
+@{ status = "PASSED"; checkedActions = @("api-smoke") } |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.directApiSmoke -Encoding utf8
+@{ schema = "merhouse.v17.deployed-monitoring.v1"; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.monitoring -Encoding utf8
+@{ status = "PASSED"; apiSmokeSeconds = 12.34 } |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.performance -Encoding utf8
+@{ schema = "merhouse.load-smoke.v1"; target = "https://api.example.com" } |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.loadSmoke -Encoding utf8
+@{ appUrl = "https://app.example.com"; apiUrl = "https://api.example.com"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); checkedRoutes = @("/admin", "/assistant") } |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.browserTour -Encoding utf8
 
 Set-Content -LiteralPath $artifactPaths.androidReleaseArtifact -Value "fixture signed Android artifact" -Encoding utf8
 Set-Content -LiteralPath $artifactPaths.invalidAndroidReleaseArtifact -Value "changed Android artifact" -Encoding utf8
@@ -115,7 +134,14 @@ $baseManifest = [ordered]@{
         loadSmoke = $true
         browserTour = $true
     }
-    outputFiles = [ordered]@{}
+    outputFiles = [ordered]@{
+        frontendProxySmoke = $artifactPaths.frontendProxySmoke
+        directApiSmoke = $artifactPaths.directApiSmoke
+        monitoring = $artifactPaths.monitoring
+        performance = $artifactPaths.performance
+        loadSmoke = $artifactPaths.loadSmoke
+        browserTour = $artifactPaths.browserTour
+    }
     attachedEvidence = $attached
     productionClaim = $false
     claimBoundary = "fixture"
@@ -126,6 +152,7 @@ $baseManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $validManifes
 $missingManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
 $missingManifest.nextRequiredEvidence = @("manual owner, merchant, warehouse, support-admin, and auditor live browser plus installed-Android walkthrough")
 $missingManifest.includedProof.browserTour = $false
+$missingManifest.outputFiles.loadSmoke = (Join-Path $resolvedOutputDirectory "missing-load-smoke.json")
 $missingManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $missingEvidenceManifestPath -Encoding utf8
 
 $wrongAttachmentManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
@@ -177,7 +204,7 @@ $failedAsExpected = $false
 try {
     & (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $missingEvidenceManifestPath -OutputPath $missingOutputPath
 } catch {
-    if ($_.Exception.Message -match "nextRequiredEvidence" -and $_.Exception.Message -match "browserTour") {
+    if ($_.Exception.Message -match "nextRequiredEvidence" -and $_.Exception.Message -match "browserTour" -and $_.Exception.Message -match "outputFiles.loadSmoke") {
         $failedAsExpected = $true
     } else {
         throw
