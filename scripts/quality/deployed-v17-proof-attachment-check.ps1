@@ -190,6 +190,11 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     frontendBaseUrl = "https://app.example.com"
     apiBaseUrl = "https://api.example.com"
     routedSignals = @("api-health", "frontend-health", "failed-provider-delivery")
+    signalEvidence = @{
+        "api-health" = "API health alert reached the staging recipient"
+        "frontend-health" = "frontend shell alert reached the staging recipient"
+        "failed-provider-delivery" = "failed provider-delivery alert reached the staging recipient"
+    }
     deliveryEvidence = "operator-confirmed-alert-routing-fixture"
     secretPolicy = "No provider credentials or alert endpoints are stored in this parser proof fixture."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validAlertPath -Encoding utf8

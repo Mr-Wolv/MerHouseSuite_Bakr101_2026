@@ -353,6 +353,14 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             if (@($proofArtifact.routedSignals).Count -lt 1) {
                 $failures += "Deployment evidence manifest attachedEvidence.alertRouting.path artifact routedSignals must include at least one signal."
             }
+            foreach ($signal in @("api-health", "frontend-health", "failed-provider-delivery")) {
+                if (@($proofArtifact.routedSignals) -notcontains $signal) {
+                    $failures += "Deployment evidence manifest attachedEvidence.alertRouting.path artifact routedSignals must include $signal."
+                }
+                if ($null -eq $proofArtifact.signalEvidence -or [string]::IsNullOrWhiteSpace($proofArtifact.signalEvidence.$signal)) {
+                    $failures += "Deployment evidence manifest attachedEvidence.alertRouting.path artifact signalEvidence.$signal must be non-blank."
+                }
+            }
             if ([string]::IsNullOrWhiteSpace($proofArtifact.deliveryEvidence)) {
                 $failures += "Deployment evidence manifest attachedEvidence.alertRouting.path artifact deliveryEvidence must be non-blank."
             }

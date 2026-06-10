@@ -280,6 +280,14 @@ function Resolve-EvidenceAttachment {
         if (@($json.routedSignals).Count -lt 1) {
             throw "AlertRoutingManifestPath must include at least one routedSignals entry."
         }
+        foreach ($signal in @("api-health", "frontend-health", "failed-provider-delivery")) {
+            if (@($json.routedSignals) -notcontains $signal) {
+                throw "AlertRoutingManifestPath routedSignals must include $signal."
+            }
+            if ($null -eq $json.signalEvidence -or [string]::IsNullOrWhiteSpace($json.signalEvidence.$signal)) {
+                throw "AlertRoutingManifestPath signalEvidence.$signal must be non-blank."
+            }
+        }
         if ([string]::IsNullOrWhiteSpace($json.deliveryEvidence)) {
             throw "AlertRoutingManifestPath must include deliveryEvidence."
         }

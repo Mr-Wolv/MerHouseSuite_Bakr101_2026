@@ -43,6 +43,7 @@ $artifactPaths = [ordered]@{
     emailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-email-provider.json"
     invalidEmailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-email-provider.json"
     alertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-routing.json"
+    invalidAlertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-alert-routing.json"
     liveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-live-walkthrough.json"
     invalidLiveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-live-walkthrough.json"
 }
@@ -158,6 +159,11 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     frontendBaseUrl = "https://app.example.com"
     apiBaseUrl = "https://api.example.com"
     routedSignals = @("api-health", "frontend-health", "failed-provider-delivery")
+    signalEvidence = @{
+        "api-health" = "API health alert reached the staging recipient"
+        "frontend-health" = "frontend shell alert reached the staging recipient"
+        "failed-provider-delivery" = "failed provider-delivery alert reached the staging recipient"
+    }
     deliveryEvidence = "operator-confirmed-alert-routing-fixture"
     secretPolicy = "No provider credentials or alert endpoints are stored in this parser proof fixture."
 } |
@@ -230,7 +236,7 @@ $wrongAttachmentManifest.attachedEvidence.androidRelease.versionName = "wrong-ve
 $wrongAttachmentManifest.attachedEvidence.installedAndroidTour.path = $artifactPaths.invalidInstalledAndroidTour
 $wrongAttachmentManifest.attachedEvidence.backupRestore.path = $artifactPaths.invalidBackupRestore
 $wrongAttachmentManifest.attachedEvidence.rollback.path = $artifactPaths.invalidRollback
-$wrongAttachmentManifest.attachedEvidence.alertRouting.apiBaseUrl = "https://wrong-api.example.com"
+$wrongAttachmentManifest.attachedEvidence.alertRouting.path = $artifactPaths.invalidAlertRouting
 $wrongAttachmentManifest.attachedEvidence.emailProvider.path = $artifactPaths.invalidEmailProvider
 $wrongAttachmentManifest.attachedEvidence.liveStakeholderWalkthrough.path = $artifactPaths.invalidLiveStakeholderWalkthrough
 $wrongAttachmentManifest.outputFiles.directApiSmoke = $artifactPaths.invalidBrowserTour
@@ -264,6 +270,18 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
     deliveryEvidence = ""
     secretPolicy = "No SMTP credentials are stored."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidEmailProvider -Encoding utf8
+
+@{
+    schema = "merhouse.v17.alert-routing.v1"
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    routedSignals = @("frontend-health")
+    signalEvidence = @{
+        "frontend-health" = "only frontend alert routing was checked"
+    }
+    deliveryEvidence = ""
+    secretPolicy = ""
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidAlertRouting -Encoding utf8
 
 @{
     schema = "merhouse.native-android-tour.report.v1"
@@ -368,7 +386,9 @@ try {
         $_.Exception.Message -match "emailProvider.path artifact providerStatus" -and
         $_.Exception.Message -match "workflowsProven must include access-request" -and
         $_.Exception.Message -match "workflowEvidence.access-request" -and
-        $_.Exception.Message -match "alertRouting.apiBaseUrl" -and
+        $_.Exception.Message -match "alertRouting.path artifact routedSignals must include api-health" -and
+        $_.Exception.Message -match "alertRouting.path artifact signalEvidence.api-health" -and
+        $_.Exception.Message -match "alertRouting.path artifact deliveryEvidence" -and
         $_.Exception.Message -match "liveStakeholderWalkthrough.path artifact apiBaseUrl" -and
         $_.Exception.Message -match "installedAndroidWalkthroughCompleted" -and
         $_.Exception.Message -match "rolesCovered must include warehouse"
