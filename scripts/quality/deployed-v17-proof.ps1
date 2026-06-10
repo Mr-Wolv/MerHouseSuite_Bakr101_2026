@@ -18,6 +18,7 @@ param(
     [string]$InstalledAndroidTourReportPath = "",
     [string]$BackupRestoreManifestPath = "",
     [string]$RollbackManifestPath = "",
+    [string]$AlertRoutingManifestPath = "",
     [switch]$IncludeBrowserTour,
     [switch]$IncludeLoadSmoke,
     [int]$ConcurrentUsers = 25,
@@ -149,6 +150,7 @@ $androidReleaseEvidence = Resolve-EvidenceAttachment -Name "AndroidReleaseManife
 $installedAndroidTourEvidence = Resolve-EvidenceAttachment -Name "InstalledAndroidTourReportPath" -Path $InstalledAndroidTourReportPath
 $backupRestoreEvidence = Resolve-EvidenceAttachment -Name "BackupRestoreManifestPath" -Path $BackupRestoreManifestPath
 $rollbackEvidence = Resolve-EvidenceAttachment -Name "RollbackManifestPath" -Path $RollbackManifestPath
+$alertRoutingEvidence = Resolve-EvidenceAttachment -Name "AlertRoutingManifestPath" -Path $AlertRoutingManifestPath
 
 if ($androidReleaseEvidence -and $androidReleaseEvidence.apiBaseUrl -ne $normalizedApiBaseUrl) {
     throw "AndroidReleaseManifestPath apiBaseUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($androidReleaseEvidence.apiBaseUrl)."
@@ -280,8 +282,10 @@ if (-not $rollbackEvidence) {
 if ($providerEvidenceState -eq "open") {
     $nextRequiredEvidence += "provider-backed recovery, access-request, and notification email proof or an explicit email-disabled production policy"
 }
+if (-not $alertRoutingEvidence) {
+    $nextRequiredEvidence += "monitoring alert routing proof"
+}
 $nextRequiredEvidence += @(
-    "monitoring alert routing proof",
     "manual owner, merchant, warehouse, support-admin, and auditor live walkthrough"
 )
 
@@ -315,6 +319,7 @@ $manifest = [ordered]@{
         installedAndroidTour = $installedAndroidTourEvidence
         backupRestore = $backupRestoreEvidence
         rollback = $rollbackEvidence
+        alertRouting = $alertRoutingEvidence
     }
     productionClaim = $false
     claimBoundary = "Deployment smoke evidence only; production claim still requires attached Android, backup/restore, rollback, alert-routing, and live stakeholder proof."
