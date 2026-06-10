@@ -8,7 +8,7 @@ It models the operating relationship between a brand or merchant and a warehouse
 
 ## Project Status
 
-MerHouse is public-facing as a codebase and local product proof: it has a documented local runtime, tested backend and frontend workflows, browser route proof, native Android debug-APK proof, cross-surface parity checks, performance-readiness checks, and a recorded final live browser/installed-APK walkthrough. It is not yet a production SaaS deployment. Cloud infrastructure, real notification/recovery/carrier providers, app-store release, production monitoring, backup/restore operations, incident response, and provider-backed delivery remain explicit future activation work.
+MerHouse is public-facing as a codebase and local product proof: it has a documented local runtime, tested backend and frontend workflows, browser route proof, native Android debug-APK proof, cross-surface parity checks, performance-readiness checks, and a recorded final live browser/installed-APK walkthrough. It is not yet a production SaaS deployment. Private V17 work adds a VPS/Compose deployment shape, opt-in SMTP email delivery attempts, signed internal Android release checks, backup/restore/rollback hooks, and preflight proof. Actual cloud deployment, provider credentials, production monitoring, incident response, and final web/Android staging proof remain unpublished until verified.
 
 ## Product Surface
 
@@ -188,6 +188,18 @@ Heavy local certification with API smoke, without supplying existing tour report
 .\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose -NativeApiBaseUrl "http://10.0.2.2:8080"
 ```
 
+V17 deployment preflight before staging or production rollout:
+
+```powershell
+.\scripts\quality\v17-production-readiness.ps1
+```
+
+When a staging target and Android signing inputs are available, add deployed smoke and signed internal release proof:
+
+```powershell
+.\scripts\quality\v17-production-readiness.ps1 -IncludeLoadSmoke -IncludeAndroidRelease -ApiBaseUrl "https://api.example.com"
+```
+
 Start or stop the local stack:
 
 ```powershell
@@ -212,6 +224,7 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_SWAGGER_ENABLED` | Enables OpenAPI JSON and Swagger UI |
 | `MERHOUSE_DEPLOYMENT_PUBLIC` | Enables stricter startup validation for public deployment-shaped environments |
 | `MERHOUSE_PUBLIC_FRONTEND_URL` | Public frontend origin used for provider-backed account/recovery email links |
+| `MERHOUSE_FRONTEND_PUBLIC_API_URL` | Optional frontend container build-time API URL; leave blank for same-origin reverse-proxy deployments |
 | `MERHOUSE_EMAIL_ENABLED` | Enables SMTP-backed email delivery attempts for configured email channels |
 | `MERHOUSE_EMAIL_FROM` | Sender address for provider-backed email delivery |
 | `MERHOUSE_SMTP_HOST` / `MERHOUSE_SMTP_PORT` | SMTP provider target, such as Gmail/Google Workspace SMTP for staging proof |

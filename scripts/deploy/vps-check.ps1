@@ -16,9 +16,25 @@ if (-not (Test-Path $envPath)) {
 }
 
 Write-Host "Validating VPS Compose file: $composePath"
-docker compose --env-file $envPath -f $composePath config --quiet
+$composeConfig = docker compose --env-file $envPath -f $composePath config
 if ($LASTEXITCODE -ne 0) {
     throw "Production Compose validation failed."
+}
+
+$composeText = $composeConfig -join "`n"
+$requiredPatterns = @(
+    'MERHOUSE_DEPLOYMENT_PUBLIC:\s+"?true"?',
+    'MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN:\s+"?false"?',
+    'MERHOUSE_AUTH_SEED_ADMIN_ENABLED:\s+"?false"?',
+    'MERHOUSE_SWAGGER_ENABLED:\s+"?false"?',
+    'SPRING_DATASOURCE_URL:\s+jdbc:postgresql://postgres:5432/',
+    'VITE_API_BASE_URL:'
+)
+
+foreach ($pattern in $requiredPatterns) {
+    if ($composeText -notmatch $pattern) {
+        throw "Production Compose output is missing required deployment boundary: $pattern"
+    }
 }
 
 Write-Host "VPS deployment shape check passed."

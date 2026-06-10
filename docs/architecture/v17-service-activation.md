@@ -1,6 +1,6 @@
 # V17 External Service Activation
 
-This note records the next service layer MerHouse may activate when the project moves beyond local certification. It is planning, not a current deployment claim.
+This note records the next service layer MerHouse may activate when the project moves beyond local certification. Private V17 implementation has begun, but this is not a current deployment claim.
 
 V16.2 keeps account recovery, access-request conversion, notifications, and assistant behavior local and auditable. V17 may replace or extend those local boundaries with real external services after staging proof, provider credentials, secrets handling, monitoring, and rollback are ready.
 
@@ -8,9 +8,9 @@ V16.2 keeps account recovery, access-request conversion, notifications, and assi
 
 | Service | Current V16.2 behavior | V17 target |
 | --- | --- | --- |
-| Forgot password OTP | Local one-time reset-token proof with generic public responses and optional development token echo. | Email-delivered OTP or reset link through a configured mail provider, with token hashing, expiry, replay protection, rate limits, audit records, and no token echo in public environments. |
-| Request access | Public request form plus platform review, approval, rejection, and local account-ready delivery history. | Provider-backed account invitation email after approval or conversion, with explicit reviewer/converter audit and no checked-in setup credentials. |
-| Notifications | Recipient-scoped in-app records, delivery history, preferences, and app-shell alert counts. | Email notification delivery for configured topics. Android OS push, lock-screen, and notification-tray delivery are not part of this target unless a later roadmap change deliberately reopens them. |
+| Forgot password OTP | Local one-time reset-token proof with generic public responses and optional development token echo. | SMTP-delivered reset link through a configured mail provider, with token hashing, expiry, replay protection, rate limits, audit records, and no token echo in public environments. |
+| Request access | Public request form plus platform review, approval, rejection, and local account-ready delivery history. | SMTP account-ready email after approval or conversion, with explicit reviewer/converter audit and no checked-in setup credentials. |
+| Notifications | Recipient-scoped in-app records, delivery history, preferences, and app-shell alert counts. | Opt-in SMTP email notification attempts for configured topics, with provider status evidence. Android OS push, lock-screen, and notification-tray delivery are not part of this target unless a later roadmap change deliberately reopens them. |
 | Agent | Deterministic local summaries, review-only suggestions, refusals, accept/reject decisions, and audit. | A bounded agentic service that can reason over approved context and perform authorized tool calls through backend APIs, with human approval for risky actions and complete audit/proof coverage. |
 
 ## Gmail And Email Direction
@@ -93,4 +93,4 @@ Do not call these services activated until proof exists for:
 - load/performance proof against production-shaped seeded data and expected first-release user volume
 - updated diagrams, roadmap, README, scripts, and affected tests
 
-Until that proof exists, MerHouse remains locally certified with local delivery records and deterministic assistant behavior.
+Until that proof exists against staging and production targets, MerHouse remains locally certified with default local delivery records, opt-in SMTP attempt plumbing, and deterministic read-plus-draft assistant behavior.

@@ -151,6 +151,33 @@ jobs:
         shell: pwsh
         run: ./scripts/quality/public-readiness.ps1 -SkipCompose
 
+  v17-deployment-preflight:
+    name: V17 Deployment Preflight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run V17 deployment preflight
+        shell: pwsh
+        run: ./scripts/quality/v17-production-readiness.ps1
+
   integration-proof:
     name: Integration Proof
     runs-on: ubuntu-latest
@@ -160,6 +187,7 @@ jobs:
       - native-android
       - compose
       - public-readiness
+      - v17-deployment-preflight
     steps:
       - name: Checkout
         uses: actions/checkout@v5

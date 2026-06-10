@@ -130,4 +130,6 @@ V17 is complete only when:
 
 ## Current Status
 
-As of 2026-06-10, V17 has not been activated. MerHouse is ready to start production deployment work, but no hosting target, domain, secret manager, provider contracts, production database, monitoring stack, backup procedure, rollback runbook, capacity target, load proof, provider-exchange proof, or app-store/internal mobile release process has been selected in tracked docs.
+As of 2026-06-10, V17 is in private implementation on a deployment branch, not publicly deployed. The selected first target is VPS + Docker Compose with PostgreSQL, backend, frontend, nginx/TLS template, public-mode startup validation, backup/restore/rollback scripts, opt-in SMTP email attempts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight.
+
+The following remain required before any production claim: real VPS access, frontend/API domain values, TLS/certificate setup, deployment secret storage, Gmail or provider SMTP credentials for staging proof, production database credentials, Android signing keystore, monitoring/alerting configuration, deployed staging URL, deployed production URL, backup restore drill, rollback rehearsal, load/soak proof, live browser walkthrough, and live installed-Android walkthrough against the deployed target.

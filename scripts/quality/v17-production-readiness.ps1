@@ -1,0 +1,82 @@
+param(
+    [switch]$IncludeLoadSmoke,
+    [switch]$IncludeAndroidRelease,
+    [string]$ApiBaseUrl = "",
+    [int]$ConcurrentUsers = 25,
+    [int]$RequestsPerUser = 8
+)
+
+$ErrorActionPreference = "Stop"
+
+$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+
+function Invoke-Checked {
+    param(
+        [Parameter(Mandatory = $true)] [string] $Label,
+        [Parameter(Mandatory = $true)] [scriptblock] $Command
+    )
+
+    Write-Host ""
+    Write-Host $Label
+    $global:LASTEXITCODE = 0
+    & $Command
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Label failed."
+    }
+}
+
+function Assert-ScriptParse {
+    $parseFailed = $false
+    Get-ChildItem -Path (Join-Path $projectRoot "scripts") -Recurse -Filter *.ps1 | ForEach-Object {
+        $tokens = $null
+        $parseErrors = $null
+        $null = [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$parseErrors)
+        if ($parseErrors.Count -gt 0) {
+            $parseFailed = $true
+            Write-Host $_.FullName
+            $parseErrors | ForEach-Object { Write-Host $_.Message }
+        }
+    }
+    if ($parseFailed) {
+        throw "PowerShell script parser check failed."
+    }
+    Write-Host "PowerShell script parser check passed."
+}
+
+Push-Location $projectRoot
+try {
+    Invoke-Checked "Checking PowerShell script parsing..." { Assert-ScriptParse }
+    Invoke-Checked "Checking V17 VPS deployment shape..." { & ".\scripts\deploy\vps-check.ps1" }
+    Invoke-Checked "Checking markdown links..." { & ".\scripts\quality\markdown-check.ps1" }
+    Invoke-Checked "Checking public-facing repository readiness..." { & ".\scripts\quality\public-readiness.ps1" -SkipCompose }
+    Invoke-Checked "Checking frontend performance readiness..." { & ".\scripts\quality\performance-readiness.ps1" }
+
+    if ($IncludeLoadSmoke) {
+        if ([string]::IsNullOrWhiteSpace($ApiBaseUrl)) {
+            throw "-ApiBaseUrl is required when -IncludeLoadSmoke is supplied."
+        }
+        Invoke-Checked "Running V17 load smoke..." {
+            & ".\scripts\quality\load-smoke.ps1" -BaseUrl $ApiBaseUrl -ConcurrentUsers $ConcurrentUsers -RequestsPerUser $RequestsPerUser
+        }
+    } else {
+        Write-Host ""
+        Write-Host "Skipping V17 load smoke. Pass -IncludeLoadSmoke -ApiBaseUrl <https://target> when staging or production is reachable."
+    }
+
+    if ($IncludeAndroidRelease) {
+        if ([string]::IsNullOrWhiteSpace($ApiBaseUrl)) {
+            throw "-ApiBaseUrl is required when -IncludeAndroidRelease is supplied."
+        }
+        Invoke-Checked "Building signed Android release proof..." {
+            & ".\scripts\quality\native-android-release-check.ps1" -ApiBaseUrl $ApiBaseUrl -Bundle
+        }
+    } else {
+        Write-Host ""
+        Write-Host "Skipping signed Android release proof. Pass -IncludeAndroidRelease -ApiBaseUrl <https://target> when keystore env vars are available."
+    }
+
+    Write-Host ""
+    Write-Host "V17 production readiness preflight passed."
+} finally {
+    Pop-Location
+}

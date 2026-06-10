@@ -26,6 +26,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/cross-surface-tour-check.ps1` | Compare browser and installed-APK tour reports for clean records, provenance, valid native screenshot evidence, exact normalized role/path set equality, and traceable pass output. |
 | `scripts/quality/performance-readiness.ps1` | Check local deployment-shaped performance readiness through frontend bundle budgets, paired browser/installed-APK report provenance and timing when reports are supplied, and optional API smoke timing. |
 | `scripts/quality/load-smoke.ps1` | Run a small concurrent health-check smoke against a deployed or local API target. |
+| `scripts/quality/v17-production-readiness.ps1` | Run V17 preflight proof across script parsing, VPS deployment shape, markdown, public-readiness, performance readiness, and optional deployed load smoke or signed Android release proof. |
 | `scripts/quality/tour-report-lib.ps1` | Shared helper for reading, normalizing, and validating browser/native tour report records, including required role/path identity. |
 | `scripts/quality/url-guard-lib.ps1` | Shared helper for validating and normalizing non-blank absolute `http` or `https` local setup, native build, frontend proxy, OpenAPI docs, tour, smoke, performance, deployment, and report-provenance URLs. |
 | `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, CI naming, and Compose config. |
@@ -221,6 +222,23 @@ Run the first V17 small-pilot load smoke against a deployed or local API health 
 
 This is a smoke budget for release confidence, not a substitute for full load or soak testing.
 
+Run the V17 deployment preflight before a staging or production rollout:
+
+```powershell
+.\scripts\quality\v17-production-readiness.ps1
+```
+
+The default preflight parses PowerShell scripts, validates the rendered VPS Compose output including public-mode safety flags, checks markdown, checks public-facing repository boundaries, and rebuilds the frontend for performance budgets. It intentionally skips live load smoke and signed Android release proof until a real HTTPS target and external signing secrets exist. When a staging or production target is reachable, include those proof slices:
+
+```powershell
+.\scripts\quality\v17-production-readiness.ps1 `
+  -IncludeLoadSmoke `
+  -IncludeAndroidRelease `
+  -ApiBaseUrl "https://api.example.com"
+```
+
+The signed Android slice requires the `MERHOUSE_ANDROID_KEYSTORE_*` environment variables documented above. The load-smoke slice uses the same `-ApiBaseUrl`, `-ConcurrentUsers`, and `-RequestsPerUser` values to record a small-pilot readiness signal against the deployed API health endpoint.
+
 Performance report paths are paired evidence. `performance-readiness.ps1` rejects a lone `-WebReportPath` or lone `-NativeReportPath` before building the frontend so report-backed route timing cannot be claimed from one surface only. When both are supplied, it resolves and checks both report paths before the frontend build starts, then prints the resolved web/native report inputs and resolved performance report output path. Omit both only for bundle/API-only proof. Report-backed JSON and terminal output record the supplied and resolved web/native report paths plus validated browser and installed-APK provenance snapshots so timing evidence can be traced back to the exact paired reports.
 
 The GitHub quality gate runs the default performance readiness proof in the frontend job so bundle budgets stay enforced in CI as well as local heavy certification.
@@ -261,6 +279,8 @@ Validate the VPS Compose deployment shape before copying private environment fil
 ```
 
 Use `deploy/vps/env.production.example` as a template only; real deployment env files, logs, backups, and credentials stay outside Git.
+
+The VPS frontend image accepts `MERHOUSE_FRONTEND_PUBLIC_API_URL` through the `VITE_API_BASE_URL` build argument. Leave it blank when the public frontend reverse-proxies `/api` to the backend on the same origin; set it only for split frontend/API origin deployments where the browser must call a separate API origin.
 
 Run the API smoke suite after the stack is running:
 
