@@ -245,6 +245,8 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN` | Development switch for returning recovery tokens in API responses |
 | `MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT` | Per-account reset-token preparation limit inside the recovery window |
 | `MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES` | Rolling window for password-recovery throttling |
+| `MERHOUSE_ACCESS_REQUEST_LIMIT` | Per-email public access-request submission limit inside the access-request window |
+| `MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS` | Rolling window for public access-request throttling |
 | `MERHOUSE_AUTH_SEED_ADMIN_ENABLED` | Development switch for creating an initial owner account |
 | `MERHOUSE_AUTH_SEED_ADMIN_EMAIL` | Initial owner email when seeding is enabled |
 | `MERHOUSE_AUTH_SEED_ADMIN_PASSWORD` | Initial owner password when seeding is enabled |

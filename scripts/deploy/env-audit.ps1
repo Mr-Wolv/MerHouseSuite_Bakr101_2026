@@ -107,6 +107,8 @@ foreach ($required in @(
     "MERHOUSE_AUTH_JWT_SECRET",
     "MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT",
     "MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES",
+    "MERHOUSE_ACCESS_REQUEST_LIMIT",
+    "MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS",
     "MERHOUSE_PUBLIC_FRONTEND_URL",
     "MERHOUSE_CORS_ALLOWED_ORIGINS",
     "MERHOUSE_HTTP_BIND",
@@ -125,6 +127,8 @@ if (-not $AllowTemplate -and [Text.Encoding]::UTF8.GetByteCount($values["MERHOUS
 }
 Assert-IntegerRange -Values $values -Name "MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT" -Minimum 1 -Maximum 20
 Assert-IntegerRange -Values $values -Name "MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES" -Minimum 5 -Maximum 1440
+Assert-IntegerRange -Values $values -Name "MERHOUSE_ACCESS_REQUEST_LIMIT" -Minimum 1 -Maximum 20
+Assert-IntegerRange -Values $values -Name "MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS" -Minimum 1 -Maximum 168
 
 $frontendUrl = Assert-AbsoluteHttpUrl -Name "MERHOUSE_PUBLIC_FRONTEND_URL" -Value $values["MERHOUSE_PUBLIC_FRONTEND_URL"]
 if (-not $frontendUrl.StartsWith("https://")) {

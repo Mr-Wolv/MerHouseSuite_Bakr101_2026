@@ -17,6 +17,8 @@ class ProductionSafetyConfigTest {
             60,
             true,
             "replace-with-local-admin-password",
+            3,
+            24,
             "replace-with-local-postgres-password",
             true,
             true,
@@ -39,6 +41,8 @@ class ProductionSafetyConfigTest {
             60,
             true,
             "replace-with-local-admin-password",
+            3,
+            24,
             "replace-with-local-postgres-password",
             true,
             true,
@@ -61,6 +65,8 @@ class ProductionSafetyConfigTest {
             60,
             false,
             "",
+            3,
+            24,
             "ProdDbCredentialWithStrongPrivateEntropy",
             false,
             false,
@@ -83,6 +89,8 @@ class ProductionSafetyConfigTest {
             60,
             false,
             "",
+            3,
+            24,
             "ProdDbCredentialWithStrongPrivateEntropy",
             false,
             false,
@@ -105,6 +113,8 @@ class ProductionSafetyConfigTest {
             60,
             true,
             "PrivateBootstrapPasswordWithStrongEntropy",
+            3,
+            24,
             "ProdDbCredentialWithStrongPrivateEntropy",
             false,
             false,
@@ -127,6 +137,8 @@ class ProductionSafetyConfigTest {
             60,
             false,
             "",
+            3,
+            24,
             "ProdDbCredentialWithStrongPrivateEntropy",
             true,
             true,
@@ -149,6 +161,8 @@ class ProductionSafetyConfigTest {
             60,
             false,
             "",
+            3,
+            24,
             "ProdDbCredentialWithStrongPrivateEntropy",
             false,
             false,
@@ -171,6 +185,8 @@ class ProductionSafetyConfigTest {
             60,
             false,
             "",
+            3,
+            24,
             "ProdDbCredentialWithStrongPrivateEntropy",
             false,
             false,
@@ -193,6 +209,8 @@ class ProductionSafetyConfigTest {
             60,
             false,
             "",
+            3,
+            24,
             "ProdDbCredentialWithStrongPrivateEntropy",
             false,
             false,
@@ -216,6 +234,8 @@ class ProductionSafetyConfigTest {
             60,
             false,
             "",
+            3,
+            24,
             "ProdDbCredentialWithStrongPrivateEntropy",
             false,
             false,
@@ -239,6 +259,8 @@ class ProductionSafetyConfigTest {
             2,
             false,
             "",
+            3,
+            24,
             "ProdDbCredentialWithStrongPrivateEntropy",
             false,
             false,
@@ -252,5 +274,32 @@ class ProductionSafetyConfigTest {
         assertThat(exception.getMessage())
             .contains("MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT must be between 1 and 20")
             .contains("MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES must be between 5 and 1440");
+    }
+
+    @Test
+    void rejectsPublicDeploymentWithOutOfRangeAccessRequestThrottle() {
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            5,
+            60,
+            false,
+            "",
+            0,
+            0,
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            false,
+            "",
+            "localhost",
+            "",
+            "deterministic",
+            15
+        ));
+        assertThat(exception.getMessage())
+            .contains("MERHOUSE_ACCESS_REQUEST_LIMIT must be between 1 and 20")
+            .contains("MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS must be between 1 and 168");
     }
 }

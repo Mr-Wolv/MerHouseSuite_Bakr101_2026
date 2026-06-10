@@ -51,6 +51,8 @@ Public access requests let prospective merchant or warehouse users ask for onboa
 
 The public access-request form and API trim copied whitespace from organization name, requester email, and notes before validation and storage.
 
+Pending duplicate requester emails are rejected before another record is stored. Repeated submissions for the same requester email are also bounded by `MERHOUSE_ACCESS_REQUEST_LIMIT` inside the rolling `MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS` window, so public onboarding can be exposed without turning accidental retries into an unbounded review queue.
+
 Access requests start as `PENDING`. Platform users can approve, reject, and convert approved requests into tenant and user records. Reviewed requests record reviewer, note, and review time. Conversion preserves that approval review trail; the conversion actor is recorded through the admin audit event rather than overwriting the reviewer attached to the original decision.
 
 Converting an approved access request requires a temporary setup password and a nonblank conversion reason. It also creates a local notification delivery history record for the new user. Production account invitation delivery remains blocked until later real deployment activation.

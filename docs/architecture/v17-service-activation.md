@@ -37,6 +37,7 @@ The first implementation uses SMTP configuration and is safe by default:
 - Sent, failed, skipped-by-preference, provider-message, provider-error, attempted, sent, failed, and retry-count evidence is stored on notification delivery records.
 - Public startup validation rejects enabled email delivery when sender, external SMTP host, or private SMTP credential values are missing.
 - Password reset requests are throttled per enabled account by `MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT` inside `MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES`; over-limit requests keep the generic public response and do not create another token or delivery.
+- Public access requests reject duplicate pending requester emails and are throttled per requester email by `MERHOUSE_ACCESS_REQUEST_LIMIT` inside `MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS`; over-limit submissions are rejected before another review record is created.
 
 ## Notification Policy
 

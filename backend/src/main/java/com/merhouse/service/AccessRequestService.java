@@ -14,9 +14,11 @@ import com.merhouse.exception.DomainConflictException;
 import com.merhouse.exception.ResourceNotFoundException;
 import com.merhouse.repository.AccessRequestRepository;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,19 +29,25 @@ public class AccessRequestService {
     private final TenantService tenantService;
     private final NotificationService notificationService;
     private final Clock clock;
+    private final int requestLimit;
+    private final Duration requestWindow;
 
     public AccessRequestService(
         AccessRequestRepository requestRepository,
         UserService userService,
         TenantService tenantService,
         NotificationService notificationService,
-        Clock clock
+        Clock clock,
+        @Value("${merhouse.access-requests.request-limit:3}") int requestLimit,
+        @Value("${merhouse.access-requests.request-window-hours:24}") long requestWindowHours
     ) {
         this.requestRepository = requestRepository;
         this.userService = userService;
         this.tenantService = tenantService;
         this.notificationService = notificationService;
         this.clock = clock;
+        this.requestLimit = Math.max(1, requestLimit);
+        this.requestWindow = Duration.ofHours(Math.max(1, requestWindowHours));
     }
 
     @Transactional
@@ -48,9 +56,21 @@ public class AccessRequestService {
             throw new DomainConflictException("Public access requests can only ask for merchant or warehouse access.");
         }
 
+        String requesterEmail = normalizeEmail(request.requesterEmail());
+        if (requestRepository.existsByRequesterEmailIgnoreCaseAndStatus(requesterEmail, AccessRequestStatus.PENDING)) {
+            throw new DomainConflictException("An access request for this email is already pending review.");
+        }
+        long recentRequests = requestRepository.countByRequesterEmailIgnoreCaseAndCreatedAtAfter(
+            requesterEmail,
+            clock.instant().minus(requestWindow)
+        );
+        if (recentRequests >= requestLimit) {
+            throw new DomainConflictException("Too many access requests were submitted for this email recently.");
+        }
+
         AccessRequest accessRequest = new AccessRequest();
         accessRequest.setOrganizationName(request.organizationName().trim());
-        accessRequest.setRequesterEmail(normalizeEmail(request.requesterEmail()));
+        accessRequest.setRequesterEmail(requesterEmail);
         accessRequest.setRequestedRole(request.requestedRole());
         accessRequest.setNotes(trimToNull(request.notes()));
         accessRequest.setStatus(AccessRequestStatus.PENDING);

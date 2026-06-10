@@ -39,6 +39,8 @@ Important environment variables:
 | `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN` | Local recovery-token echo switch |
 | `MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT` | Maximum reset-token preparations per enabled account inside the recovery window |
 | `MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES` | Rolling window, in minutes, for reset-request throttling |
+| `MERHOUSE_ACCESS_REQUEST_LIMIT` | Maximum public access-request submissions per requester email inside the access-request window |
+| `MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS` | Rolling window, in hours, for public access-request throttling |
 | `MERHOUSE_AUTH_SEED_ADMIN_ENABLED` | Local owner seeding switch |
 | `MERHOUSE_SWAGGER_ENABLED` | OpenAPI and Swagger UI switch |
 | `MERHOUSE_DEPLOYMENT_PUBLIC` | Deployment-shaped startup validation |

@@ -20,6 +20,8 @@ public class ProductionSafetyConfig {
         @Value("${merhouse.auth.recovery.request-window-minutes:60}") int recoveryRequestWindowMinutes,
         @Value("${merhouse.auth.seed-admin.enabled:false}") boolean seedAdminEnabled,
         @Value("${merhouse.auth.seed-admin.password:}") String seedAdminPassword,
+        @Value("${merhouse.access-requests.request-limit:3}") int accessRequestLimit,
+        @Value("${merhouse.access-requests.request-window-hours:24}") int accessRequestWindowHours,
         @Value("${spring.datasource.password:}") String databasePassword,
         @Value("${springdoc.api-docs.enabled:true}") boolean apiDocsEnabled,
         @Value("${springdoc.swagger-ui.enabled:true}") boolean swaggerUiEnabled,
@@ -38,6 +40,8 @@ public class ProductionSafetyConfig {
             recoveryRequestWindowMinutes,
             seedAdminEnabled,
             seedAdminPassword,
+            accessRequestLimit,
+            accessRequestWindowHours,
             databasePassword,
             apiDocsEnabled,
             swaggerUiEnabled,
@@ -58,6 +62,8 @@ public class ProductionSafetyConfig {
         int recoveryRequestWindowMinutes,
         boolean seedAdminEnabled,
         String seedAdminPassword,
+        int accessRequestLimit,
+        int accessRequestWindowHours,
         String databasePassword,
         boolean apiDocsEnabled,
         boolean swaggerUiEnabled,
@@ -96,6 +102,12 @@ public class ProductionSafetyConfig {
         }
         if (recoveryRequestWindowMinutes < 5 || recoveryRequestWindowMinutes > 1440) {
             failures.add("MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES must be between 5 and 1440.");
+        }
+        if (accessRequestLimit < 1 || accessRequestLimit > 20) {
+            failures.add("MERHOUSE_ACCESS_REQUEST_LIMIT must be between 1 and 20.");
+        }
+        if (accessRequestWindowHours < 1 || accessRequestWindowHours > 168) {
+            failures.add("MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS must be between 1 and 168.");
         }
         if (apiDocsEnabled || swaggerUiEnabled) {
             failures.add("MERHOUSE_SWAGGER_ENABLED/springdoc API docs and Swagger UI must be disabled for public deployments.");

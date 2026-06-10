@@ -2,6 +2,7 @@ package com.merhouse.repository;
 
 import com.merhouse.entity.AccessRequest;
 import com.merhouse.entity.AccessRequestStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -13,4 +14,8 @@ public interface AccessRequestRepository extends JpaRepository<AccessRequest, UU
     List<AccessRequest> findAll();
 
     long countByStatus(AccessRequestStatus status);
+
+    boolean existsByRequesterEmailIgnoreCaseAndStatus(String requesterEmail, AccessRequestStatus status);
+
+    long countByRequesterEmailIgnoreCaseAndCreatedAtAfter(String requesterEmail, Instant createdAfter);
 }

@@ -39,7 +39,9 @@ class AccessRequestServiceTest {
         userService,
         tenantService,
         notificationService,
-        clock
+        clock,
+        3,
+        24
     );
 
     @Test
@@ -71,6 +73,42 @@ class AccessRequestServiceTest {
                 && saved.getStatus() == AccessRequestStatus.PENDING
                 && saved.getNotes().equals("Please onboard us")
         ));
+    }
+
+    @Test
+    void publicRequestRejectsDuplicatePendingEmail() {
+        when(requestRepository.existsByRequesterEmailIgnoreCaseAndStatus(
+            "merchant@merhouse.local",
+            AccessRequestStatus.PENDING
+        )).thenReturn(true);
+        var request = new AccessRequestCreateRequest(
+            "Merchant Org",
+            " Merchant@MerHouse.Local ",
+            UserRole.MERCHANT,
+            "Please onboard us"
+        );
+
+        assertThrows(DomainConflictException.class, () -> service.submit(request));
+
+        verify(requestRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void publicRequestRejectsEmailOverRollingSubmissionLimit() {
+        when(requestRepository.countByRequesterEmailIgnoreCaseAndCreatedAtAfter(
+            eq("merchant@merhouse.local"),
+            eq(Instant.parse("2026-05-17T00:00:00Z"))
+        )).thenReturn(3L);
+        var request = new AccessRequestCreateRequest(
+            "Merchant Org",
+            "merchant@merhouse.local",
+            UserRole.MERCHANT,
+            "Please onboard us"
+        );
+
+        assertThrows(DomainConflictException.class, () -> service.submit(request));
+
+        verify(requestRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

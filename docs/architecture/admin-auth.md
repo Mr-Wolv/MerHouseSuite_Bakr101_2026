@@ -38,6 +38,8 @@ The backend reads authentication settings from environment variables:
 | `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN` | Local recovery-token echo switch |
 | `MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT` | Per-account reset-request throttle limit |
 | `MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES` | Reset-request throttle window |
+| `MERHOUSE_ACCESS_REQUEST_LIMIT` | Per-email public access-request throttle limit |
+| `MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS` | Public access-request throttle window |
 | `MERHOUSE_AUTH_SEED_ADMIN_ENABLED` | Local owner seeding switch |
 | `MERHOUSE_AUTH_SEED_ADMIN_EMAIL` | Local owner email |
 | `MERHOUSE_AUTH_SEED_ADMIN_PASSWORD` | Local owner password |
@@ -45,4 +47,4 @@ The backend reads authentication settings from environment variables:
 
 ## Startup Safety Checks
 
-When `MERHOUSE_DEPLOYMENT_PUBLIC=true`, startup validates that deployment-shaped authentication and database settings are configured, local account seeding is off, recovery-token echoing is off, recovery throttling is bounded, and Swagger UI is not exposed through the application.
+When `MERHOUSE_DEPLOYMENT_PUBLIC=true`, startup validates that deployment-shaped authentication and database settings are configured, local account seeding is off, recovery-token echoing is off, recovery and access-request throttling are bounded, and Swagger UI is not exposed through the application.
