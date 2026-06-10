@@ -165,8 +165,8 @@ Compare the latest browser and native tour reports after both have run:
 
 ```powershell
 .\scripts\quality\cross-surface-tour-check.ps1 `
-  -WebReportPath ".\reports\v16.2-loop-163-frontend-full-tour.json" `
-  -NativeReportPath ".\reports\v16.2-loop-163-native-tour.json"
+  -WebReportPath ".\reports\wrapup-frontend-full-tour.json" `
+  -NativeReportPath ".\reports\wrapup-native-android-tour.json"
 ```
 
 The comparison normalizes role names and generated detail-route ids, then fails if either report has loading shells, missing expected route content, overflow, unlabeled controls, unnamed controls, bad HTTP states, missing exact web and native active/empty stakeholder coverage, missing required role/path coverage, missing web browser provenance with absolute HTTP(S) app/API URLs, missing native APK/nonblank-device/timestamp/checked-route provenance with an absolute HTTP(S) API URL, or if the normalized web and native role/path sets do not match exactly. On success, it prints the resolved web/native report paths plus browser app/API URL, native API URL, APK SHA-256, device serials, checked timestamps, record counts, and normalized role/path pair count so the QC log can be traced back to the exact paired evidence.
@@ -189,8 +189,8 @@ When browser and installed-APK tour reports are available, include them so the p
 
 ```powershell
 .\scripts\quality\performance-readiness.ps1 `
-  -WebReportPath ".\reports\v16.2-loop-163-frontend-full-tour.json" `
-  -NativeReportPath ".\reports\v16.2-loop-163-native-tour.json"
+  -WebReportPath ".\reports\wrapup-frontend-full-tour.json" `
+  -NativeReportPath ".\reports\wrapup-native-android-tour.json"
 ```
 
 This is local deployment-shaped proof, not production load, monitoring, autoscaling, or provider-delivery certification.
@@ -210,8 +210,8 @@ When browser and installed-APK tour reports are available, pass both report path
 ```powershell
 .\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose `
   -NativeApiBaseUrl "http://10.0.2.2:8080" `
-  -WebTourReportPath ".\reports\v16.2-loop-163-frontend-full-tour.json" `
-  -NativeTourReportPath ".\reports\v16.2-loop-163-native-tour.json"
+  -WebTourReportPath ".\reports\wrapup-frontend-full-tour.json" `
+  -NativeTourReportPath ".\reports\wrapup-native-android-tour.json"
 ```
 
 When `-IncludeApiSmoke` is supplied, deployment readiness validates `-ApiBaseUrl` as a non-blank absolute `http` or `https` URL, then passes it into `performance-readiness.ps1` so API smoke is timed against the local performance budget and recorded in `reports/performance-readiness.json`. Deployment readiness also validates `-NativeApiBaseUrl` and passes it into `native-mobile-check.ps1 -Sync` so the Android-bound JavaScript is compiled against the emulator or device-reachable backend URL instead of relying on an implicit native default. `-ApiBaseUrl` and `-NativeApiBaseUrl` are intentionally separate because host-side smoke often uses `http://localhost:8080` while the Android emulator normally uses `http://10.0.2.2:8080`. Omit API smoke only for a focused rerun when the seeded local stack is unavailable or API smoke is not part of the current claim. The gate stays local and mocked; it does not provision cloud infrastructure, provider setup, or production delivery.

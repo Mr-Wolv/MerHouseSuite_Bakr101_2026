@@ -144,8 +144,8 @@ When browser and installed-APK reports are available, include both report paths 
 ```powershell
 .\scripts\quality\deployment-readiness.ps1 -IncludeE2E -IncludeApiSmoke -SkipCompose `
   -NativeApiBaseUrl "http://10.0.2.2:8080" `
-  -WebTourReportPath ".\reports\v16.2-loop-163-frontend-full-tour.json" `
-  -NativeTourReportPath ".\reports\v16.2-loop-163-native-tour.json"
+  -WebTourReportPath ".\reports\wrapup-frontend-full-tour.json" `
+  -NativeTourReportPath ".\reports\wrapup-native-android-tour.json"
 ```
 
 ## Closeout Bar

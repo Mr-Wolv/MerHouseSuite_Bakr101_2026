@@ -1,6 +1,6 @@
 param(
-    [string]$WebReportPath = ".\reports\v16.2-loop-163-frontend-full-tour.json",
-    [string]$NativeReportPath = ".\reports\v16.2-loop-163-native-tour.json"
+    [string]$WebReportPath = ".\reports\wrapup-frontend-full-tour.json",
+    [string]$NativeReportPath = ".\reports\wrapup-native-android-tour.json"
 )
 
 $ErrorActionPreference = "Stop"

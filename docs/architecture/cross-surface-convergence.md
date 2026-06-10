@@ -146,6 +146,54 @@ Each entry should include:
 
 ## Current Bug-Hunt Ledger
 
+### BH-050: Current Proof References Drifted Across Docs And Script Defaults
+
+Date: 2026-06-10.
+
+Target and suspected bug:
+
+- README, script docs, deployment certification docs, roadmap command examples, system diagrams, and `cross-surface-tour-check.ps1` defaults after the wrap-up proof.
+- The risk was cross-file drift: future proof runs could silently use old loop-163 report names while current certification evidence lives in the wrap-up reports.
+
+Why this target matters:
+
+- V16.2 closeout requires docs, scripts, tests, and diagrams to describe the same current local certification state.
+- Report-aware proof is paired evidence, so stale default paths can turn a current QC claim into an accidental historical rerun.
+
+Working-tree scope for this iteration:
+
+- `README.md`
+- `docs/architecture/cross-surface-convergence.md`
+- `docs/architecture/deployment-ready-local-certification.md`
+- `docs/architecture/roadmap.md`
+- `docs/architecture/system-diagrams.html`
+- `docs/development/scripts.md`
+- `scripts/quality/cross-surface-tour-check.ps1`
+
+Evidence found:
+
+- README, roadmap, script docs, deployment certification docs, and the cross-surface script defaults still referenced `v16.2-loop-163` report paths after the current wrap-up reports had replaced them.
+- README and deployment certification docs still referenced an older installed-APK fingerprint instead of `b252a277e01ca00370491a95a8873262acf6fa76d2dca3869a154d15792e995d`.
+- `system-diagrams.html` described focused bug hunts, but not the current wrap-up rule that live browser/APK behavior and gate output should drive only evidenced fixes.
+
+Fix or decision:
+
+- Current command examples and `cross-surface-tour-check.ps1` defaults now use `reports/wrapup-frontend-full-tour.json` and `reports/wrapup-native-android-tour.json`.
+- Current certification prose now records the wrap-up APK fingerprint and byte size.
+- The historical BH-037 ledger entry keeps its old report artifact references but now says they were the then-latest reports at that point.
+- The system diagram convergence card now states that browser behavior, installed-APK behavior, reports, or gate output drive bug fixes, and that final convergence still waits for the live reviewer/product-owner walkthrough.
+
+Proof run:
+
+- `.\scripts\quality\cross-surface-tour-check.ps1` passed with its default report paths, proving the script now resolves `reports/wrapup-frontend-full-tour.json` and `reports/wrapup-native-android-tour.json` by default. The pass printed 188 web records, 100 native Android records, 82 normalized role/path pairs, native API URL `http://localhost:8080`, and native APK SHA-256 `b252a277e01ca00370491a95a8873262acf6fa76d2dca3869a154d15792e995d`.
+- `.\scripts\quality\markdown-check.ps1` passed.
+- `git diff --check` passed.
+
+Remaining risk and next target:
+
+- Final human live walkthrough remains required before the active goal can be completed.
+- If proof passes, the next target should be the live walkthrough preparation or any new surfaced gate/runtime blocker, not broad speculative refactoring.
+
 ### BH-049: Wrap-Up Certification Replaced Micromanaged Looping
 
 Date: 2026-06-10.
@@ -733,7 +781,7 @@ Remaining risk and next target:
 - Fresh installed-APK screenshots, route records, stakeholder-state proof, and final live Android walkthrough remain pending until an emulator or physical device is connected.
 - Move to the next non-blocked bug-hunt target instead of repeating Android device discovery.
 
-### BH-037: Fresh Browser Tour Paired Cleanly With Latest Installed-APK Evidence
+### BH-037: Fresh Browser Tour Paired Cleanly With Then-Latest Installed-APK Evidence
 
 Date: 2026-06-10.
 
@@ -745,24 +793,24 @@ Why this target matters:
 
 - The browser tour was newly refreshed after a real route bug, but convergence requires web/native evidence to agree.
 - The performance gate must not claim route timing from one surface only; it requires paired browser and installed-APK reports for route-timing claims.
-- This iteration checks whether the fresh web evidence creates a cross-surface mismatch against the latest installed-APK report before moving to another target.
+- This iteration checked whether the fresh web evidence created a cross-surface mismatch against the then-latest installed-APK report before moving to another target.
 
 Surfaces, roles, states, and workflows inspected:
 
 - Fresh web browser report: `reports/bh-036-frontend-full-tour.json`.
-- Latest installed Android APK report: `reports/v16.2-loop-163-native-tour.json`.
+- Then-latest installed Android APK report: `reports/v16.2-loop-163-native-tour.json`.
 - Cross-surface normalized role/path coverage, active/empty stakeholder coverage, route cleanliness, report provenance, and report-backed route timing.
 
 Evidence found:
 
 - The fresh web report contains 188 checked routes across public, owner, admin, support-admin, auditor, active/empty merchant, active/empty warehouse, shared review surfaces, account settings, notifications, assistant, and operational detail routes.
-- The latest installed-APK report contains 100 native route records with APK SHA-256, API URL, checked timestamp, and emulator device provenance.
+- That installed-APK report contains 100 native route records with APK SHA-256, API URL, checked timestamp, and emulator device provenance.
 - No new cross-surface route-set, role, stakeholder-state, timing, screenshot, overflow, unlabeled-control, bad-status, or console-error mismatch was found by the paired checks.
 
 Fix or decision:
 
 - No code change was needed in this iteration.
-- The fresh web report is accepted as the current web-side evidence paired with the latest available installed-APK report for scripted parity/performance proof.
+- The fresh web report was accepted as the current web-side evidence paired with the then-latest available installed-APK report for scripted parity/performance proof.
 - This does not replace the required final live installed-APK walkthrough with the reviewer/product owner.
 
 Proof run:
@@ -773,7 +821,7 @@ Proof run:
 
 Remaining risk and next target:
 
-- The native report is the latest available installed-APK evidence, not a fresh APK rerun from this iteration. A final live installed-APK walkthrough is still required before convergence can close.
+- The native report was the latest available installed-APK evidence at that point, not a fresh APK rerun from this iteration. A final live installed-APK walkthrough is still required before convergence can close.
 - The next target should either attach/boot Android and rerun installed-APK proof, or continue bug-hunting a code/report area that is not yet covered by the fresh web plus latest native evidence.
 
 ### BH-036: Support-Admin Service Review Route Used Mutation Authorization For SLA Reads
