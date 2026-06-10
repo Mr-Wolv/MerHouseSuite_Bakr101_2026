@@ -56,7 +56,13 @@ function Test-OutputFile {
     param(
         [string]$ProofName,
         [string]$ExpectedSchema = "",
-        [switch]$RequirePassedStatus
+        [switch]$RequirePassedStatus,
+        [string]$ExpectedBaseUrl = "",
+        [string]$ExpectedFrontendBaseUrl = "",
+        [string]$ExpectedApiBaseUrl = "",
+        [switch]$RequireApiSmokeTiming,
+        [switch]$RequireBrowserTourProvenance,
+        [switch]$RequireLoadSmokePassed
     )
 
     $proofPath = Resolve-ProofPath -Path $outputFiles.$ProofName
@@ -72,17 +78,51 @@ function Test-OutputFile {
         if ($RequirePassedStatus -and $proofReport.status -ne "PASSED") {
             $script:failures += "Deployment evidence manifest outputFiles.$ProofName status must be PASSED."
         }
+        if (-not [string]::IsNullOrWhiteSpace($ExpectedBaseUrl) -and $proofReport.baseUrl -ne $ExpectedBaseUrl) {
+            $script:failures += "Deployment evidence manifest outputFiles.$ProofName baseUrl must match $ExpectedBaseUrl."
+        }
+        if (-not [string]::IsNullOrWhiteSpace($ExpectedFrontendBaseUrl) -and $proofReport.frontendBaseUrl -ne $ExpectedFrontendBaseUrl) {
+            $script:failures += "Deployment evidence manifest outputFiles.$ProofName frontendBaseUrl must match frontendBaseUrl."
+        }
+        if (-not [string]::IsNullOrWhiteSpace($ExpectedApiBaseUrl) -and $proofReport.apiBaseUrl -ne $ExpectedApiBaseUrl) {
+            $script:failures += "Deployment evidence manifest outputFiles.$ProofName apiBaseUrl must match apiBaseUrl."
+        }
+        if ($RequireApiSmokeTiming -and $null -eq $proofReport.apiSmokeSeconds) {
+            $script:failures += "Deployment evidence manifest outputFiles.$ProofName apiSmokeSeconds must be present."
+        }
+        if ($RequireLoadSmokePassed) {
+            if (-not [bool]$proofReport.result.passed) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName result.passed must be true."
+            }
+            if ([int]$proofReport.totalRequests -lt 1) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName totalRequests must be at least 1."
+            }
+        }
+        if ($RequireBrowserTourProvenance) {
+            if ($proofReport.appUrl -ne $manifest.frontendBaseUrl) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName appUrl must match frontendBaseUrl."
+            }
+            if ($proofReport.apiUrl -ne $manifest.apiBaseUrl) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName apiUrl must match apiBaseUrl."
+            }
+            if ([string]::IsNullOrWhiteSpace($proofReport.checkedAt)) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName checkedAt must be present."
+            }
+            if (@($proofReport.checkedRoutes).Count -lt 1) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName checkedRoutes must include at least one route."
+            }
+        }
     } catch {
         $script:failures += "Deployment evidence manifest outputFiles.$ProofName must be readable JSON proof."
     }
 }
 
-Test-OutputFile -ProofName "frontendProxySmoke"
-Test-OutputFile -ProofName "directApiSmoke"
-Test-OutputFile -ProofName "monitoring" -ExpectedSchema "merhouse.v17.deployed-monitoring.v1"
-Test-OutputFile -ProofName "performance" -RequirePassedStatus
-Test-OutputFile -ProofName "loadSmoke" -ExpectedSchema "merhouse.load-smoke.v1"
-Test-OutputFile -ProofName "browserTour"
+Test-OutputFile -ProofName "frontendProxySmoke" -ExpectedBaseUrl $manifest.frontendBaseUrl
+Test-OutputFile -ProofName "directApiSmoke" -ExpectedBaseUrl $manifest.apiBaseUrl
+Test-OutputFile -ProofName "monitoring" -ExpectedSchema "merhouse.v17.deployed-monitoring.v1" -ExpectedFrontendBaseUrl $manifest.frontendBaseUrl -ExpectedApiBaseUrl $manifest.apiBaseUrl
+Test-OutputFile -ProofName "performance" -RequirePassedStatus -RequireApiSmokeTiming
+Test-OutputFile -ProofName "loadSmoke" -ExpectedSchema "merhouse.load-smoke.v1" -ExpectedBaseUrl $manifest.apiBaseUrl -RequireLoadSmokePassed
+Test-OutputFile -ProofName "browserTour" -RequireBrowserTourProvenance
 
 $expectedAttachmentSchemas = @{
     androidRelease = "merhouse.v17.android-release.v1"
