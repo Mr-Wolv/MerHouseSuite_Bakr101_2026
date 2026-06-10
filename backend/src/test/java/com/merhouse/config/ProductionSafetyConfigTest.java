@@ -13,6 +13,8 @@ class ProductionSafetyConfigTest {
             false,
             "replace-with-local-jwt-secret-at-least-32-characters",
             true,
+            5,
+            60,
             true,
             "replace-with-local-admin-password",
             "replace-with-local-postgres-password",
@@ -33,6 +35,8 @@ class ProductionSafetyConfigTest {
             true,
             "replace-with-local-jwt-secret-at-least-32-characters",
             true,
+            5,
+            60,
             true,
             "replace-with-local-admin-password",
             "replace-with-local-postgres-password",
@@ -53,6 +57,8 @@ class ProductionSafetyConfigTest {
             true,
             "short-secret",
             false,
+            5,
+            60,
             false,
             "",
             "ProdDbCredentialWithStrongPrivateEntropy",
@@ -73,6 +79,8 @@ class ProductionSafetyConfigTest {
             true,
             "production-jwt-secret-with-at-least-strong-private-entropy",
             false,
+            5,
+            60,
             false,
             "",
             "ProdDbCredentialWithStrongPrivateEntropy",
@@ -93,6 +101,8 @@ class ProductionSafetyConfigTest {
             true,
             "production-jwt-secret-with-at-least-strong-private-entropy",
             false,
+            5,
+            60,
             true,
             "PrivateBootstrapPasswordWithStrongEntropy",
             "ProdDbCredentialWithStrongPrivateEntropy",
@@ -113,6 +123,8 @@ class ProductionSafetyConfigTest {
             true,
             "production-jwt-secret-with-at-least-strong-private-entropy",
             true,
+            5,
+            60,
             false,
             "",
             "ProdDbCredentialWithStrongPrivateEntropy",
@@ -133,6 +145,8 @@ class ProductionSafetyConfigTest {
             true,
             "production-jwt-secret-with-at-least-strong-private-entropy",
             false,
+            5,
+            60,
             false,
             "",
             "ProdDbCredentialWithStrongPrivateEntropy",
@@ -153,6 +167,8 @@ class ProductionSafetyConfigTest {
             true,
             "production-jwt-secret-with-at-least-strong-private-entropy",
             false,
+            5,
+            60,
             false,
             "",
             "ProdDbCredentialWithStrongPrivateEntropy",
@@ -173,6 +189,8 @@ class ProductionSafetyConfigTest {
             true,
             "production-jwt-secret-with-at-least-strong-private-entropy",
             false,
+            5,
+            60,
             false,
             "",
             "ProdDbCredentialWithStrongPrivateEntropy",
@@ -194,6 +212,8 @@ class ProductionSafetyConfigTest {
             true,
             "production-jwt-secret-with-at-least-strong-private-entropy",
             false,
+            5,
+            60,
             false,
             "",
             "ProdDbCredentialWithStrongPrivateEntropy",
@@ -207,5 +227,30 @@ class ProductionSafetyConfigTest {
             0
         ));
         assertThat(exception.getMessage()).contains("MERHOUSE_AGENT_TIMEOUT_SECONDS must be between 1 and 60");
+    }
+
+    @Test
+    void rejectsPublicDeploymentWithOutOfRangeRecoveryThrottle() {
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            0,
+            2,
+            false,
+            "",
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            false,
+            "",
+            "localhost",
+            "",
+            "deterministic",
+            15
+        ));
+        assertThat(exception.getMessage())
+            .contains("MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT must be between 1 and 20")
+            .contains("MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES must be between 5 and 1440");
     }
 }

@@ -298,7 +298,7 @@ Audit the template in CI/preflight mode or audit a private env file before rollo
 .\scripts\deploy\env-audit.ps1 -EnvFile ".env.production"
 ```
 
-Strict mode rejects placeholder database/JWT/SMTP credentials, non-HTTPS public origins, CORS values that omit the public frontend URL, non-loopback frontend binds, relative backup paths, incomplete SMTP settings when email delivery is enabled, unsupported agent modes, and out-of-range agent timeouts. The audit prints key names and paths only, not secret values.
+Strict mode rejects placeholder database/JWT/SMTP credentials, non-HTTPS public origins, CORS values that omit the public frontend URL, non-loopback frontend binds, relative backup paths, incomplete SMTP settings when email delivery is enabled, unsupported agent modes, out-of-range recovery throttles, and out-of-range agent timeouts. The audit prints key names and paths only, not secret values.
 
 Validate the public nginx reverse-proxy template before installing it on the VPS:
 

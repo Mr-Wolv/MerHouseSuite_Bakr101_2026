@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.merhouse.dto.PasswordResetConfirmRequest;
@@ -24,9 +25,11 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class AuthRecoveryServiceTest {
     private final AppUserRepository userRepository = mock(AppUserRepository.class);
@@ -41,7 +44,9 @@ class AuthRecoveryServiceTest {
         notificationService,
         clock,
         false,
-        "https://staging.merhouse.example"
+        "https://staging.merhouse.example",
+        5,
+        60
     );
 
     @Test
@@ -104,7 +109,9 @@ class AuthRecoveryServiceTest {
             notificationService,
             clock,
             true,
-            "http://localhost:3000"
+            "http://localhost:3000",
+            5,
+            60
         );
         AppUser user = new AppUser();
         user.setEnabled(true);
@@ -114,6 +121,38 @@ class AuthRecoveryServiceTest {
 
         assertNotNull(response.resetToken());
         assertEquals("/reset-password?token=" + response.resetToken(), response.resetPath());
+    }
+
+    @Test
+    void resetRequestRateLimitKeepsGenericResponseAndDoesNotSendDelivery() {
+        AuthRecoveryService limitedService = new AuthRecoveryService(
+            userRepository,
+            tokenRepository,
+            passwordEncoder,
+            notificationService,
+            clock,
+            false,
+            "https://staging.merhouse.example",
+            2,
+            60
+        );
+        UUID userId = UUID.randomUUID();
+        AppUser user = new AppUser();
+        ReflectionTestUtils.setField(user, "id", userId);
+        user.setEnabled(true);
+        when(userRepository.findByEmailIgnoreCase("limited@merhouse.local")).thenReturn(Optional.of(user));
+        when(tokenRepository.countByUserIdAndCreatedAtAfter(
+            eq(userId),
+            eq(Instant.parse("2026-05-17T23:00:00Z"))
+        )).thenReturn(2L);
+
+        var response = limitedService.requestReset(new PasswordResetRequest("limited@merhouse.local"));
+
+        assertEquals("If an enabled account exists for that email, a password reset link has been prepared.", response.message());
+        assertNull(response.resetToken());
+        assertNull(response.resetPath());
+        verify(tokenRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
     }
 
     @Test

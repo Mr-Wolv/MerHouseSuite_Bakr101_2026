@@ -33,6 +33,8 @@ $composeText = $composeConfig -join "`n"
 $requiredPatterns = @(
     'MERHOUSE_DEPLOYMENT_PUBLIC:\s+"?true"?',
     'MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN:\s+"?false"?',
+    'MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT:\s+"?5"?',
+    'MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES:\s+"?60"?',
     'MERHOUSE_AUTH_SEED_ADMIN_ENABLED:\s+"?false"?',
     'MERHOUSE_SWAGGER_ENABLED:\s+"?false"?',
     'SPRING_DATASOURCE_URL:\s+jdbc:postgresql://postgres:5432/',

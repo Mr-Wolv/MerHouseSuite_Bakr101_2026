@@ -37,11 +37,13 @@ Password recovery uses a request and confirmation flow:
 
 Expired, used, missing, disabled-user, and invalid tokens produce the same invalid-or-expired result.
 
-Enabled-user reset requests also create a local notification delivery history record for the requesting account. This record is local history only; it is not email, SMS, phone OS push, lock-screen, notification-tray, webhook, or provider delivery.
+Enabled-user reset requests are throttled per account using `MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT` inside the rolling `MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES` window. Over-limit requests return the same generic public response and do not create another token or delivery record, preserving account-enumeration safety while limiting recovery traffic.
+
+Enabled-user reset requests also create a local notification delivery history record for the requesting account. By default this record is local history only; it is not SMS, phone OS push, lock-screen, notification-tray, webhook, or provider delivery. When V17 SMTP email delivery is enabled, the same notification path records an email-channel provider attempt for the reset-link body.
 
 The default local Docker stack keeps `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=false`, so a browser user can request a reset and see the generic success message, but cannot complete the reset from the browser without a token supplied by another local proof path. To prove the complete request/confirm loop locally, set `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=true`, rebuild or restart the backend, and run the API smoke test with `-ExpectRecoveryToken`. Production reset delivery remains a V17 real activation item.
 
-V17 may replace the local proof path with email-delivered OTP or reset-link delivery through a configured mailbox/provider. The intended direction is email delivery, not Android OS push. Any Gmail or transactional-email setup must keep provider credentials out of Git, keep public token echo disabled, preserve token hashing/expiry/replay protection, and prove rate limiting, audit, provider failure, and recipient-scoped delivery behavior before production use.
+V17 may replace the local proof path with email-delivered OTP or reset-link delivery through a configured mailbox/provider. The intended direction is email delivery, not Android OS push. Any Gmail or transactional-email setup must keep provider credentials out of Git, keep public token echo disabled, preserve token hashing/expiry/replay protection, and prove throttling, audit, provider failure, and recipient-scoped delivery behavior before production use.
 
 ## Access Requests
 

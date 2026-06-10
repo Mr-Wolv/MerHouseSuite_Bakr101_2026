@@ -243,6 +243,8 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_POSTGRES_PASSWORD` | PostgreSQL password |
 | `MERHOUSE_AUTH_JWT_SECRET` | HMAC secret for API access tokens |
 | `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN` | Development switch for returning recovery tokens in API responses |
+| `MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT` | Per-account reset-token preparation limit inside the recovery window |
+| `MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES` | Rolling window for password-recovery throttling |
 | `MERHOUSE_AUTH_SEED_ADMIN_ENABLED` | Development switch for creating an initial owner account |
 | `MERHOUSE_AUTH_SEED_ADMIN_EMAIL` | Initial owner email when seeding is enabled |
 | `MERHOUSE_AUTH_SEED_ADMIN_PASSWORD` | Initial owner password when seeding is enabled |
@@ -260,7 +262,7 @@ The backend reads configuration from environment variables. `.env.example` conta
 
 V16.2 proves deployment readiness locally; it does not deploy MerHouse.
 
-- Notification delivery and password recovery delivery are local records by default. V17 can make opt-in SMTP email attempts when email configuration is enabled and proven; SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
+- Notification delivery and password recovery delivery are local records by default, with per-account recovery throttling. V17 can make opt-in SMTP email attempts when email configuration is enabled and proven; SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
 - Carrier/provider handoff is represented by local outbox and carrier-dispatch records.
 - Assistant behavior is deterministic read-plus-draft review assistance. Public/deployment checks reject non-deterministic agent modes until a provider-backed runtime is implemented, authorized, audited, and proven.
 - Health, backup/restore, dependency, and public-readiness proof are local/dry-run checks.

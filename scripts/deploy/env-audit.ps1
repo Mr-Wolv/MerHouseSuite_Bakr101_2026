@@ -105,6 +105,8 @@ foreach ($required in @(
     "MERHOUSE_POSTGRES_USER",
     "MERHOUSE_POSTGRES_PASSWORD",
     "MERHOUSE_AUTH_JWT_SECRET",
+    "MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT",
+    "MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES",
     "MERHOUSE_PUBLIC_FRONTEND_URL",
     "MERHOUSE_CORS_ALLOWED_ORIGINS",
     "MERHOUSE_HTTP_BIND",
@@ -121,6 +123,8 @@ Assert-PrivateValue -Values $values -Name "MERHOUSE_AUTH_JWT_SECRET"
 if (-not $AllowTemplate -and [Text.Encoding]::UTF8.GetByteCount($values["MERHOUSE_AUTH_JWT_SECRET"]) -lt 32) {
     throw "MERHOUSE_AUTH_JWT_SECRET must be at least 32 bytes."
 }
+Assert-IntegerRange -Values $values -Name "MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT" -Minimum 1 -Maximum 20
+Assert-IntegerRange -Values $values -Name "MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES" -Minimum 5 -Maximum 1440
 
 $frontendUrl = Assert-AbsoluteHttpUrl -Name "MERHOUSE_PUBLIC_FRONTEND_URL" -Value $values["MERHOUSE_PUBLIC_FRONTEND_URL"]
 if (-not $frontendUrl.StartsWith("https://")) {

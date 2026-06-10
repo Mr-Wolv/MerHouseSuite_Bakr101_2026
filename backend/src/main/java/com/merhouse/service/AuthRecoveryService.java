@@ -36,6 +36,8 @@ public class AuthRecoveryService {
     private final Clock clock;
     private final boolean exposeResetToken;
     private final String publicFrontendUrl;
+    private final int resetRequestLimit;
+    private final Duration resetRequestWindow;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthRecoveryService(
@@ -45,7 +47,9 @@ public class AuthRecoveryService {
         NotificationService notificationService,
         Clock clock,
         @Value("${merhouse.auth.recovery.expose-reset-token:false}") boolean exposeResetToken,
-        @Value("${merhouse.public.frontend-url:http://localhost:3000}") String publicFrontendUrl
+        @Value("${merhouse.public.frontend-url:http://localhost:3000}") String publicFrontendUrl,
+        @Value("${merhouse.auth.recovery.request-limit:5}") int resetRequestLimit,
+        @Value("${merhouse.auth.recovery.request-window-minutes:60}") long resetRequestWindowMinutes
     ) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
@@ -54,6 +58,8 @@ public class AuthRecoveryService {
         this.clock = clock;
         this.exposeResetToken = exposeResetToken;
         this.publicFrontendUrl = trimTrailingSlash(publicFrontendUrl);
+        this.resetRequestLimit = Math.max(1, resetRequestLimit);
+        this.resetRequestWindow = Duration.ofMinutes(Math.max(1, resetRequestWindowMinutes));
     }
 
     @Transactional
@@ -61,6 +67,7 @@ public class AuthRecoveryService {
         String email = normalizeEmail(request.email());
         return userRepository.findByEmailIgnoreCase(email)
             .filter(AppUser::isEnabled)
+            .filter(this::canCreateResetToken)
             .map(user -> createResetResponse(user, createRawToken()))
             .orElse(new PasswordResetRequestResponse(GENERIC_RESET_MESSAGE, null, null));
     }
@@ -111,6 +118,14 @@ public class AuthRecoveryService {
         byte[] bytes = new byte[32];
         secureRandom.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private boolean canCreateResetToken(AppUser user) {
+        long recentTokens = tokenRepository.countByUserIdAndCreatedAtAfter(
+            user.getId(),
+            clock.instant().minus(resetRequestWindow)
+        );
+        return recentTokens < resetRequestLimit;
     }
 
     private String hashToken(String token) {

@@ -16,6 +16,8 @@ public class ProductionSafetyConfig {
         @Value("${merhouse.deployment.public:false}") boolean publicDeployment,
         @Value("${merhouse.auth.jwt-secret:}") String jwtSecret,
         @Value("${merhouse.auth.recovery.expose-reset-token:false}") boolean exposeResetToken,
+        @Value("${merhouse.auth.recovery.request-limit:5}") int recoveryRequestLimit,
+        @Value("${merhouse.auth.recovery.request-window-minutes:60}") int recoveryRequestWindowMinutes,
         @Value("${merhouse.auth.seed-admin.enabled:false}") boolean seedAdminEnabled,
         @Value("${merhouse.auth.seed-admin.password:}") String seedAdminPassword,
         @Value("${spring.datasource.password:}") String databasePassword,
@@ -32,6 +34,8 @@ public class ProductionSafetyConfig {
             publicDeployment,
             jwtSecret,
             exposeResetToken,
+            recoveryRequestLimit,
+            recoveryRequestWindowMinutes,
             seedAdminEnabled,
             seedAdminPassword,
             databasePassword,
@@ -50,6 +54,8 @@ public class ProductionSafetyConfig {
         boolean publicDeployment,
         String jwtSecret,
         boolean exposeResetToken,
+        int recoveryRequestLimit,
+        int recoveryRequestWindowMinutes,
         boolean seedAdminEnabled,
         String seedAdminPassword,
         String databasePassword,
@@ -84,6 +90,12 @@ public class ProductionSafetyConfig {
         }
         if (exposeResetToken) {
             failures.add("MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN must be false for public deployments.");
+        }
+        if (recoveryRequestLimit < 1 || recoveryRequestLimit > 20) {
+            failures.add("MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT must be between 1 and 20.");
+        }
+        if (recoveryRequestWindowMinutes < 5 || recoveryRequestWindowMinutes > 1440) {
+            failures.add("MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES must be between 5 and 1440.");
         }
         if (apiDocsEnabled || swaggerUiEnabled) {
             failures.add("MERHOUSE_SWAGGER_ENABLED/springdoc API docs and Swagger UI must be disabled for public deployments.");
