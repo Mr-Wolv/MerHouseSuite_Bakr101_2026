@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +39,8 @@ public class AssistantService {
     private final AdminControlService adminControlService;
     private final AdminAuditService adminAuditService;
     private final Clock clock;
+    private final String agentMode;
+    private final String agentModelName;
 
     public AssistantService(
         AssistantInteractionRepository interactionRepository,
@@ -47,7 +50,9 @@ public class AssistantService {
         DashboardService dashboardService,
         AdminControlService adminControlService,
         AdminAuditService adminAuditService,
-        Clock clock
+        Clock clock,
+        @Value("${merhouse.agent.mode:deterministic}") String agentMode,
+        @Value("${merhouse.agent.model-name:}") String agentModelName
     ) {
         this.interactionRepository = interactionRepository;
         this.userRepository = userRepository;
@@ -57,6 +62,8 @@ public class AssistantService {
         this.adminControlService = adminControlService;
         this.adminAuditService = adminAuditService;
         this.clock = clock;
+        this.agentMode = agentMode == null || agentMode.isBlank() ? "deterministic" : agentMode.trim();
+        this.agentModelName = agentModelName == null ? "" : agentModelName.trim();
     }
 
     @Transactional
@@ -92,7 +99,9 @@ public class AssistantService {
             Map.of(
                 "scope", scope.name(),
                 "targetTenantId", request.targetTenantId() == null ? "" : request.targetTenantId().toString(),
-                "prototypeLocal", true
+                "prototypeLocal", true,
+                "agentMode", agentMode,
+                "agenticWork", "read-plus-draft"
             )
         );
         return AssistantInteractionResponse.from(saved);
@@ -300,7 +309,15 @@ public class AssistantService {
         return new AssistantDraft(
             wantsSuggestion ? AssistantInteractionType.SUGGESTION : AssistantInteractionType.SUMMARY,
             response,
-            Map.of("metrics", metrics, "scope", scope.name(), "prototypeLocal", true),
+            Map.of(
+                "metrics", metrics,
+                "scope", scope.name(),
+                "prototypeLocal", true,
+                "agentMode", agentMode,
+                "agentModelName", agentModelName,
+                "agenticWork", "read-plus-draft",
+                "mutationPolicy", "human-executes"
+            ),
             wantsSuggestion ? "Assistant generated scoped suggestion" : "Assistant generated scoped summary"
         );
     }
@@ -353,7 +370,14 @@ public class AssistantService {
         return new AssistantDraft(
             AssistantInteractionType.REFUSAL,
             message,
-            Map.of("scope", scope.name(), "prototypeLocal", true),
+            Map.of(
+                "scope", scope.name(),
+                "prototypeLocal", true,
+                "agentMode", agentMode,
+                "agentModelName", agentModelName,
+                "agenticWork", "read-plus-draft",
+                "mutationPolicy", "refused"
+            ),
             auditReason
         );
     }

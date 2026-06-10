@@ -40,17 +40,20 @@ public class NotificationService {
     private final NotificationPreferenceRepository preferenceRepository;
     private final NotificationDeliveryRepository deliveryRepository;
     private final AppUserRepository userRepository;
+    private final EmailDeliveryService emailDeliveryService;
     private final Clock clock;
 
     public NotificationService(
         NotificationPreferenceRepository preferenceRepository,
         NotificationDeliveryRepository deliveryRepository,
         AppUserRepository userRepository,
+        EmailDeliveryService emailDeliveryService,
         Clock clock
     ) {
         this.preferenceRepository = preferenceRepository;
         this.deliveryRepository = deliveryRepository;
         this.userRepository = userRepository;
+        this.emailDeliveryService = emailDeliveryService;
         this.clock = clock;
     }
 
@@ -175,6 +178,19 @@ public class NotificationService {
         String sourceType,
         UUID sourceId
     ) {
+        return recordForUser(recipient, topic, title, body, body, sourceType, sourceId);
+    }
+
+    @Transactional
+    public NotificationDelivery recordForUser(
+        AppUser recipient,
+        NotificationTopic topic,
+        String title,
+        String inAppBody,
+        String emailBody,
+        String sourceType,
+        UUID sourceId
+    ) {
         NotificationDelivery delivery = new NotificationDelivery();
         delivery.setRecipient(recipient);
         delivery.setTenant(recipient.getTenant());
@@ -188,11 +204,62 @@ public class NotificationService {
         delivery.setDeliveryStage(enabled ? NotificationDeliveryStage.LOCAL_RECORDED : NotificationDeliveryStage.SKIPPED_BY_PREFERENCE);
         delivery.setProviderStatus(NotificationProviderStatus.NOT_CONFIGURED);
         delivery.setTitle(title);
-        delivery.setBody(body);
+        delivery.setBody(inAppBody);
         delivery.setSourceType(sourceType);
         delivery.setSourceId(sourceId);
         delivery.setPrototypeLocal(true);
-        return deliveryRepository.save(delivery);
+        NotificationDelivery saved = deliveryRepository.save(delivery);
+        recordEmailDeliveryIfEnabled(recipient, topic, title, emailBody, sourceType, sourceId);
+        return saved;
+    }
+
+    private void recordEmailDeliveryIfEnabled(
+        AppUser recipient,
+        NotificationTopic topic,
+        String title,
+        String emailBody,
+        String sourceType,
+        UUID sourceId
+    ) {
+        if (!emailDeliveryService.isEnabled()) {
+            return;
+        }
+        NotificationDelivery emailDelivery = new NotificationDelivery();
+        emailDelivery.setRecipient(recipient);
+        emailDelivery.setTenant(recipient.getTenant());
+        emailDelivery.setTopic(topic);
+        emailDelivery.setChannel(NotificationChannel.EMAIL_PROTOTYPE);
+        boolean enabled = preferenceRepository
+            .findByUserIdAndTopicAndChannel(recipient.getId(), topic, NotificationChannel.EMAIL_PROTOTYPE)
+            .map(NotificationPreference::isEnabled)
+            .orElse(true);
+        emailDelivery.setStatus(enabled ? NotificationDeliveryStatus.READ : NotificationDeliveryStatus.SKIPPED_BY_PREFERENCE);
+        emailDelivery.setDeliveryStage(enabled ? NotificationDeliveryStage.PREPARED : NotificationDeliveryStage.SKIPPED_BY_PREFERENCE);
+        emailDelivery.setProviderStatus(enabled ? NotificationProviderStatus.READY_FOR_PROVIDER : NotificationProviderStatus.NOT_CONFIGURED);
+        emailDelivery.setTitle(title);
+        emailDelivery.setBody(emailBody);
+        emailDelivery.setSourceType(sourceType);
+        emailDelivery.setSourceId(sourceId);
+        emailDelivery.setPrototypeLocal(false);
+        if (!enabled) {
+            deliveryRepository.save(emailDelivery);
+            return;
+        }
+        emailDelivery.setProviderAttemptedAt(clock.instant());
+        emailDelivery.setProviderRetryCount(emailDelivery.getProviderRetryCount() + 1);
+        EmailDeliveryResult result = emailDeliveryService.send(emailDelivery, emailBody);
+        if (result.sent()) {
+            emailDelivery.setDeliveryStage(NotificationDeliveryStage.PROVIDER_SENT);
+            emailDelivery.setProviderStatus(NotificationProviderStatus.SENT);
+            emailDelivery.setProviderMessageId(result.providerMessageId());
+            emailDelivery.setProviderSentAt(clock.instant());
+        } else {
+            emailDelivery.setDeliveryStage(NotificationDeliveryStage.PROVIDER_FAILED);
+            emailDelivery.setProviderStatus(NotificationProviderStatus.FAILED);
+            emailDelivery.setProviderError(result.error());
+            emailDelivery.setProviderFailedAt(clock.instant());
+        }
+        deliveryRepository.save(emailDelivery);
     }
 
     private String notificationRoute(NotificationDelivery delivery) {

@@ -58,6 +58,14 @@ If a capability is deliberately not production-grade in the first deployment, it
 
 Production activation should start with staging. Staging must use the same deployment shape as production, but may use fake provider credentials and non-production domains.
 
+The first V17 implementation target is VPS + Docker Compose:
+
+- `deploy/vps/compose.production.yml` runs PostgreSQL, backend, and frontend with public startup validation enabled.
+- `deploy/vps/env.production.example` documents required runtime values without secrets.
+- `deploy/vps/reverse-proxy.nginx.conf` is the public TLS reverse-proxy template.
+- `scripts/deploy/vps-check.ps1` validates the Compose shape before rollout.
+- `scripts/deploy/backup-postgres.ps1`, `restore-postgres.ps1`, and `rollback-compose.ps1` define the first operations hooks.
+
 Minimum staging proof:
 
 ```powershell
@@ -66,6 +74,7 @@ Minimum staging proof:
 .\scripts\quality\api-smoke.ps1 -BaseUrl "https://<staging-api-or-frontend-origin>"
 .\scripts\quality\frontend-full-tour.ps1 -BaseUrl "https://<staging-frontend-origin>" -ApiUrl "https://<staging-api-or-frontend-origin>"
 .\scripts\quality\performance-readiness.ps1 -IncludeApiSmoke -ApiBaseUrl "https://<staging-api-or-frontend-origin>"
+.\scripts\quality\load-smoke.ps1 -BaseUrl "https://<staging-api-or-frontend-origin>" -ConcurrentUsers 25 -RequestsPerUser 8
 ```
 
 Staging must also include a production-shaped load and operations rehearsal before the production claim:
@@ -82,6 +91,7 @@ If the Android app is part of the release claim, assemble the native shell again
 ```powershell
 .\scripts\quality\native-mobile-check.ps1 -Assemble -ApiBaseUrl "https://<staging-api-origin>"
 .\scripts\quality\native-android-tour.ps1 -ApiUrl "https://<staging-api-origin>"
+.\scripts\quality\native-android-release-check.ps1 -ApiBaseUrl "https://<staging-api-origin>" -Bundle
 ```
 
 ## Production Cutover Proof

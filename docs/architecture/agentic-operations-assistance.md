@@ -4,6 +4,8 @@ V14 introduces deterministic local assistant behavior for MerHouse operations. T
 
 Future model-backed or provider-backed agent activation belongs to V17 or later unless the roadmap is deliberately changed. Until that future work is implemented and proven, the shipped assistant should be described as deterministic risk triage rather than an autonomous AI agent. The V17 target is not just chat completion: it is bounded agentic work through backend-approved tools, human approval for risky actions, and complete audit evidence.
 
+V17 v1 introduces the runtime seam without mutation authority. Assistant interactions record `agentMode`, optional `agentModelName`, `agenticWork=read-plus-draft`, and `mutationPolicy` metadata so deployed proof can distinguish deterministic local drafts from any later model-backed runtime.
+
 ## Supported Scope
 
 - `PLATFORM_OVERVIEW`: platform roles can summarize platform control-plane risk indicators.

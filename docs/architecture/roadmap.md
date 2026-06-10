@@ -70,7 +70,7 @@ Acceptance bar:
 
 ## Local Boundaries
 
-- Notification and password recovery delivery are local records, not real email, SMS, phone OS push, lock-screen, notification-tray, or webhook sends.
+- Notification and password recovery delivery are local records by default. Private V17 work can make opt-in SMTP email attempts when email configuration is enabled and proven; SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
 - Carrier/provider handoff is represented by local outbox and carrier-dispatch records.
 - Assistant behavior is deterministic local review assistance, not provider-backed AI.
 - Service statements are local service-unit records, not invoices or payment collection.
@@ -94,6 +94,14 @@ Planned scope:
 - provider-backed notification, recovery, carrier, monitoring, backup, rollback, and incident-response operations
 - public operational runbooks
 - final production validation
+
+Current private implementation direction:
+
+- VPS + Docker Compose deployment shape
+- Gmail/Google Workspace SMTP staging proof for recovery, access invitation, and email notifications
+- signed internal Android APK/AAB release proof
+- read-plus-draft agent runtime metadata with no mutations
+- small B2B pilot capacity proof before public production claims
 
 ### VInfinite: Product Expansion Backlog
 

@@ -39,11 +39,13 @@ class NotificationServiceTest {
     private final NotificationPreferenceRepository preferenceRepository = mock(NotificationPreferenceRepository.class);
     private final NotificationDeliveryRepository deliveryRepository = mock(NotificationDeliveryRepository.class);
     private final AppUserRepository userRepository = mock(AppUserRepository.class);
+    private final EmailDeliveryService emailDeliveryService = mock(EmailDeliveryService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-29T12:00:00Z"), ZoneOffset.UTC);
     private final NotificationService service = new NotificationService(
         preferenceRepository,
         deliveryRepository,
         userRepository,
+        emailDeliveryService,
         clock
     );
 
@@ -141,6 +143,93 @@ class NotificationServiceTest {
                 && delivery.getProviderStatus() == NotificationProviderStatus.NOT_CONFIGURED
                 && delivery.isPrototypeLocal()
         ));
+    }
+
+    @Test
+    void recordForUserSendsProviderEmailWhenEmailDeliveryIsEnabled() {
+        UUID userId = UUID.randomUUID();
+        AppUser user = user(userId, UUID.randomUUID());
+        when(emailDeliveryService.isEnabled()).thenReturn(true);
+        when(emailDeliveryService.send(any(), eq("Email body"))).thenReturn(EmailDeliveryResult.sent("smtp-accepted"));
+
+        service.recordForUser(
+            user,
+            NotificationTopic.ACCOUNT_LIFECYCLE,
+            "Account ready",
+            "Local body",
+            "Email body",
+            "AccessRequest",
+            UUID.randomUUID()
+        );
+
+        verify(deliveryRepository).save(org.mockito.ArgumentMatchers.argThat(delivery ->
+            delivery.getChannel() == NotificationChannel.EMAIL_PROTOTYPE
+                && delivery.getStatus() == NotificationDeliveryStatus.READ
+                && delivery.getDeliveryStage() == NotificationDeliveryStage.PROVIDER_SENT
+                && delivery.getProviderStatus() == NotificationProviderStatus.SENT
+                && delivery.getProviderMessageId().equals("smtp-accepted")
+                && delivery.getProviderAttemptedAt().equals(Instant.parse("2026-05-29T12:00:00Z"))
+                && delivery.getProviderSentAt().equals(Instant.parse("2026-05-29T12:00:00Z"))
+                && delivery.getProviderRetryCount() == 1
+                && !delivery.isPrototypeLocal()
+        ));
+    }
+
+    @Test
+    void recordForUserKeepsFailedProviderEmailAsDeliveryEvidence() {
+        UUID userId = UUID.randomUUID();
+        AppUser user = user(userId, UUID.randomUUID());
+        when(emailDeliveryService.isEnabled()).thenReturn(true);
+        when(emailDeliveryService.send(any(), eq("Email body"))).thenReturn(EmailDeliveryResult.failed("smtp unavailable"));
+
+        service.recordForUser(
+            user,
+            NotificationTopic.ACCOUNT_LIFECYCLE,
+            "Password reset prepared",
+            "Local body",
+            "Email body",
+            "PasswordResetToken",
+            UUID.randomUUID()
+        );
+
+        verify(deliveryRepository).save(org.mockito.ArgumentMatchers.argThat(delivery ->
+            delivery.getChannel() == NotificationChannel.EMAIL_PROTOTYPE
+                && delivery.getDeliveryStage() == NotificationDeliveryStage.PROVIDER_FAILED
+                && delivery.getProviderStatus() == NotificationProviderStatus.FAILED
+                && delivery.getProviderError().equals("smtp unavailable")
+                && delivery.getProviderFailedAt().equals(Instant.parse("2026-05-29T12:00:00Z"))
+        ));
+    }
+
+    @Test
+    void recordForUserDoesNotSendEmailWhenEmailPreferenceIsDisabled() {
+        UUID userId = UUID.randomUUID();
+        AppUser user = user(userId, UUID.randomUUID());
+        NotificationPreference disabled = new NotificationPreference();
+        disabled.setEnabled(false);
+        when(emailDeliveryService.isEnabled()).thenReturn(true);
+        when(preferenceRepository.findByUserIdAndTopicAndChannel(
+            userId,
+            NotificationTopic.ACCOUNT_LIFECYCLE,
+            NotificationChannel.EMAIL_PROTOTYPE
+        )).thenReturn(Optional.of(disabled));
+
+        service.recordForUser(
+            user,
+            NotificationTopic.ACCOUNT_LIFECYCLE,
+            "Account ready",
+            "Local body",
+            "Email body",
+            "AccessRequest",
+            UUID.randomUUID()
+        );
+
+        verify(deliveryRepository).save(org.mockito.ArgumentMatchers.argThat(delivery ->
+            delivery.getChannel() == NotificationChannel.EMAIL_PROTOTYPE
+                && delivery.getStatus() == NotificationDeliveryStatus.SKIPPED_BY_PREFERENCE
+                && delivery.getDeliveryStage() == NotificationDeliveryStage.SKIPPED_BY_PREFERENCE
+        ));
+        verify(emailDeliveryService, org.mockito.Mockito.never()).send(any(), any());
     }
 
     @Test

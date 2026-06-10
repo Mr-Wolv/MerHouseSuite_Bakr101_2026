@@ -68,6 +68,12 @@ function deliveryFixture(overrides: Record<string, unknown> = {}) {
     sourceType: 'AccessRequest',
     sourceId: 'request-id',
     prototypeLocal: true,
+    providerMessageId: null,
+    providerError: null,
+    providerAttemptedAt: null,
+    providerSentAt: null,
+    providerFailedAt: null,
+    providerRetryCount: 0,
     createdAt: '2026-05-29T00:00:00Z',
     readAt: null,
     ...overrides,
@@ -121,7 +127,7 @@ describe('NotificationCenterPage', () => {
     const sections = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
     expect(sections.indexOf('Action inbox')).toBeLessThan(sections.indexOf('Preferences'))
     expect(screen.getAllByText('Account lifecycle')).toHaveLength(2)
-    expect(screen.getByText('Local email record')).toBeInTheDocument()
+    expect(screen.getByText('Email')).toBeInTheDocument()
     expect(screen.getByText('Account ready')).toBeInTheDocument()
     expect(screen.getAllByText('Unread').some((node) => node.classList.contains('warning-chip'))).toBe(true)
     expect(screen.getByText('Account ready').closest('article')).toHaveClass('notification-action')
@@ -343,6 +349,29 @@ describe('NotificationCenterPage', () => {
     expect(screen.getByRole('link', { name: 'Open source' })).toHaveAttribute('href', '/shipments/shipment-provider-ready')
     expect(screen.queryByText('Another user alert')).not.toBeInTheDocument()
     expect(screen.queryByText('delivery-current-user')).not.toBeInTheDocument()
+  })
+
+  it('shows failed provider email attempts as critical history', async () => {
+    apiMock.notificationDeliveries.mockResolvedValue([
+      deliveryFixture({
+        id: 'delivery-provider-failed',
+        channel: 'EMAIL_PROTOTYPE',
+        status: 'READ',
+        deliveryStage: 'PROVIDER_FAILED',
+        providerStatus: 'FAILED',
+        providerError: 'smtp unavailable',
+        title: 'Password reset prepared',
+        body: 'Email delivery failed.',
+        readAt: '2026-05-29T00:03:00Z',
+      }),
+    ])
+
+    renderPage()
+
+    expect(await screen.findByText('Provider failed')).toHaveClass('data-chip', 'warning-chip')
+    expect(screen.getByText('Email failed')).toBeInTheDocument()
+    expect(screen.getByText('smtp unavailable')).toHaveClass('data-chip', 'warning-chip')
+    expect(screen.getAllByText('Critical').some((node) => node.classList.contains('severity-critical'))).toBe(true)
   })
 
   it('links connected alert sources to their routed work surfaces', async () => {

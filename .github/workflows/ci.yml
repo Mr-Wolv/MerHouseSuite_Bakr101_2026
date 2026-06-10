@@ -105,6 +105,10 @@ jobs:
       - name: Validate Docker Compose
         run: docker compose --env-file .env.example config --quiet
 
+      - name: Validate VPS production Compose
+        shell: pwsh
+        run: ./scripts/deploy/vps-check.ps1
+
   public-readiness:
     name: Public Readiness
     runs-on: ubuntu-latest

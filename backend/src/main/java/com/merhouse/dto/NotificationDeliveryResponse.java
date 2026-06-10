@@ -23,6 +23,12 @@ public record NotificationDeliveryResponse(
     String sourceType,
     UUID sourceId,
     boolean prototypeLocal,
+    String providerMessageId,
+    String providerError,
+    Instant providerAttemptedAt,
+    Instant providerSentAt,
+    Instant providerFailedAt,
+    int providerRetryCount,
     Instant createdAt,
     Instant readAt
 ) {
@@ -41,6 +47,12 @@ public record NotificationDeliveryResponse(
             delivery.getSourceType(),
             delivery.getSourceId(),
             delivery.isPrototypeLocal(),
+            delivery.getProviderMessageId(),
+            delivery.getProviderError(),
+            delivery.getProviderAttemptedAt(),
+            delivery.getProviderSentAt(),
+            delivery.getProviderFailedAt(),
+            delivery.getProviderRetryCount(),
             delivery.getCreatedAt(),
             delivery.getReadAt()
         );

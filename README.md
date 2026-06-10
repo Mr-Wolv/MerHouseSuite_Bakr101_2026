@@ -211,12 +211,17 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_AUTH_SEED_ADMIN_PASSWORD` | Initial owner password when seeding is enabled |
 | `MERHOUSE_SWAGGER_ENABLED` | Enables OpenAPI JSON and Swagger UI |
 | `MERHOUSE_DEPLOYMENT_PUBLIC` | Enables stricter startup validation for public deployment-shaped environments |
+| `MERHOUSE_PUBLIC_FRONTEND_URL` | Public frontend origin used for provider-backed account/recovery email links |
+| `MERHOUSE_EMAIL_ENABLED` | Enables SMTP-backed email delivery attempts for configured email channels |
+| `MERHOUSE_EMAIL_FROM` | Sender address for provider-backed email delivery |
+| `MERHOUSE_SMTP_HOST` / `MERHOUSE_SMTP_PORT` | SMTP provider target, such as Gmail/Google Workspace SMTP for staging proof |
+| `MERHOUSE_AGENT_MODE` | Agent runtime mode; V17 keeps `deterministic` read-plus-draft behavior by default |
 
 ## Local Mocks And Non-Deployed Boundaries
 
 V16.2 proves deployment readiness locally; it does not deploy MerHouse.
 
-- Notification delivery and password recovery delivery are local records, not real email, SMS, phone OS push, lock-screen, notification-tray, webhook, or provider sends.
+- Notification delivery and password recovery delivery are local records by default. V17 can make opt-in SMTP email attempts when email configuration is enabled and proven; SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
 - Carrier/provider handoff is represented by local outbox and carrier-dispatch records.
 - Assistant behavior is deterministic local review assistance, not provider-backed AI.
 - Health, backup/restore, dependency, and public-readiness proof are local/dry-run checks.
@@ -229,6 +234,8 @@ V16.2 proves deployment readiness locally; it does not deploy MerHouse.
 Future production activation is a separate later phase and must replace local mocks with real provider contracts, deployment configuration, monitoring, backup/restore operations, load/performance proof, cross-platform release proof, provider-exchange reliability, and deployment-specific operations proof.
 The tracked activation checklist lives in [Production deployment activation](docs/architecture/production-deployment-activation.md).
 Service-specific activation notes for email recovery, account invitations, email notifications, and real agentic work live in [V17 external service activation](docs/architecture/v17-service-activation.md).
+
+V17 private deployment work adds a VPS + Docker Compose shape under `deploy/vps/`, deployment scripts under `scripts/deploy/`, SMTP-backed email delivery hooks, read-plus-draft agent runtime metadata, load-smoke proof, and signed internal Android release checks. Keep detailed deployment values, provider credentials, Android keystores, and proof logs private until the deployment is proven and intentionally published.
 
 ## Latest Scripted Local QC Snapshot
 

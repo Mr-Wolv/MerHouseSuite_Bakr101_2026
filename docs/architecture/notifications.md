@@ -2,7 +2,7 @@
 
 MerHouse provides a local notification foundation. It records account-lifecycle and operational alert history, exposes per-user notification preferences, and treats unread routed records as an action inbox without connecting to an external provider or native OS notification channel.
 
-This is local proof behavior. The backend stores delivery records for visibility and proof, but it does not send email, SMS, phone OS push, lock-screen, notification-tray, webhooks, or provider traffic. V16.2 certifies the local/mock delivery boundary. The next intended provider-backed direction is email delivery; native Android OS notifications, lock-screen alerts, notification-tray delivery, and push-provider rollout are scratched unless a later roadmap change deliberately reopens them.
+This is local proof behavior by default. The backend stores delivery records for visibility and proof. V17 adds opt-in SMTP-backed email delivery attempts for the email channel while keeping in-app alerts as the action inbox. SMS, phone OS push, lock-screen alerts, notification-tray delivery, webhooks, and push-provider rollout are scratched unless a later roadmap change deliberately reopens them.
 
 ## Model
 
@@ -18,7 +18,7 @@ Topics:
 Channels:
 
 - `IN_APP`
-- `EMAIL_PROTOTYPE`, rendered in the web and native shared frontend as `Local email record`
+- `EMAIL_PROTOTYPE`, rendered in the web and native shared frontend as `Email`
 
 Delivery records are scoped to the recipient user and tenant. They include topic, channel, status, title, body, optional source type and source id, creation time, read time, and a `prototypeLocal` flag.
 
@@ -38,16 +38,20 @@ Provider statuses:
 
 - `NOT_CONFIGURED`: V16.2 has no external delivery provider configured. This is the expected status for local delivery records.
 - `READY_FOR_PROVIDER`: reserved for a later provider-backed delivery handoff during V17 real activation or later.
+- `SENT`: the SMTP provider accepted an enabled email delivery attempt.
+- `FAILED`: the SMTP provider attempt failed and the error was recorded for operations review.
+
+Provider-attempt metadata includes provider message id, provider error, attempted time, sent time, failed time, and retry count.
 
 ## Account Lifecycle Hooks
 
-Password-reset requests for enabled users create a local `ACCOUNT_LIFECYCLE` delivery record titled `Password reset prepared`.
+Password-reset requests for enabled users create an in-app `ACCOUNT_LIFECYCLE` delivery record titled `Password reset prepared`.
 
-Approved access requests converted into tenant and user records create a local `ACCOUNT_LIFECYCLE` delivery record titled `Account ready`.
+Approved access requests converted into tenant and user records create an in-app `ACCOUNT_LIFECYCLE` delivery record titled `Account ready`.
 
-Both hooks are deliberately worded as local delivery history records. They provide delivery history and UI proof without pretending that production messaging exists.
+Both hooks provide recipient-scoped delivery history and UI proof by default. When `MERHOUSE_EMAIL_ENABLED=true` and SMTP is configured, V17 also records an `EMAIL_PROTOTYPE` delivery attempt with provider status, timestamps, retry count, and provider error metadata.
 
-Both hooks currently store `deliveryStage=LOCAL_RECORDED`, `providerStatus=NOT_CONFIGURED`, and `prototypeLocal=true`. That gives future provider integration a stable slot while keeping V16.2 honest: reset links and account-ready messages are prepared as local delivery records only.
+Default local records store `deliveryStage=LOCAL_RECORDED`, `providerStatus=NOT_CONFIGURED`, and `prototypeLocal=true`. Enabled SMTP attempts store `deliveryStage=PROVIDER_SENT` and `providerStatus=SENT` when accepted, or `deliveryStage=PROVIDER_FAILED` and `providerStatus=FAILED` when the provider attempt fails.
 
 ## Connected Alert Direction
 
@@ -97,7 +101,7 @@ Connected local alerts include source navigation. When a delivery has a routed s
 
 Sources without a safe routed surface stay visible as source chips only; they should not render dead links.
 
-Provider-backed email delivery remains V17 real activation work or later. SMS, phone OS push, lock-screen notifications, notification-tray delivery, webhooks, and realtime delivery are outside the current activation direction. V16.2 certifies local in-app delivery records, routed source semantics, and unread app-shell badges only; it does not claim production delivery or native OS notification delivery.
+Provider-backed email delivery is private V17 activation work through SMTP-backed attempts. SMS, phone OS push, lock-screen notifications, notification-tray delivery, webhooks, and realtime delivery are outside the current activation direction. V16.2 certifies local in-app delivery records, routed source semantics, and unread app-shell badges only; V17 email proof must be claimed separately with SMTP configuration and provider-attempt evidence.
 
 ## API
 

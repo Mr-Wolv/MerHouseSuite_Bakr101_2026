@@ -16,7 +16,11 @@ class ProductionSafetyConfigTest {
             "replace-with-local-admin-password",
             "replace-with-local-postgres-password",
             true,
-            true
+            true,
+            false,
+            "",
+            "localhost",
+            ""
         ));
     }
 
@@ -30,7 +34,11 @@ class ProductionSafetyConfigTest {
             "replace-with-local-admin-password",
             "replace-with-local-postgres-password",
             true,
-            true
+            true,
+            false,
+            "",
+            "localhost",
+            ""
         ));
     }
 
@@ -44,7 +52,11 @@ class ProductionSafetyConfigTest {
             "",
             "ProdDbCredentialWithStrongPrivateEntropy",
             false,
-            false
+            false,
+            false,
+            "",
+            "localhost",
+            ""
         ));
     }
 
@@ -58,7 +70,11 @@ class ProductionSafetyConfigTest {
             "",
             "ProdDbCredentialWithStrongPrivateEntropy",
             false,
-            false
+            false,
+            false,
+            "",
+            "localhost",
+            ""
         ));
     }
 
@@ -72,7 +88,11 @@ class ProductionSafetyConfigTest {
             "PrivateBootstrapPasswordWithStrongEntropy",
             "ProdDbCredentialWithStrongPrivateEntropy",
             false,
-            false
+            false,
+            false,
+            "",
+            "localhost",
+            ""
         ));
     }
 
@@ -86,7 +106,47 @@ class ProductionSafetyConfigTest {
             "",
             "ProdDbCredentialWithStrongPrivateEntropy",
             true,
-            true
+            true,
+            false,
+            "",
+            "localhost",
+            ""
+        ));
+    }
+
+    @Test
+    void rejectsPublicEmailDeliveryWithLocalSmtpProvider() {
+        assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            false,
+            "",
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            true,
+            "ops@merhouse.example",
+            "localhost",
+            "GmailAppCredentialWithStrongPrivateEntropy"
+        ));
+    }
+
+    @Test
+    void allowsPublicEmailDeliveryWithExternalSmtpProvider() {
+        assertDoesNotThrow(() -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            false,
+            "",
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            true,
+            "ops@merhouse.example",
+            "smtp.gmail.com",
+            "GmailAppCredentialWithStrongPrivateEntropy"
         ));
     }
 }

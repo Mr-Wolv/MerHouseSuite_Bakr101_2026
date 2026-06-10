@@ -35,6 +35,7 @@ public class AuthRecoveryService {
     private final NotificationService notificationService;
     private final Clock clock;
     private final boolean exposeResetToken;
+    private final String publicFrontendUrl;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthRecoveryService(
@@ -43,7 +44,8 @@ public class AuthRecoveryService {
         PasswordEncoder passwordEncoder,
         NotificationService notificationService,
         Clock clock,
-        @Value("${merhouse.auth.recovery.expose-reset-token:false}") boolean exposeResetToken
+        @Value("${merhouse.auth.recovery.expose-reset-token:false}") boolean exposeResetToken,
+        @Value("${merhouse.public.frontend-url:http://localhost:3000}") String publicFrontendUrl
     ) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
@@ -51,6 +53,7 @@ public class AuthRecoveryService {
         this.notificationService = notificationService;
         this.clock = clock;
         this.exposeResetToken = exposeResetToken;
+        this.publicFrontendUrl = trimTrailingSlash(publicFrontendUrl);
     }
 
     @Transactional
@@ -89,6 +92,8 @@ public class AuthRecoveryService {
             NotificationTopic.ACCOUNT_LIFECYCLE,
             "Password reset prepared",
             "A password reset was prepared for your account. This is a local delivery history record.",
+            "A password reset was requested for your MerHouse account. Use this link within 30 minutes: "
+                + publicFrontendUrl + "/reset-password?token=" + rawToken,
             "PasswordResetToken",
             token.getId()
         );
@@ -124,5 +129,12 @@ public class AuthRecoveryService {
 
     private String normalizeToken(String token) {
         return token.trim();
+    }
+
+    private String trimTrailingSlash(String value) {
+        if (value == null || value.isBlank()) {
+            return "http://localhost:3000";
+        }
+        return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
     }
 }

@@ -22,12 +22,18 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/mobile-shell-check.ps1` | Check shared mobile shell metadata, manifest, icon references, and service worker markers used by web and native packaging. |
 | `scripts/quality/native-mobile-check.ps1` | Check the Capacitor Android wrapper, sync the frontend build into Android, and optionally assemble a debug APK. |
 | `scripts/quality/native-android-tour.ps1` | Install the debug APK on a running emulator, authenticate seeded roles, visit native routes, and capture APK screenshots. |
+| `scripts/quality/native-android-release-check.ps1` | Build a signed internal Android APK or AAB against an HTTPS API URL using keystore values supplied outside Git. |
 | `scripts/quality/cross-surface-tour-check.ps1` | Compare browser and installed-APK tour reports for clean records, provenance, valid native screenshot evidence, exact normalized role/path set equality, and traceable pass output. |
 | `scripts/quality/performance-readiness.ps1` | Check local deployment-shaped performance readiness through frontend bundle budgets, paired browser/installed-APK report provenance and timing when reports are supplied, and optional API smoke timing. |
+| `scripts/quality/load-smoke.ps1` | Run a small concurrent health-check smoke against a deployed or local API target. |
 | `scripts/quality/tour-report-lib.ps1` | Shared helper for reading, normalizing, and validating browser/native tour report records, including required role/path identity. |
 | `scripts/quality/url-guard-lib.ps1` | Shared helper for validating and normalizing non-blank absolute `http` or `https` local setup, native build, frontend proxy, OpenAPI docs, tour, smoke, performance, deployment, and report-provenance URLs. |
 | `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, CI naming, and Compose config. |
 | `scripts/quality/deployment-readiness.ps1` | Run the V16.2 deployment-ready local certification gate with local/mock proof and optional timed API smoke. |
+| `scripts/deploy/vps-check.ps1` | Validate the V17 VPS production Compose shape against the deployment env template. |
+| `scripts/deploy/backup-postgres.ps1` | Create a PostgreSQL custom-format backup through the Compose postgres service. |
+| `scripts/deploy/restore-postgres.ps1` | Restore a PostgreSQL backup after explicit confirmation. |
+| `scripts/deploy/rollback-compose.ps1` | Re-apply the selected Compose image/tag set after explicit rollback confirmation. |
 | `scripts/maintenance/clean-reports.ps1` | Trim old local reports, logs, and screenshots. |
 
 ## Typical Local Flow
@@ -151,6 +157,18 @@ Build the literal local Android debug APK when Android SDK is installed:
 
 Use `http://10.0.2.2:8080` for the Android emulator. Use your computer LAN address for a physical phone on the same network. The script prefers `ANDROID_HOME` or `ANDROID_SDK_ROOT`, then standard Windows, macOS, and Linux Android SDK locations. For APK assembly, it uses `java` on `PATH`, a compatible `JAVA_HOME`, or common JDK 17/21 install locations. Newer unsupported Java runtimes are rejected with a setup message instead of producing a brittle local-only build. Successful assembly output prints the normalized API base, APK SHA-256, and APK byte size.
 
+Build the signed internal Android release artifact only with an HTTPS API URL and keystore values supplied outside Git:
+
+```powershell
+$env:MERHOUSE_ANDROID_KEYSTORE_PATH = "D:\secure\merhouse-release.jks"
+$env:MERHOUSE_ANDROID_KEYSTORE_PASSWORD = "<secret>"
+$env:MERHOUSE_ANDROID_KEY_ALIAS = "merhouse"
+$env:MERHOUSE_ANDROID_KEY_PASSWORD = "<secret>"
+.\scripts\quality\native-android-release-check.ps1 -ApiBaseUrl "https://api.example.com" -Bundle
+```
+
+Release builds force Android cleartext traffic off. The script prints the artifact path, SHA-256, and byte size; keep keystores and credentials outside Git.
+
 Run the native Android APK tour after the local stack is running, seeded, and an emulator is booted:
 
 ```powershell
@@ -195,6 +213,14 @@ When browser and installed-APK tour reports are available, include them so the p
 
 This is local deployment-shaped proof, not production load, monitoring, autoscaling, or provider-delivery certification.
 
+Run the first V17 small-pilot load smoke against a deployed or local API health endpoint:
+
+```powershell
+.\scripts\quality\load-smoke.ps1 -BaseUrl "https://app.example.com" -ConcurrentUsers 25 -RequestsPerUser 8
+```
+
+This is a smoke budget for release confidence, not a substitute for full load or soak testing.
+
 Performance report paths are paired evidence. `performance-readiness.ps1` rejects a lone `-WebReportPath` or lone `-NativeReportPath` before building the frontend so report-backed route timing cannot be claimed from one surface only. When both are supplied, it resolves and checks both report paths before the frontend build starts, then prints the resolved web/native report inputs and resolved performance report output path. Omit both only for bundle/API-only proof. Report-backed JSON and terminal output record the supplied and resolved web/native report paths plus validated browser and installed-APK provenance snapshots so timing evidence can be traced back to the exact paired reports.
 
 The GitHub quality gate runs the default performance readiness proof in the frontend job so bundle budgets stay enforced in CI as well as local heavy certification.
@@ -227,6 +253,14 @@ Validate Compose configuration:
 ```powershell
 docker compose --env-file .env.example config --quiet
 ```
+
+Validate the VPS Compose deployment shape before copying private environment files to a server:
+
+```powershell
+.\scripts\deploy\vps-check.ps1
+```
+
+Use `deploy/vps/env.production.example` as a template only; real deployment env files, logs, backups, and credentials stay outside Git.
 
 Run the API smoke suite after the stack is running:
 

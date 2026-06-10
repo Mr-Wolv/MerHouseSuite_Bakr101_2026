@@ -161,7 +161,7 @@ export function NotificationCenterPage() {
     [preferences],
   )
   const providerReadyCount = useMemo(
-    () => [...visibleActionDeliveries, ...historyDeliveries].filter((delivery) => delivery.providerStatus === 'READY_FOR_PROVIDER').length,
+    () => [...visibleActionDeliveries, ...historyDeliveries].filter((delivery) => delivery.providerStatus !== 'NOT_CONFIGURED').length,
     [visibleActionDeliveries, historyDeliveries],
   )
   const severityCounts = useMemo(() => {
@@ -294,7 +294,7 @@ export function NotificationCenterPage() {
                       {deliveryStageLabels[delivery.deliveryStage]}
                     </span>
                     <span
-                      className={delivery.providerStatus === 'READY_FOR_PROVIDER' ? 'data-chip warning-chip' : 'data-chip'}
+                      className={delivery.providerStatus === 'READY_FOR_PROVIDER' || delivery.providerStatus === 'FAILED' ? 'data-chip warning-chip' : 'data-chip'}
                       aria-label={statusAccessibleLabel(delivery.providerStatus)}
                       title={statusExplanation(delivery.providerStatus)}
                     >
@@ -372,9 +372,10 @@ export function NotificationCenterPage() {
                   <div className="action-row">
                     <span className="data-chip">{channelLabels[delivery.channel]}</span>
                     <span className="data-chip">{deliveryStageLabels[delivery.deliveryStage]}</span>
-                    <span className={delivery.providerStatus === 'READY_FOR_PROVIDER' ? 'data-chip warning-chip' : 'data-chip'}>
+                    <span className={delivery.providerStatus === 'READY_FOR_PROVIDER' || delivery.providerStatus === 'FAILED' ? 'data-chip warning-chip' : 'data-chip'}>
                       {providerStatusLabels[delivery.providerStatus]}
                     </span>
+                    {delivery.providerError ? <span className="data-chip warning-chip">{delivery.providerError}</span> : null}
                     <span className="data-chip">{new Date(delivery.createdAt).toLocaleString()}</span>
                     {delivery.sourceType ? <span className="data-chip">{delivery.sourceType}</span> : null}
                     {delivery.sourceId ? <span className="data-chip mono-cell">{shortNotificationSourceId(delivery.sourceId)}</span> : null}

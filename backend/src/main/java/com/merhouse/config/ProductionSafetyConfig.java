@@ -20,7 +20,11 @@ public class ProductionSafetyConfig {
         @Value("${merhouse.auth.seed-admin.password:}") String seedAdminPassword,
         @Value("${spring.datasource.password:}") String databasePassword,
         @Value("${springdoc.api-docs.enabled:true}") boolean apiDocsEnabled,
-        @Value("${springdoc.swagger-ui.enabled:true}") boolean swaggerUiEnabled
+        @Value("${springdoc.swagger-ui.enabled:true}") boolean swaggerUiEnabled,
+        @Value("${merhouse.email.enabled:false}") boolean emailEnabled,
+        @Value("${merhouse.email.from:}") String emailFrom,
+        @Value("${spring.mail.host:}") String smtpHost,
+        @Value("${spring.mail.password:}") String smtpPassword
     ) {
         return arguments -> validate(
             publicDeployment,
@@ -30,7 +34,11 @@ public class ProductionSafetyConfig {
             seedAdminPassword,
             databasePassword,
             apiDocsEnabled,
-            swaggerUiEnabled
+            swaggerUiEnabled,
+            emailEnabled,
+            emailFrom,
+            smtpHost,
+            smtpPassword
         );
     }
 
@@ -42,7 +50,11 @@ public class ProductionSafetyConfig {
         String seedAdminPassword,
         String databasePassword,
         boolean apiDocsEnabled,
-        boolean swaggerUiEnabled
+        boolean swaggerUiEnabled,
+        boolean emailEnabled,
+        String emailFrom,
+        String smtpHost,
+        String smtpPassword
     ) {
         if (!publicDeployment) {
             return;
@@ -69,6 +81,17 @@ public class ProductionSafetyConfig {
         }
         if (apiDocsEnabled || swaggerUiEnabled) {
             failures.add("MERHOUSE_SWAGGER_ENABLED/springdoc API docs and Swagger UI must be disabled for public deployments.");
+        }
+        if (emailEnabled) {
+            if (isBlank(emailFrom)) {
+                failures.add("MERHOUSE_EMAIL_FROM must be set when email delivery is enabled for public deployments.");
+            }
+            if (isBlank(smtpHost) || smtpHost.equalsIgnoreCase("localhost") || smtpHost.equals("127.0.0.1")) {
+                failures.add("MERHOUSE_SMTP_HOST must point to an external provider when email delivery is enabled for public deployments.");
+            }
+            if (isBlank(smtpPassword) || looksLikePlaceholder(smtpPassword)) {
+                failures.add("MERHOUSE_SMTP_PASSWORD must be set to a private provider credential when email delivery is enabled for public deployments.");
+            }
         }
 
         if (!failures.isEmpty()) {

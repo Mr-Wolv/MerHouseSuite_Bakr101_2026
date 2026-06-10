@@ -27,6 +27,8 @@ const statusExplanations: Record<string, string> = {
   PICKING: 'Warehouse work has started picking the allocation.',
   PREPARED: 'Prepared for delivery or handoff, but not completed yet.',
   PROCESSED: 'Processed successfully.',
+  PROVIDER_FAILED: 'External provider delivery failed and needs review.',
+  PROVIDER_SENT: 'External provider accepted the delivery.',
   READY_FOR_PROVIDER: 'Ready for an external delivery provider when one is configured.',
   RECEIVED: 'Inbound stock has been received.',
   RECEIVING: 'Warehouse is actively receiving inbound stock.',

@@ -52,7 +52,9 @@ class AssistantServiceTest {
         dashboardService,
         adminControlService,
         adminAuditService,
-        clock
+        clock,
+        "deterministic",
+        ""
     );
 
     @Test
@@ -76,6 +78,8 @@ class AssistantServiceTest {
         assertEquals(userId, response.actorUserId());
         assertEquals(tenantId, response.actorTenantId());
         assertEquals(Instant.parse("2026-05-30T12:00:00Z"), response.createdAt());
+        assertEquals("read-plus-draft", response.metadata().get("agenticWork"));
+        assertEquals("human-executes", response.metadata().get("mutationPolicy"));
         verify(dashboardService).merchantSummary(tenantId);
         verify(adminAuditService).record(
             org.mockito.ArgumentMatchers.eq(userId),

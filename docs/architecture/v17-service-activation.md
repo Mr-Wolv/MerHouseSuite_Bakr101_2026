@@ -30,6 +30,13 @@ Tracked configuration must stay provider-neutral where possible:
 - Bounce, rejection, quota, and delivery-status behavior must be represented in delivery records or provider logs.
 - Public environments must keep recovery token echo disabled.
 
+The first implementation uses SMTP configuration and is safe by default:
+
+- `MERHOUSE_EMAIL_ENABLED=false` keeps local behavior unchanged.
+- When enabled, MerHouse records a second email-channel delivery attempt alongside the in-app alert.
+- Sent, failed, skipped-by-preference, provider-message, provider-error, attempted, sent, failed, and retry-count evidence is stored on notification delivery records.
+- Public startup validation rejects enabled email delivery when sender, external SMTP host, or private SMTP credential values are missing.
+
 ## Notification Policy
 
 MerHouse should send email notifications only when the recipient, topic, and channel are allowed.
@@ -64,6 +71,8 @@ Minimum first useful slice:
 - execute only one approved low-risk backend tool
 - record the prompt, plan, tool call, result, approval actor, and refusal path
 - fall back to deterministic triage or an unavailable state when the model/runtime is unavailable
+
+V17 v1 records `agentMode`, `agentModelName`, `agenticWork=read-plus-draft`, and `mutationPolicy` metadata on assistant interactions. This is the first bounded runtime seam; operational mutation remains out of scope until a later explicit tool-authorization slice.
 
 ## V17 Proof Bar
 

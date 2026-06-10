@@ -100,6 +100,7 @@ public class AccessRequestService {
             NotificationTopic.ACCOUNT_LIFECYCLE,
             "Account ready",
             "Your MerHouse account was created from an approved access request. This is a local delivery history record.",
+            "Your MerHouse account was created from an approved access request. Sign in with the setup password shared by your platform contact, then change it from Account settings.",
             "AccessRequest",
             accessRequest.getId()
         );

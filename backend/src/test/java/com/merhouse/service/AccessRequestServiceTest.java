@@ -166,6 +166,7 @@ class AccessRequestServiceTest {
             eq(NotificationTopic.ACCOUNT_LIFECYCLE),
             eq("Account ready"),
             eq("Your MerHouse account was created from an approved access request. This is a local delivery history record."),
+            eq("Your MerHouse account was created from an approved access request. Sign in with the setup password shared by your platform contact, then change it from Account settings."),
             eq("AccessRequest"),
             eq(requestId)
         );

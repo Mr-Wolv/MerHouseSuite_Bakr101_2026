@@ -40,7 +40,8 @@ class AuthRecoveryServiceTest {
         passwordEncoder,
         notificationService,
         clock,
-        false
+        false,
+        "https://staging.merhouse.example"
     );
 
     @Test
@@ -88,6 +89,7 @@ class AuthRecoveryServiceTest {
             eq(NotificationTopic.ACCOUNT_LIFECYCLE),
             eq("Password reset prepared"),
             eq("A password reset was prepared for your account. This is a local delivery history record."),
+            org.mockito.ArgumentMatchers.contains("https://staging.merhouse.example/reset-password?token="),
             eq("PasswordResetToken"),
             isNull()
         );
@@ -101,7 +103,8 @@ class AuthRecoveryServiceTest {
             passwordEncoder,
             notificationService,
             clock,
-            true
+            true,
+            "http://localhost:3000"
         );
         AppUser user = new AppUser();
         user.setEnabled(true);

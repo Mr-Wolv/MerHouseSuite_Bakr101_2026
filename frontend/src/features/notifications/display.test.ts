@@ -21,6 +21,12 @@ function delivery(overrides: Partial<NotificationDelivery> = {}): NotificationDe
     sourceType: 'InboundStockRequest',
     sourceId: 'source-12345678',
     prototypeLocal: true,
+    providerMessageId: null,
+    providerError: null,
+    providerAttemptedAt: null,
+    providerSentAt: null,
+    providerFailedAt: null,
+    providerRetryCount: 0,
     createdAt: '2026-06-07T00:00:00Z',
     readAt: null,
     ...overrides,
@@ -30,6 +36,7 @@ function delivery(overrides: Partial<NotificationDelivery> = {}): NotificationDe
 describe('notification display rules', () => {
   it('classifies alert severity from durable notification state and copy', () => {
     expect(notificationSeverity(delivery({ topic: 'OUTBOX_HEALTH', title: 'Outbox event failed' }))).toBe('critical')
+    expect(notificationSeverity(delivery({ providerStatus: 'FAILED' }))).toBe('critical')
     expect(notificationSeverity(delivery({ providerStatus: 'READY_FOR_PROVIDER' }))).toBe('action')
     expect(notificationSeverity(delivery({ title: 'Preference recorded', body: 'Service preferences changed.' }))).toBe('review')
     expect(notificationSeverity(delivery({ status: 'READ', readAt: '2026-06-07T00:01:00Z' }))).toBe('cleared')

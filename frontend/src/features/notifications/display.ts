@@ -15,18 +15,22 @@ export const topicLabels: Record<NotificationTopic, string> = {
 
 export const channelLabels: Record<NotificationChannel, string> = {
   IN_APP: 'In app',
-  EMAIL_PROTOTYPE: 'Local email record',
+  EMAIL_PROTOTYPE: 'Email',
 }
 
 export const deliveryStageLabels: Record<NotificationDeliveryStage, string> = {
   PREPARED: 'Prepared',
   LOCAL_RECORDED: 'Local recorded',
   SKIPPED_BY_PREFERENCE: 'Skipped by preference',
+  PROVIDER_SENT: 'Email sent',
+  PROVIDER_FAILED: 'Email failed',
 }
 
 export const providerStatusLabels: Record<NotificationProviderStatus, string> = {
   NOT_CONFIGURED: 'Channel recorded',
   READY_FOR_PROVIDER: 'Ready for handoff',
+  SENT: 'Provider sent',
+  FAILED: 'Provider failed',
 }
 
 export type NotificationSeverity = 'critical' | 'action' | 'review' | 'cleared'
@@ -39,6 +43,9 @@ export const severityLabels: Record<NotificationSeverity, string> = {
 }
 
 export function notificationSeverity(delivery: NotificationDelivery): NotificationSeverity {
+  if (delivery.providerStatus === 'FAILED' || delivery.deliveryStage === 'PROVIDER_FAILED') {
+    return 'critical'
+  }
   if (delivery.status === 'READ' || delivery.readAt) return 'cleared'
 
   const text = `${delivery.title} ${delivery.body} ${delivery.topic} ${delivery.sourceType ?? ''}`.toLowerCase()

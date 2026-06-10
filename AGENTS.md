@@ -38,6 +38,8 @@ The repository is meant to be readable by a developer who just cloned it. Keep s
 
 The current public-facing posture is local-certified project/codebase, not production SaaS launch. V16.2 local convergence evidence is recorded in `docs/architecture/cross-surface-convergence.md`; cloud deployment, app-store release, production monitoring, provider-backed delivery, backup/restore operations, and incident response belong to later activation unless the roadmap is deliberately changed.
 
+V17 production work is private until the deployment is proven. Keep VPS env files, SMTP credentials, Android keystores, deployment logs, backup artifacts, provider details, and live URLs out of Git unless the roadmap and public docs deliberately publish sanitized values.
+
 Keep local-only values and working context out of Git. Use environment variables, templates, ignored files, or explicit external paths for anything that belongs to one machine or one deployment.
 
 Local/demo credentials may exist only when they are obviously fake, development-scoped, and documented as such. If there is doubt, keep the value out of the repository or ask for clarification before implementing.

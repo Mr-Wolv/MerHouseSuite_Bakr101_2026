@@ -274,7 +274,7 @@ Invoke-Step "Checking Android manifest local-runtime boundary..." {
     $manifest = Get-Content $manifestPath -Raw
     foreach ($expected in @(
         'android:allowBackup="false"',
-        'android:usesCleartextTraffic="true"',
+        'android:usesCleartextTraffic="${usesCleartextTraffic}"',
         'android.permission.INTERNET',
         'android.intent.category.LAUNCHER'
     )) {

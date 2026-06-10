@@ -64,6 +64,21 @@ public class NotificationDelivery {
     @Column(nullable = false)
     private boolean prototypeLocal = true;
 
+    @Column(length = 160)
+    private String providerMessageId;
+
+    @Column(length = 1000)
+    private String providerError;
+
+    private Instant providerAttemptedAt;
+
+    private Instant providerSentAt;
+
+    private Instant providerFailedAt;
+
+    @Column(nullable = false)
+    private int providerRetryCount = 0;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -168,6 +183,54 @@ public class NotificationDelivery {
 
     public void setPrototypeLocal(boolean prototypeLocal) {
         this.prototypeLocal = prototypeLocal;
+    }
+
+    public String getProviderMessageId() {
+        return providerMessageId;
+    }
+
+    public void setProviderMessageId(String providerMessageId) {
+        this.providerMessageId = providerMessageId;
+    }
+
+    public String getProviderError() {
+        return providerError;
+    }
+
+    public void setProviderError(String providerError) {
+        this.providerError = providerError;
+    }
+
+    public Instant getProviderAttemptedAt() {
+        return providerAttemptedAt;
+    }
+
+    public void setProviderAttemptedAt(Instant providerAttemptedAt) {
+        this.providerAttemptedAt = providerAttemptedAt;
+    }
+
+    public Instant getProviderSentAt() {
+        return providerSentAt;
+    }
+
+    public void setProviderSentAt(Instant providerSentAt) {
+        this.providerSentAt = providerSentAt;
+    }
+
+    public Instant getProviderFailedAt() {
+        return providerFailedAt;
+    }
+
+    public void setProviderFailedAt(Instant providerFailedAt) {
+        this.providerFailedAt = providerFailedAt;
+    }
+
+    public int getProviderRetryCount() {
+        return providerRetryCount;
+    }
+
+    public void setProviderRetryCount(int providerRetryCount) {
+        this.providerRetryCount = providerRetryCount;
     }
 
     public Instant getCreatedAt() {
