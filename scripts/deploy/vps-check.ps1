@@ -5,8 +5,16 @@ param(
 
 $ErrorActionPreference = "Stop"
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-$composePath = Join-Path $projectRoot $ComposeFile
-$envPath = Join-Path $projectRoot $EnvFile
+$composePath = if ([System.IO.Path]::IsPathRooted($ComposeFile)) {
+    [System.IO.Path]::GetFullPath($ComposeFile)
+} else {
+    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $ComposeFile))
+}
+$envPath = if ([System.IO.Path]::IsPathRooted($EnvFile)) {
+    [System.IO.Path]::GetFullPath($EnvFile)
+} else {
+    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $EnvFile))
+}
 
 if (-not (Test-Path $composePath)) {
     throw "Production compose file was not found: $composePath"

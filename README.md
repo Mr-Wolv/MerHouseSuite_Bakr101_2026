@@ -200,6 +200,15 @@ When a staging target and Android signing inputs are available, add deployed smo
 .\scripts\quality\v17-production-readiness.ps1 -IncludeLoadSmoke -IncludeAndroidRelease -ApiBaseUrl "https://api.example.com"
 ```
 
+Repeatable VPS rollout and deployed proof use separate commands so deployment and verification stay auditable:
+
+```powershell
+.\scripts\deploy\deploy-vps.ps1 -EnvFile ".env.production" -Build -BackupBeforeDeploy -ConfirmDeploy
+.\scripts\quality\deployed-v17-proof.ps1 -FrontendBaseUrl "https://app.example.com" -ApiBaseUrl "https://api.example.com" -IncludeLoadSmoke -IncludeBrowserTour
+```
+
+The deploy script refuses the example env template and requires explicit confirmation. The proof script checks frontend reachability, frontend-proxy API smoke, direct API smoke, performance/API timing, optional load smoke, and optional browser tour evidence.
+
 Start or stop the local stack:
 
 ```powershell
@@ -248,7 +257,7 @@ Future production activation is a separate later phase and must replace local mo
 The tracked activation checklist lives in [Production deployment activation](docs/architecture/production-deployment-activation.md).
 Service-specific activation notes for email recovery, account invitations, email notifications, and real agentic work live in [V17 external service activation](docs/architecture/v17-service-activation.md).
 
-V17 private deployment work adds a VPS + Docker Compose shape under `deploy/vps/`, deployment scripts under `scripts/deploy/`, SMTP-backed email delivery hooks, read-plus-draft agent runtime metadata, load-smoke proof, and signed internal Android release checks. Keep detailed deployment values, provider credentials, Android keystores, and proof logs private until the deployment is proven and intentionally published.
+V17 private deployment work adds a VPS + Docker Compose shape under `deploy/vps/`, deployment scripts under `scripts/deploy/`, deployed proof wrappers, SMTP-backed email delivery hooks, read-plus-draft agent runtime metadata, load-smoke proof, and signed internal Android release checks. Keep detailed deployment values, provider credentials, Android keystores, and proof logs private until the deployment is proven and intentionally published.
 
 ## Latest Scripted Local QC Snapshot
 

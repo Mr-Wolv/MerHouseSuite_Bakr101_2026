@@ -18,6 +18,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/api-smoke.ps1` | Run the API smoke suite against a running backend or frontend proxy. |
 | `scripts/quality/api-docs.ps1` | Check local OpenAPI availability with a validated HTTP(S) target and print local documentation URLs. |
 | `scripts/quality/frontend-deploy-check.ps1` | Check the deployed frontend shell and API proxy with a validated local HTTP(S) target. |
+| `scripts/quality/deployed-v17-proof.ps1` | Run deployed V17 proof against explicit frontend/API URLs, including frontend proxy smoke, direct API smoke, performance/API timing, optional load smoke, and optional browser tour. |
 | `scripts/quality/frontend-full-tour.ps1` | Run the browser tour against a running local stack. |
 | `scripts/quality/mobile-shell-check.ps1` | Check shared mobile shell metadata, manifest, icon references, and service worker markers used by web and native packaging. |
 | `scripts/quality/native-mobile-check.ps1` | Check the Capacitor Android wrapper, sync the frontend build into Android, and optionally assemble a debug APK. |
@@ -32,6 +33,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, CI naming, and Compose config. |
 | `scripts/quality/deployment-readiness.ps1` | Run the V16.2 deployment-ready local certification gate with local/mock proof and optional timed API smoke. |
 | `scripts/deploy/vps-check.ps1` | Validate the V17 VPS production Compose shape against the deployment env template. |
+| `scripts/deploy/deploy-vps.ps1` | Apply the V17 VPS Compose stack from a private env file after explicit confirmation, optional image pull/build, and optional pre-deploy backup. |
 | `scripts/deploy/backup-postgres.ps1` | Create a PostgreSQL custom-format backup through the Compose postgres service. |
 | `scripts/deploy/restore-postgres.ps1` | Restore a PostgreSQL backup after explicit confirmation. |
 | `scripts/deploy/rollback-compose.ps1` | Re-apply the selected Compose image/tag set after explicit rollback confirmation. |
@@ -281,6 +283,28 @@ Validate the VPS Compose deployment shape before copying private environment fil
 Use `deploy/vps/env.production.example` as a template only; real deployment env files, logs, backups, and credentials stay outside Git.
 
 The VPS frontend image accepts `MERHOUSE_FRONTEND_PUBLIC_API_URL` through the `VITE_API_BASE_URL` build argument. Leave it blank when the public frontend reverse-proxies `/api` to the backend on the same origin; set it only for split frontend/API origin deployments where the browser must call a separate API origin.
+
+Apply the VPS stack only from a private env file and only after choosing backup posture:
+
+```powershell
+.\scripts\deploy\deploy-vps.ps1 -EnvFile ".env.production" -Build -BackupBeforeDeploy -ConfirmDeploy
+```
+
+`deploy-vps.ps1` refuses `env.production.example`, reruns the rendered VPS Compose boundary check, can create a pre-deploy database backup, can pull configured images, and then applies `docker compose up -d --remove-orphans` with optional `--build`.
+
+After rollout, run deployed proof against the public frontend and API targets:
+
+```powershell
+.\scripts\quality\deployed-v17-proof.ps1 `
+  -FrontendBaseUrl "https://app.example.com" `
+  -ApiBaseUrl "https://api.example.com" `
+  -IncludeLoadSmoke `
+  -IncludeBrowserTour
+```
+
+The default deployed proof checks the frontend shell, frontend-proxy API smoke, direct API smoke, and performance/API timing. `-IncludeLoadSmoke` adds concurrent health traffic; `-IncludeBrowserTour` requires seeded stakeholder data and runs the browser tour against the deployed frontend.
+
+For deployed browser tours, pass the same stakeholder emails and passwords used to seed the staging or smoke tenant through the `-AdminEmail`, `-MerchantEmail`, `-WarehouseEmail`, `-SupportAdminEmail`, `-AuditorEmail`, and matching password parameters. The wrapper keeps the frontend URL and API URL separate so same-origin proxy deployments and split frontend/API origin deployments are both explicit in proof output.
 
 Run the API smoke suite after the stack is running:
 
