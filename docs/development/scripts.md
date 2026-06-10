@@ -280,7 +280,7 @@ Validate the VPS Compose deployment shape before copying private environment fil
 .\scripts\deploy\vps-check.ps1
 ```
 
-Use `deploy/vps/env.production.example` as a template only; real deployment env files, logs, backups, and credentials stay outside Git.
+Use `deploy/vps/env.production.example` as a template only; real deployment env files, logs, backups, and credentials stay outside Git. The shape check validates rendered public-mode safety flags plus PostgreSQL, backend HTTP readiness, and frontend shell healthchecks.
 
 The VPS frontend image accepts `MERHOUSE_FRONTEND_PUBLIC_API_URL` through the `VITE_API_BASE_URL` build argument. Leave it blank when the public frontend reverse-proxies `/api` to the backend on the same origin; set it only for split frontend/API origin deployments where the browser must call a separate API origin.
 

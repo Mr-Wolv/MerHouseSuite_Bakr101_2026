@@ -36,7 +36,9 @@ $requiredPatterns = @(
     'MERHOUSE_AUTH_SEED_ADMIN_ENABLED:\s+"?false"?',
     'MERHOUSE_SWAGGER_ENABLED:\s+"?false"?',
     'SPRING_DATASOURCE_URL:\s+jdbc:postgresql://postgres:5432/',
-    'VITE_API_BASE_URL:'
+    'VITE_API_BASE_URL:',
+    'curl -fsS http://localhost:8080/api/v1/health',
+    'wget -qO- http://localhost/'
 )
 
 foreach ($pattern in $requiredPatterns) {
