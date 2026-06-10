@@ -161,6 +161,66 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
         if ($attachmentName -eq "installedAndroidTour" -and $proofArtifact.apiUrl -ne $manifest.apiBaseUrl) {
             $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact apiUrl must match apiBaseUrl."
         }
+        if ($attachmentName -eq "backupRestore") {
+            if (-not [bool]$proofArtifact.restored) {
+                $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact restored must be true."
+            }
+            $backupPath = Resolve-ProofPath -Path $proofArtifact.backupPath
+            if ([string]::IsNullOrWhiteSpace($backupPath) -or -not (Test-Path -LiteralPath $backupPath)) {
+                $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact backupPath must point to an existing backup file."
+            } else {
+                if ($proofArtifact.backupSha256 -notmatch '^[a-fA-F0-9]{64}$') {
+                    $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact backupSha256 must be a 64-character hex digest."
+                } else {
+                    $backupHash = (Get-FileHash -LiteralPath $backupPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                    if ($backupHash -ne $proofArtifact.backupSha256.ToLowerInvariant()) {
+                        $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact backupSha256 must match backupPath content."
+                    }
+                }
+                $backupBytes = (Get-Item -LiteralPath $backupPath).Length
+                if ([long]$proofArtifact.backupBytes -ne $backupBytes -or $backupBytes -le 0) {
+                    $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact backupBytes must match a non-empty backup file."
+                }
+            }
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.secretPolicy)) {
+                $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact secretPolicy must be non-blank."
+            }
+        }
+        if ($attachmentName -eq "rollback") {
+            if (-not [bool]$proofArtifact.rollbackRan) {
+                $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact rollbackRan must be true."
+            }
+            if ($proofArtifact.preflight.envAudit -ne "passed") {
+                $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact preflight.envAudit must be passed."
+            }
+            if ($proofArtifact.preflight.vpsShape -ne "passed") {
+                $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact preflight.vpsShape must be passed."
+            }
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.secretPolicy)) {
+                $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact secretPolicy must be non-blank."
+            }
+            if ($null -ne $proofArtifact.postRollbackMonitoring -and [bool]$proofArtifact.postRollbackMonitoring.ran) {
+                if ($proofArtifact.postRollbackMonitoring.apiBaseUrl -ne $manifest.apiBaseUrl) {
+                    $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.apiBaseUrl must match apiBaseUrl."
+                }
+                if ($proofArtifact.postRollbackMonitoring.frontendBaseUrl -ne $manifest.frontendBaseUrl) {
+                    $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.frontendBaseUrl must match frontendBaseUrl."
+                }
+                $rollbackMonitoringPath = Resolve-ProofPath -Path $proofArtifact.postRollbackMonitoring.reportPath
+                if ([string]::IsNullOrWhiteSpace($rollbackMonitoringPath) -or -not (Test-Path -LiteralPath $rollbackMonitoringPath)) {
+                    $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath must point to an existing report when monitoring ran."
+                } else {
+                    try {
+                        $rollbackMonitoringReport = Get-Content -Raw -LiteralPath $rollbackMonitoringPath | ConvertFrom-Json
+                        if ($rollbackMonitoringReport.schema -ne "merhouse.v17.deployed-monitoring.v1") {
+                            $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath schema must be merhouse.v17.deployed-monitoring.v1."
+                        }
+                    } catch {
+                        $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath must be readable JSON proof."
+                    }
+                }
+            }
+        }
         if ($attachmentName -eq "emailProvider") {
             if ($proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
                 $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact apiBaseUrl must match apiBaseUrl."

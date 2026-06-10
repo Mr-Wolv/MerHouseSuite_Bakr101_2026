@@ -23,6 +23,7 @@ $artifactPaths = [ordered]@{
     frontendProxySmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-frontend-proxy-smoke.json"
     directApiSmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-direct-api-smoke.json"
     monitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-monitoring.json"
+    rollbackMonitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-rollback-monitoring.json"
     performance = Join-Path $resolvedOutputDirectory "v17-cutover-check-performance.json"
     loadSmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-load-smoke.json"
     browserTour = Join-Path $resolvedOutputDirectory "v17-cutover-check-browser-tour.json"
@@ -32,7 +33,10 @@ $artifactPaths = [ordered]@{
     invalidAndroidReleaseArtifact = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-app-release.aab"
     installedAndroidTour = Join-Path $resolvedOutputDirectory "v17-cutover-check-installed-android-tour.json"
     backupRestore = Join-Path $resolvedOutputDirectory "v17-cutover-check-backup-restore.json"
+    invalidBackupRestore = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-backup-restore.json"
+    backupRestoreDump = Join-Path $resolvedOutputDirectory "v17-cutover-check-backup-restore.dump"
     rollback = Join-Path $resolvedOutputDirectory "v17-cutover-check-rollback.json"
+    invalidRollback = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-rollback.json"
     emailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-email-provider.json"
     invalidEmailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-email-provider.json"
     alertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-routing.json"
@@ -46,6 +50,8 @@ $artifactPaths = [ordered]@{
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.directApiSmoke -Encoding utf8
 @{ schema = "merhouse.v17.deployed-monitoring.v1"; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.monitoring -Encoding utf8
+@{ schema = "merhouse.v17.deployed-monitoring.v1"; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.rollbackMonitoring -Encoding utf8
 @{ status = "PASSED"; apiSmokeSeconds = 12.34 } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.performance -Encoding utf8
 @{ schema = "merhouse.load-smoke.v1"; target = "https://api.example.com" } |
@@ -55,8 +61,11 @@ $artifactPaths = [ordered]@{
 
 Set-Content -LiteralPath $artifactPaths.androidReleaseArtifact -Value "fixture signed Android artifact" -Encoding utf8
 Set-Content -LiteralPath $artifactPaths.invalidAndroidReleaseArtifact -Value "changed Android artifact" -Encoding utf8
+Set-Content -LiteralPath $artifactPaths.backupRestoreDump -Value "fixture postgres custom-format backup" -Encoding utf8
 $androidArtifactHash = (Get-FileHash -LiteralPath $artifactPaths.androidReleaseArtifact -Algorithm SHA256).Hash.ToLowerInvariant()
 $androidArtifactBytes = (Get-Item -LiteralPath $artifactPaths.androidReleaseArtifact).Length
+$backupHash = (Get-FileHash -LiteralPath $artifactPaths.backupRestoreDump -Algorithm SHA256).Hash.ToLowerInvariant()
+$backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
 
 @{
     schema = "merhouse.v17.android-release.v1"
@@ -71,10 +80,31 @@ $androidArtifactBytes = (Get-Item -LiteralPath $artifactPaths.androidReleaseArti
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.androidRelease -Encoding utf8
 @{ schema = "merhouse.native-android-tour.report.v1"; apiUrl = "https://api.example.com" } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.installedAndroidTour -Encoding utf8
-@{ schema = "merhouse.v17.backup-restore-drill.v1" } |
+@{
+    schema = "merhouse.v17.backup-restore-drill.v1"
+    backupPath = $artifactPaths.backupRestoreDump
+    backupSha256 = $backupHash
+    backupBytes = $backupBytes
+    restored = $true
+    secretPolicy = "manifest omits database credentials and env values"
+} |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.backupRestore -Encoding utf8
-@{ schema = "merhouse.v17.rollback-rehearsal.v1" } |
-    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.rollback -Encoding utf8
+@{
+    schema = "merhouse.v17.rollback-rehearsal.v1"
+    rollbackRan = $true
+    preflight = @{
+        envAudit = "passed"
+        vpsShape = "passed"
+    }
+    postRollbackMonitoring = @{
+        ran = $true
+        frontendBaseUrl = "https://app.example.com"
+        apiBaseUrl = "https://api.example.com"
+        reportPath = $artifactPaths.rollbackMonitoring
+    }
+    secretPolicy = "Private env values, provider credentials, deployment logs, keystores, and backup archives are excluded from this manifest."
+} |
+    ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $artifactPaths.rollback -Encoding utf8
 @{
     schema = "merhouse.v17.email-provider-proof.v1"
     completedAt = (Get-Date).ToUniversalTime().ToString("o")
@@ -158,8 +188,9 @@ $missingManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $missingEv
 $wrongAttachmentManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
 $wrongAttachmentManifest.attachedEvidence.androidRelease.schema = "merhouse.load-smoke.v1"
 $wrongAttachmentManifest.attachedEvidence.androidRelease.path = $artifactPaths.invalidAndroidRelease
+$wrongAttachmentManifest.attachedEvidence.backupRestore.path = $artifactPaths.invalidBackupRestore
+$wrongAttachmentManifest.attachedEvidence.rollback.path = $artifactPaths.invalidRollback
 $wrongAttachmentManifest.attachedEvidence.alertRouting.apiBaseUrl = "https://wrong-api.example.com"
-$wrongAttachmentManifest.attachedEvidence.rollback.path = (Join-Path $resolvedOutputDirectory "missing-rollback-proof.json")
 $wrongAttachmentManifest.attachedEvidence.emailProvider.path = $artifactPaths.invalidEmailProvider
 $wrongAttachmentManifest.attachedEvidence.liveStakeholderWalkthrough.path = $artifactPaths.invalidLiveStakeholderWalkthrough
 $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $wrongAttachmentManifestPath -Encoding utf8
@@ -185,6 +216,31 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
     deliveryEvidence = ""
     secretPolicy = "No SMTP credentials are stored."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidEmailProvider -Encoding utf8
+
+@{
+    schema = "merhouse.v17.backup-restore-drill.v1"
+    backupPath = $artifactPaths.backupRestoreDump
+    backupSha256 = $androidArtifactHash
+    backupBytes = $androidArtifactBytes
+    restored = $false
+    secretPolicy = ""
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidBackupRestore -Encoding utf8
+
+@{
+    schema = "merhouse.v17.rollback-rehearsal.v1"
+    rollbackRan = $false
+    preflight = @{
+        envAudit = "failed"
+        vpsShape = "passed"
+    }
+    postRollbackMonitoring = @{
+        ran = $true
+        frontendBaseUrl = "https://wrong-app.example.com"
+        apiBaseUrl = "https://wrong-api.example.com"
+        reportPath = (Join-Path $resolvedOutputDirectory "missing-rollback-monitoring.json")
+    }
+    secretPolicy = ""
+} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $artifactPaths.invalidRollback -Encoding utf8
 
 @{
     schema = "merhouse.v17.live-stakeholder-walkthrough.v1"
@@ -224,11 +280,15 @@ try {
         $_.Exception.Message -match "androidRelease.path artifact sha256" -and
         $_.Exception.Message -match "androidRelease.path artifact cleartextTraffic" -and
         $_.Exception.Message -match "androidRelease.path artifact signing" -and
+        $_.Exception.Message -match "backupRestore.path artifact restored" -and
+        $_.Exception.Message -match "backupRestore.path artifact backupSha256" -and
+        $_.Exception.Message -match "rollback.path artifact rollbackRan" -and
+        $_.Exception.Message -match "rollback.path artifact preflight.envAudit" -and
+        $_.Exception.Message -match "rollback.path artifact postRollbackMonitoring.apiBaseUrl" -and
         $_.Exception.Message -match "emailProvider.path artifact apiBaseUrl" -and
         $_.Exception.Message -match "emailProvider.path artifact providerStatus" -and
         $_.Exception.Message -match "workflowsProven must include access-request" -and
         $_.Exception.Message -match "alertRouting.apiBaseUrl" -and
-        $_.Exception.Message -match "rollback.path" -and
         $_.Exception.Message -match "liveStakeholderWalkthrough.path artifact apiBaseUrl" -and
         $_.Exception.Message -match "installedAndroidWalkthroughCompleted" -and
         $_.Exception.Message -match "rolesCovered must include warehouse"
