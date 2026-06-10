@@ -64,12 +64,12 @@ Use this queue to avoid wandering. Each pass chooses one row, audits the named f
 | --- | --- | --- | --- |
 | 1 | Notification backend, frontend, tests, and docs | Recipient scoping, unread/action/history state, source routes, dense records, local-provider boundary, web/native shared rendering | Covered through `BH-001` to `BH-003` and `BH-034`; final live walkthrough pending |
 | 2 | Auth, account lifecycle, password reset, and access requests | Public routes, local reset boundary, account-ready handoff, validation, denial, fake credential repeatability | Covered through `BH-004` to `BH-008`; live browser sign-in CORS bug under `BH-035`; final live walkthrough pending |
-| 3 | Admin governance pages and services | Dense tenants/users, access-request conversion, support/auditor boundaries, relationship governance, outbox diagnostics | Covered through `BH-009` to `BH-012`; final live walkthrough pending |
+| 3 | Admin governance pages and services | Dense tenants/users, access-request conversion, support/auditor boundaries, relationship governance, outbox diagnostics | Covered through `BH-009` to `BH-012`; final live walkthrough admin loading defect closed in `BH-052` |
 | 4 | Merchant operations pages and services | Inventory, inbound stock, order create/import, allocation visibility, backorders, notification handoffs | In progress through `BH-013` to `BH-016` |
 | 5 | Warehouse operations pages and services | Receiving, pick/pack/ship/deliver/fail/return, package evidence, exceptions, stock adjustments | In progress through `BH-017` to `BH-019`; receiving and shipment evidence validation closed in `BH-039` to `BH-041` |
 | 6 | Service accountability pages and services | Agreements, statements, disputes, claims, reviews, SLA risk, cross-party alerts | In progress through `BH-020` to `BH-024`, `BH-036`, `BH-045`, and `BH-046` |
 | 7 | Operational detail routes | Route permissions, linked timelines, source-route parity, empty/not-found/denied states | In progress through `BH-025` to `BH-027`; platform-safe inventory recovery closed in `BH-042` |
-| 8 | Native Android shell and shared mobile proof | Shell-only boundary, API base sync, installed APK route behavior, screenshots, no duplicate product code | In progress through `BH-028` to `BH-029`; fresh web paired with latest native evidence in `BH-037`; refreshed APK/API-base proof in `BH-038`; cross-surface screenshot evidence proof tightened in `BH-047` |
+| 8 | Native Android shell and shared mobile proof | Shell-only boundary, API base sync, installed APK route behavior, screenshots, no duplicate product code | In progress through `BH-028` to `BH-029`; fresh web paired with latest native evidence in `BH-037`; refreshed APK/API-base proof in `BH-038`; cross-surface screenshot evidence proof tightened in `BH-047`; final live browser/APK walkthrough recorded in `BH-052` |
 | 9 | Quality scripts and CI | Proof target validation, paired report rules, performance budgets, broad gate determinism | In progress through `BH-030` to `BH-031` and `BH-047` |
 | 10 | Architecture docs and diagrams | Roadmap, README, docs index, scripts docs, system diagram agreement with code and local boundaries | In progress through `BH-032` to `BH-033` |
 
@@ -202,6 +202,53 @@ Each entry should include:
 - Remaining risk and next target.
 
 ## Current Bug-Hunt Ledger
+
+### BH-052: Final Live Walkthrough Found Android Admin Overview Blocking On Slow Ledgers
+
+Date: 2026-06-10.
+
+Reviewer/product owner mode: the reviewer asked the agent to drive the live browser and installed Android APK directly, observe the visible behavior, fix only actual defects, and stop once local V&V/QC/QA evidence converges.
+
+Local stack:
+
+- Browser app URL: `http://localhost:3000`
+- API URL: `http://localhost:8080`
+- Native API base used for APK assembly: `http://10.0.2.2:8080`
+- APK path: `frontend/android/app/build/outputs/apk/debug/app-debug.apk`
+- Latest installed APK SHA-256 after the fix: `190ca192ff8f29d5dc1c87670f13a6b891c67373bf598c74bf2b2a2e670e0f20`
+- Android emulator: `emulator-5554`
+
+Evidence:
+
+- Installed Android APK was opened visibly on the `Pixel_7` emulator. The login, forgot-password, access-request, owner/admin, support-admin, auditor, active merchant, empty merchant, active warehouse, empty warehouse, notification, service-accountability, assistant, and account surfaces were driven through the WebView and checked with screenshots under `reports/final-live-walkthrough/android`.
+- Browser live proof drove the same shared React surface at `http://localhost:3000` for public routes, owner/admin, active/empty merchant, active/empty warehouse, notifications, service accountability, assistant, and account routes with screenshots under `reports/final-live-walkthrough/browser`.
+- The browser pass recorded 21 visible screens, 0 console errors, and no suspicious loading/error/overflow findings.
+- The first installed-APK pass recorded 37 visible screens, but manual screenshot review showed owner/support/auditor `/admin` remained on the full-page `Loading admin overview` card after the rest of the app was usable.
+
+Observed bug:
+
+- The admin overview required `api.orders`, `api.adminSummary`, and `api.adminTenantHealth` to finish together before rendering any admin content.
+- In the dense local proof database, orders and tenant-health ledgers could take seconds in Android WebView, so the primary admin attention queue looked stuck even though `adminSummary` returned quickly and the user could already act on platform attention elsewhere.
+- This affected web and Android because both surfaces use the same React route; Android made the defect obvious through the real installed APK.
+
+Fix:
+
+- `AdminOverviewPage` now renders the primary admin overview from `adminSummary` only.
+- Recent operational orders and tenant health now load as independent secondary ledgers with their own loading and error states.
+- The route still shares one React implementation across web and native Android; no native-only workaround was added.
+
+Proof:
+
+- `npm --prefix frontend run test -- AdminManagement.test.tsx` passed with 31 tests, including a regression that leaves orders and tenant health unresolved while proving the admin summary renders and the full-page `Loading admin overview` card is gone.
+- `npm --prefix frontend run build` passed before rebuilding the APK.
+- `.\scripts\quality\native-mobile-check.ps1 -Assemble -ApiBaseUrl "http://10.0.2.2:8080"` passed and produced APK SHA-256 `190ca192ff8f29d5dc1c87670f13a6b891c67373bf598c74bf2b2a2e670e0f20`.
+- The rebuilt APK was installed, opened, and rechecked on `/admin`; `reports/final-live-walkthrough/android/04-owner-admin-fixed-final.png` and `reports/final-live-walkthrough/android/04-owner-admin-fixed-viewport.png` show the real admin overview with only secondary ledger loading.
+- `.\scripts\quality\frontend-check.ps1 -IncludeE2E -SkipInstall` passed after the fix, covering lint, build, Vitest, and Playwright E2E.
+
+Remaining risk:
+
+- The earlier 100-record scripted native tour remains valid for broad cross-surface coverage before this fix, while the latest APK proof is targeted to the live defect and rebuilt APK. Regenerate the full paired browser/native scripted reports only if the next release needs a new report-aware transcript; do not keep looping solely to refresh report fingerprints.
+- Production push notifications, email/SMS delivery, app-store release, monitoring, autoscaling, and real provider delivery remain outside local V16.2 and belong to later activation.
 
 ### BH-051: Final Walkthrough Evidence Template Was Promised But Missing
 

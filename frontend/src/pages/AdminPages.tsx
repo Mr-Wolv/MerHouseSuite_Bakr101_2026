@@ -26,9 +26,19 @@ export { AdminAuditPage } from '../features/admin/audit/AdminAuditPage'
 export { AdminOutboxPage } from '../features/admin/outbox/AdminOutboxPage'
 
 type AdminData = {
-  orders: Order[]
   summary: AdminPlatformSummary
+}
+
+type AdminOrdersData = {
+  orders: Order[]
+  loading: boolean
+  error: string
+}
+
+type AdminTenantHealthData = {
   tenantHealth: AdminTenantHealth[]
+  loading: boolean
+  error: string
 }
 
 type AdminUsersData = {
@@ -49,8 +59,8 @@ function useAdminData() {
 
   useEffect(() => {
     if (!token) return
-    Promise.all([api.orders(token), api.adminSummary(token), api.adminTenantHealth(token)])
-      .then(([orders, summary, tenantHealth]) => setData({ orders, summary, tenantHealth }))
+    api.adminSummary(token)
+      .then((summary) => setData({ summary }))
       .catch((caught) => {
         setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load admin data.')
       })
@@ -58,6 +68,66 @@ function useAdminData() {
   }, [token])
 
   return { data, loading, error }
+}
+
+function useAdminTenantHealthData(): AdminTenantHealthData {
+  const { token } = useAuth()
+  const [tenantHealth, setTenantHealth] = useState<AdminTenantHealth[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>('')
+
+  useEffect(() => {
+    if (!token) return
+    let active = true
+    api.adminTenantHealth(token)
+      .then((nextTenantHealth) => {
+        if (active) {
+          setTenantHealth(nextTenantHealth)
+          setError('')
+        }
+      })
+      .catch((caught) => {
+        if (active) setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load tenant health.')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [token])
+
+  return { tenantHealth, loading, error }
+}
+
+function useAdminOrdersData(): AdminOrdersData {
+  const { token } = useAuth()
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>('')
+
+  useEffect(() => {
+    if (!token) return
+    let active = true
+    api.orders(token)
+      .then((nextOrders) => {
+        if (active) {
+          setOrders(nextOrders)
+          setError('')
+        }
+      })
+      .catch((caught) => {
+        if (active) setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to load recent orders.')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [token])
+
+  return { orders, loading, error }
 }
 
 function useAdminUsersData() {
@@ -82,11 +152,13 @@ function useAdminUsersData() {
 export function AdminOverviewPage() {
   const { user } = useAuth()
   const { data, loading, error } = useAdminData()
+  const orderData = useAdminOrdersData()
+  const tenantHealthData = useAdminTenantHealthData()
   const orderCounts = useMemo(() => {
     const counts = new Map<string, number>()
-    data?.orders.forEach((order) => counts.set(order.status, (counts.get(order.status) ?? 0) + 1))
+    orderData.orders.forEach((order) => counts.set(order.status, (counts.get(order.status) ?? 0) + 1))
     return Array.from(counts.entries())
-  }, [data?.orders])
+  }, [orderData.orders])
 
   if (loading) {
     return (
@@ -152,7 +224,11 @@ export function AdminOverviewPage() {
       />
       <section className="table-section">
         <h2>Order Status</h2>
-        {orderCounts.length ? (
+        {orderData.loading ? (
+          <LoadingState label="Loading order status" />
+        ) : orderData.error ? (
+          <ErrorState title={orderData.error} />
+        ) : orderCounts.length ? (
           <div className="status-row">
             {orderCounts.map(([status, count]) => (
               <div className="status-count" key={status}>
@@ -165,8 +241,8 @@ export function AdminOverviewPage() {
           <EmptyState label="No orders yet" guidance="Orders will appear after merchant accounts create demand. Start by confirming tenant and relationship setup, then review merchant order queues." />
         )}
       </section>
-      <AdminOrdersTable orders={data.orders.slice(0, 12)} />
-      <TenantHealthTable rows={data.tenantHealth} />
+      <AdminOrdersTable orders={orderData.orders.slice(0, 12)} loading={orderData.loading} error={orderData.error} />
+      <TenantHealthTable rows={tenantHealthData.tenantHealth} loading={tenantHealthData.loading} error={tenantHealthData.error} />
     </div>
   )
 }
@@ -1231,11 +1307,15 @@ export function AdminRelationshipsPage() {
   )
 }
 
-function AdminOrdersTable({ orders }: { orders: Order[] }) {
+function AdminOrdersTable({ orders, loading, error }: { orders: Order[]; loading: boolean; error: string }) {
   return (
     <section className="table-section">
       <h2>Recent Operational Orders</h2>
-      {orders.length ? (
+      {loading ? (
+        <LoadingState label="Loading recent orders" />
+      ) : error ? (
+        <ErrorState title={error} />
+      ) : orders.length ? (
         <div className="table-wrap">
           <table>
             <thead>
@@ -1273,11 +1353,15 @@ function AdminOrdersTable({ orders }: { orders: Order[] }) {
   )
 }
 
-function TenantHealthTable({ rows }: { rows: AdminTenantHealth[] }) {
+function TenantHealthTable({ rows, loading, error }: { rows: AdminTenantHealth[]; loading: boolean; error: string }) {
   return (
     <section className="table-section">
       <h2>Tenant Health</h2>
-      {rows.length ? (
+      {loading ? (
+        <LoadingState label="Loading tenant health" />
+      ) : error ? (
+        <ErrorState title={error} />
+      ) : rows.length ? (
         <div className="table-wrap">
           <table>
             <thead>

@@ -237,10 +237,11 @@ The latest scripted V16.2 QC pass on 2026-06-10 verified:
 - `.\scripts\quality\cross-surface-tour-check.ps1` passed against the browser and installed-APK tour reports, confirming browser report provenance, exact normalized web/native role/path set equality, and no loading shells, bad statuses, overflow, unnamed controls, or unlabeled controls.
 - `.\scripts\quality\cross-surface-tour-check.ps1 -WebReportPath ".\reports\wrapup-frontend-full-tour.json" -NativeReportPath ".\reports\wrapup-native-android-tour.json"` passed with the fresh browser report and fresh installed-APK report, browser target provenance, exact normalized role/path equality, APK fingerprint/device/timestamp/checked-route provenance, and no bad route records.
 - `.\scripts\quality\performance-readiness.ps1 -IncludeApiSmoke -ApiBaseUrl "http://localhost:8080" -WebReportPath ".\reports\wrapup-frontend-full-tour.json" -NativeReportPath ".\reports\wrapup-native-android-tour.json" -OutputPath ".\reports\wrapup-performance-readiness.json"` passed local bundle/performance budgets, required browser report provenance, required native APK/device/timestamp/checked-route provenance, required per-record web/native route timing, required per-record native screenshot timing, and 44.16-second timed API smoke under the 120-second budget; the full deployment gate then recorded 37.82-second timed API smoke in `reports/performance-readiness.json`. Production load, monitoring, autoscaling, and provider-backed delivery remain later activation work.
+- Final live browser and installed-APK walkthrough evidence is recorded in [BH-052](docs/architecture/cross-surface-convergence.md#bh-052-final-live-walkthrough-found-android-admin-overview-blocking-on-slow-ledgers). That live pass found and fixed the shared admin overview full-page loading defect, then rebuilt and installed the APK with SHA-256 `190ca192ff8f29d5dc1c87670f13a6b891c67373bf598c74bf2b2a2e670e0f20` for targeted Android recheck.
 
 Generated proof reports stay local through `.gitignore`.
 
-Scripted proof is not the final convergence claim. V16.2 still requires the planned live walkthrough with the reviewer and product owner in the real browser and real installed Android app.
+Scripted proof is not enough by itself for future release claims. Repeat the live browser and installed-Android walkthrough when a later release changes stakeholder workflows, native packaging, local-provider boundaries, or performance-critical routes.
 
 ## What Belongs In Git
 

@@ -218,6 +218,19 @@ describe('Admin overview', () => {
     expect(screen.getByRole('heading', { name: 'Tenant Health' })).toBeInTheDocument()
   })
 
+  it('renders the admin summary while slower operational ledgers are still loading', async () => {
+    apiMock.orders.mockReturnValue(new Promise(() => {}))
+    apiMock.adminTenantHealth.mockReturnValue(new Promise(() => {}))
+
+    renderWithAuth(<AdminOverviewPage />)
+
+    expect(await screen.findByRole('heading', { name: 'Needs Attention First' })).toBeInTheDocument()
+    expect(screen.queryByText('Loading admin overview')).not.toBeInTheDocument()
+    expect(screen.getByText('Loading order status')).toBeInTheDocument()
+    expect(screen.getByText('Loading recent orders')).toBeInTheDocument()
+    expect(screen.getByText('Loading tenant health')).toBeInTheDocument()
+  })
+
   it('frames owner/admin-only overview signals as support review work', async () => {
     renderWithAuth(<AdminOverviewPage />, {
       ...authState,
