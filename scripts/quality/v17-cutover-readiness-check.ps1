@@ -34,6 +34,7 @@ $artifactPaths = [ordered]@{
     androidReleaseArtifact = Join-Path $resolvedOutputDirectory "v17-cutover-check-app-release.aab"
     invalidAndroidReleaseArtifact = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-app-release.aab"
     installedAndroidTour = Join-Path $resolvedOutputDirectory "v17-cutover-check-installed-android-tour.json"
+    invalidInstalledAndroidTour = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-installed-android-tour.json"
     backupRestore = Join-Path $resolvedOutputDirectory "v17-cutover-check-backup-restore.json"
     invalidBackupRestore = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-backup-restore.json"
     backupRestoreDump = Join-Path $resolvedOutputDirectory "v17-cutover-check-backup-restore.dump"
@@ -86,8 +87,21 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     signing = "external-keystore-env"
 } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.androidRelease -Encoding utf8
-@{ schema = "merhouse.native-android-tour.report.v1"; apiUrl = "https://api.example.com" } |
-    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.installedAndroidTour -Encoding utf8
+@{
+    schema = "merhouse.native-android-tour.report.v1"
+    apiUrl = "https://api.example.com"
+    checkedAt = (Get-Date).ToUniversalTime().ToString("o")
+    apkSha256 = $androidArtifactHash
+    apkBytes = $androidArtifactBytes
+    deviceSerials = @("emulator-fixture")
+    checkedRoutes = 2
+    records = @(
+        @{ role = "OWNER"; route = "/admin"; screenshot = "fixture-owner-admin.png" },
+        @{ role = "MERCHANT_ACTIVE"; route = "/merchant"; screenshot = "fixture-merchant.png" }
+    )
+    badRecords = @()
+} |
+    ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $artifactPaths.installedAndroidTour -Encoding utf8
 @{
     schema = "merhouse.v17.backup-restore-drill.v1"
     backupPath = $artifactPaths.backupRestoreDump
@@ -198,6 +212,7 @@ $wrongAttachmentManifest.attachedEvidence.androidRelease.schema = "merhouse.load
 $wrongAttachmentManifest.attachedEvidence.androidRelease.path = $artifactPaths.invalidAndroidRelease
 $wrongAttachmentManifest.attachedEvidence.androidRelease.versionCode = 99
 $wrongAttachmentManifest.attachedEvidence.androidRelease.versionName = "wrong-version"
+$wrongAttachmentManifest.attachedEvidence.installedAndroidTour.path = $artifactPaths.invalidInstalledAndroidTour
 $wrongAttachmentManifest.attachedEvidence.backupRestore.path = $artifactPaths.invalidBackupRestore
 $wrongAttachmentManifest.attachedEvidence.rollback.path = $artifactPaths.invalidRollback
 $wrongAttachmentManifest.attachedEvidence.alertRouting.apiBaseUrl = "https://wrong-api.example.com"
@@ -230,6 +245,18 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
     deliveryEvidence = ""
     secretPolicy = "No SMTP credentials are stored."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidEmailProvider -Encoding utf8
+
+@{
+    schema = "merhouse.native-android-tour.report.v1"
+    apiUrl = "https://wrong-api.example.com"
+    checkedAt = ""
+    apkSha256 = "not-a-sha"
+    apkBytes = 0
+    deviceSerials = @()
+    checkedRoutes = 0
+    records = @()
+    badRecords = @("loading-shell")
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidInstalledAndroidTour -Encoding utf8
 
 @{
     schema = "merhouse.v17.backup-restore-drill.v1"
@@ -298,6 +325,14 @@ try {
         $_.Exception.Message -match "androidRelease.versionName" -and
         $_.Exception.Message -match "androidRelease.path artifact cleartextTraffic" -and
         $_.Exception.Message -match "androidRelease.path artifact signing" -and
+        $_.Exception.Message -match "installedAndroidTour.path artifact apiUrl" -and
+        $_.Exception.Message -match "installedAndroidTour.path artifact checkedAt" -and
+        $_.Exception.Message -match "installedAndroidTour.path artifact apkSha256" -and
+        $_.Exception.Message -match "installedAndroidTour.path artifact apkBytes" -and
+        $_.Exception.Message -match "installedAndroidTour.path artifact deviceSerials" -and
+        $_.Exception.Message -match "installedAndroidTour.path artifact checkedRoutes" -and
+        $_.Exception.Message -match "installedAndroidTour.path artifact records" -and
+        $_.Exception.Message -match "installedAndroidTour.path artifact badRecords" -and
         $_.Exception.Message -match "backupRestore.path artifact restored" -and
         $_.Exception.Message -match "backupRestore.path artifact backupSha256" -and
         $_.Exception.Message -match "rollback.path artifact rollbackRan" -and

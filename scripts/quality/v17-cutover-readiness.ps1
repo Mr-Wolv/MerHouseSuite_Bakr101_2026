@@ -213,6 +213,29 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
         if ($attachmentName -eq "installedAndroidTour" -and $proofArtifact.apiUrl -ne $manifest.apiBaseUrl) {
             $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact apiUrl must match apiBaseUrl."
         }
+        if ($attachmentName -eq "installedAndroidTour") {
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.checkedAt)) {
+                $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact checkedAt must be non-blank."
+            }
+            if ($proofArtifact.apkSha256 -notmatch '^[a-fA-F0-9]{64}$') {
+                $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact apkSha256 must be a 64-character hex digest."
+            }
+            if ([long]$proofArtifact.apkBytes -le 0) {
+                $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact apkBytes must be greater than zero."
+            }
+            if (@($proofArtifact.deviceSerials).Count -lt 1) {
+                $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact deviceSerials must include at least one connected device."
+            }
+            if ([int]$proofArtifact.checkedRoutes -lt 1) {
+                $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact checkedRoutes must be greater than zero."
+            }
+            if (@($proofArtifact.records).Count -lt 1) {
+                $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact records must include at least one installed-app route record."
+            }
+            if (@($proofArtifact.badRecords).Count -gt 0) {
+                $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact badRecords must be empty."
+            }
+        }
         if ($attachmentName -eq "backupRestore") {
             if (-not [bool]$proofArtifact.restored) {
                 $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact restored must be true."

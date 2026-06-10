@@ -148,6 +148,32 @@ function Resolve-EvidenceAttachment {
             throw "AndroidReleaseManifestPath signing must be external-keystore-env."
         }
     }
+    if ($Name -eq "InstalledAndroidTourReportPath") {
+        if ([string]::IsNullOrWhiteSpace($json.apiUrl)) {
+            throw "InstalledAndroidTourReportPath must include apiUrl."
+        }
+        if ([string]::IsNullOrWhiteSpace($json.checkedAt)) {
+            throw "InstalledAndroidTourReportPath must include checkedAt."
+        }
+        if ($json.apkSha256 -notmatch '^[a-fA-F0-9]{64}$') {
+            throw "InstalledAndroidTourReportPath apkSha256 must be a 64-character hex digest."
+        }
+        if ([long]$json.apkBytes -le 0) {
+            throw "InstalledAndroidTourReportPath apkBytes must be greater than zero."
+        }
+        if (@($json.deviceSerials).Count -lt 1) {
+            throw "InstalledAndroidTourReportPath deviceSerials must include at least one connected device."
+        }
+        if ([int]$json.checkedRoutes -lt 1) {
+            throw "InstalledAndroidTourReportPath checkedRoutes must be greater than zero."
+        }
+        if (@($json.records).Count -lt 1) {
+            throw "InstalledAndroidTourReportPath records must include at least one installed-app route record."
+        }
+        if (@($json.badRecords).Count -gt 0) {
+            throw "InstalledAndroidTourReportPath badRecords must be empty."
+        }
+    }
     if ($Name -eq "EmailProviderProofManifestPath") {
         if ([string]::IsNullOrWhiteSpace($json.frontendBaseUrl)) {
             throw "EmailProviderProofManifestPath must include frontendBaseUrl."
