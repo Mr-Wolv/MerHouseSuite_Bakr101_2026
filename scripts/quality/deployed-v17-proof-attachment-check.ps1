@@ -20,6 +20,8 @@ $validAndroidReleasePath = Join-Path $resolvedOutputDirectory "v17-android-relea
 $wrongAndroidReleasePath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-wrong.json"
 $validAndroidArtifactPath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check.aab"
 $wrongAndroidArtifactPath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-wrong.aab"
+$validInstalledAndroidTourPath = Join-Path $resolvedOutputDirectory "v17-installed-android-tour-proof-check-valid.json"
+$wrongInstalledAndroidTourPath = Join-Path $resolvedOutputDirectory "v17-installed-android-tour-proof-check-wrong.json"
 $validEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-valid.json"
 $wrongEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-wrong.json"
 $validBackupRestorePath = Join-Path $resolvedOutputDirectory "v17-backup-restore-proof-check-valid.json"
@@ -64,6 +66,33 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     cleartextTraffic = "true"
     signing = "embedded-keystore"
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongAndroidReleasePath -Encoding utf8
+
+@{
+    schema = "merhouse.native-android-tour.report.v1"
+    apiUrl = "https://api.example.com"
+    checkedAt = (Get-Date).ToUniversalTime().ToString("o")
+    apkSha256 = $validAndroidArtifactHash
+    apkBytes = $validAndroidArtifactBytes
+    deviceSerials = @("emulator-fixture")
+    checkedRoutes = 2
+    records = @(
+        @{ role = "OWNER"; route = "/admin"; screenshot = "fixture-owner-admin.png" },
+        @{ role = "MERCHANT_ACTIVE"; route = "/merchant"; screenshot = "fixture-merchant.png" }
+    )
+    badRecords = @()
+} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $validInstalledAndroidTourPath -Encoding utf8
+
+@{
+    schema = "merhouse.native-android-tour.report.v1"
+    apiUrl = "https://api.example.com"
+    checkedAt = ""
+    apkSha256 = "not-a-sha"
+    apkBytes = 0
+    deviceSerials = @()
+    checkedRoutes = 0
+    records = @()
+    badRecords = @("loading-shell")
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongInstalledAndroidTourPath -Encoding utf8
 
 @{
     schema = "merhouse.v17.email-provider-proof.v1"
@@ -235,6 +264,14 @@ if ([int]$androidRelease.versionCode -ne 17 -or $androidRelease.versionName -ne 
     throw "Valid Android release attachment did not preserve release version metadata."
 }
 
+$installedAndroidTour = Invoke-AttachmentResolver -Name "InstalledAndroidTourReportPath" -Path $validInstalledAndroidTourPath | ConvertFrom-Json
+if ($installedAndroidTour.schema -ne "merhouse.native-android-tour.report.v1") {
+    throw "Valid installed Android tour attachment did not resolve with the expected schema."
+}
+if ($installedAndroidTour.apiUrl -ne "https://api.example.com") {
+    throw "Valid installed Android tour attachment did not preserve the API URL."
+}
+
 $emailProvider = Invoke-AttachmentResolver -Name "EmailProviderProofManifestPath" -Path $validEmailProviderPath | ConvertFrom-Json
 if ($emailProvider.schema -ne "merhouse.v17.email-provider-proof.v1") {
     throw "Valid email-provider attachment did not resolve with the expected schema."
@@ -288,6 +325,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Wrong Android release artifact attachment was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    Invoke-AttachmentResolver -Name "InstalledAndroidTourReportPath" -Path $wrongInstalledAndroidTourPath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "checkedAt") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Incomplete installed Android tour attachment was accepted."
 }
 
 $failedAsExpected = $false
@@ -365,4 +417,4 @@ if (-not $failedAsExpected) {
     throw "Incomplete live walkthrough attachment was accepted."
 }
 
-Write-Host "Deployed V17 proof attachment schema check passed."
+Write-Host "Deployed V17 proof attachment rule check passed."

@@ -194,7 +194,7 @@ V17 deployment preflight before staging or production rollout:
 .\scripts\quality\v17-production-readiness.ps1
 ```
 
-The default preflight parses scripts, audits the deployment env template, validates the VPS Compose and reverse-proxy shape, checks Android release configuration, proves deployed-evidence attachment schema rules, exercises the cutover-readiness guard with fixtures, runs markdown/public-readiness checks, and rebuilds the frontend for performance budgets. It intentionally leaves live load, signed Android artifact proof, and deployed cutover evidence to explicit target-backed commands.
+The default preflight parses scripts, audits the deployment env template, validates the VPS Compose and reverse-proxy shape, checks Android release configuration, proves deployed-evidence attachment rules, exercises the cutover-readiness guard with fixtures, runs markdown/public-readiness checks, and rebuilds the frontend for performance budgets. It intentionally leaves live load, signed Android artifact proof, and deployed cutover evidence to explicit target-backed commands.
 
 When a staging target plus Android signing and version inputs are available, add deployed smoke and signed internal release proof:
 
