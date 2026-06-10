@@ -2,7 +2,7 @@
 
 V14 introduces deterministic local assistant behavior for MerHouse operations. The first implementation is application logic, not provider-backed AI. It records auditable interactions, returns scoped summaries or review-only suggestions, supports explicit human accept/reject decisions for suggestions, and refuses unsupported or over-authority requests.
 
-Future model-backed or provider-backed agent activation belongs to V17 or later unless the roadmap is deliberately changed. Until that future work is implemented and proven, the shipped assistant should be described as deterministic risk triage rather than an autonomous AI agent.
+Future model-backed or provider-backed agent activation belongs to V17 or later unless the roadmap is deliberately changed. Until that future work is implemented and proven, the shipped assistant should be described as deterministic risk triage rather than an autonomous AI agent. The V17 target is not just chat completion: it is bounded agentic work through backend-approved tools, human approval for risky actions, and complete audit evidence.
 
 ## Supported Scope
 
@@ -33,7 +33,7 @@ The backend remains the source of truth for identity, role and tenant boundaries
 
 The local model runtime can be Dockerized beside the rest of the stack. Candidate runtimes include Ollama, llama.cpp, vLLM, or another local model server chosen during the future activation phase. The architecture must include model-runtime-off behavior: when the local model is unavailable, core MerHouse workflows continue and the assistant falls back to deterministic triage or a clear unavailable state.
 
-Before any provider-backed or model-backed assistant activation begins, the local AI-agent direction must either implement a first read-only local agent slice or close with an architecture-only decision and explicit blockers. Required proof includes tenant/role boundary tests for every agent-visible tool, human approval for risky actions, audit records for tool calls and decisions, eval cases for useful next-step suggestions and refusals, and proof that model configuration and generated traces stay local unless they are deliberately documented for the repository.
+Before any provider-backed or model-backed assistant activation begins, the local AI-agent direction must either implement a first read-only local agent slice or close with an architecture-only decision and explicit blockers. Required proof includes tenant/role boundary tests for every agent-visible tool, human approval for risky actions, audit records for tool calls and decisions, eval cases for useful next-step suggestions and refusals, fallback behavior when the model/runtime is unavailable, and proof that model configuration, provider credentials, and generated traces stay local or secret-managed unless they are deliberately documented for the repository.
 
 ## Audit And Refusal Model
 

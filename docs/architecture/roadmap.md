@@ -87,7 +87,10 @@ V17 should begin only when MerHouse is intentionally being deployed to real infr
 
 Planned scope:
 
+- production deployment architecture recorded in [Production deployment activation](production-deployment-activation.md)
+- external service activation recorded in [V17 external service activation](v17-service-activation.md)
 - deployment configuration infrastructure
+- professional product proof for performance, load, concurrent users, provider exchanges, cross-platform release behavior, and operations readiness
 - provider-backed notification, recovery, carrier, monitoring, backup, rollback, and incident-response operations
 - public operational runbooks
 - final production validation

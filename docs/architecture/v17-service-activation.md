@@ -1,0 +1,87 @@
+# V17 External Service Activation
+
+This note records the next service layer MerHouse may activate when the project moves beyond local certification. It is planning, not a current deployment claim.
+
+V16.2 keeps account recovery, access-request conversion, notifications, and assistant behavior local and auditable. V17 may replace or extend those local boundaries with real external services after staging proof, provider credentials, secrets handling, monitoring, and rollback are ready.
+
+## Service Targets
+
+| Service | Current V16.2 behavior | V17 target |
+| --- | --- | --- |
+| Forgot password OTP | Local one-time reset-token proof with generic public responses and optional development token echo. | Email-delivered OTP or reset link through a configured mail provider, with token hashing, expiry, replay protection, rate limits, audit records, and no token echo in public environments. |
+| Request access | Public request form plus platform review, approval, rejection, and local account-ready delivery history. | Provider-backed account invitation email after approval or conversion, with explicit reviewer/converter audit and no checked-in setup credentials. |
+| Notifications | Recipient-scoped in-app records, delivery history, preferences, and app-shell alert counts. | Email notification delivery for configured topics. Android OS push, lock-screen, and notification-tray delivery are not part of this target unless a later roadmap change deliberately reopens them. |
+| Agent | Deterministic local summaries, review-only suggestions, refusals, accept/reject decisions, and audit. | A bounded agentic service that can reason over approved context and perform authorized tool calls through backend APIs, with human approval for risky actions and complete audit/proof coverage. |
+
+## Gmail And Email Direction
+
+The initial real delivery direction is email, not phone OS notifications.
+
+Before implementation, choose whether MerHouse uses:
+
+- a dedicated Gmail/Google Workspace mailbox for development or early staging proof
+- a transactional email provider for production-shaped sending
+- both, with Gmail limited to non-production proof and a transactional provider for production
+
+Tracked configuration must stay provider-neutral where possible:
+
+- SMTP/API credentials live only in environment variables or a secret manager.
+- Sender address, reply-to address, allowed origins, and callback URLs are deployment configuration.
+- Bounce, rejection, quota, and delivery-status behavior must be represented in delivery records or provider logs.
+- Public environments must keep recovery token echo disabled.
+
+## Notification Policy
+
+MerHouse should send email notifications only when the recipient, topic, and channel are allowed.
+
+Initial email-capable topics:
+
+- account lifecycle: password recovery and account-ready invitation
+- access-request review or conversion outcomes
+- operational handoffs that already create routed local alert records
+- service-accountability work that already creates routed local alert records
+- outbox-health alerts for platform operators
+
+Native Android OS notifications, lock-screen alerts, notification-tray delivery, and push-provider rollout are intentionally scratched from this service target. The Android app may continue to show the shared in-app Alerts surface through the existing frontend shell.
+
+## Agentic Work Direction
+
+A real MerHouse agent must remain backend-mediated. The agent can plan and call tools only through approved backend APIs. It must not connect directly to the database, bypass role/tenant authorization, or silently mutate operational records.
+
+Required shape:
+
+```text
+user -> frontend -> backend -> agent service/model runtime
+                           -> backend-approved tool APIs
+                           -> audit/database
+```
+
+Minimum first useful slice:
+
+- read authorized operational context for one role and tenant
+- propose a concrete plan with cited source records
+- require human approval before any mutation
+- execute only one approved low-risk backend tool
+- record the prompt, plan, tool call, result, approval actor, and refusal path
+- fall back to deterministic triage or an unavailable state when the model/runtime is unavailable
+
+## V17 Proof Bar
+
+Do not call these services activated until proof exists for:
+
+- provider credentials externalized and absent from Git
+- public startup validation with `MERHOUSE_DEPLOYMENT_PUBLIC=true`
+- capacity and rate-limit targets for recovery, access-request, notification, and agent/tool traffic
+- password recovery email with no public token echo
+- access-request approval or conversion email in staging
+- notification preference enforcement for email sends
+- recipient scoping and tenant boundaries
+- provider failure, retry, skipped-by-preference, and bounce/error handling
+- concurrent delivery and duplicate-submit proof for high-traffic account and notification paths
+- agent tool authorization, refusal, human approval, audit, and rollback-safe behavior
+- model/provider unavailable behavior for agentic work
+- browser proof and API smoke against the staging target
+- load/performance proof against production-shaped seeded data and expected first-release user volume
+- updated diagrams, roadmap, README, scripts, and affected tests
+
+Until that proof exists, MerHouse remains locally certified with local delivery records and deterministic assistant behavior.

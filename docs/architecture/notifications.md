@@ -2,7 +2,7 @@
 
 MerHouse provides a local notification foundation. It records account-lifecycle and operational alert history, exposes per-user notification preferences, and treats unread routed records as an action inbox without connecting to an external provider or native OS notification channel.
 
-This is local proof behavior. The backend stores delivery records for visibility and proof, but it does not send email, SMS, phone OS push, lock-screen, notification-tray, webhooks, or provider traffic. V16.2 certifies the local/mock delivery boundary; production delivery setup, native OS notification delivery, callbacks, bounce handling, and deliverability monitoring remain V17 real activation work.
+This is local proof behavior. The backend stores delivery records for visibility and proof, but it does not send email, SMS, phone OS push, lock-screen, notification-tray, webhooks, or provider traffic. V16.2 certifies the local/mock delivery boundary. The next intended provider-backed direction is email delivery; native Android OS notifications, lock-screen alerts, notification-tray delivery, and push-provider rollout are scratched unless a later roadmap change deliberately reopens them.
 
 ## Model
 
@@ -97,7 +97,7 @@ Connected local alerts include source navigation. When a delivery has a routed s
 
 Sources without a safe routed surface stay visible as source chips only; they should not render dead links.
 
-Provider-backed email, SMS, phone OS push, lock-screen notifications, notification-tray delivery, webhooks, and realtime delivery remain V17 real activation work or later. V16.2 certifies local in-app delivery records, routed source semantics, and unread app-shell badges only; it does not claim production delivery or native OS notification delivery.
+Provider-backed email delivery remains V17 real activation work or later. SMS, phone OS push, lock-screen notifications, notification-tray delivery, webhooks, and realtime delivery are outside the current activation direction. V16.2 certifies local in-app delivery records, routed source semantics, and unread app-shell badges only; it does not claim production delivery or native OS notification delivery.
 
 ## API
 
@@ -160,7 +160,7 @@ Until that decision is made, polling remains the local implementation path.
 
 ## Repository Boundary
 
-This notification foundation runs without provider setup in the repository. V16.2 proves the local/mock boundary across web and native Android; provider-backed delivery and native OS notification delivery must be introduced later through externalized configuration during V17 real activation or later.
+This notification foundation runs without provider setup in the repository. V16.2 proves the local/mock boundary across web and native Android; provider-backed email delivery must be introduced later through externalized configuration during V17 real activation or later. The Android app should continue to use the shared in-app Alerts surface unless a future roadmap deliberately adds push infrastructure.
 
 ## Proof
 

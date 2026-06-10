@@ -226,7 +226,9 @@ V16.2 proves deployment readiness locally; it does not deploy MerHouse.
 - App-store packaging, native OS notification delivery, native push provider rollout, camera/barcode APIs, and offline sync are later work.
 - Runtime-only values belong in `.env` or your shell environment. Keep generated proof reports, local data, and deployment-specific details out of Git.
 
-Future production activation is a separate later phase and must replace local mocks with real provider contracts, deployment configuration, monitoring, backup/restore operations, and deployment-specific proof.
+Future production activation is a separate later phase and must replace local mocks with real provider contracts, deployment configuration, monitoring, backup/restore operations, load/performance proof, cross-platform release proof, provider-exchange reliability, and deployment-specific operations proof.
+The tracked activation checklist lives in [Production deployment activation](docs/architecture/production-deployment-activation.md).
+Service-specific activation notes for email recovery, account invitations, email notifications, and real agentic work live in [V17 external service activation](docs/architecture/v17-service-activation.md).
 
 ## Latest Scripted Local QC Snapshot
 
@@ -275,3 +277,4 @@ Local notes, generated reports, environment files, editor state, dependency outp
 - [Notifications](docs/architecture/notifications.md)
 - [Deployment-ready local certification](docs/architecture/deployment-ready-local-certification.md)
 - [System diagrams](docs/architecture/system-diagrams.html)
+- [V17 external service activation](docs/architecture/v17-service-activation.md)

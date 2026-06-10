@@ -38,6 +38,7 @@ MerHouse is prepared here as a local-development stack and public-readable proje
 - [Shipment state machine](architecture/shipment-state-machine.md)
 - [System diagrams](architecture/system-diagrams.html)
 - [Transactional outbox](architecture/outbox.md)
+- [V17 external service activation](architecture/v17-service-activation.md)
 
 ## Working Notes
 

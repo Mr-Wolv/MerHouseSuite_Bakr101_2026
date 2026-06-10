@@ -41,6 +41,8 @@ Enabled-user reset requests also create a local notification delivery history re
 
 The default local Docker stack keeps `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=false`, so a browser user can request a reset and see the generic success message, but cannot complete the reset from the browser without a token supplied by another local proof path. To prove the complete request/confirm loop locally, set `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=true`, rebuild or restart the backend, and run the API smoke test with `-ExpectRecoveryToken`. Production reset delivery remains a V17 real activation item.
 
+V17 may replace the local proof path with email-delivered OTP or reset-link delivery through a configured mailbox/provider. The intended direction is email delivery, not Android OS push. Any Gmail or transactional-email setup must keep provider credentials out of Git, keep public token echo disabled, preserve token hashing/expiry/replay protection, and prove rate limiting, audit, provider failure, and recipient-scoped delivery behavior before production use.
+
 ## Access Requests
 
 Public access requests let prospective merchant or warehouse users ask for onboarding without creating an active account.
@@ -50,3 +52,5 @@ The public access-request form and API trim copied whitespace from organization 
 Access requests start as `PENDING`. Platform users can approve, reject, and convert approved requests into tenant and user records. Reviewed requests record reviewer, note, and review time. Conversion preserves that approval review trail; the conversion actor is recorded through the admin audit event rather than overwriting the reviewer attached to the original decision.
 
 Converting an approved access request requires a temporary setup password and a nonblank conversion reason. It also creates a local notification delivery history record for the new user. Production account invitation delivery remains blocked until later real deployment activation.
+
+V17 access-request activation may send account-ready or invitation email after approval/conversion. That work must preserve reviewer/converter audit, avoid checked-in setup credentials, and prove the recipient email path through staging before any public deployment claim.
