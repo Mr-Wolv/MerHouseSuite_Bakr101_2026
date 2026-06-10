@@ -207,7 +207,7 @@ Repeatable VPS rollout and deployed proof use separate commands so deployment an
 .\scripts\quality\deployed-v17-proof.ps1 -FrontendBaseUrl "https://app.example.com" -ApiBaseUrl "https://api.example.com" -IncludeLoadSmoke -IncludeBrowserTour
 ```
 
-The deploy script refuses the example env template, audits the private env file without printing secrets, and requires explicit confirmation. The proof script checks frontend reachability, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, performance/API timing, optional load smoke, optional browser tour evidence, and writes a sanitized deployment evidence manifest.
+The deploy script refuses the example env template, audits the private env file without printing secrets, and requires explicit confirmation. The proof script checks frontend reachability, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, performance/API timing, optional report-backed load smoke, optional browser tour evidence, and writes a sanitized deployment evidence manifest.
 
 Start or stop the local stack:
 

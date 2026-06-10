@@ -39,6 +39,7 @@ $apiSmokeOutput = Join-Path $resolvedOutputDirectory "v17-deployed-api-smoke-$ti
 $frontendSmokeOutput = Join-Path $resolvedOutputDirectory "v17-deployed-frontend-proxy-smoke-$timestamp.json"
 $monitoringOutput = Join-Path $resolvedOutputDirectory "v17-deployed-monitoring-$timestamp.json"
 $performanceOutput = Join-Path $resolvedOutputDirectory "v17-deployed-performance-$timestamp.json"
+$loadSmokeOutput = Join-Path $resolvedOutputDirectory "v17-deployed-load-smoke-$timestamp.json"
 $tourOutput = Join-Path $resolvedOutputDirectory "v17-deployed-frontend-tour-$timestamp.json"
 $manifestOutput = Join-Path $resolvedOutputDirectory "v17-deployment-evidence-$timestamp.json"
 
@@ -89,7 +90,11 @@ Invoke-Checked "Checking deployed performance/API timing..." {
 
 if ($IncludeLoadSmoke) {
     Invoke-Checked "Checking deployed load smoke..." {
-        & (Join-Path $PSScriptRoot "load-smoke.ps1") -BaseUrl $normalizedApiBaseUrl -ConcurrentUsers $ConcurrentUsers -RequestsPerUser $RequestsPerUser
+        & (Join-Path $PSScriptRoot "load-smoke.ps1") `
+            -BaseUrl $normalizedApiBaseUrl `
+            -OutputPath $loadSmokeOutput `
+            -ConcurrentUsers $ConcurrentUsers `
+            -RequestsPerUser $RequestsPerUser
     }
 } else {
     Write-Host ""
@@ -139,6 +144,7 @@ $manifest = [ordered]@{
         directApiSmoke = $apiSmokeOutput
         monitoring = $monitoringOutput
         performance = $performanceOutput
+        loadSmoke = if ($IncludeLoadSmoke) { $loadSmokeOutput } else { $null }
         browserTour = if ($IncludeBrowserTour) { $tourOutput } else { $null }
         manifest = $manifestOutput
     }

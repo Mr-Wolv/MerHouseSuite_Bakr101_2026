@@ -88,6 +88,8 @@ Minimum staging proof:
 .\scripts\quality\deployed-v17-proof.ps1 -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>" -DeploymentLabel "staging-v17" -ProviderStatus "smtp-staging-configured" -IncludeLoadSmoke -IncludeBrowserTour
 ```
 
+`load-smoke.ps1` writes a sanitized JSON proof report with target URL, budgets, aggregate timing, failure count, and per-request records. When `deployed-v17-proof.ps1 -IncludeLoadSmoke` is used, the deployment evidence manifest links to that load-smoke report so load proof is not terminal-only.
+
 Staging must also include a production-shaped load and operations rehearsal before the production claim:
 
 - browser and API smoke against seeded-but-realistic role data
@@ -143,7 +145,7 @@ Before public production use, record:
 - manual live owner, merchant, warehouse, support-admin, and auditor walkthrough
 - rollback procedure and the proof that it was rehearsed
 
-`deployed-v17-proof.ps1` writes a sanitized `v17-deployment-evidence-*.json` manifest that covers the deployed commit SHA, public frontend/API URLs, proof-output paths, included proof slices including monitoring samples, provider-status label, and remaining required evidence. Keep the manifest with release proof artifacts; do not add secrets, private env files, provider credentials, deployment logs, or backup archives to Git.
+`deployed-v17-proof.ps1` writes a sanitized `v17-deployment-evidence-*.json` manifest that covers the deployed commit SHA, public frontend/API URLs, proof-output paths, included proof slices including monitoring samples and optional load-smoke report, provider-status label, and remaining required evidence. Keep the manifest with release proof artifacts; do not add secrets, private env files, provider credentials, deployment logs, or backup archives to Git.
 
 ## Production Acceptance Bar
 

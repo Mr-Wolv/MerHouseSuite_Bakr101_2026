@@ -27,7 +27,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/native-android-release-check.ps1` | Build a signed internal Android APK or AAB against an HTTPS API URL using keystore values supplied outside Git and write a sanitized release manifest. |
 | `scripts/quality/cross-surface-tour-check.ps1` | Compare browser and installed-APK tour reports for clean records, provenance, valid native screenshot evidence, exact normalized role/path set equality, and traceable pass output. |
 | `scripts/quality/performance-readiness.ps1` | Check local deployment-shaped performance readiness through frontend bundle budgets, paired browser/installed-APK report provenance and timing when reports are supplied, and optional API smoke timing. |
-| `scripts/quality/load-smoke.ps1` | Run a small concurrent health-check smoke against a deployed or local API target. |
+| `scripts/quality/load-smoke.ps1` | Run a small concurrent health-check smoke against a deployed or local API target and write a JSON proof report. |
 | `scripts/quality/v17-production-readiness.ps1` | Run V17 preflight proof across script parsing, VPS deployment shape, markdown, public-readiness, performance readiness, and optional deployed load smoke or signed Android release proof. |
 | `scripts/quality/tour-report-lib.ps1` | Shared helper for reading, normalizing, and validating browser/native tour report records, including required role/path identity. |
 | `scripts/quality/url-guard-lib.ps1` | Shared helper for validating and normalizing non-blank absolute `http` or `https` local setup, native build, frontend proxy, OpenAPI docs, tour, smoke, performance, deployment, and report-provenance URLs. |
@@ -227,7 +227,7 @@ Run the first V17 small-pilot load smoke against a deployed or local API health 
 .\scripts\quality\load-smoke.ps1 -BaseUrl "https://app.example.com" -ConcurrentUsers 25 -RequestsPerUser 8
 ```
 
-This is a smoke budget for release confidence, not a substitute for full load or soak testing.
+The script validates the target URL, runs concurrent health traffic, enforces failure and average-latency budgets, and writes a `load-smoke-*.json` report with the target, budgets, aggregate timing, failure count, and per-request records. This is a smoke budget for release confidence, not a substitute for full load or soak testing.
 
 Run the V17 deployment preflight before a staging or production rollout:
 
@@ -334,7 +334,7 @@ After rollout, run deployed proof against the public frontend and API targets:
   -IncludeBrowserTour
 ```
 
-The default deployed proof checks the frontend shell, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, and performance/API timing. `-IncludeLoadSmoke` adds concurrent health traffic; `-IncludeBrowserTour` requires seeded stakeholder data and runs the browser tour against the deployed frontend. Every run writes `v17-deployment-evidence-*.json` with the deployment label, commit SHA, public frontend/API URLs, provider status label, proof-output paths, included proof slices, and remaining required evidence without storing secrets.
+The default deployed proof checks the frontend shell, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, and performance/API timing. `-IncludeLoadSmoke` adds concurrent health traffic and attaches the generated load-smoke report path to the deployment evidence manifest; `-IncludeBrowserTour` requires seeded stakeholder data and runs the browser tour against the deployed frontend. Every run writes `v17-deployment-evidence-*.json` with the deployment label, commit SHA, public frontend/API URLs, provider status label, proof-output paths, included proof slices, and remaining required evidence without storing secrets.
 
 Run only the lightweight deployed monitoring proof when a target needs a fast health/reachability sample:
 
