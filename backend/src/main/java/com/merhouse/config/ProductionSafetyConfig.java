@@ -24,7 +24,9 @@ public class ProductionSafetyConfig {
         @Value("${merhouse.email.enabled:false}") boolean emailEnabled,
         @Value("${merhouse.email.from:}") String emailFrom,
         @Value("${spring.mail.host:}") String smtpHost,
-        @Value("${spring.mail.password:}") String smtpPassword
+        @Value("${spring.mail.password:}") String smtpPassword,
+        @Value("${merhouse.agent.mode:deterministic}") String agentMode,
+        @Value("${merhouse.agent.timeout-seconds:15}") int agentTimeoutSeconds
     ) {
         return arguments -> validate(
             publicDeployment,
@@ -38,7 +40,9 @@ public class ProductionSafetyConfig {
             emailEnabled,
             emailFrom,
             smtpHost,
-            smtpPassword
+            smtpPassword,
+            agentMode,
+            agentTimeoutSeconds
         );
     }
 
@@ -54,7 +58,9 @@ public class ProductionSafetyConfig {
         boolean emailEnabled,
         String emailFrom,
         String smtpHost,
-        String smtpPassword
+        String smtpPassword,
+        String agentMode,
+        int agentTimeoutSeconds
     ) {
         if (!publicDeployment) {
             return;
@@ -93,6 +99,12 @@ public class ProductionSafetyConfig {
                 failures.add("MERHOUSE_SMTP_PASSWORD must be set to a private provider credential when email delivery is enabled for public deployments.");
             }
         }
+        if (!"deterministic".equalsIgnoreCase(normalize(agentMode))) {
+            failures.add("MERHOUSE_AGENT_MODE must remain deterministic until a provider-backed agent runtime is implemented and proven.");
+        }
+        if (agentTimeoutSeconds < 1 || agentTimeoutSeconds > 60) {
+            failures.add("MERHOUSE_AGENT_TIMEOUT_SECONDS must be between 1 and 60.");
+        }
 
         if (!failures.isEmpty()) {
             throw new IllegalStateException("Public deployment refused: " + String.join(" ", failures));
@@ -101,6 +113,10 @@ public class ProductionSafetyConfig {
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private static String normalize(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private static boolean looksLikePlaceholder(String value) {

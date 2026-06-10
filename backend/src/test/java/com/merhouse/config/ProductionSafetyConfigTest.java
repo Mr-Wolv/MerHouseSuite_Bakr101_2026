@@ -2,6 +2,7 @@ package com.merhouse.config;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +21,9 @@ class ProductionSafetyConfigTest {
             false,
             "",
             "localhost",
-            ""
+            "",
+            "deterministic",
+            15
         ));
     }
 
@@ -38,7 +41,9 @@ class ProductionSafetyConfigTest {
             false,
             "",
             "localhost",
-            ""
+            "",
+            "deterministic",
+            15
         ));
     }
 
@@ -56,7 +61,9 @@ class ProductionSafetyConfigTest {
             false,
             "",
             "localhost",
-            ""
+            "",
+            "deterministic",
+            15
         ));
     }
 
@@ -74,7 +81,9 @@ class ProductionSafetyConfigTest {
             false,
             "",
             "localhost",
-            ""
+            "",
+            "deterministic",
+            15
         ));
     }
 
@@ -92,7 +101,9 @@ class ProductionSafetyConfigTest {
             false,
             "",
             "localhost",
-            ""
+            "",
+            "deterministic",
+            15
         ));
     }
 
@@ -110,7 +121,9 @@ class ProductionSafetyConfigTest {
             false,
             "",
             "localhost",
-            ""
+            "",
+            "deterministic",
+            15
         ));
     }
 
@@ -128,7 +141,9 @@ class ProductionSafetyConfigTest {
             true,
             "ops@merhouse.example",
             "localhost",
-            "GmailAppCredentialWithStrongPrivateEntropy"
+            "GmailAppCredentialWithStrongPrivateEntropy",
+            "deterministic",
+            15
         ));
     }
 
@@ -146,7 +161,51 @@ class ProductionSafetyConfigTest {
             true,
             "ops@merhouse.example",
             "smtp.gmail.com",
-            "GmailAppCredentialWithStrongPrivateEntropy"
+            "GmailAppCredentialWithStrongPrivateEntropy",
+            "deterministic",
+            15
         ));
+    }
+
+    @Test
+    void rejectsPublicDeploymentWithUnsupportedAgentMode() {
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            false,
+            "",
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            false,
+            "",
+            "localhost",
+            "",
+            "provider",
+            15
+        ));
+        assertThat(exception.getMessage()).contains("MERHOUSE_AGENT_MODE must remain deterministic");
+    }
+
+    @Test
+    void rejectsPublicDeploymentWithOutOfRangeAgentTimeout() {
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            false,
+            "",
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            false,
+            "",
+            "localhost",
+            "",
+            "deterministic",
+            0
+        ));
+        assertThat(exception.getMessage()).contains("MERHOUSE_AGENT_TIMEOUT_SECONDS must be between 1 and 60");
     }
 }

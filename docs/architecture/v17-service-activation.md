@@ -74,6 +74,8 @@ Minimum first useful slice:
 
 V17 v1 records `agentMode`, `agentModelName`, `agenticWork=read-plus-draft`, and `mutationPolicy` metadata on assistant interactions. This is the first bounded runtime seam; operational mutation remains out of scope until a later explicit tool-authorization slice.
 
+Current V17 deployment safety accepts only `MERHOUSE_AGENT_MODE=deterministic` and a timeout from 1 to 60 seconds. Any non-deterministic mode must be rejected by startup validation and `scripts/deploy/env-audit.ps1` until a provider/runtime adapter, unavailable-state behavior, authorization tests, audit proof, and live staging proof exist.
+
 ## V17 Proof Bar
 
 Do not call these services activated until proof exists for:

@@ -80,6 +80,24 @@ function Assert-PrivateValue {
     }
 }
 
+function Assert-IntegerRange {
+    param(
+        [hashtable]$Values,
+        [string]$Name,
+        [int]$Minimum,
+        [int]$Maximum
+    )
+
+    Assert-Required -Values $Values -Name $Name
+    $parsed = 0
+    if (-not [int]::TryParse($Values[$Name], [ref]$parsed)) {
+        throw "$Name must be an integer."
+    }
+    if ($parsed -lt $Minimum -or $parsed -gt $Maximum) {
+        throw "$Name must be between $Minimum and $Maximum."
+    }
+}
+
 $values = Read-EnvFile -Path $envPath
 
 foreach ($required in @(
@@ -92,7 +110,8 @@ foreach ($required in @(
     "MERHOUSE_HTTP_BIND",
     "MERHOUSE_BACKUP_HOST_DIR",
     "MERHOUSE_EMAIL_ENABLED",
-    "MERHOUSE_AGENT_MODE"
+    "MERHOUSE_AGENT_MODE",
+    "MERHOUSE_AGENT_TIMEOUT_SECONDS"
 )) {
     Assert-Required -Values $values -Name $required
 }
@@ -138,5 +157,9 @@ if (Test-Truthy $values["MERHOUSE_EMAIL_ENABLED"]) {
     }
 }
 
-Write-Host "Deployment env audit passed for $envPath"
+if ($values["MERHOUSE_AGENT_MODE"].Trim().ToLowerInvariant() -ne "deterministic") {
+    throw "MERHOUSE_AGENT_MODE must remain deterministic until a provider-backed agent runtime is implemented and proven."
+}
+Assert-IntegerRange -Values $values -Name "MERHOUSE_AGENT_TIMEOUT_SECONDS" -Minimum 1 -Maximum 60
 
+Write-Host "Deployment env audit passed for $envPath"

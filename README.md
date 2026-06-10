@@ -237,7 +237,8 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_EMAIL_ENABLED` | Enables SMTP-backed email delivery attempts for configured email channels |
 | `MERHOUSE_EMAIL_FROM` | Sender address for provider-backed email delivery |
 | `MERHOUSE_SMTP_HOST` / `MERHOUSE_SMTP_PORT` | SMTP provider target, such as Gmail/Google Workspace SMTP for staging proof |
-| `MERHOUSE_AGENT_MODE` | Agent runtime mode; V17 keeps `deterministic` read-plus-draft behavior by default |
+| `MERHOUSE_AGENT_MODE` | Agent runtime mode; V17 public/deployment checks currently accept only `deterministic` read-plus-draft behavior |
+| `MERHOUSE_AGENT_TIMEOUT_SECONDS` | Agent runtime timeout guard; deployment checks require 1-60 seconds |
 
 ## Local Mocks And Non-Deployed Boundaries
 
@@ -245,7 +246,7 @@ V16.2 proves deployment readiness locally; it does not deploy MerHouse.
 
 - Notification delivery and password recovery delivery are local records by default. V17 can make opt-in SMTP email attempts when email configuration is enabled and proven; SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
 - Carrier/provider handoff is represented by local outbox and carrier-dispatch records.
-- Assistant behavior is deterministic local review assistance, not provider-backed AI.
+- Assistant behavior is deterministic read-plus-draft review assistance. Public/deployment checks reject non-deterministic agent modes until a provider-backed runtime is implemented, authorized, audited, and proven.
 - Health, backup/restore, dependency, and public-readiness proof are local/dry-run checks.
 - Service statements are local service-unit records, not invoices or payment collection; dispute evidence is stored as notes and linked local records, not uploaded legal attachment packets.
 - Failed and returned shipments are delivery-state evidence, not a full customer RMA, refund, inspection, disposition, or accounting workflow.
