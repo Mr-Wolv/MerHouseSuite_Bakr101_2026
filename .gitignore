@@ -17,6 +17,7 @@ reports/
 # Local working notes and reference material
 .notes/
 private/
+.secrets/
 
 frontend/dist/
 frontend/test-results/
