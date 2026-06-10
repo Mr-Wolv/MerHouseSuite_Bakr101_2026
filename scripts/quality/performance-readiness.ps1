@@ -10,6 +10,9 @@ param(
     [int]$MaxNativeScreenshotMs = 10000,
     [switch]$IncludeApiSmoke,
     [string]$ApiBaseUrl = "http://localhost:8080",
+    [string]$ApiSmokeAdminEmail = "admin@merhouse.local",
+    [string]$ApiSmokeAdminPassword = "local-owner-password",
+    [switch]$ExpectOpenApiDocs = $true,
     [int]$MaxApiSmokeSeconds = 120,
     [string]$WebReportPath = "",
     [string]$NativeReportPath = "",
@@ -223,7 +226,12 @@ if ($IncludeApiSmoke) {
 
     $apiTimer = [System.Diagnostics.Stopwatch]::StartNew()
     Write-Host "Running timed API smoke proof..."
-    & (Join-Path $PSScriptRoot "api-smoke.ps1") -BaseUrl $normalizedApiBaseUrl -OutputPath $apiOutput
+    & (Join-Path $PSScriptRoot "api-smoke.ps1") `
+        -BaseUrl $normalizedApiBaseUrl `
+        -OutputPath $apiOutput `
+        -AdminEmail $ApiSmokeAdminEmail `
+        -AdminPassword $ApiSmokeAdminPassword `
+        -ExpectOpenApiDocs:$ExpectOpenApiDocs
     $apiTimer.Stop()
     $apiSmokeSeconds = [Math]::Round($apiTimer.Elapsed.TotalSeconds, 2)
     if ($apiSmokeSeconds -gt $MaxApiSmokeSeconds) {

@@ -63,10 +63,12 @@ if ((Split-Path $envPath -Leaf) -eq "env.production.example") {
     throw "Refusing to bootstrap owner with the example env template. Use an ignored private env file."
 }
 
+$global:LASTEXITCODE = 0
 & (Join-Path $PSScriptRoot "env-audit.ps1") -EnvFile $envPath
 if ($LASTEXITCODE -ne 0) {
     throw "Owner bootstrap env audit failed."
 }
+$global:LASTEXITCODE = 0
 & (Join-Path $PSScriptRoot "vps-check.ps1") -ComposeFile $composePath -EnvFile $envPath
 if ($LASTEXITCODE -ne 0) {
     throw "Owner bootstrap VPS shape check failed."
@@ -74,18 +76,21 @@ if ($LASTEXITCODE -ne 0) {
 
 $postgresUser = Read-EnvValue -Path $envPath -Name "MERHOUSE_POSTGRES_USER"
 $postgresDb = Read-EnvValue -Path $envPath -Name "MERHOUSE_POSTGRES_DB"
+$ownerCount = docker compose --env-file $envPath -f $composePath exec -T postgres psql `
+    -t `
+    -A `
+    -v "ON_ERROR_STOP=1" `
+    -U $postgresUser `
+    -d $postgresDb `
+    -c "SELECT COUNT(*) FROM app_users WHERE role = 'OWNER' AND enabled = true;"
+if ($LASTEXITCODE -ne 0) {
+    throw "Owner bootstrap preflight query failed."
+}
+if ([int]$ownerCount -gt 0) {
+    throw "Enabled owner already exists; bootstrap refused."
+}
+
 $sql = @'
-SELECT COUNT(*) AS enabled_owner_count
-FROM app_users
-WHERE role = 'OWNER'
-  AND enabled = true
-\gset
-
-\if :enabled_owner_count != 0
-\echo 'Enabled owner already exists; bootstrap refused.'
-\quit 3
-\endif
-
 WITH tenant_insert AS (
     INSERT INTO tenants(name, type, active)
     VALUES (:'tenant_name', 'WAREHOUSE_PROVIDER', true)

@@ -87,12 +87,16 @@ Invoke-ExpectedHttpFailure -Method Patch -Path "/api/v1/admin/users/$($Context.A
 }
 
 Write-Host "12f. Verifying outbox diagnostics and audit explorer"
+$diagnosticRows = Invoke-PostgresTableQuery -Sql @"
+INSERT INTO outbox_events(event_type, aggregate_type, aggregate_id, payload, status)
+VALUES ('SMOKE_DIAGNOSTIC', 'Tenant', '$($Context.Merchant.id)', jsonb_build_object('suffix', '$($Context.Suffix)'), 'PENDING')
+RETURNING id, status;
+"@
+$pendingOutboxEvent = @($diagnosticRows | Select-Object -First 1)
+Assert-NotBlank -Value $pendingOutboxEvent.id -Message "V12 outbox diagnostic smoke did not create a pending event."
+Assert-Equal -Actual $pendingOutboxEvent.status -Expected "PENDING" -Message "V12 diagnostic outbox event did not start pending."
 $recentOutboxEvents = Invoke-Json -Context $Context -Method Get -Path "/api/v1/admin/outbox/events?limit=25" -Headers $Context.AdminHeaders
-$pendingOutboxEvent = @($recentOutboxEvents | Where-Object { $_.status -ne "PROCESSED" } | Select-Object -First 1)
-if (-not $pendingOutboxEvent) {
-    throw "V12 outbox diagnostic smoke did not find a non-processed event."
-}
-Assert-NotBlank -Value $pendingOutboxEvent.id -Message "V12 outbox diagnostic smoke found a non-processed event without an id."
+Assert-Equal -Actual (@($recentOutboxEvents | Where-Object { $_.id -eq $pendingOutboxEvent.id }).Count) -Expected 1 -Message "V12 outbox events API did not include the diagnostic event."
 Invoke-ExpectedHttpFailure -Method Post -Path "/api/v1/admin/outbox/events/$($pendingOutboxEvent.id)/retry" -Headers $Context.AdminHeaders -ExpectedStatus 409
 $Context.V12DeadLetterEvent = Invoke-Json -Context $Context -Method Post -Path "/api/v1/admin/outbox/events/$($pendingOutboxEvent.id)/dead-letter" -Headers $Context.AdminHeaders -Body @{
     reason = "Smoke moves one diagnostic event to dead letter"

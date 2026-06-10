@@ -3,7 +3,8 @@ param(
     [string]$OutputPath = "",
     [string]$AdminEmail = "admin@merhouse.local",
     [string]$AdminPassword = "local-owner-password",
-    [switch]$ExpectRecoveryToken
+    [switch]$ExpectRecoveryToken,
+    [switch]$ExpectOpenApiDocs = $true
 )
 
 . (Join-Path $PSScriptRoot "url-guard-lib.ps1")
@@ -27,4 +28,4 @@ if ($resolvedOutputPath) {
 }
 
 $runnerOutputPath = if ($resolvedOutputPath) { $resolvedOutputPath } else { $OutputPath }
-& (Join-Path $PSScriptRoot "..\api\run-all.ps1") -BaseUrl $normalizedBaseUrl -OutputPath $runnerOutputPath -AdminEmail $AdminEmail -AdminPassword $AdminPassword -ExpectRecoveryToken:$ExpectRecoveryToken
+& (Join-Path $PSScriptRoot "..\api\run-all.ps1") -BaseUrl $normalizedBaseUrl -OutputPath $runnerOutputPath -AdminEmail $AdminEmail -AdminPassword $AdminPassword -ExpectRecoveryToken:$ExpectRecoveryToken -ExpectOpenApiDocs:$ExpectOpenApiDocs

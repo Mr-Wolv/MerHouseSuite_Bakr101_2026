@@ -31,10 +31,12 @@ if ((Split-Path $envPath -Leaf) -eq "env.production.example") {
     throw "Refusing to back up with the example env template. Use an ignored private env file."
 }
 
+$global:LASTEXITCODE = 0
 & (Join-Path $PSScriptRoot "env-audit.ps1") -EnvFile $envPath
 if ($LASTEXITCODE -ne 0) {
     throw "Backup env audit failed."
 }
+$global:LASTEXITCODE = 0
 & (Join-Path $PSScriptRoot "vps-check.ps1") -ComposeFile $composePath -EnvFile $envPath
 if ($LASTEXITCODE -ne 0) {
     throw "Backup VPS shape check failed."

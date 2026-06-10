@@ -39,10 +39,12 @@ if (-not (Test-Path -LiteralPath $backupPath)) {
     throw "Backup file was not found: $backupPath"
 }
 
+$global:LASTEXITCODE = 0
 & (Join-Path $PSScriptRoot "env-audit.ps1") -EnvFile $envPath
 if ($LASTEXITCODE -ne 0) {
     throw "Restore env audit failed."
 }
+$global:LASTEXITCODE = 0
 & (Join-Path $PSScriptRoot "vps-check.ps1") -ComposeFile $composePath -EnvFile $envPath
 if ($LASTEXITCODE -ne 0) {
     throw "Restore VPS shape check failed."

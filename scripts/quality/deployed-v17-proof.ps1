@@ -164,11 +164,16 @@ try {
 }
 
 Invoke-Checked "Checking deployed frontend shell and proxy smoke..." {
-    & (Join-Path $PSScriptRoot "frontend-deploy-check.ps1") -BaseUrl $normalizedFrontendBaseUrl -OutputPath $frontendSmokeOutput
+    & (Join-Path $PSScriptRoot "frontend-deploy-check.ps1") `
+        -BaseUrl $normalizedFrontendBaseUrl `
+        -OutputPath $frontendSmokeOutput `
+        -AdminEmail $AdminEmail `
+        -AdminPassword $AdminPassword `
+        -ExpectOpenApiDocs:$false
 }
 
 Invoke-Checked "Checking deployed API smoke..." {
-    & (Join-Path $PSScriptRoot "api-smoke.ps1") -BaseUrl $normalizedApiBaseUrl -OutputPath $apiSmokeOutput -AdminEmail $AdminEmail -AdminPassword $AdminPassword
+    & (Join-Path $PSScriptRoot "api-smoke.ps1") -BaseUrl $normalizedApiBaseUrl -OutputPath $apiSmokeOutput -AdminEmail $AdminEmail -AdminPassword $AdminPassword -ExpectOpenApiDocs:$false
 }
 
 Invoke-Checked "Checking deployed monitoring samples..." {
@@ -176,7 +181,13 @@ Invoke-Checked "Checking deployed monitoring samples..." {
 }
 
 Invoke-Checked "Checking deployed performance/API timing..." {
-    & (Join-Path $PSScriptRoot "performance-readiness.ps1") -IncludeApiSmoke -ApiBaseUrl $normalizedApiBaseUrl -OutputPath $performanceOutput
+    & (Join-Path $PSScriptRoot "performance-readiness.ps1") `
+        -IncludeApiSmoke `
+        -ApiBaseUrl $normalizedApiBaseUrl `
+        -ApiSmokeAdminEmail $AdminEmail `
+        -ApiSmokeAdminPassword $AdminPassword `
+        -ExpectOpenApiDocs:$false `
+        -OutputPath $performanceOutput
 }
 
 if ($IncludeLoadSmoke) {

@@ -136,6 +136,8 @@ The rollback rehearsal command is also deployment-changing and must target stagi
 .\scripts\deploy\rollback-drill.ps1 -EnvFile ".env.staging" -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>" -ConfirmRollbackDrill
 ```
 
+For a local production-shaped rehearsal on `127.0.0.1` only, pass `-AllowLocalHttpRehearsal` with the HTTP loopback URLs. Do not use that switch for staging or production claims.
+
 The rollback drill writes a sanitized `v17-rollback-rehearsal-*.json` manifest with commit SHA, Compose path, env file name only, env/Compose preflight status, rollback status, optional monitoring report path, and the remaining live proof required before declaring rollback readiness. Direct `rollback-compose.ps1` runs also refuse the example env template and repeat strict env audit plus Compose shape validation before changing the selected deployment stack.
 
 If the Android app is part of the release claim, assemble the native shell against the staging API URL and run an installed-app tour on the staging backend:

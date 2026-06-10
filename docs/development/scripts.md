@@ -338,6 +338,14 @@ Run a restore drill only against the intended staging or drill environment:
 
 The drill wrapper creates a custom-format PostgreSQL backup through the Compose postgres service, copies the backup to the host, restores it with the existing restore script, and writes `v17-restore-drill-*.json` with commit SHA, backup path, SHA-256, byte size, env file name only, and restore status. It omits database credentials and env values.
 
+Run rollback rehearsal only against staging, a drill environment, or an explicitly selected production rollback window:
+
+```powershell
+.\scripts\deploy\rollback-drill.ps1 -EnvFile ".env.staging" -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>" -ConfirmRollbackDrill
+```
+
+The rollback drill audits the private env file, validates the Compose shape, runs the guarded rollback/up primitive, optionally records deployed monitoring samples, and writes `v17-rollback-rehearsal-*.json` without secrets. Local loopback rehearsals may use HTTP only with `-AllowLocalHttpRehearsal`; staging and production proof must use HTTPS targets.
+
 After rollout, run deployed proof against the public frontend and API targets:
 
 ```powershell

@@ -23,14 +23,18 @@ Invoke-ExpectedHttpFailure -Method Post -Path "/api/v1/auth/password-reset/confi
     newPassword = "boundary-password"
 }
 
-$Context.OpenApiContract = Invoke-Json -Context $Context -Method Get -Path "/v3/api-docs/merhouse-v1"
-$paths = @($Context.OpenApiContract.paths.PSObject.Properties.Name)
-if ($paths -notcontains "/api/v1/access-requests") {
-    throw "OpenAPI contract did not include /api/v1/access-requests."
-}
-if ($paths -notcontains "/api/v1/auth/login") {
-    throw "OpenAPI contract did not include /api/v1/auth/login."
-}
-if (-not $Context.OpenApiContract.components.securitySchemes.bearerAuth) {
-    throw "OpenAPI contract did not expose the bearerAuth security scheme."
+if ($Context.ExpectOpenApiDocs) {
+    $Context.OpenApiContract = Invoke-Json -Context $Context -Method Get -Path "/v3/api-docs/merhouse-v1"
+    $paths = @($Context.OpenApiContract.paths.PSObject.Properties.Name)
+    if ($paths -notcontains "/api/v1/access-requests") {
+        throw "OpenAPI contract did not include /api/v1/access-requests."
+    }
+    if ($paths -notcontains "/api/v1/auth/login") {
+        throw "OpenAPI contract did not include /api/v1/auth/login."
+    }
+    if (-not $Context.OpenApiContract.components.securitySchemes.bearerAuth) {
+        throw "OpenAPI contract did not expose the bearerAuth security scheme."
+    }
+} else {
+    Invoke-ExpectedHttpFailure -Method Get -Path "/v3/api-docs/merhouse-v1" -ExpectedStatus 403
 }

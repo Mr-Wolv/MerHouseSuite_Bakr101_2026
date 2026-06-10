@@ -3,7 +3,8 @@ param(
     [string]$OutputPath = "",
     [string]$AdminEmail = "admin@merhouse.local",
     [string]$AdminPassword = "local-owner-password",
-    [switch]$ExpectRecoveryToken
+    [switch]$ExpectRecoveryToken,
+    [switch]$ExpectOpenApiDocs = $true
 )
 
 $ErrorActionPreference = "Stop"
@@ -36,6 +37,7 @@ $context = @{
     AdminEmail = $AdminEmail
     AdminPassword = $AdminPassword
     ExpectRecoveryToken = [bool]$ExpectRecoveryToken
+    ExpectOpenApiDocs = [bool]$ExpectOpenApiDocs
 }
 
 Write-Host "Running MerHouse API smoke test against $normalizedBaseUrl"

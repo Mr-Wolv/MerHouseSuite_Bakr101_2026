@@ -5,6 +5,7 @@ param(
     [string]$FrontendBaseUrl = "",
     [string]$ApiBaseUrl = "",
     [int]$MonitoringSamples = 3,
+    [switch]$AllowLocalHttpRehearsal,
     [switch]$ConfirmRollbackDrill
 )
 
@@ -53,18 +54,21 @@ $normalizedFrontendBaseUrl = ""
 $normalizedApiBaseUrl = ""
 
 Write-Host "Auditing rollback deployment env..."
+$global:LASTEXITCODE = 0
 & (Join-Path $PSScriptRoot "env-audit.ps1") -EnvFile $envPath
 if ($LASTEXITCODE -ne 0) {
     throw "Rollback rehearsal env audit failed."
 }
 
 Write-Host "Checking rollback Compose shape..."
+$global:LASTEXITCODE = 0
 & (Join-Path $PSScriptRoot "vps-check.ps1") -ComposeFile $composePath -EnvFile $envPath
 if ($LASTEXITCODE -ne 0) {
     throw "Rollback rehearsal VPS shape check failed."
 }
 
 Write-Host "Running confirmed Compose rollback/up..."
+$global:LASTEXITCODE = 0
 & (Join-Path $PSScriptRoot "rollback-compose.ps1") -ComposeFile $composePath -EnvFile $envPath -ConfirmRollback
 if ($LASTEXITCODE -ne 0) {
     throw "Rollback command failed."
@@ -78,12 +82,13 @@ if (-not [string]::IsNullOrWhiteSpace($FrontendBaseUrl) -or -not [string]::IsNul
     . (Join-Path $projectRoot "scripts\quality\url-guard-lib.ps1")
     $normalizedFrontendBaseUrl = Assert-AbsoluteHttpUrl -Name "FrontendBaseUrl" -Value $FrontendBaseUrl
     $normalizedApiBaseUrl = Assert-AbsoluteHttpUrl -Name "ApiBaseUrl" -Value $ApiBaseUrl
-    if (-not $normalizedFrontendBaseUrl.StartsWith("https://") -or -not $normalizedApiBaseUrl.StartsWith("https://")) {
+    if (-not $AllowLocalHttpRehearsal -and (-not $normalizedFrontendBaseUrl.StartsWith("https://") -or -not $normalizedApiBaseUrl.StartsWith("https://"))) {
         throw "Rollback rehearsal monitoring targets must be HTTPS deployment URLs."
     }
 
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $monitoringReportPath = [System.IO.Path]::GetFullPath((Join-Path $projectRoot ".\reports\v17-rollback-monitoring-$timestamp.json"))
+    $global:LASTEXITCODE = 0
     & (Join-Path $projectRoot "scripts\quality\deployed-monitoring-proof.ps1") `
         -FrontendBaseUrl $normalizedFrontendBaseUrl `
         -ApiBaseUrl $normalizedApiBaseUrl `
@@ -113,6 +118,7 @@ $manifest = [ordered]@{
         apiBaseUrl = $normalizedApiBaseUrl
         samples = if ($monitoringRan) { $MonitoringSamples } else { 0 }
         reportPath = $monitoringReportPath
+        localHttpRehearsal = [bool]$AllowLocalHttpRehearsal
     }
     secretPolicy = "Private env values, provider credentials, deployment logs, keystores, and backup archives are excluded from this manifest."
     remainingProductionProof = @(

@@ -1,6 +1,9 @@
 param(
     [string]$BaseUrl = "http://localhost:3000",
-    [string]$OutputPath
+    [string]$OutputPath,
+    [string]$AdminEmail = "admin@merhouse.local",
+    [string]$AdminPassword = "local-owner-password",
+    [switch]$ExpectOpenApiDocs = $true
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,11 +54,15 @@ Write-Host "Frontend shell responded. Running API smoke test through frontend pr
 
 $smokeArgs = @{
     BaseUrl = $normalizedBaseUrl
+    AdminEmail = $AdminEmail
+    AdminPassword = $AdminPassword
+    ExpectOpenApiDocs = [bool]$ExpectOpenApiDocs
 }
 if ($resolvedOutputPath) {
     $smokeArgs.OutputPath = $resolvedOutputPath
 }
 
+$global:LASTEXITCODE = 0
 & $smokeScript @smokeArgs
 if ($LASTEXITCODE -ne 0) {
     throw "API smoke test through frontend proxy failed."
