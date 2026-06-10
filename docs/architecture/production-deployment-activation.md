@@ -64,6 +64,7 @@ The first V17 implementation target is VPS + Docker Compose:
 - the production Compose shape includes PostgreSQL, backend HTTP readiness, and frontend shell healthchecks.
 - `deploy/vps/env.production.example` documents required runtime values without secrets.
 - `deploy/vps/reverse-proxy.nginx.conf` is the public TLS reverse-proxy template.
+- `scripts/deploy/env-audit.ps1` audits private env files before deployment without printing secret values.
 - `scripts/deploy/vps-check.ps1` validates the Compose shape before rollout.
 - `scripts/deploy/deploy-vps.ps1` applies the VPS Compose stack only from a private env file after explicit confirmation, optional backup, optional pull, and optional build.
 - `scripts/deploy/backup-postgres.ps1`, `restore-postgres.ps1`, and `rollback-compose.ps1` define the first operations hooks.
@@ -134,6 +135,6 @@ V17 is complete only when:
 
 ## Current Status
 
-As of 2026-06-10, V17 is in private implementation on a deployment branch, not publicly deployed. The selected first target is VPS + Docker Compose with PostgreSQL, backend, frontend, container healthchecks, nginx/TLS template, public-mode startup validation, backup/restore/rollback/deploy scripts, deployed proof wrappers, opt-in SMTP email attempts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight.
+As of 2026-06-10, V17 is in private implementation on a deployment branch, not publicly deployed. The selected first target is VPS + Docker Compose with PostgreSQL, backend, frontend, container healthchecks, nginx/TLS template, public-mode startup validation, private env auditing, backup/restore/rollback/deploy scripts, deployed proof wrappers, opt-in SMTP email attempts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight.
 
 The following remain required before any production claim: real VPS access, frontend/API domain values, TLS/certificate setup, deployment secret storage, Gmail or provider SMTP credentials for staging proof, production database credentials, Android signing keystore, monitoring/alerting configuration, deployed staging URL, deployed production URL, backup restore drill, rollback rehearsal, load/soak proof, live browser walkthrough, and live installed-Android walkthrough against the deployed target.

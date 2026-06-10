@@ -33,6 +33,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, CI naming, and Compose config. |
 | `scripts/quality/deployment-readiness.ps1` | Run the V16.2 deployment-ready local certification gate with local/mock proof and optional timed API smoke. |
 | `scripts/deploy/vps-check.ps1` | Validate the V17 VPS production Compose shape against the deployment env template. |
+| `scripts/deploy/env-audit.ps1` | Audit V17 deployment env files for required values, HTTPS origins, loopback bind, absolute backup path, placeholder secrets, and SMTP requirements without printing secret values. |
 | `scripts/deploy/deploy-vps.ps1` | Apply the V17 VPS Compose stack from a private env file after explicit confirmation, optional image pull/build, and optional pre-deploy backup. |
 | `scripts/deploy/backup-postgres.ps1` | Create a PostgreSQL custom-format backup through the Compose postgres service. |
 | `scripts/deploy/restore-postgres.ps1` | Restore a PostgreSQL backup after explicit confirmation. |
@@ -282,6 +283,15 @@ Validate the VPS Compose deployment shape before copying private environment fil
 
 Use `deploy/vps/env.production.example` as a template only; real deployment env files, logs, backups, and credentials stay outside Git. The shape check validates rendered public-mode safety flags plus PostgreSQL, backend HTTP readiness, and frontend shell healthchecks.
 
+Audit the template in CI/preflight mode or audit a private env file before rollout:
+
+```powershell
+.\scripts\deploy\env-audit.ps1 -EnvFile "deploy/vps/env.production.example" -AllowTemplate
+.\scripts\deploy\env-audit.ps1 -EnvFile ".env.production"
+```
+
+Strict mode rejects placeholder database/JWT/SMTP credentials, non-HTTPS public origins, CORS values that omit the public frontend URL, non-loopback frontend binds, relative backup paths, and incomplete SMTP settings when email delivery is enabled. The audit prints key names and paths only, not secret values.
+
 The VPS frontend image accepts `MERHOUSE_FRONTEND_PUBLIC_API_URL` through the `VITE_API_BASE_URL` build argument. Leave it blank when the public frontend reverse-proxies `/api` to the backend on the same origin; set it only for split frontend/API origin deployments where the browser must call a separate API origin.
 
 Apply the VPS stack only from a private env file and only after choosing backup posture:
@@ -290,7 +300,7 @@ Apply the VPS stack only from a private env file and only after choosing backup 
 .\scripts\deploy\deploy-vps.ps1 -EnvFile ".env.production" -Build -BackupBeforeDeploy -ConfirmDeploy
 ```
 
-`deploy-vps.ps1` refuses `env.production.example`, reruns the rendered VPS Compose boundary check, can create a pre-deploy database backup, can pull configured images, and then applies `docker compose up -d --remove-orphans` with optional `--build`.
+`deploy-vps.ps1` refuses `env.production.example`, runs the strict env audit, reruns the rendered VPS Compose boundary check, can create a pre-deploy database backup, can pull configured images, and then applies `docker compose up -d --remove-orphans` with optional `--build`.
 
 After rollout, run deployed proof against the public frontend and API targets:
 

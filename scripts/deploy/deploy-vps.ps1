@@ -35,6 +35,11 @@ if ((Split-Path $envPath -Leaf) -eq "env.production.example") {
     throw "Refusing to deploy with the example env template. Copy it to an ignored private env file and fill real values first."
 }
 
+& (Join-Path $PSScriptRoot "env-audit.ps1") -EnvFile $envPath
+if ($LASTEXITCODE -ne 0) {
+    throw "Deployment env audit failed before deploy."
+}
+
 & (Join-Path $PSScriptRoot "vps-check.ps1") -ComposeFile $composePath -EnvFile $envPath
 if ($LASTEXITCODE -ne 0) {
     throw "VPS deployment shape check failed before deploy."
@@ -70,4 +75,3 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "VPS deployment command completed. Run deployed V17 proof before declaring the rollout healthy."
-
