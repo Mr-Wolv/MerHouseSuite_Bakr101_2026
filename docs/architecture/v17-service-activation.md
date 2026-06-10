@@ -11,7 +11,7 @@ V16.2 keeps account recovery, access-request conversion, notifications, and assi
 | Forgot password OTP | Local one-time reset-token proof with generic public responses and optional development token echo. | SMTP-delivered reset link through a configured mail provider, with token hashing, expiry, replay protection, rate limits, audit records, and no token echo in public environments. |
 | Request access | Public request form plus platform review, approval, rejection, and local account-ready delivery history. | SMTP account-ready email after approval or conversion, with explicit reviewer/converter audit and no checked-in setup credentials. |
 | Notifications | Recipient-scoped in-app records, delivery history, preferences, and app-shell alert counts. | Opt-in SMTP email notification attempts for configured topics, with provider status evidence. Android OS push, lock-screen, and notification-tray delivery are not part of this target unless a later roadmap change deliberately reopens them. |
-| Agent | Deterministic local summaries, review-only suggestions, refusals, accept/reject decisions, and audit. | A bounded agentic service that can reason over approved context and perform authorized tool calls through backend APIs, with human approval for risky actions and complete audit/proof coverage. |
+| Agent | Deterministic local summaries, review-only suggestions, refusals, accept/reject decisions, and audit. | V17 v1 keeps deterministic read-plus-draft behavior behind a bounded runtime interface with scoped metadata and no operational mutations. Provider-backed reasoning or backend-approved tool execution is a later activation slice after authorization, approval, unavailable-state, audit, and live proof exist. |
 
 ## Gmail And Email Direction
 
@@ -55,7 +55,7 @@ Native Android OS notifications, lock-screen alerts, notification-tray delivery,
 
 ## Agentic Work Direction
 
-A real MerHouse agent must remain backend-mediated. The agent can plan and call tools only through approved backend APIs. It must not connect directly to the database, bypass role/tenant authorization, or silently mutate operational records.
+Any future real MerHouse agent must remain backend-mediated. The V17 v1 boundary is read-plus-draft only: the runtime may summarize approved context, propose review plans, and record scoped metadata, but it cannot call mutation tools or change operational records. A later provider-backed or tool-enabled agent can plan and call tools only through approved backend APIs; it must not connect directly to the database, bypass role/tenant authorization, or silently mutate operational records.
 
 Required shape:
 
@@ -65,13 +65,11 @@ user -> frontend -> backend -> agent service/model runtime
                            -> audit/database
 ```
 
-Minimum first useful slice:
+Current V17 v1 slice:
 
 - read authorized operational context for one role and tenant
 - propose a concrete plan with cited source records
-- require human approval before any mutation
-- execute only one approved low-risk backend tool
-- record the prompt, plan, tool call, result, approval actor, and refusal path
+- record runtime metadata including `agentMode`, optional `agentModelName`, `agenticWork=read-plus-draft`, `mutationPolicy`, and refusal path
 - fall back to deterministic triage or an unavailable state when the model/runtime is unavailable
 
 V17 v1 records `agentMode`, `agentModelName`, `agenticWork=read-plus-draft`, and `mutationPolicy` metadata on assistant interactions. This is the first bounded runtime seam; operational mutation remains out of scope until a later explicit tool-authorization slice.
@@ -91,8 +89,8 @@ Do not call these services activated until proof exists for:
 - recipient scoping and tenant boundaries
 - provider failure, retry, skipped-by-preference, and bounce/error handling
 - concurrent delivery and duplicate-submit proof for high-traffic account and notification paths
-- agent tool authorization, refusal, human approval, audit, and rollback-safe behavior
-- model/provider unavailable behavior for agentic work
+- read-plus-draft agent authorization, refusal, audit, deterministic fallback metadata, and no-mutation behavior
+- model/provider unavailable behavior before any non-deterministic or tool-enabled agent mode is allowed
 - browser proof and API smoke against the staging target
 - load/performance proof against production-shaped seeded data and expected first-release user volume
 - updated diagrams, roadmap, README, scripts, and affected tests
