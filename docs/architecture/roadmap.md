@@ -50,7 +50,7 @@ Status: complete for local-development certification on 2026-06-10; future chang
 
 Goal: hunt and close concrete cross-surface bugs until the app behaves coherently for real local users across supported roles, states, and surfaces. The track must prioritize stakeholder-facing defects, dense-state failures, permission mistakes, workflow handoff gaps, frontend/backend state mismatches, performance regressions, and local-boundary drift over repetitive proof-reference cleanup or broad aimless refactoring.
 
-Operating ledger: [Cross-surface V&V convergence](cross-surface-convergence.md) records the active bug-hunt entries, proof commands, tested stakeholder states, gaps, fixes, remaining risks, and the rule that broad refactoring starts only after bug evidence identifies concrete coupling, redundancy, scalability, separability, or performance issues.
+Operating ledger: [Cross-surface V&V convergence](cross-surface-convergence.md) records the completed bug-hunt entries, proof commands, tested stakeholder states, gaps, fixes, remaining risks, final live walkthrough evidence, and the rule that future broad refactoring starts only after bug evidence identifies concrete coupling, redundancy, scalability, separability, or performance issues.
 
 Scope:
 

@@ -6,6 +6,10 @@ This repository is prepared as a public local-development project. It includes t
 
 It models the operating relationship between a brand or merchant and a warehouse partner: products, inventory expectations, inbound stock, customer orders, allocation, fulfillment progress, exceptions, shipment evidence, and service accountability all move through one role-aware workflow.
 
+## Project Status
+
+MerHouse is public-facing as a codebase and local product proof: it has a documented local runtime, tested backend and frontend workflows, browser route proof, native Android debug-APK proof, cross-surface parity checks, performance-readiness checks, and a recorded final live browser/installed-APK walkthrough. It is not yet a production SaaS deployment. Cloud infrastructure, real notification/recovery/carrier providers, app-store release, production monitoring, backup/restore operations, incident response, and provider-backed delivery remain explicit future activation work.
+
 ## Product Surface
 
 - Authenticated role-aware web app for platform, merchant, and warehouse users.
@@ -135,7 +139,7 @@ Compare the latest browser and installed-APK tour reports after both have run:
 
 The comparison fails closed on missing browser provenance, installed-APK provenance, loading shells, bad route records, missing active/empty stakeholder coverage, and route-set mismatches. A passing run prints the resolved web/native report paths, browser/native targets, APK SHA-256, device serials, checked timestamps, record counts, and normalized role/path pair count so the QC transcript identifies the exact paired evidence.
 
-Cross-surface convergence work is tracked in [Cross-surface V&V convergence](docs/architecture/cross-surface-convergence.md). That ledger starts each loop with installed Android APK proof, compares the result against the web app, records gaps and fixes, and delays broad refactoring until live evidence identifies concrete coupling, redundancy, scalability, or performance issues.
+Cross-surface convergence work is tracked in [Cross-surface V&V convergence](docs/architecture/cross-surface-convergence.md). That ledger records the completed V16.2 bug-hunt closeout, the live browser/installed-APK evidence, the final admin overview loading fix, and the rule that future broad refactoring must be driven by live evidence of concrete coupling, redundancy, scalability, or performance issues.
 
 Compose configuration:
 

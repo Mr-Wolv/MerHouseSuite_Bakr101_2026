@@ -80,7 +80,7 @@ After the matching browser tour has run, compare the reports:
 
 The comparison normalizes role names and generated detail-route ids so the local APK proof can be checked against the shared web implementation without treating seeded UUID values as product differences.
 
-After Android proof, browser proof, cross-surface comparison, and the full deployment gate are green, use the [cross-surface final live walkthrough checklist](cross-surface-convergence.md#final-live-walkthrough-checklist) for the reviewer/product-owner session. Native Android local certification remains scripted proof until that real installed-app and browser walkthrough is recorded in the convergence ledger.
+After future Android proof, browser proof, cross-surface comparison, and the full deployment gate are green for workflow, packaging, local-boundary, or performance-sensitive changes, use the [cross-surface final live walkthrough checklist](cross-surface-convergence.md#final-live-walkthrough-checklist) for the reviewer/product-owner session. V16.2 recorded that real installed-app and browser walkthrough in the convergence ledger.
 
 ## Acceptance Bar
 

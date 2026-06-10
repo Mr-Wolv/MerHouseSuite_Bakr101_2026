@@ -52,7 +52,7 @@ The deployment gate treats web and native report paths as paired evidence. Passi
 .\scripts\quality\performance-readiness.ps1
 ```
 
-Scripted proof is necessary but not sufficient for final V16.2 convergence. The final validation step must be a live walkthrough with the reviewer and product owner in the real browser and real installed Android app, covering supported stakeholder roles, active and empty states, workflow handoffs, performance feel, and local-provider boundaries. Use the [cross-surface convergence checklist and evidence template](cross-surface-convergence.md#final-live-walkthrough-checklist) to run and record that session.
+Scripted proof is necessary but not sufficient for future convergence claims. V16.2 completed its final live walkthrough in the real browser and real installed Android app, covering supported stakeholder roles, active and empty states, workflow handoffs, performance feel, and local-provider boundaries; the evidence is recorded in [BH-052](cross-surface-convergence.md#bh-052-final-live-walkthrough-found-android-admin-overview-blocking-on-slow-ledgers). Use the [cross-surface convergence checklist and evidence template](cross-surface-convergence.md#final-live-walkthrough-checklist) again when later changes affect workflows, native packaging, local-provider boundaries, or performance-sensitive routes.
 
 When the seeded local stack is running and API smoke proof is desired, the deployment and performance gates validate the API smoke target as a non-blank absolute `http` or `https` URL before heavy proof starts:
 
