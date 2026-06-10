@@ -35,6 +35,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/deployment-readiness.ps1` | Run the V16.2 deployment-ready local certification gate with local/mock proof and optional timed API smoke. |
 | `scripts/deploy/vps-check.ps1` | Validate the V17 VPS production Compose shape against the deployment env template. |
 | `scripts/deploy/env-audit.ps1` | Audit V17 deployment env files for required values, HTTPS origins, loopback bind, absolute backup path, placeholder secrets, and SMTP requirements without printing secret values. |
+| `scripts/deploy/reverse-proxy-check.ps1` | Validate the V17 nginx reverse-proxy template for HTTPS redirect, TLS protocols, security headers, public Swagger/API-doc blocking, and frontend proxy target. |
 | `scripts/deploy/deploy-vps.ps1` | Apply the V17 VPS Compose stack from a private env file after explicit confirmation, optional image pull/build, and optional pre-deploy backup. |
 | `scripts/deploy/backup-postgres.ps1` | Create a PostgreSQL custom-format backup through the Compose postgres service. |
 | `scripts/deploy/restore-postgres.ps1` | Restore a PostgreSQL backup after explicit confirmation. |
@@ -292,6 +293,14 @@ Audit the template in CI/preflight mode or audit a private env file before rollo
 ```
 
 Strict mode rejects placeholder database/JWT/SMTP credentials, non-HTTPS public origins, CORS values that omit the public frontend URL, non-loopback frontend binds, relative backup paths, and incomplete SMTP settings when email delivery is enabled. The audit prints key names and paths only, not secret values.
+
+Validate the public nginx reverse-proxy template before installing it on the VPS:
+
+```powershell
+.\scripts\deploy\reverse-proxy-check.ps1
+```
+
+The check enforces HTTP-to-HTTPS redirect, TLS 1.2/1.3, HSTS, content-type/frame/referrer/permissions/content-security headers, public Swagger/API-doc blocking, forwarded HTTPS headers, and loopback proxying to the frontend container bind.
 
 The VPS frontend image accepts `MERHOUSE_FRONTEND_PUBLIC_API_URL` through the `VITE_API_BASE_URL` build argument. Leave it blank when the public frontend reverse-proxies `/api` to the backend on the same origin; set it only for split frontend/API origin deployments where the browser must call a separate API origin.
 
