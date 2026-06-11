@@ -283,7 +283,7 @@ try {
             throw "-ApiBaseUrl must be an HTTPS staging or production URL when -IncludeAndroidRelease is supplied."
         }
         Invoke-Checked "Building signed Android release proof..." {
-            & ".\scripts\quality\native-android-release-check.ps1" -ApiBaseUrl $normalizedApiBaseUrl -Bundle -OutputPath ".\reports\v17-android-release.json"
+            & ".\scripts\quality\native-android-release-check.ps1" -ApiBaseUrl $normalizedApiBaseUrl -OutputPath ".\reports\v17-android-release.json"
         }
     } else {
         Write-Host ""
