@@ -109,6 +109,9 @@ function Assert-DeploymentEnvAuditContract {
     if ($scriptText -notmatch 'wildcard CORS is not allowed for V17 deployment') {
         throw "scripts\deploy\env-audit.ps1 must reject wildcard CORS for V17 deployment."
     }
+    if ($scriptText -notmatch 'Deployment env file is inside the repository but is not ignored by Git') {
+        throw "scripts\deploy\env-audit.ps1 must reject in-repository deployment env files unless Git ignores them."
+    }
     Write-Host "Deployment env audit contract check passed."
 }
 

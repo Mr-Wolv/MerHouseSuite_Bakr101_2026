@@ -5,7 +5,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $envPath = if ([System.IO.Path]::IsPathRooted($EnvFile)) {
     [System.IO.Path]::GetFullPath($EnvFile)
 } else {
@@ -17,6 +17,30 @@ if (-not (Test-Path $envPath)) {
 }
 
 . (Join-Path $projectRoot "scripts\quality\url-guard-lib.ps1")
+
+function Assert-DeploymentEnvFileBoundary {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ($AllowTemplate -and (Split-Path $Path -Leaf) -eq "env.production.example") {
+        return
+    }
+
+    $normalizedProjectRoot = [System.IO.Path]::GetFullPath($projectRoot).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    $normalizedProjectRootWithSeparator = $normalizedProjectRoot + [System.IO.Path]::DirectorySeparatorChar
+    $normalizedPath = [System.IO.Path]::GetFullPath($Path)
+    if (-not $normalizedPath.StartsWith($normalizedProjectRootWithSeparator, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return
+    }
+
+    $relativePath = $normalizedPath.Substring($normalizedProjectRootWithSeparator.Length)
+    git -C $projectRoot check-ignore -q -- $relativePath 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Deployment env file is inside the repository but is not ignored by Git. Move it under private/, .secrets/, deploy/private/, use an ignored .env* file, or pass an external absolute path."
+    }
+    $global:LASTEXITCODE = 0
+}
+
+Assert-DeploymentEnvFileBoundary -Path $envPath
 
 function Read-EnvFile {
     param([string]$Path)
