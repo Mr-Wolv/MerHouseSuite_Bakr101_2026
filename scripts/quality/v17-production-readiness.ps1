@@ -105,12 +105,34 @@ function Assert-DeployedProofHttpsGuards {
     Write-Host "Deployed V17 HTTPS target guard check passed."
 }
 
+function Assert-EmailProviderProofScriptContract {
+    $scriptPath = Join-Path $projectRoot "scripts\quality\v17-email-provider-proof.ps1"
+    $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+    if ($scriptText -notmatch 'schema\s*=\s*"merhouse\.v17\.email-provider-proof\.v1"') {
+        throw "scripts\quality\v17-email-provider-proof.ps1 must write the V17 email provider proof schema."
+    }
+    if ($scriptText -notmatch '\[switch\]\$ConfirmProviderProof') {
+        throw "scripts\quality\v17-email-provider-proof.ps1 must require explicit provider-proof confirmation."
+    }
+    if ($scriptText -notmatch 'FrontendBaseUrl must be an HTTPS deployment URL for V17 email provider proof') {
+        throw "scripts\quality\v17-email-provider-proof.ps1 must require an HTTPS frontend URL."
+    }
+    if ($scriptText -notmatch 'ApiBaseUrl must be an HTTPS deployment URL for V17 email provider proof') {
+        throw "scripts\quality\v17-email-provider-proof.ps1 must require an HTTPS API URL."
+    }
+    if ($scriptText -notmatch 'workflowProviderStatuses') {
+        throw "scripts\quality\v17-email-provider-proof.ps1 must emit workflow provider statuses for cutover readiness."
+    }
+    Write-Host "V17 email provider proof script contract check passed."
+}
+
 Push-Location $projectRoot
 try {
     Invoke-Checked "Checking PowerShell script parsing..." { Assert-ScriptParse }
     Invoke-Checked "Checking PostgreSQL backup filename guards..." { Assert-PostgresBackupNameGuards }
     Invoke-Checked "Checking rollback rehearsal manifest contract..." { Assert-RollbackManifestContract }
     Invoke-Checked "Checking deployed V17 HTTPS target guards..." { Assert-DeployedProofHttpsGuards }
+    Invoke-Checked "Checking V17 email provider proof script contract..." { Assert-EmailProviderProofScriptContract }
     Invoke-Checked "Checking V17 env template audit..." { & ".\scripts\deploy\env-audit.ps1" -EnvFile "deploy/vps/env.production.example" -AllowTemplate }
     Invoke-Checked "Checking V17 VPS deployment shape..." { & ".\scripts\deploy\vps-check.ps1" }
     Invoke-Checked "Checking V17 reverse proxy template..." { & ".\scripts\deploy\reverse-proxy-check.ps1" }
