@@ -333,7 +333,7 @@ Bootstrap the first owner only after the deployed database has migrated and only
   -ConfirmBootstrap
 ```
 
-The bootstrap script refuses `env.production.example`, runs strict env audit and Compose shape validation, inserts a platform owner with a PostgreSQL `crypt(..., gen_salt('bf', 12))` password hash, records an `OWNER_BOOTSTRAPPED` audit event, and fails if an enabled owner already exists. Keep the owner credential outside Git, then run deployed API/browser proof with that credential.
+The bootstrap script refuses `env.production.example`, runs strict env audit and Compose shape validation, inserts a platform owner with a PostgreSQL `crypt(..., gen_salt('bf', 12))` password hash, records an `OWNER_BOOTSTRAPPED` audit event, and fails if an enabled owner already exists. It sends the bootstrap SQL through stdin with escaped SQL literals instead of placing the owner password in `psql` process arguments. Keep the owner credential outside Git, then run deployed API/browser proof with that credential.
 
 Run a restore drill only against the intended staging or drill environment:
 

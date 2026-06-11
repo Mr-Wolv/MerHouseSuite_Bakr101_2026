@@ -51,6 +51,12 @@ function Read-EnvValue {
     throw "$Name was not found in $Path."
 }
 
+function ConvertTo-PostgresLiteral {
+    param([Parameter(Mandatory = $true)] [string]$Value)
+
+    return "'" + $Value.Replace("'", "''") + "'"
+}
+
 $composePath = Resolve-ProjectPath -Path $ComposeFile
 $envPath = Resolve-ProjectPath -Path $EnvFile
 if (-not (Test-Path -LiteralPath $composePath)) {
@@ -90,15 +96,19 @@ if ([int]$ownerCount -gt 0) {
     throw "Enabled owner already exists; bootstrap refused."
 }
 
-$sql = @'
+$tenantNameLiteral = ConvertTo-PostgresLiteral -Value $TenantName
+$ownerEmailLiteral = ConvertTo-PostgresLiteral -Value $OwnerEmail
+$ownerPasswordLiteral = ConvertTo-PostgresLiteral -Value $OwnerPassword
+
+$sql = @"
 WITH tenant_insert AS (
     INSERT INTO tenants(name, type, active)
-    VALUES (:'tenant_name', 'WAREHOUSE_PROVIDER', true)
+    VALUES ($tenantNameLiteral, 'WAREHOUSE_PROVIDER', true)
     RETURNING id
 ),
 owner_insert AS (
     INSERT INTO app_users(tenant_id, email, password_hash, role, enabled)
-    SELECT id, lower(:'owner_email'), crypt(:'owner_password', gen_salt('bf', 12)), 'OWNER', true
+    SELECT id, lower($ownerEmailLiteral), crypt($ownerPasswordLiteral, gen_salt('bf', 12)), 'OWNER', true
     FROM tenant_insert
     RETURNING id, tenant_id
 )
@@ -111,16 +121,13 @@ SELECT
     'V17 deployment owner bootstrap',
     jsonb_build_object('tenantId', tenant_id, 'seedAdminEnabled', false)
 FROM owner_insert;
-'@
+"@
 
 Write-Host "Bootstrapping first owner through postgres service for env file: $(Split-Path $envPath -Leaf)"
 $sql | docker compose --env-file $envPath -f $composePath exec -T postgres psql `
     -v "ON_ERROR_STOP=1" `
     -U $postgresUser `
-    -d $postgresDb `
-    -v "owner_email=$OwnerEmail" `
-    -v "owner_password=$OwnerPassword" `
-    -v "tenant_name=$TenantName"
+    -d $postgresDb
 if ($LASTEXITCODE -ne 0) {
     throw "Owner bootstrap failed."
 }

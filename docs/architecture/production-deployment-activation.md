@@ -68,7 +68,7 @@ The first V17 implementation target is VPS + Docker Compose:
 - `scripts/deploy/reverse-proxy-check.ps1` validates the public nginx template for HTTPS redirect, TLS protocol, security headers, API-doc blocking, forwarded HTTPS headers, and loopback frontend proxying.
 - `scripts/deploy/vps-check.ps1` validates the Compose shape before rollout without forcing private env files back to template throttle defaults.
 - `scripts/deploy/deploy-vps.ps1` applies the VPS Compose stack only from a private env file after explicit confirmation, optional backup, optional pull, and optional build.
-- `scripts/deploy/bootstrap-owner.ps1` creates the first deployed owner only after explicit confirmation, strict env audit, Compose shape proof, and a guard that no enabled owner exists; it does not enable public seed-admin startup.
+- `scripts/deploy/bootstrap-owner.ps1` creates the first deployed owner only after explicit confirmation, strict env audit, Compose shape proof, and a guard that no enabled owner exists; it sends the bootstrap SQL through stdin without placing the owner password in `psql` process arguments and does not enable public seed-admin startup.
 - `scripts/deploy/backup-postgres.ps1`, `restore-postgres.ps1`, and `rollback-compose.ps1` define the first operations hooks. Backup, restore, and direct rollback refuse the example env template, run strict env audit, and validate the Compose shape before touching the selected deployment stack.
 - `scripts/deploy/backup-restore-drill.ps1` records a guarded restore drill manifest for staging or drill environments.
 - `scripts/deploy/rollback-drill.ps1` records a guarded rollback rehearsal manifest after env audit, Compose shape proof, confirmed rollback/up, and optional deployed monitoring samples.
