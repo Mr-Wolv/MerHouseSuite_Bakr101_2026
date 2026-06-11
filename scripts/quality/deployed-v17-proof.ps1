@@ -21,6 +21,8 @@ param(
     [string]$EmailProviderProofManifestPath = "",
     [string]$AlertRoutingManifestPath = "",
     [string]$LiveStakeholderWalkthroughManifestPath = "",
+    [string]$EnvFile = ".env.production",
+    [string]$PostgresContainer = "merhouse-production-postgres-1",
     [switch]$IncludeBrowserTour,
     [switch]$IncludeLoadSmoke,
     [int]$ConcurrentUsers = 25,
@@ -621,9 +623,70 @@ function Invoke-Checked {
     }
 }
 
+function Read-DeploymentEnvFile {
+    param([Parameter(Mandatory = $true)] [string] $Path)
+
+    $values = @{}
+    $lineNumber = 0
+    foreach ($line in Get-Content -LiteralPath $Path) {
+        $lineNumber += 1
+        $trimmed = $line.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith("#")) {
+            continue
+        }
+        if ($trimmed -notmatch '^[A-Za-z_][A-Za-z0-9_]*=') {
+            throw "Invalid env assignment at $Path line ${lineNumber}."
+        }
+        $parts = $trimmed -split "=", 2
+        $values[$parts[0]] = $parts[1].Trim().Trim('"').Trim("'")
+    }
+    return $values
+}
+
+function Set-OrClearEnvVar {
+    param(
+        [Parameter(Mandatory = $true)] [string] $Name,
+        [AllowNull()] [string] $Value
+    )
+
+    if ($null -eq $Value) {
+        Remove-Item -Path "Env:$Name" -ErrorAction SilentlyContinue
+    } else {
+        Set-Item -Path "Env:$Name" -Value $Value
+    }
+}
+
+$envPath = if ([System.IO.Path]::IsPathRooted($EnvFile)) {
+    [System.IO.Path]::GetFullPath($EnvFile)
+} else {
+    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $EnvFile))
+}
+if (-not (Test-Path -LiteralPath $envPath)) {
+    throw "Deployment EnvFile was not found: $envPath"
+}
+if ((Split-Path $envPath -Leaf) -eq "env.production.example") {
+    throw "V17 deployed proof must use the ignored private deployment env file, not env.production.example."
+}
+$deploymentEnv = Read-DeploymentEnvFile -Path $envPath
+foreach ($requiredEnvName in @("MERHOUSE_POSTGRES_USER", "MERHOUSE_POSTGRES_DB")) {
+    if (-not $deploymentEnv.ContainsKey($requiredEnvName) -or [string]::IsNullOrWhiteSpace($deploymentEnv[$requiredEnvName])) {
+        throw "Deployment EnvFile must include $requiredEnvName so direct database proof checks target the deployed stack."
+    }
+}
+if ([string]::IsNullOrWhiteSpace($PostgresContainer)) {
+    throw "PostgresContainer is required so direct database proof checks target the deployed stack."
+}
+
+$previousPostgresEnv = @{
+    MERHOUSE_POSTGRES_CONTAINER = [Environment]::GetEnvironmentVariable("MERHOUSE_POSTGRES_CONTAINER", "Process")
+    MERHOUSE_POSTGRES_USER = [Environment]::GetEnvironmentVariable("MERHOUSE_POSTGRES_USER", "Process")
+    MERHOUSE_POSTGRES_DB = [Environment]::GetEnvironmentVariable("MERHOUSE_POSTGRES_DB", "Process")
+}
+
 Write-Host "V17 deployed proof frontend target: $normalizedFrontendBaseUrl"
 Write-Host "V17 deployed proof API target: $normalizedApiBaseUrl"
 Write-Host "V17 deployed proof output directory: $resolvedOutputDirectory"
+Write-Host "V17 deployed proof direct DB container: $PostgresContainer"
 
 $commitSha = ""
 try {
@@ -648,44 +711,54 @@ if ($rollbackEvidence -and $rollbackEvidence.commitSha -ne $commitSha) {
     throw "RollbackManifestPath commitSha must match deployed commitSha. Expected $commitSha but found $($rollbackEvidence.commitSha)."
 }
 
-Invoke-Checked "Checking deployed frontend shell and proxy smoke..." {
-    & (Join-Path $PSScriptRoot "frontend-deploy-check.ps1") `
-        -BaseUrl $normalizedFrontendBaseUrl `
-        -OutputPath $frontendSmokeOutput `
-        -AdminEmail $AdminEmail `
-        -AdminPassword $AdminPassword `
-        -ExpectOpenApiDocs:$false
-}
+try {
+    Set-Item -Path Env:MERHOUSE_POSTGRES_CONTAINER -Value $PostgresContainer
+    Set-Item -Path Env:MERHOUSE_POSTGRES_USER -Value $deploymentEnv["MERHOUSE_POSTGRES_USER"]
+    Set-Item -Path Env:MERHOUSE_POSTGRES_DB -Value $deploymentEnv["MERHOUSE_POSTGRES_DB"]
 
-Invoke-Checked "Checking deployed API smoke..." {
-    & (Join-Path $PSScriptRoot "api-smoke.ps1") -BaseUrl $normalizedApiBaseUrl -OutputPath $apiSmokeOutput -AdminEmail $AdminEmail -AdminPassword $AdminPassword -ExpectOpenApiDocs:$false
-}
-
-Invoke-Checked "Checking deployed monitoring samples..." {
-    & (Join-Path $PSScriptRoot "deployed-monitoring-proof.ps1") -FrontendBaseUrl $normalizedFrontendBaseUrl -ApiBaseUrl $normalizedApiBaseUrl -OutputPath $monitoringOutput
-}
-
-Invoke-Checked "Checking deployed performance/API timing..." {
-    & (Join-Path $PSScriptRoot "performance-readiness.ps1") `
-        -IncludeApiSmoke `
-        -ApiBaseUrl $normalizedApiBaseUrl `
-        -ApiSmokeAdminEmail $AdminEmail `
-        -ApiSmokeAdminPassword $AdminPassword `
-        -ExpectOpenApiDocs:$false `
-        -OutputPath $performanceOutput
-}
-
-if ($IncludeLoadSmoke) {
-    Invoke-Checked "Checking deployed load smoke..." {
-        & (Join-Path $PSScriptRoot "load-smoke.ps1") `
-            -BaseUrl $normalizedApiBaseUrl `
-            -OutputPath $loadSmokeOutput `
-            -ConcurrentUsers $ConcurrentUsers `
-            -RequestsPerUser $RequestsPerUser
+    Invoke-Checked "Checking deployed frontend shell and proxy smoke..." {
+        & (Join-Path $PSScriptRoot "frontend-deploy-check.ps1") `
+            -BaseUrl $normalizedFrontendBaseUrl `
+            -OutputPath $frontendSmokeOutput `
+            -AdminEmail $AdminEmail `
+            -AdminPassword $AdminPassword `
+            -ExpectOpenApiDocs:$false
     }
-} else {
-    Write-Host ""
-    Write-Host "Skipping deployed load smoke. Pass -IncludeLoadSmoke when the staging or production target is ready for concurrent health traffic."
+
+    Invoke-Checked "Checking deployed API smoke..." {
+        & (Join-Path $PSScriptRoot "api-smoke.ps1") -BaseUrl $normalizedApiBaseUrl -OutputPath $apiSmokeOutput -AdminEmail $AdminEmail -AdminPassword $AdminPassword -ExpectOpenApiDocs:$false
+    }
+
+    Invoke-Checked "Checking deployed monitoring samples..." {
+        & (Join-Path $PSScriptRoot "deployed-monitoring-proof.ps1") -FrontendBaseUrl $normalizedFrontendBaseUrl -ApiBaseUrl $normalizedApiBaseUrl -OutputPath $monitoringOutput
+    }
+
+    Invoke-Checked "Checking deployed performance/API timing..." {
+        & (Join-Path $PSScriptRoot "performance-readiness.ps1") `
+            -IncludeApiSmoke `
+            -ApiBaseUrl $normalizedApiBaseUrl `
+            -ApiSmokeAdminEmail $AdminEmail `
+            -ApiSmokeAdminPassword $AdminPassword `
+            -ExpectOpenApiDocs:$false `
+            -OutputPath $performanceOutput
+    }
+
+    if ($IncludeLoadSmoke) {
+        Invoke-Checked "Checking deployed load smoke..." {
+            & (Join-Path $PSScriptRoot "load-smoke.ps1") `
+                -BaseUrl $normalizedApiBaseUrl `
+                -OutputPath $loadSmokeOutput `
+                -ConcurrentUsers $ConcurrentUsers `
+                -RequestsPerUser $RequestsPerUser
+        }
+    } else {
+        Write-Host ""
+        Write-Host "Skipping deployed load smoke. Pass -IncludeLoadSmoke when the staging or production target is ready for concurrent health traffic."
+    }
+} finally {
+    foreach ($entry in $previousPostgresEnv.GetEnumerator()) {
+        Set-OrClearEnvVar -Name $entry.Key -Value $entry.Value
+    }
 }
 
 if ($IncludeBrowserTour) {

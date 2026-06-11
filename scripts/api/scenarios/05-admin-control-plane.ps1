@@ -88,8 +88,8 @@ Invoke-ExpectedHttpFailure -Method Patch -Path "/api/v1/admin/users/$($Context.A
 
 Write-Host "12f. Verifying outbox diagnostics and audit explorer"
 $diagnosticRows = Invoke-PostgresTableQuery -Sql @"
-INSERT INTO outbox_events(event_type, aggregate_type, aggregate_id, payload, status)
-VALUES ('SMOKE_DIAGNOSTIC', 'Tenant', '$($Context.Merchant.id)', jsonb_build_object('suffix', '$($Context.Suffix)'), 'PENDING')
+INSERT INTO outbox_events(event_type, aggregate_type, aggregate_id, payload, status, next_attempt_at)
+VALUES ('SMOKE_DIAGNOSTIC', 'Tenant', '$($Context.Merchant.id)', jsonb_build_object('suffix', '$($Context.Suffix)'), 'PENDING', now() + interval '1 hour')
 RETURNING id, status;
 "@
 $pendingOutboxEvent = @($diagnosticRows | Select-Object -First 1)
