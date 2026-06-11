@@ -16,10 +16,12 @@ $validManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-valid
 $missingEvidenceManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-missing-evidence.json"
 $wrongAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment.json"
 $wrongRollbackMonitoringManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-rollback-monitoring.json"
+$providerLogAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-provider-log-attachment.json"
 $validOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-valid-report.json"
 $missingOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-missing-report.json"
 $wrongAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment-report.json"
 $wrongRollbackMonitoringOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-rollback-monitoring-report.json"
+$providerLogAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-provider-log-attachment-report.json"
 
 $artifactPaths = [ordered]@{
     frontendProxySmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-frontend-proxy-smoke.json"
@@ -49,6 +51,7 @@ $artifactPaths = [ordered]@{
     rollbackWrongMonitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-rollback-wrong-monitoring.json"
     emailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-email-provider.json"
     invalidEmailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-email-provider.json"
+    providerLogEmailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-provider-log-email-provider.json"
     alertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-routing.json"
     invalidAlertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-alert-routing.json"
     liveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-live-walkthrough.json"
@@ -312,6 +315,10 @@ $wrongRollbackMonitoringManifest = $baseManifest | ConvertTo-Json -Depth 8 | Con
 $wrongRollbackMonitoringManifest.attachedEvidence.rollback.path = $artifactPaths.rollbackWrongMonitoring
 $wrongRollbackMonitoringManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $wrongRollbackMonitoringManifestPath -Encoding utf8
 
+$providerLogAttachmentManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+$providerLogAttachmentManifest.attachedEvidence.emailProvider.path = $artifactPaths.providerLogEmailProvider
+$providerLogAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $providerLogAttachmentManifestPath -Encoding utf8
+
 @{
     schema = "merhouse.v17.android-release.v1"
     commitSha = "wrong-fixture"
@@ -342,6 +349,27 @@ $wrongRollbackMonitoringManifest | ConvertTo-Json -Depth 8 | Set-Content -Litera
     deliveryEvidence = ""
     secretPolicy = "No SMTP credentials are stored."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidEmailProvider -Encoding utf8
+
+@{
+    schema = "merhouse.v17.email-provider-proof.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    providerStatus = "smtp-staging-proven"
+    workflowsProven = @("password-recovery", "access-request", "notification-email")
+    workflowEvidence = @{
+        "password-recovery" = "smtp transcript accepted RCPT TO and provider log copied"
+        "access-request" = "account-ready provider message accepted for approved requester"
+        "notification-email" = "notification provider message accepted for opted-in recipient"
+    }
+    workflowProviderStatuses = @{
+        "password-recovery" = "SENT"
+        "access-request" = "SENT"
+        "notification-email" = "SENT"
+    }
+    deliveryEvidence = "operator-confirmed-smtp-staging-fixture"
+    secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, or message bodies are stored in this parser proof fixture."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.providerLogEmailProvider -Encoding utf8
 
 @{
     schema = "merhouse.v17.alert-routing.v1"
@@ -509,6 +537,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Rollback evidence with wrong monitoring report target was accepted as cutover-ready."
+}
+
+$failedAsExpected = $false
+try {
+    & (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $providerLogAttachmentManifestPath -OutputPath $providerLogAttachmentOutputPath
+} catch {
+    if ($_.Exception.Message -match "provider logs") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Provider-log email evidence was accepted as cutover-ready."
 }
 
 Write-Host "V17 cutover readiness fixture check passed."

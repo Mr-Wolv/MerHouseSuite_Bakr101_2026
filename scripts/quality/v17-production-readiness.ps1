@@ -143,6 +143,9 @@ function Assert-EmailProviderProofScriptContract {
     if ($scriptText -notmatch 'recipient or operator email addresses') {
         throw "scripts\quality\v17-email-provider-proof.ps1 must reject email-shaped PII in proof evidence."
     }
+    if ($scriptText -notmatch 'SMTP transcripts' -or $scriptText -notmatch 'message IDs') {
+        throw "scripts\quality\v17-email-provider-proof.ps1 must reject copied provider logs, SMTP transcripts, email headers, and message IDs."
+    }
     Write-Host "V17 email provider proof script contract check passed."
 }
 

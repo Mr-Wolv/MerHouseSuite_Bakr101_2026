@@ -90,7 +90,8 @@ function Resolve-EvidenceAttachment {
         param(
             [AllowNull()]$Value,
             [string]$Path = "",
-            [switch]$RejectEmailAddresses
+            [switch]$RejectEmailAddresses,
+            [switch]$RejectProviderEvidenceBodies
         )
 
         if ($null -eq $Value) {
@@ -100,7 +101,7 @@ function Resolve-EvidenceAttachment {
         if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string] -and $Value -isnot [System.Management.Automation.PSCustomObject]) {
             $index = 0
             foreach ($item in $Value) {
-                Assert-NoSecretLeak -Value $item -Path "$Path[$index]" -RejectEmailAddresses:$RejectEmailAddresses
+                Assert-NoSecretLeak -Value $item -Path "$Path[$index]" -RejectEmailAddresses:$RejectEmailAddresses -RejectProviderEvidenceBodies:$RejectProviderEvidenceBodies
                 $index++
             }
             return
@@ -116,7 +117,7 @@ function Resolve-EvidenceAttachment {
                         throw "$Name must not include $propertyPath; redact sensitive proof values before attaching deployed V17 evidence."
                     }
                 }
-                Assert-NoSecretLeak -Value $property.Value -Path $propertyPath -RejectEmailAddresses:$RejectEmailAddresses
+                Assert-NoSecretLeak -Value $property.Value -Path $propertyPath -RejectEmailAddresses:$RejectEmailAddresses -RejectProviderEvidenceBodies:$RejectProviderEvidenceBodies
             }
             return
         }
@@ -128,6 +129,9 @@ function Resolve-EvidenceAttachment {
             if ($Value -match '(?i)\bBearer\s+[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+' -or
                 $Value -match '(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|private[_-]?key|signing[_-]?secret)\s*[:=]\s*[''"]?[A-Za-z0-9_./+=:-]{16,}') {
                 throw "$Name must not include token-shaped data at $Path; redact sensitive proof values before attaching deployed V17 evidence."
+            }
+            if ($RejectProviderEvidenceBodies -and $Value -match '(?i)(message[_ -]?body|provider[_ -]?log|smtp[_ -]?log|smtp[_ -]?transcript|email[_ -]?header|message[_ -]?id|raw[_ -]?email)') {
+                throw "$Name must not include copied provider logs, message bodies, SMTP transcripts, email headers, message IDs, or raw email content at $Path."
             }
         }
     }
@@ -147,7 +151,8 @@ function Resolve-EvidenceAttachment {
         throw "$Name must be a JSON proof artifact with a schema field."
     }
     $rejectEmailAddresses = $Name -in @("EmailProviderProofManifestPath", "AlertRoutingManifestPath", "LiveStakeholderWalkthroughManifestPath")
-    Assert-NoSecretLeak -Value $json -RejectEmailAddresses:$rejectEmailAddresses
+    $rejectProviderEvidenceBodies = $Name -in @("EmailProviderProofManifestPath", "AlertRoutingManifestPath")
+    Assert-NoSecretLeak -Value $json -RejectEmailAddresses:$rejectEmailAddresses -RejectProviderEvidenceBodies:$rejectProviderEvidenceBodies
     $schema = $json.schema
     if ([string]::IsNullOrWhiteSpace($schema)) {
         throw "$Name must include a non-blank schema field."
