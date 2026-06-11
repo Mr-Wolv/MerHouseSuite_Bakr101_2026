@@ -43,9 +43,27 @@ function Assert-ScriptParse {
     Write-Host "PowerShell script parser check passed."
 }
 
+function Assert-PostgresBackupNameGuards {
+    foreach ($relativePath in @("scripts\deploy\backup-postgres.ps1", "scripts\deploy\restore-postgres.ps1")) {
+        $scriptPath = Join-Path $projectRoot $relativePath
+        $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+        if ($scriptText -notmatch 'function\s+Assert-SafePostgresBackupName') {
+            throw "$relativePath must define Assert-SafePostgresBackupName before composing container backup paths."
+        }
+        if ($scriptText -notmatch 'Assert-SafePostgresBackupName\s+-Name\s+\$backupName') {
+            throw "$relativePath must validate backupName before using it in docker compose operations."
+        }
+        if ($scriptText -notmatch '\^\[A-Za-z0-9\]\[A-Za-z0-9\._-\]\{0,127\}\\\.dump\$') {
+            throw "$relativePath must restrict PostgreSQL backup filenames to simple .dump names."
+        }
+    }
+    Write-Host "PostgreSQL backup filename guard check passed."
+}
+
 Push-Location $projectRoot
 try {
     Invoke-Checked "Checking PowerShell script parsing..." { Assert-ScriptParse }
+    Invoke-Checked "Checking PostgreSQL backup filename guards..." { Assert-PostgresBackupNameGuards }
     Invoke-Checked "Checking V17 env template audit..." { & ".\scripts\deploy\env-audit.ps1" -EnvFile "deploy/vps/env.production.example" -AllowTemplate }
     Invoke-Checked "Checking V17 VPS deployment shape..." { & ".\scripts\deploy\vps-check.ps1" }
     Invoke-Checked "Checking V17 reverse proxy template..." { & ".\scripts\deploy\reverse-proxy-check.ps1" }

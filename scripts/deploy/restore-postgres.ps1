@@ -23,6 +23,14 @@ function Resolve-ProjectPath {
     return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
 }
 
+function Assert-SafePostgresBackupName {
+    param([Parameter(Mandatory = $true)] [string] $Name)
+
+    if ($Name -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}\.dump$') {
+        throw "Backup filename must be a simple .dump name containing only letters, numbers, dots, underscores, and hyphens."
+    }
+}
+
 $composePath = Resolve-ProjectPath -Path $ComposeFile
 $envPath = Resolve-ProjectPath -Path $EnvFile
 $backupPath = Resolve-ProjectPath -Path $BackupFile
@@ -51,6 +59,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $backupName = Split-Path $backupPath -Leaf
+Assert-SafePostgresBackupName -Name $backupName
 docker compose --env-file $envPath -f $composePath cp $backupPath "postgres:/backups/$backupName"
 if ($LASTEXITCODE -ne 0) {
     throw "Copying backup into postgres container failed."

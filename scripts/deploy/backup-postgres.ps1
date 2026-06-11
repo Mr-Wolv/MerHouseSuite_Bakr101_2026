@@ -19,6 +19,14 @@ function Resolve-ProjectPath {
     return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
 }
 
+function Assert-SafePostgresBackupName {
+    param([Parameter(Mandatory = $true)] [string] $Name)
+
+    if ($Name -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}\.dump$') {
+        throw "Backup filename must be a simple .dump name containing only letters, numbers, dots, underscores, and hyphens."
+    }
+}
+
 $composePath = Resolve-ProjectPath -Path $ComposeFile
 $envPath = Resolve-ProjectPath -Path $EnvFile
 if (-not (Test-Path -LiteralPath $composePath)) {
@@ -48,6 +56,7 @@ $backupName = if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 } else {
     Split-Path $OutputPath -Leaf
 }
+Assert-SafePostgresBackupName -Name $backupName
 $containerPath = "/backups/$backupName"
 
 $resolvedOutputPath = if ([string]::IsNullOrWhiteSpace($OutputPath)) {
