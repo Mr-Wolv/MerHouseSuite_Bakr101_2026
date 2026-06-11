@@ -65,6 +65,27 @@ function Resolve-EvidenceAttachment {
         return $null
     }
 
+    function Assert-ProofTimestamp {
+        param(
+            [string]$FieldName,
+            [AllowNull()]$Value
+        )
+
+        $timestamp = if ($null -eq $Value) { "" } else { $Value.ToString() }
+        if ([string]::IsNullOrWhiteSpace($timestamp)) {
+            throw "$Name $FieldName must be a non-blank ISO-8601 timestamp."
+        }
+        $parsed = [DateTimeOffset]::MinValue
+        if (-not [DateTimeOffset]::TryParse(
+            $timestamp,
+            [Globalization.CultureInfo]::InvariantCulture,
+            [Globalization.DateTimeStyles]::RoundtripKind,
+            [ref]$parsed
+        )) {
+            throw "$Name $FieldName must be a valid ISO-8601 timestamp."
+        }
+    }
+
     $resolvedPath = if ([System.IO.Path]::IsPathRooted($Path)) {
         [System.IO.Path]::GetFullPath($Path)
     } else {
@@ -107,6 +128,7 @@ function Resolve-EvidenceAttachment {
         throw "$Name schema must be one of: $($expectedSchemas[$Name] -join ', '). Found: $schema."
     }
     if ($Name -eq "AndroidReleaseManifestPath") {
+        Assert-ProofTimestamp -FieldName "generatedAt" -Value $json.generatedAt
         if ([string]::IsNullOrWhiteSpace($json.apiBaseUrl)) {
             throw "AndroidReleaseManifestPath must include apiBaseUrl."
         }
@@ -155,9 +177,7 @@ function Resolve-EvidenceAttachment {
         if ([string]::IsNullOrWhiteSpace($json.apiUrl)) {
             throw "InstalledAndroidTourReportPath must include apiUrl."
         }
-        if ([string]::IsNullOrWhiteSpace($json.checkedAt)) {
-            throw "InstalledAndroidTourReportPath must include checkedAt."
-        }
+        Assert-ProofTimestamp -FieldName "checkedAt" -Value $json.checkedAt
         if ($json.apkSha256 -notmatch '^[a-fA-F0-9]{64}$') {
             throw "InstalledAndroidTourReportPath apkSha256 must be a 64-character hex digest."
         }
@@ -178,6 +198,7 @@ function Resolve-EvidenceAttachment {
         }
     }
     if ($Name -eq "EmailProviderProofManifestPath") {
+        Assert-ProofTimestamp -FieldName "completedAt" -Value $json.completedAt
         if ([string]::IsNullOrWhiteSpace($json.frontendBaseUrl)) {
             throw "EmailProviderProofManifestPath must include frontendBaseUrl."
         }
@@ -201,14 +222,12 @@ function Resolve-EvidenceAttachment {
         if ([string]::IsNullOrWhiteSpace($json.deliveryEvidence)) {
             throw "EmailProviderProofManifestPath must include deliveryEvidence."
         }
-        if ([string]::IsNullOrWhiteSpace($json.completedAt)) {
-            throw "EmailProviderProofManifestPath must include completedAt."
-        }
         if ([string]::IsNullOrWhiteSpace($json.secretPolicy)) {
             throw "EmailProviderProofManifestPath must include secretPolicy."
         }
     }
     if ($Name -eq "BackupRestoreManifestPath") {
+        Assert-ProofTimestamp -FieldName "generatedAt" -Value $json.generatedAt
         if ([string]::IsNullOrWhiteSpace($json.commitSha)) {
             throw "BackupRestoreManifestPath must include commitSha."
         }
@@ -248,6 +267,7 @@ function Resolve-EvidenceAttachment {
         }
     }
     if ($Name -eq "RollbackManifestPath") {
+        Assert-ProofTimestamp -FieldName "generatedAt" -Value $json.generatedAt
         if ([string]::IsNullOrWhiteSpace($json.commitSha)) {
             throw "RollbackManifestPath must include commitSha."
         }
@@ -292,6 +312,7 @@ function Resolve-EvidenceAttachment {
         }
     }
     if ($Name -eq "AlertRoutingManifestPath") {
+        Assert-ProofTimestamp -FieldName "generatedAt" -Value $json.generatedAt
         if ([string]::IsNullOrWhiteSpace($json.frontendBaseUrl)) {
             throw "AlertRoutingManifestPath must include frontendBaseUrl."
         }
@@ -317,6 +338,7 @@ function Resolve-EvidenceAttachment {
         }
     }
     if ($Name -eq "LiveStakeholderWalkthroughManifestPath") {
+        Assert-ProofTimestamp -FieldName "completedAt" -Value $json.completedAt
         if ([string]::IsNullOrWhiteSpace($json.frontendBaseUrl)) {
             throw "LiveStakeholderWalkthroughManifestPath must include frontendBaseUrl."
         }
@@ -339,9 +361,6 @@ function Resolve-EvidenceAttachment {
         }
         if ([string]::IsNullOrWhiteSpace($json.reviewer)) {
             throw "LiveStakeholderWalkthroughManifestPath must include reviewer."
-        }
-        if ([string]::IsNullOrWhiteSpace($json.completedAt)) {
-            throw "LiveStakeholderWalkthroughManifestPath must include completedAt."
         }
         if ([string]::IsNullOrWhiteSpace($json.secretPolicy)) {
             throw "LiveStakeholderWalkthroughManifestPath must include secretPolicy."

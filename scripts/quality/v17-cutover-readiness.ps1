@@ -52,6 +52,29 @@ function Resolve-ProofPath {
     return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
 }
 
+function Test-ProofTimestamp {
+    param(
+        [string]$Context,
+        [string]$FieldName,
+        [AllowNull()]$Value
+    )
+
+    $timestamp = if ($null -eq $Value) { "" } else { $Value.ToString() }
+    if ([string]::IsNullOrWhiteSpace($timestamp)) {
+        $script:failures += "$Context $FieldName must be a non-blank ISO-8601 timestamp."
+        return
+    }
+    $parsed = [DateTimeOffset]::MinValue
+    if (-not [DateTimeOffset]::TryParse(
+        $timestamp,
+        [Globalization.CultureInfo]::InvariantCulture,
+        [Globalization.DateTimeStyles]::RoundtripKind,
+        [ref]$parsed
+    )) {
+        $script:failures += "$Context $FieldName must be a valid ISO-8601 timestamp."
+    }
+}
+
 function Test-OutputFile {
     param(
         [string]$ProofName,
@@ -86,9 +109,7 @@ function Test-OutputFile {
             if ($proofReport.status -ne "PASSED") {
                 $script:failures += "Deployment evidence manifest outputFiles.$ProofName status must be PASSED."
             }
-            if ([string]::IsNullOrWhiteSpace($proofReport.generatedAt)) {
-                $script:failures += "Deployment evidence manifest outputFiles.$ProofName generatedAt must be present."
-            }
+            Test-ProofTimestamp -Context "Deployment evidence manifest outputFiles.$ProofName" -FieldName "generatedAt" -Value $proofReport.generatedAt
             if ([string]::IsNullOrWhiteSpace($proofReport.testRun)) {
                 $script:failures += "Deployment evidence manifest outputFiles.$ProofName testRun must be present."
             }
@@ -132,9 +153,7 @@ function Test-OutputFile {
             if ($proofReport.apiUrl -ne $manifest.apiBaseUrl) {
                 $script:failures += "Deployment evidence manifest outputFiles.$ProofName apiUrl must match apiBaseUrl."
             }
-            if ([string]::IsNullOrWhiteSpace($proofReport.checkedAt)) {
-                $script:failures += "Deployment evidence manifest outputFiles.$ProofName checkedAt must be present."
-            }
+            Test-ProofTimestamp -Context "Deployment evidence manifest outputFiles.$ProofName" -FieldName "checkedAt" -Value $proofReport.checkedAt
             if (@($proofReport.checkedRoutes).Count -lt 1) {
                 $script:failures += "Deployment evidence manifest outputFiles.$ProofName checkedRoutes must include at least one route."
             }
@@ -198,6 +217,7 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact apiBaseUrl must match apiBaseUrl."
         }
         if ($attachmentName -eq "androidRelease") {
+            Test-ProofTimestamp -Context "Deployment evidence manifest attachedEvidence.androidRelease.path artifact" -FieldName "generatedAt" -Value $proofArtifact.generatedAt
             if ([string]::IsNullOrWhiteSpace($proofArtifact.commitSha)) {
                 $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact commitSha must be non-blank."
             } elseif ($proofArtifact.commitSha -ne $manifest.commitSha) {
@@ -246,9 +266,7 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact apiUrl must match apiBaseUrl."
         }
         if ($attachmentName -eq "installedAndroidTour") {
-            if ([string]::IsNullOrWhiteSpace($proofArtifact.checkedAt)) {
-                $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact checkedAt must be non-blank."
-            }
+            Test-ProofTimestamp -Context "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact" -FieldName "checkedAt" -Value $proofArtifact.checkedAt
             if ($proofArtifact.apkSha256 -notmatch '^[a-fA-F0-9]{64}$') {
                 $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.path artifact apkSha256 must be a 64-character hex digest."
             }
@@ -269,6 +287,7 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             }
         }
         if ($attachmentName -eq "backupRestore") {
+            Test-ProofTimestamp -Context "Deployment evidence manifest attachedEvidence.backupRestore.path artifact" -FieldName "generatedAt" -Value $proofArtifact.generatedAt
             if ([string]::IsNullOrWhiteSpace($proofArtifact.commitSha)) {
                 $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact commitSha must be non-blank."
             } elseif ($proofArtifact.commitSha -ne $manifest.commitSha) {
@@ -305,6 +324,7 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             }
         }
         if ($attachmentName -eq "rollback") {
+            Test-ProofTimestamp -Context "Deployment evidence manifest attachedEvidence.rollback.path artifact" -FieldName "generatedAt" -Value $proofArtifact.generatedAt
             if ([string]::IsNullOrWhiteSpace($proofArtifact.commitSha)) {
                 $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact commitSha must be non-blank."
             } elseif ($proofArtifact.commitSha -ne $manifest.commitSha) {
@@ -347,6 +367,7 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             }
         }
         if ($attachmentName -eq "emailProvider") {
+            Test-ProofTimestamp -Context "Deployment evidence manifest attachedEvidence.emailProvider.path artifact" -FieldName "completedAt" -Value $proofArtifact.completedAt
             if ($proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
                 $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact apiBaseUrl must match apiBaseUrl."
             }
@@ -371,14 +392,12 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             if ([string]::IsNullOrWhiteSpace($proofArtifact.deliveryEvidence)) {
                 $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact deliveryEvidence must be non-blank."
             }
-            if ([string]::IsNullOrWhiteSpace($proofArtifact.completedAt)) {
-                $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact completedAt must be non-blank."
-            }
             if ([string]::IsNullOrWhiteSpace($proofArtifact.secretPolicy)) {
                 $failures += "Deployment evidence manifest attachedEvidence.emailProvider.path artifact secretPolicy must be non-blank."
             }
         }
         if ($attachmentName -eq "alertRouting") {
+            Test-ProofTimestamp -Context "Deployment evidence manifest attachedEvidence.alertRouting.path artifact" -FieldName "generatedAt" -Value $proofArtifact.generatedAt
             if ($proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
                 $failures += "Deployment evidence manifest attachedEvidence.alertRouting.path artifact apiBaseUrl must match apiBaseUrl."
             }
@@ -404,6 +423,7 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             }
         }
         if ($attachmentName -eq "liveStakeholderWalkthrough") {
+            Test-ProofTimestamp -Context "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact" -FieldName "completedAt" -Value $proofArtifact.completedAt
             if ($proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
                 $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact apiBaseUrl must match apiBaseUrl."
             }
@@ -426,9 +446,6 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             }
             if ([string]::IsNullOrWhiteSpace($proofArtifact.reviewer)) {
                 $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact reviewer must be non-blank."
-            }
-            if ([string]::IsNullOrWhiteSpace($proofArtifact.completedAt)) {
-                $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact completedAt must be non-blank."
             }
             if ([string]::IsNullOrWhiteSpace($proofArtifact.secretPolicy)) {
                 $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact secretPolicy must be non-blank."

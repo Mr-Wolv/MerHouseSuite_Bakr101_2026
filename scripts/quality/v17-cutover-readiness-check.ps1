@@ -87,6 +87,7 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
 
 @{
     schema = "merhouse.v17.android-release.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     commitSha = "fixture"
     apiBaseUrl = "https://api.example.com"
     artifactKind = "apk"
@@ -116,6 +117,7 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $artifactPaths.installedAndroidTour -Encoding utf8
 @{
     schema = "merhouse.v17.backup-restore-drill.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     commitSha = "fixture"
     backupPath = $artifactPaths.backupRestoreDump
     preflight = @{
@@ -130,6 +132,7 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.backupRestore -Encoding utf8
 @{
     schema = "merhouse.v17.rollback-rehearsal.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     commitSha = "fixture"
     rollbackRan = $true
     preflight = @{
@@ -168,6 +171,7 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.emailProvider -Encoding utf8
 @{
     schema = "merhouse.v17.alert-routing.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     frontendBaseUrl = "https://app.example.com"
     apiBaseUrl = "https://api.example.com"
     routedSignals = @("api-health", "frontend-health", "failed-provider-delivery")
