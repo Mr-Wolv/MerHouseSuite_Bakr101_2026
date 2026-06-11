@@ -60,10 +60,26 @@ function Assert-PostgresBackupNameGuards {
     Write-Host "PostgreSQL backup filename guard check passed."
 }
 
+function Assert-RollbackManifestContract {
+    $scriptPath = Join-Path $projectRoot "scripts\deploy\rollback-drill.ps1"
+    $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+    if ($scriptText -notmatch 'schema\s*=\s*"merhouse\.v17\.rollback-rehearsal\.v1"') {
+        throw "scripts\deploy\rollback-drill.ps1 must write the V17 rollback rehearsal schema."
+    }
+    if ($scriptText -notmatch 'generatedAt\s*=\s*\(Get-Date\)\.ToUniversalTime\(\)\.ToString\("o"\)') {
+        throw "scripts\deploy\rollback-drill.ps1 must write generatedAt so deployed proof can attach rollback rehearsal evidence."
+    }
+    if ($scriptText -match 'checkedAt\s*=') {
+        throw "scripts\deploy\rollback-drill.ps1 must not use checkedAt for the rollback rehearsal manifest timestamp."
+    }
+    Write-Host "Rollback rehearsal manifest contract check passed."
+}
+
 Push-Location $projectRoot
 try {
     Invoke-Checked "Checking PowerShell script parsing..." { Assert-ScriptParse }
     Invoke-Checked "Checking PostgreSQL backup filename guards..." { Assert-PostgresBackupNameGuards }
+    Invoke-Checked "Checking rollback rehearsal manifest contract..." { Assert-RollbackManifestContract }
     Invoke-Checked "Checking V17 env template audit..." { & ".\scripts\deploy\env-audit.ps1" -EnvFile "deploy/vps/env.production.example" -AllowTemplate }
     Invoke-Checked "Checking V17 VPS deployment shape..." { & ".\scripts\deploy\vps-check.ps1" }
     Invoke-Checked "Checking V17 reverse proxy template..." { & ".\scripts\deploy\reverse-proxy-check.ps1" }

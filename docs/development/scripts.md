@@ -349,7 +349,7 @@ Run rollback rehearsal only against staging, a drill environment, or an explicit
 .\scripts\deploy\rollback-drill.ps1 -EnvFile ".env.staging" -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>" -ConfirmRollbackDrill
 ```
 
-The rollback drill audits the private env file, validates the Compose shape, runs the guarded rollback/up primitive, optionally records deployed monitoring samples, and writes `v17-rollback-rehearsal-*.json` without secrets. Local loopback rehearsals may use HTTP only with `-AllowLocalHttpRehearsal`; staging and production proof must use HTTPS targets.
+The rollback drill audits the private env file, validates the Compose shape, runs the guarded rollback/up primitive, optionally records deployed monitoring samples, and writes `v17-rollback-rehearsal-*.json` without secrets. The manifest uses `generatedAt`, matching the deployed-proof attachment contract. Local loopback rehearsals may use HTTP only with `-AllowLocalHttpRehearsal`; staging and production proof must use HTTPS targets.
 
 After rollout, run deployed proof against the public frontend and API targets:
 

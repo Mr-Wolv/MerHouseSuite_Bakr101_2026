@@ -103,7 +103,7 @@ if (-not [string]::IsNullOrWhiteSpace($FrontendBaseUrl) -or -not [string]::IsNul
 $commitSha = (git -C $projectRoot rev-parse HEAD).Trim()
 $manifest = [ordered]@{
     schema = "merhouse.v17.rollback-rehearsal.v1"
-    checkedAt = (Get-Date).ToUniversalTime().ToString("o")
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     commitSha = $commitSha
     composeFile = $composePath
     envFileName = Split-Path $envPath -Leaf
