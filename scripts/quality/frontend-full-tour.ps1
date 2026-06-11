@@ -8,10 +8,11 @@ param(
     [string]$MerchantPassword = "review-password",
     [string]$WarehouseEmail = "review.operator@merhouse.local",
     [string]$WarehousePassword = "review-password",
-    [string]$SupportAdminEmail = "review.support@merhouse.local",
-    [string]$SupportAdminPassword = "review-password",
-    [string]$AuditorEmail = "review.auditor@merhouse.local",
-    [string]$AuditorPassword = "review-password"
+    [string]$SupportAdminEmail = "",
+    [string]$SupportAdminPassword = "",
+    [string]$AuditorEmail = "",
+    [string]$AuditorPassword = "",
+    [int]$TourTimeoutMs = 420000
 )
 
 $ErrorActionPreference = "Stop"
@@ -57,6 +58,7 @@ $previousSupportAdminEmail = $env:FRONTEND_TOUR_SUPPORT_ADMIN_EMAIL
 $previousSupportAdminPassword = $env:FRONTEND_TOUR_SUPPORT_ADMIN_PASSWORD
 $previousAuditorEmail = $env:FRONTEND_TOUR_AUDITOR_EMAIL
 $previousAuditorPassword = $env:FRONTEND_TOUR_AUDITOR_PASSWORD
+$previousTourTimeoutMs = $env:FRONTEND_TOUR_TIMEOUT_MS
 
 Push-Location $frontendRoot
 try {
@@ -73,6 +75,7 @@ try {
     $env:FRONTEND_TOUR_SUPPORT_ADMIN_PASSWORD = $SupportAdminPassword
     $env:FRONTEND_TOUR_AUDITOR_EMAIL = $AuditorEmail
     $env:FRONTEND_TOUR_AUDITOR_PASSWORD = $AuditorPassword
+    $env:FRONTEND_TOUR_TIMEOUT_MS = $TourTimeoutMs.ToString()
 
     Write-Host "Frontend tour app URL: $normalizedBaseUrl"
     Write-Host "Frontend tour API URL: $normalizedApiUrl"
@@ -96,6 +99,7 @@ try {
     $env:FRONTEND_TOUR_SUPPORT_ADMIN_PASSWORD = $previousSupportAdminPassword
     $env:FRONTEND_TOUR_AUDITOR_EMAIL = $previousAuditorEmail
     $env:FRONTEND_TOUR_AUDITOR_PASSWORD = $previousAuditorPassword
+    $env:FRONTEND_TOUR_TIMEOUT_MS = $previousTourTimeoutMs
     Pop-Location
 }
 

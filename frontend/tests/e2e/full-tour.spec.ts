@@ -10,6 +10,7 @@ const TOKEN_KEY = 'warehouse-console-token'
 const DETAIL_DISCOVERY_HEADING_TIMEOUT_MS = 45_000
 const ROUTE_HEADING_TIMEOUT_MS = 45_000
 const WORKFLOW_ACTION_TIMEOUT_MS = 30_000
+const FULL_TOUR_TIMEOUT_MS = Number(process.env.FRONTEND_TOUR_TIMEOUT_MS ?? '420000')
 
 type Role = 'public' | 'owner' | 'admin' | 'supportAdmin' | 'auditor' | 'merchant' | 'warehouse'
 type AuthenticatedRole = Exclude<Role, 'public'>
@@ -595,7 +596,7 @@ async function inspectPage(
 }
 
 test('full frontend route tour passes with seeded accounts', async ({ browser, request }) => {
-  test.setTimeout(420_000)
+  test.setTimeout(FULL_TOUR_TIMEOUT_MS)
   const hierarchy = await createPlatformHierarchyFixture(request)
   const activeStakeholders = await createHarmonicFixture(request)
   const emptyStakeholders = await createEmptyStakeholderFixture(request)

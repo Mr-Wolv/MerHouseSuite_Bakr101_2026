@@ -7,14 +7,14 @@ param(
     [string]$AdminPassword = "local-owner-password",
     [string]$PlatformAdminEmail = "",
     [string]$PlatformAdminPassword = "tour-password",
-    [string]$MerchantEmail = "review.merchant@merhouse.local",
-    [string]$MerchantPassword = "review-password",
-    [string]$WarehouseEmail = "review.operator@merhouse.local",
-    [string]$WarehousePassword = "review-password",
-    [string]$SupportAdminEmail = "review.support@merhouse.local",
-    [string]$SupportAdminPassword = "review-password",
-    [string]$AuditorEmail = "review.auditor@merhouse.local",
-    [string]$AuditorPassword = "review-password"
+    [string]$MerchantEmail = "",
+    [string]$MerchantPassword = "",
+    [string]$WarehouseEmail = "",
+    [string]$WarehousePassword = "",
+    [string]$SupportAdminEmail = "",
+    [string]$SupportAdminPassword = "",
+    [string]$AuditorEmail = "",
+    [string]$AuditorPassword = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -105,6 +105,7 @@ $apkSha256 = (Get-FileHash -Algorithm SHA256 -Path $resolvedApkPath).Hash.ToLowe
 
 New-Item -ItemType Directory -Force -Path (Split-Path $resolvedOutputPath -Parent) | Out-Null
 New-Item -ItemType Directory -Force -Path $resolvedScreenshotDirectory | Out-Null
+Get-ChildItem -Path $resolvedScreenshotDirectory -Filter "*.png" -ErrorAction SilentlyContinue | Remove-Item -Force
 
 function Invoke-Adb {
     param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $Arguments)
@@ -181,6 +182,20 @@ function New-NativeTourFixtures {
         name = "Native Empty Warehouse $suffix"
         type = "WAREHOUSE_PROVIDER"
     }
+    $activeMerchantTenant = Invoke-ApiJson -Method "POST" -Path "/api/v1/tenants" -Token $OwnerToken -Body @{
+        name = "Native Active Merchant $suffix"
+        type = "MERCHANT"
+    }
+    $activeWarehouseTenant = Invoke-ApiJson -Method "POST" -Path "/api/v1/tenants" -Token $OwnerToken -Body @{
+        name = "Native Active Warehouse $suffix"
+        type = "WAREHOUSE_PROVIDER"
+    }
+    Invoke-ApiJson -Method "POST" -Path "/api/v1/warehouses" -Token $OwnerToken -Body @{
+        tenantId = $activeWarehouseTenant.id
+        name = "Native Hub $suffix"
+        address = "Native Tour District"
+        capacity = 500
+    } | Out-Null
 
     $createdAdmin = $false
     $adminEmail = $PlatformAdminEmail
@@ -189,6 +204,38 @@ function New-NativeTourFixtures {
         $adminEmail = "native.admin.$suffix@merhouse.local"
         New-TourUser -OwnerToken $OwnerToken -TenantId $platformTenant.id -Email $adminEmail -Password $adminPassword -Role "ADMIN"
         $createdAdmin = $true
+    }
+
+    $supportEmail = $SupportAdminEmail
+    $supportPassword = $SupportAdminPassword
+    if (-not $supportEmail) {
+        $supportEmail = "native.support.$suffix@merhouse.local"
+        $supportPassword = $password
+        New-TourUser -OwnerToken $OwnerToken -TenantId $platformTenant.id -Email $supportEmail -Password $supportPassword -Role "SUPPORT_ADMIN"
+    }
+
+    $auditorEmail = $AuditorEmail
+    $auditorPassword = $AuditorPassword
+    if (-not $auditorEmail) {
+        $auditorEmail = "native.auditor.$suffix@merhouse.local"
+        $auditorPassword = $password
+        New-TourUser -OwnerToken $OwnerToken -TenantId $platformTenant.id -Email $auditorEmail -Password $auditorPassword -Role "AUDITOR"
+    }
+
+    $activeMerchantEmail = $MerchantEmail
+    $activeMerchantPassword = $MerchantPassword
+    if (-not $activeMerchantEmail) {
+        $activeMerchantEmail = "native.merchant.$suffix@merhouse.local"
+        $activeMerchantPassword = $password
+        New-TourUser -OwnerToken $OwnerToken -TenantId $activeMerchantTenant.id -Email $activeMerchantEmail -Password $activeMerchantPassword -Role "MERCHANT"
+    }
+
+    $activeWarehouseEmail = $WarehouseEmail
+    $activeWarehousePassword = $WarehousePassword
+    if (-not $activeWarehouseEmail) {
+        $activeWarehouseEmail = "native.operator.$suffix@merhouse.local"
+        $activeWarehousePassword = $password
+        New-TourUser -OwnerToken $OwnerToken -TenantId $activeWarehouseTenant.id -Email $activeWarehouseEmail -Password $activeWarehousePassword -Role "WAREHOUSE_OPERATOR"
     }
 
     $emptyMerchantEmail = "native.empty.merchant.$suffix@merhouse.local"
@@ -202,6 +249,14 @@ function New-NativeTourFixtures {
         adminEmail = $adminEmail
         adminPassword = $adminPassword
         createdAdmin = $createdAdmin
+        supportEmail = $supportEmail
+        supportPassword = $supportPassword
+        auditorEmail = $auditorEmail
+        auditorPassword = $auditorPassword
+        activeMerchantEmail = $activeMerchantEmail
+        activeMerchantPassword = $activeMerchantPassword
+        activeWarehouseEmail = $activeWarehouseEmail
+        activeWarehousePassword = $activeWarehousePassword
         emptyMerchantEmail = $emptyMerchantEmail
         emptyWarehouseEmail = $emptyWarehouseEmail
     }
@@ -282,6 +337,22 @@ function Send-Cdp {
     }
 }
 
+function Set-NativeHttpOriginToken {
+    param(
+        [System.Net.WebSockets.ClientWebSocket]$Socket,
+        [AllowEmptyString()] [string]$Token
+    )
+
+    Send-Cdp $Socket "Page.navigate" @{ url = "http://localhost/login" } | Out-Null
+    Start-Sleep -Seconds 1
+    if ($Token) {
+        $tokenJson = $Token | ConvertTo-Json -Compress
+        Send-Cdp $Socket "Runtime.evaluate" @{ expression = "localStorage.setItem('warehouse-console-token', $tokenJson)"; returnByValue = $true } | Out-Null
+    } else {
+        Send-Cdp $Socket "Runtime.evaluate" @{ expression = "localStorage.removeItem('warehouse-console-token')"; returnByValue = $true } | Out-Null
+    }
+}
+
 function Capture-Screenshot {
     param([string]$Name)
 
@@ -317,19 +388,13 @@ function Visit-NativeRoute {
         [int]$Index
     )
 
-    if ($Token) {
-        $tokenJson = $Token | ConvertTo-Json -Compress
-        Send-Cdp $Socket "Runtime.evaluate" @{ expression = "localStorage.setItem('warehouse-console-token', $tokenJson)"; returnByValue = $true } | Out-Null
-    } else {
-        Send-Cdp $Socket "Runtime.evaluate" @{ expression = "localStorage.removeItem('warehouse-console-token')"; returnByValue = $true } | Out-Null
-    }
+    Set-NativeHttpOriginToken -Socket $Socket -Token $Token
     $value = $null
     $hasExpectedText = $false
     $routeTimer = [System.Diagnostics.Stopwatch]::new()
     for ($navigationAttempt = 1; $navigationAttempt -le 2; $navigationAttempt++) {
         if ($Token) {
-            $tokenJson = $Token | ConvertTo-Json -Compress
-            Send-Cdp $Socket "Runtime.evaluate" @{ expression = "localStorage.setItem('warehouse-console-token', $tokenJson)"; returnByValue = $true } | Out-Null
+            Set-NativeHttpOriginToken -Socket $Socket -Token $Token
         }
         $routeTimer.Restart()
         Send-Cdp $Socket "Page.navigate" @{ url = "http://localhost$Route" } | Out-Null
@@ -473,8 +538,7 @@ function Get-NativeDetailRoutes {
         "inventory/items",
         "merchant-warehouse/relationships"
     )
-    $tokenJson = $Token | ConvertTo-Json -Compress
-    Send-Cdp $Socket "Runtime.evaluate" @{ expression = "localStorage.setItem('warehouse-console-token', $tokenJson)"; returnByValue = $true } | Out-Null
+    Set-NativeHttpOriginToken -Socket $Socket -Token $Token
 
     foreach ($route in $Routes) {
         Send-Cdp $Socket "Page.navigate" @{ url = "http://localhost$route" } | Out-Null
@@ -519,11 +583,11 @@ $fixtures = New-NativeTourFixtures -OwnerToken $ownerToken
 $roleCredentials = @{
     OWNER = @{ Email = $AdminEmail; Password = $AdminPassword }
     ADMIN = @{ Email = $fixtures.adminEmail; Password = $fixtures.adminPassword }
-    SUPPORT = @{ Email = $SupportAdminEmail; Password = $SupportAdminPassword }
-    AUDITOR = @{ Email = $AuditorEmail; Password = $AuditorPassword }
-    MERCHANT_ACTIVE = @{ Email = $MerchantEmail; Password = $MerchantPassword }
+    SUPPORT = @{ Email = $fixtures.supportEmail; Password = $fixtures.supportPassword }
+    AUDITOR = @{ Email = $fixtures.auditorEmail; Password = $fixtures.auditorPassword }
+    MERCHANT_ACTIVE = @{ Email = $fixtures.activeMerchantEmail; Password = $fixtures.activeMerchantPassword }
     MERCHANT_EMPTY = @{ Email = $fixtures.emptyMerchantEmail; Password = $fixtures.password }
-    WAREHOUSE_ACTIVE = @{ Email = $WarehouseEmail; Password = $WarehousePassword }
+    WAREHOUSE_ACTIVE = @{ Email = $fixtures.activeWarehouseEmail; Password = $fixtures.activeWarehousePassword }
     WAREHOUSE_EMPTY = @{ Email = $fixtures.emptyWarehouseEmail; Password = $fixtures.password }
 }
 
@@ -626,7 +690,11 @@ try {
     for ($i = 0; $i -lt $routes.Count; $i++) {
         $entry = $routes[$i]
         Write-Host ("Touring {0} {1}" -f $entry.role, $entry.route)
-        $records += Visit-NativeRoute -Socket $socket -Role $entry.role -Token (Get-RoleToken -Role $entry.role) -Route $entry.route -ExpectedText $entry.expectedText -Index ($i + 1)
+        $record = Visit-NativeRoute -Socket $socket -Role $entry.role -Token (Get-RoleToken -Role $entry.role) -Route $entry.route -ExpectedText $entry.expectedText -Index ($i + 1)
+        if ($entry.role -ne "PUBLIC" -and ($record.landedOnLogin -or $record.heading -eq "Operations Console" -or $record.textPreview -match "Sign in with an enabled local MerHouse account")) {
+            throw "Native Android tour reached the login screen for authenticated route $($entry.role) $($entry.route). Screenshot: $($record.screenshot)"
+        }
+        $records += $record
     }
 } finally {
     if ($socket.State -eq [System.Net.WebSockets.WebSocketState]::Open) {
