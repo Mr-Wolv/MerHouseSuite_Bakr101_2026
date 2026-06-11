@@ -112,8 +112,17 @@ function Test-OutputFile {
             if (-not [bool]$proofReport.result.passed) {
                 $script:failures += "Deployment evidence manifest outputFiles.$ProofName result.passed must be true."
             }
+            if ([int]$proofReport.concurrentUsers -lt 25) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName concurrentUsers must be at least 25 for V17 small-pilot proof."
+            }
+            if ([int]$proofReport.requestsPerUser -lt 8) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName requestsPerUser must be at least 8 for V17 small-pilot proof."
+            }
             if ([int]$proofReport.totalRequests -lt 1) {
                 $script:failures += "Deployment evidence manifest outputFiles.$ProofName totalRequests must be at least 1."
+            }
+            if ([int]$proofReport.totalRequests -lt 200) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName totalRequests must be at least 200 for V17 small-pilot proof."
             }
         }
         if ($RequireBrowserTourProvenance) {
