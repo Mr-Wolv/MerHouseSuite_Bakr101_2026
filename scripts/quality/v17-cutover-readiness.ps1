@@ -130,6 +130,51 @@ function Test-NoSecretLeak {
     }
 }
 
+function Test-MonitoringReport {
+    param(
+        [string]$Context,
+        [AllowNull()]$Report
+    )
+
+    if ([bool]$Report.localHttpRehearsal) {
+        $script:failures += "$Context localHttpRehearsal must be false for cutover readiness."
+    }
+    if ($null -eq $Report.frontend -or $null -eq $Report.apiHealth) {
+        $script:failures += "$Context frontend and apiHealth result blocks must be present."
+        return
+    }
+    if ([int]$Report.frontend.failures -ne 0) {
+        $script:failures += "$Context frontend.failures must be zero."
+    }
+    if ([int]$Report.apiHealth.failures -ne 0) {
+        $script:failures += "$Context apiHealth.failures must be zero."
+    }
+    if (@($Report.frontend.records).Count -lt 1) {
+        $script:failures += "$Context frontend.records must include at least one sample."
+    }
+    if (@($Report.apiHealth.records).Count -lt 1) {
+        $script:failures += "$Context apiHealth.records must include at least one sample."
+    }
+    $frontendRecordFailures = @($Report.frontend.records | Where-Object { -not [bool]$_.ok }).Count
+    if ($frontendRecordFailures -gt 0) {
+        $script:failures += "$Context frontend.records must all be passing samples."
+    }
+    $apiRecordFailures = @($Report.apiHealth.records | Where-Object { -not [bool]$_.ok }).Count
+    if ($apiRecordFailures -gt 0) {
+        $script:failures += "$Context apiHealth.records must all be passing samples."
+    }
+    if ($null -eq $Report.budgets -or $null -eq $Report.budgets.maxFrontendMs -or $null -eq $Report.budgets.maxApiHealthMs) {
+        $script:failures += "$Context budgets.maxFrontendMs and budgets.maxApiHealthMs must be present."
+        return
+    }
+    if ([long]$Report.frontend.maxMs -gt [long]$Report.budgets.maxFrontendMs) {
+        $script:failures += "$Context frontend.maxMs must be within budgets.maxFrontendMs."
+    }
+    if ([long]$Report.apiHealth.maxMs -gt [long]$Report.budgets.maxApiHealthMs) {
+        $script:failures += "$Context apiHealth.maxMs must be within budgets.maxApiHealthMs."
+    }
+}
+
 function Test-OutputFile {
     param(
         [string]$ProofName,
@@ -142,6 +187,7 @@ function Test-OutputFile {
         [switch]$RequireApiSmokeTiming,
         [switch]$RequireBrowserTourProvenance,
         [switch]$RequireLoadSmokePassed,
+        [switch]$RequireMonitoringPassed,
         [switch]$RequireGeneratedAt,
         [switch]$RequireCheckedAt
     )
@@ -189,6 +235,9 @@ function Test-OutputFile {
         }
         if (-not [string]::IsNullOrWhiteSpace($ExpectedApiBaseUrl) -and $proofReport.apiBaseUrl -ne $ExpectedApiBaseUrl) {
             $script:failures += "Deployment evidence manifest outputFiles.$ProofName apiBaseUrl must match apiBaseUrl."
+        }
+        if ($RequireMonitoringPassed) {
+            Test-MonitoringReport -Context "Deployment evidence manifest outputFiles.$ProofName" -Report $proofReport
         }
         if ($RequireApiSmokeTiming -and $null -eq $proofReport.apiSmokeSeconds) {
             $script:failures += "Deployment evidence manifest outputFiles.$ProofName apiSmokeSeconds must be present."
@@ -241,7 +290,7 @@ function Test-OutputFile {
 
 Test-OutputFile -ProofName "frontendProxySmoke" -ExpectedBaseUrl $manifest.frontendBaseUrl -RequireApiSmokeReport
 Test-OutputFile -ProofName "directApiSmoke" -ExpectedBaseUrl $manifest.apiBaseUrl -RequireApiSmokeReport
-Test-OutputFile -ProofName "monitoring" -ExpectedSchema "merhouse.v17.deployed-monitoring.v1" -ExpectedFrontendBaseUrl $manifest.frontendBaseUrl -ExpectedApiBaseUrl $manifest.apiBaseUrl -RequireCheckedAt
+Test-OutputFile -ProofName "monitoring" -ExpectedSchema "merhouse.v17.deployed-monitoring.v1" -ExpectedFrontendBaseUrl $manifest.frontendBaseUrl -ExpectedApiBaseUrl $manifest.apiBaseUrl -RequireCheckedAt -RequireMonitoringPassed
 Test-OutputFile -ProofName "performance" -RequirePassedStatus -RequireApiSmokeTiming -RequireGeneratedAt
 Test-OutputFile -ProofName "loadSmoke" -ExpectedSchema "merhouse.load-smoke.v1" -ExpectedBaseUrl $manifest.apiBaseUrl -RequireLoadSmokePassed -RequireCheckedAt
 Test-OutputFile -ProofName "browserTour" -RequireBrowserTourProvenance
@@ -438,6 +487,7 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
                         if ($rollbackMonitoringReport.apiBaseUrl -ne $proofArtifact.postRollbackMonitoring.apiBaseUrl) {
                             $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath apiBaseUrl must match postRollbackMonitoring.apiBaseUrl."
                         }
+                        Test-MonitoringReport -Context "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath" -Report $rollbackMonitoringReport
                     } catch {
                         $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath must be readable JSON proof."
                     }

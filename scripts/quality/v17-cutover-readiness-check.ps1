@@ -92,12 +92,35 @@ $smokeEvidence = @{
     tableStateAfterTransactions = @{ tenants = @(@{ id = "fixture-tenant" }) }
 } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidFrontendProxySmoke -Encoding utf8
-@{ schema = "merhouse.v17.deployed-monitoring.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
-    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.monitoring -Encoding utf8
-@{ schema = "merhouse.v17.deployed-monitoring.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
-    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.rollbackMonitoring -Encoding utf8
-@{ schema = "merhouse.v17.deployed-monitoring.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); frontendBaseUrl = "https://wrong-app.example.com"; apiBaseUrl = "https://api.example.com" } |
-    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidRollbackMonitoring -Encoding utf8
+$monitoringEvidence = @{
+    schema = "merhouse.v17.deployed-monitoring.v1"
+    checkedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    localHttpRehearsal = $false
+    budgets = @{
+        maxFrontendMs = 3000
+        maxApiHealthMs = 2000
+    }
+    frontend = @{
+        failures = 0
+        maxMs = 120
+        records = @(@{ ok = $true; statusCode = 200; ms = 120; error = $null })
+    }
+    apiHealth = @{
+        failures = 0
+        maxMs = 80
+        records = @(@{ ok = $true; status = "UP"; ms = 80; error = $null })
+    }
+}
+$monitoringEvidence |
+    ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $artifactPaths.monitoring -Encoding utf8
+$monitoringEvidence |
+    ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $artifactPaths.rollbackMonitoring -Encoding utf8
+$wrongTargetMonitoringEvidence = $monitoringEvidence.Clone()
+$wrongTargetMonitoringEvidence.frontendBaseUrl = "https://wrong-app.example.com"
+$wrongTargetMonitoringEvidence |
+    ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $artifactPaths.invalidRollbackMonitoring -Encoding utf8
 @{ status = "PASSED"; generatedAt = (Get-Date).ToUniversalTime().ToString("o"); apiSmokeSeconds = 12.34 } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.performance -Encoding utf8
 $loadSmokeRecords = @(1..200 | ForEach-Object { @{ ok = $true; ms = 25 } })
@@ -109,8 +132,21 @@ $loadSmokeRecords = @(1..200 | ForEach-Object { @{ ok = $true; ms = 25 } })
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidLoadSmoke -Encoding utf8
 @{ appUrl = "https://wrong-app.example.com"; apiUrl = "https://wrong-api.example.com"; checkedAt = ""; checkedRoutes = @() } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidBrowserTour -Encoding utf8
-@{ schema = "merhouse.v17.deployed-monitoring.v1"; checkedAt = ""; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
-    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidMonitoring -Encoding utf8
+$failedMonitoringEvidence = $monitoringEvidence.Clone()
+$failedMonitoringEvidence.checkedAt = ""
+$failedMonitoringEvidence.localHttpRehearsal = $true
+$failedMonitoringEvidence.frontend = @{
+    failures = 1
+    maxMs = 4000
+    records = @(@{ ok = $false; statusCode = 503; ms = 4000; error = "fixture failure" })
+}
+$failedMonitoringEvidence.apiHealth = @{
+    failures = 1
+    maxMs = 2500
+    records = @(@{ ok = $false; status = "DOWN"; ms = 2500; error = "fixture failure" })
+}
+$failedMonitoringEvidence |
+    ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $artifactPaths.invalidMonitoring -Encoding utf8
 @{ status = "PASSED"; generatedAt = "after timing"; apiSmokeSeconds = 12.34 } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidPerformance -Encoding utf8
 
