@@ -21,6 +21,7 @@ $wrongAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-che
 
 $artifactPaths = [ordered]@{
     frontendProxySmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-frontend-proxy-smoke.json"
+    invalidFrontendProxySmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-frontend-proxy-smoke.json"
     directApiSmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-direct-api-smoke.json"
     monitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-monitoring.json"
     invalidMonitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-monitoring.json"
@@ -64,6 +65,18 @@ $smokeEvidence = @{
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.frontendProxySmoke -Encoding utf8
 ($smokeEvidence + @{ baseUrl = "https://api.example.com" }) |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.directApiSmoke -Encoding utf8
+@{
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    status = "PASSED"
+    testRun = "fixture"
+    baseUrl = "https://app.example.com"
+    apiResponses = @{
+        adminLogin = @{ user = @{ email = "owner@example.com" }; accessToken = "eyJhbGciOiJIUzI1NiJ9.fixture.signature" }
+        boundaryAccessRequest = @{ id = "fixture-boundary-access-request"; status = "PENDING" }
+    }
+    tableStateAfterTransactions = @{ tenants = @(@{ id = "fixture-tenant" }) }
+} |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidFrontendProxySmoke -Encoding utf8
 @{ schema = "merhouse.v17.deployed-monitoring.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.monitoring -Encoding utf8
 @{ schema = "merhouse.v17.deployed-monitoring.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
@@ -262,6 +275,7 @@ $wrongAttachmentManifest.attachedEvidence.rollback.path = $artifactPaths.invalid
 $wrongAttachmentManifest.attachedEvidence.alertRouting.path = $artifactPaths.invalidAlertRouting
 $wrongAttachmentManifest.attachedEvidence.emailProvider.path = $artifactPaths.invalidEmailProvider
 $wrongAttachmentManifest.attachedEvidence.liveStakeholderWalkthrough.path = $artifactPaths.invalidLiveStakeholderWalkthrough
+$wrongAttachmentManifest.outputFiles.frontendProxySmoke = $artifactPaths.invalidFrontendProxySmoke
 $wrongAttachmentManifest.outputFiles.directApiSmoke = $artifactPaths.invalidBrowserTour
 $wrongAttachmentManifest.outputFiles.monitoring = $artifactPaths.invalidMonitoring
 $wrongAttachmentManifest.outputFiles.performance = $artifactPaths.invalidPerformance
@@ -399,6 +413,7 @@ try {
         $_.Exception.Message -match "androidRelease.versionName" -and
         $_.Exception.Message -match "androidRelease.path artifact cleartextTraffic" -and
         $_.Exception.Message -match "androidRelease.path artifact signing" -and
+        $_.Exception.Message -match "outputFiles.frontendProxySmoke must not include apiResponses.adminLogin.accessToken" -and
         $_.Exception.Message -match "installedAndroidTour.path artifact apiUrl" -and
         $_.Exception.Message -match "installedAndroidTour.path artifact checkedAt" -and
         $_.Exception.Message -match "installedAndroidTour.path artifact apkSha256" -and

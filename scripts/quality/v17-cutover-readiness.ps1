@@ -75,6 +75,49 @@ function Test-ProofTimestamp {
     }
 }
 
+function Test-NoSecretLeak {
+    param(
+        [string]$Context,
+        [AllowNull()]$Value,
+        [string]$Path = ""
+    )
+
+    if ($null -eq $Value) {
+        return
+    }
+
+    if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string] -and $Value -isnot [System.Management.Automation.PSCustomObject]) {
+        $index = 0
+        foreach ($item in $Value) {
+            Test-NoSecretLeak -Context $Context -Value $item -Path "$Path[$index]"
+            $index++
+        }
+        return
+    }
+
+    if ($Value -is [System.Management.Automation.PSCustomObject]) {
+        foreach ($property in $Value.PSObject.Properties) {
+            $propertyPath = if ([string]::IsNullOrWhiteSpace($Path)) { $property.Name } else { "$Path.$($property.Name)" }
+            $sensitiveField = $property.Name -match '^(?i)(accessToken|refreshToken|resetToken|temporaryPassword|password|apiKey|clientSecret|privateKey|signingSecret|smtpPassword)$'
+            if ($sensitiveField) {
+                $raw = if ($null -eq $property.Value) { "" } else { $property.Value.ToString() }
+                if (-not [string]::IsNullOrWhiteSpace($raw) -and $raw -ne "[redacted]") {
+                    $script:failures += "$Context must not include $propertyPath; redact sensitive proof values before cutover review."
+                }
+            }
+            Test-NoSecretLeak -Context $Context -Value $property.Value -Path $propertyPath
+        }
+        return
+    }
+
+    if ($Value -is [string]) {
+        if ($Value -match '(?i)\bBearer\s+[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+' -or
+            $Value -match '(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|private[_-]?key|signing[_-]?secret)\s*[:=]\s*[''"]?[A-Za-z0-9_./+=:-]{16,}') {
+            $script:failures += "$Context must not include token-shaped data at $Path; redact sensitive proof values before cutover review."
+        }
+    }
+}
+
 function Test-OutputFile {
     param(
         [string]$ProofName,
@@ -98,6 +141,7 @@ function Test-OutputFile {
     }
     try {
         $proofReport = Get-Content -Raw -LiteralPath $proofPath | ConvertFrom-Json
+        Test-NoSecretLeak -Context "Deployment evidence manifest outputFiles.$ProofName" -Value $proofReport
         if (-not [string]::IsNullOrWhiteSpace($ExpectedSchema) -and $proofReport.schema -ne $ExpectedSchema) {
             $script:failures += "Deployment evidence manifest outputFiles.$ProofName schema must be $ExpectedSchema."
         }
@@ -221,6 +265,7 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
         if ($proofSchema -ne $expectedAttachmentSchemas[$attachmentName]) {
             $failures += "Deployment evidence manifest attachedEvidence.$attachmentName.path artifact schema must be $($expectedAttachmentSchemas[$attachmentName])."
         }
+        Test-NoSecretLeak -Context "Deployment evidence manifest attachedEvidence.$attachmentName.path artifact" -Value $proofArtifact
         if ($attachmentName -eq "androidRelease" -and $proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
             $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact apiBaseUrl must match apiBaseUrl."
         }
