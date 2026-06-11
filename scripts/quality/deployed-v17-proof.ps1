@@ -130,7 +130,7 @@ function Resolve-EvidenceAttachment {
                 $Value -match '(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|private[_-]?key|signing[_-]?secret)\s*[:=]\s*[''"]?[A-Za-z0-9_./+=:-]{16,}') {
                 throw "$Name must not include token-shaped data at $Path; redact sensitive proof values before attaching deployed V17 evidence."
             }
-            if ($RejectProviderEvidenceBodies -and $Value -match '(?i)(message[_ -]?body|provider[_ -]?log|smtp[_ -]?log|smtp[_ -]?transcript|email[_ -]?header|message[_ -]?id|raw[_ -]?email|alert[_ -]?payload|raw[_ -]?payload|webhook[_ -]?payload|webhook[_ -]?body|notification[_ -]?body|delivery[_ -]?transcript|http[_ -]?transcript|request[_ -]?body|response[_ -]?body)') {
+            if ($RejectProviderEvidenceBodies -and $Path -ne "secretPolicy" -and $Value -match '(?i)(message[_ -]?body|provider[_ -]?log|smtp[_ -]?log|smtp[_ -]?transcript|email[_ -]?header|message[_ -]?id|raw[_ -]?email|alert[_ -]?payload|raw[_ -]?payload|webhook[_ -]?payload|webhook[_ -]?body|notification[_ -]?body|delivery[_ -]?transcript|http[_ -]?transcript|request[_ -]?body|response[_ -]?body)') {
                 throw "$Name must not include copied provider logs, message bodies, alert payloads, SMTP/HTTP transcripts, headers, message IDs, or raw email/payload content at $Path."
             }
         }

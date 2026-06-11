@@ -134,7 +134,7 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
         "notification-email" = "SENT"
     }
     deliveryEvidence = "operator-confirmed-smtp-staging-fixture"
-    secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, or message bodies are stored in this parser proof fixture."
+    secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, message bodies, provider logs, or deployment env values are stored in this parser proof fixture."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validEmailProviderPath -Encoding utf8
 
 @{
@@ -331,7 +331,7 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
         "failed-provider-delivery" = "failed provider-delivery alert reached the staging recipient"
     }
     deliveryEvidence = "operator-confirmed-alert-routing-fixture"
-    secretPolicy = "No provider credentials or alert endpoints are stored in this parser proof fixture."
+    secretPolicy = "No alert provider credentials, endpoints, webhooks, provider logs, deployment env values, or copied alert payloads are stored in this parser proof fixture."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validAlertPath -Encoding utf8
 
 @{

@@ -120,7 +120,7 @@ function Test-NoSecretLeak {
             $Value -match '(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|private[_-]?key|signing[_-]?secret)\s*[:=]\s*[''"]?[A-Za-z0-9_./+=:-]{16,}') {
             $script:failures += "$Context must not include token-shaped data at $Path; redact sensitive proof values before cutover review."
         }
-        if ($RejectProviderEvidenceBodies -and $Value -match '(?i)(message[_ -]?body|provider[_ -]?log|smtp[_ -]?log|smtp[_ -]?transcript|email[_ -]?header|message[_ -]?id|raw[_ -]?email|alert[_ -]?payload|raw[_ -]?payload|webhook[_ -]?payload|webhook[_ -]?body|notification[_ -]?body|delivery[_ -]?transcript|http[_ -]?transcript|request[_ -]?body|response[_ -]?body)') {
+        if ($RejectProviderEvidenceBodies -and $Path -ne "secretPolicy" -and $Value -match '(?i)(message[_ -]?body|provider[_ -]?log|smtp[_ -]?log|smtp[_ -]?transcript|email[_ -]?header|message[_ -]?id|raw[_ -]?email|alert[_ -]?payload|raw[_ -]?payload|webhook[_ -]?payload|webhook[_ -]?body|notification[_ -]?body|delivery[_ -]?transcript|http[_ -]?transcript|request[_ -]?body|response[_ -]?body)') {
             $script:failures += "$Context must not include copied provider logs, message bodies, alert payloads, SMTP/HTTP transcripts, headers, message IDs, or raw email/payload content at $Path."
         }
     }
