@@ -14,12 +14,14 @@ New-Item -ItemType Directory -Force -Path $resolvedOutputDirectory | Out-Null
 
 $validManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-valid-deployment-evidence.json"
 $missingEvidenceManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-missing-evidence.json"
+$emailDisabledManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-email-disabled-policy.json"
 $wrongAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment.json"
 $wrongRollbackMonitoringManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-rollback-monitoring.json"
 $providerLogAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-provider-log-attachment.json"
 $alertPayloadAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-payload-attachment.json"
 $liveLogAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-live-log-attachment.json"
 $validOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-valid-report.json"
+$emailDisabledOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-email-disabled-policy-report.json"
 $missingOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-missing-report.json"
 $wrongAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment-report.json"
 $wrongRollbackMonitoringOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-rollback-monitoring-report.json"
@@ -297,6 +299,11 @@ $baseManifest = [ordered]@{
 }
 $baseManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $validManifestPath -Encoding utf8
 
+$emailDisabledManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+$emailDisabledManifest.providerStatus = "email-disabled-by-policy"
+$emailDisabledManifest.attachedEvidence.emailProvider = $null
+$emailDisabledManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $emailDisabledManifestPath -Encoding utf8
+
 $missingManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
 $missingManifest.nextRequiredEvidence = @("manual owner, merchant, warehouse, support-admin, and auditor live browser plus installed-Android walkthrough")
 $missingManifest.includedProof.browserTour = $false
@@ -492,6 +499,8 @@ $liveLogAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath 
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.leakedLiveStakeholderWalkthrough -Encoding utf8
 
 & (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $validManifestPath -OutputPath $validOutputPath
+
+& (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $emailDisabledManifestPath -OutputPath $emailDisabledOutputPath
 
 $failedAsExpected = $false
 try {
