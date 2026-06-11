@@ -18,6 +18,18 @@ reports/
 .notes/
 private/
 .secrets/
+deploy/private/
+
+# Local deployment secrets and signed artifacts
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kubeconfig
+*.apk
+*.aab
 
 frontend/dist/
 frontend/test-results/

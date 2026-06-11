@@ -20,6 +20,22 @@ function Invoke-Checked {
     }
 }
 
+function Assert-IgnoredLocalPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath
+    )
+
+    $absolutePath = Join-Path $projectRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $absolutePath)) {
+        return
+    }
+
+    git check-ignore -q $RelativePath 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        throw "$RelativePath exists but is not ignored. Local deployment secrets must stay out of Git."
+    }
+}
+
 Push-Location $projectRoot
 try {
     Invoke-Checked "Checking diff whitespace..." { git diff --check }
@@ -57,12 +73,14 @@ try {
 
     Write-Host ""
     Write-Host "Checking repository tree for local-only folders..."
-    $privateFolders = @(".notes", "private") | Where-Object { Test-Path -LiteralPath (Join-Path $projectRoot $_) }
-    if ($privateFolders) {
-        $privateFolders | ForEach-Object { Join-Path $projectRoot $_ }
-        throw "Local-only working folders must not be present in the repository tree."
+    if (Test-Path -LiteralPath (Join-Path $projectRoot ".notes")) {
+        Join-Path $projectRoot ".notes"
+        throw "Local working notes must not be present in the repository tree."
     }
-    Write-Host "Local-folder boundary check passed."
+    foreach ($relativePath in @("private", ".secrets", "deploy/private")) {
+        Assert-IgnoredLocalPath -RelativePath $relativePath
+    }
+    Write-Host "Local-folder boundary check passed. Ignored private deployment workspaces are allowed."
 
     Write-Host ""
     Write-Host "Checking repository tree for unsafe runtime files..."
@@ -116,6 +134,9 @@ try {
             --glob '!frontend/playwright-report/**' `
             --glob '!backend/target/**' `
             --glob '!reports/**' `
+            --glob '!private/**' `
+            --glob '!.secrets/**' `
+            --glob '!deploy/private/**' `
             --glob '!package-lock.json' `
             --glob '!frontend/package-lock.json' `
             -- $pattern . 2>$null

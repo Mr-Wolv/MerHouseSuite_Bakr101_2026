@@ -38,7 +38,7 @@ The repository is meant to be readable by a developer who just cloned it. Keep s
 
 The current public-facing posture is local-certified project/codebase, not production SaaS launch. V16.2 local convergence evidence is recorded in `docs/architecture/cross-surface-convergence.md`; cloud deployment, app-store release, production monitoring, provider-backed delivery, backup/restore operations, and incident response belong to V17 activation only when the roadmap and active branch deliberately say so.
 
-V17 production work is private until the deployment is proven. Keep VPS env files, SMTP credentials, Android keystores, deployment logs, backup artifacts, provider details, and live URLs out of Git unless the roadmap and public docs deliberately publish sanitized values.
+V17 production work is private until the deployment is proven. Keep VPS env files, SMTP credentials, Android keystores, signed APK/AAB artifacts, deployment logs, backup artifacts, provider details, and live URLs out of Git unless the roadmap and public docs deliberately publish sanitized values. Repo-local private material may live under ignored workspaces such as `private/`, `.secrets/`, or `deploy/private/`; do not force-add those files.
 
 During V17 production activation, do not refactor unless a concrete problem requires it: failing proof, deployment blocker, security/runtime boundary issue, performance bottleneck, real duplication or coupling that blocks deployment, or a documented V&V/QC/QA defect. Do not start cosmetic, speculative, or architecture-ideal refactors while deployment proof is waiting on real external inputs.
 

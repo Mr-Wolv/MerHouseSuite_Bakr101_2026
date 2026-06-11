@@ -277,7 +277,7 @@ V16.2 proves deployment readiness locally; it does not deploy MerHouse.
 - Failed and returned shipments are delivery-state evidence, not a full customer RMA, refund, inspection, disposition, or accounting workflow.
 - Native Android support means a local debug APK wrapper around the same frontend build. The manifest, service worker, mobile metadata, and icon are shared shell support for that wrapper and the web runtime, not a second mobile product track.
 - App-store packaging, native OS notification delivery, native push provider rollout, camera/barcode APIs, and offline sync are later work.
-- Runtime-only values belong in `.env` or your shell environment. Keep generated proof reports, local data, and deployment-specific details out of Git.
+- Runtime-only values belong in `.env`, your shell environment, or ignored repo-local private workspaces such as `private/`, `.secrets/`, or `deploy/private/`. Keep generated proof reports, local data, deployment env files, provider credentials, Android keystores, and signed APK/AAB artifacts out of Git.
 
 Future production activation is a separate later phase and must replace local mocks with real provider contracts, deployment configuration, monitoring, backup/restore operations, load/performance proof, cross-platform release proof, provider-exchange reliability, and deployment-specific operations proof.
 The tracked activation checklist lives in [Production deployment activation](docs/architecture/production-deployment-activation.md).
