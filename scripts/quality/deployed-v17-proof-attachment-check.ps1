@@ -137,6 +137,7 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
 @{
     schema = "merhouse.v17.backup-restore-drill.v1"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    commitSha = "fixture"
     backupPath = $validBackupDumpPath
     preflight = @{
         envAudit = "passed"
@@ -151,6 +152,7 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
 @{
     schema = "merhouse.v17.backup-restore-drill.v1"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    commitSha = "wrong-fixture"
     backupPath = $validBackupDumpPath
     preflight = @{
         envAudit = "failed"
@@ -171,6 +173,7 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
 @{
     schema = "merhouse.v17.rollback-rehearsal.v1"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    commitSha = "fixture"
     rollbackRan = $true
     preflight = @{
         envAudit = "passed"
@@ -188,6 +191,7 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
 @{
     schema = "merhouse.v17.rollback-rehearsal.v1"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    commitSha = "wrong-fixture"
     rollbackRan = $false
     preflight = @{
         envAudit = "failed"
@@ -441,6 +445,7 @@ try {
     @{
         schema = "merhouse.v17.rollback-rehearsal.v1"
         generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+        commitSha = "fixture"
         rollbackRan = $true
         preflight = @{
             envAudit = "passed"

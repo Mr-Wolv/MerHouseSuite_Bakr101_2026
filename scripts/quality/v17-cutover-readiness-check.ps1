@@ -116,6 +116,7 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $artifactPaths.installedAndroidTour -Encoding utf8
 @{
     schema = "merhouse.v17.backup-restore-drill.v1"
+    commitSha = "fixture"
     backupPath = $artifactPaths.backupRestoreDump
     preflight = @{
         envAudit = "passed"
@@ -129,6 +130,7 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.backupRestore -Encoding utf8
 @{
     schema = "merhouse.v17.rollback-rehearsal.v1"
+    commitSha = "fixture"
     rollbackRan = $true
     preflight = @{
         envAudit = "passed"
@@ -195,8 +197,8 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
 $attached = [ordered]@{
     androidRelease = [ordered]@{ schema = "merhouse.v17.android-release.v1"; path = $artifactPaths.androidRelease; apiBaseUrl = "https://api.example.com"; commitSha = "fixture"; artifactKind = "apk"; sha256 = $androidArtifactHash; bytes = $androidArtifactBytes; versionCode = 17; versionName = "17.0.0-internal" }
     installedAndroidTour = [ordered]@{ schema = "merhouse.native-android-tour.report.v1"; path = $artifactPaths.installedAndroidTour; apiUrl = "https://api.example.com"; apkSha256 = $androidArtifactHash; apkBytes = $androidArtifactBytes }
-    backupRestore = [ordered]@{ schema = "merhouse.v17.backup-restore-drill.v1"; path = $artifactPaths.backupRestore }
-    rollback = [ordered]@{ schema = "merhouse.v17.rollback-rehearsal.v1"; path = $artifactPaths.rollback }
+    backupRestore = [ordered]@{ schema = "merhouse.v17.backup-restore-drill.v1"; path = $artifactPaths.backupRestore; commitSha = "fixture" }
+    rollback = [ordered]@{ schema = "merhouse.v17.rollback-rehearsal.v1"; path = $artifactPaths.rollback; commitSha = "fixture" }
     emailProvider = [ordered]@{ schema = "merhouse.v17.email-provider-proof.v1"; path = $artifactPaths.emailProvider; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com"; providerStatus = "smtp-staging-proven" }
     alertRouting = [ordered]@{ schema = "merhouse.v17.alert-routing.v1"; path = $artifactPaths.alertRouting; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" }
     liveStakeholderWalkthrough = [ordered]@{ schema = "merhouse.v17.live-stakeholder-walkthrough.v1"; path = $artifactPaths.liveStakeholderWalkthrough; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" }
@@ -312,6 +314,7 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
 
 @{
     schema = "merhouse.v17.backup-restore-drill.v1"
+    commitSha = "wrong-fixture"
     backupPath = $artifactPaths.backupRestoreDump
     preflight = @{
         envAudit = "failed"
@@ -325,6 +328,7 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
 
 @{
     schema = "merhouse.v17.rollback-rehearsal.v1"
+    commitSha = "wrong-fixture"
     rollbackRan = $false
     preflight = @{
         envAudit = "failed"
@@ -391,9 +395,11 @@ try {
         $_.Exception.Message -match "installedAndroidTour.path artifact checkedRoutes" -and
         $_.Exception.Message -match "installedAndroidTour.path artifact records" -and
         $_.Exception.Message -match "installedAndroidTour.path artifact badRecords" -and
+        $_.Exception.Message -match "backupRestore.path artifact commitSha" -and
         $_.Exception.Message -match "backupRestore.path artifact restored" -and
         $_.Exception.Message -match "backupRestore.path artifact preflight.envAudit" -and
         $_.Exception.Message -match "backupRestore.path artifact backupSha256" -and
+        $_.Exception.Message -match "rollback.path artifact commitSha" -and
         $_.Exception.Message -match "rollback.path artifact rollbackRan" -and
         $_.Exception.Message -match "rollback.path artifact preflight.envAudit" -and
         $_.Exception.Message -match "rollback.path artifact postRollbackMonitoring.ran" -and

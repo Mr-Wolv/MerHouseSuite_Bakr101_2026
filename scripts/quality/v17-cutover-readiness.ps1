@@ -269,6 +269,11 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             }
         }
         if ($attachmentName -eq "backupRestore") {
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.commitSha)) {
+                $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact commitSha must be non-blank."
+            } elseif ($proofArtifact.commitSha -ne $manifest.commitSha) {
+                $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact commitSha must match deployment commitSha."
+            }
             if (-not [bool]$proofArtifact.restored) {
                 $failures += "Deployment evidence manifest attachedEvidence.backupRestore.path artifact restored must be true."
             }
@@ -300,6 +305,11 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             }
         }
         if ($attachmentName -eq "rollback") {
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.commitSha)) {
+                $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact commitSha must be non-blank."
+            } elseif ($proofArtifact.commitSha -ne $manifest.commitSha) {
+                $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact commitSha must match deployment commitSha."
+            }
             if (-not [bool]$proofArtifact.rollbackRan) {
                 $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact rollbackRan must be true."
             }
@@ -436,6 +446,12 @@ if ($null -ne $attached.androidRelease -and $attached.androidRelease.commitSha -
 }
 if ($null -ne $attached.installedAndroidTour -and $attached.installedAndroidTour.apiUrl -ne $manifest.apiBaseUrl) {
     $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.apiUrl must match apiBaseUrl."
+}
+if ($null -ne $attached.backupRestore -and $attached.backupRestore.commitSha -ne $manifest.commitSha) {
+    $failures += "Deployment evidence manifest attachedEvidence.backupRestore.commitSha must match commitSha."
+}
+if ($null -ne $attached.rollback -and $attached.rollback.commitSha -ne $manifest.commitSha) {
+    $failures += "Deployment evidence manifest attachedEvidence.rollback.commitSha must match commitSha."
 }
 if (
     $null -ne $attached.androidRelease -and

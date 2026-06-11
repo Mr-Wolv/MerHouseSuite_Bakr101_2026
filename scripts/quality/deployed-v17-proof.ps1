@@ -209,6 +209,9 @@ function Resolve-EvidenceAttachment {
         }
     }
     if ($Name -eq "BackupRestoreManifestPath") {
+        if ([string]::IsNullOrWhiteSpace($json.commitSha)) {
+            throw "BackupRestoreManifestPath must include commitSha."
+        }
         if (-not [bool]$json.restored) {
             throw "BackupRestoreManifestPath must set restored to true."
         }
@@ -245,6 +248,9 @@ function Resolve-EvidenceAttachment {
         }
     }
     if ($Name -eq "RollbackManifestPath") {
+        if ([string]::IsNullOrWhiteSpace($json.commitSha)) {
+            throw "RollbackManifestPath must include commitSha."
+        }
         if (-not [bool]$json.rollbackRan) {
             throw "RollbackManifestPath must set rollbackRan to true."
         }
