@@ -47,6 +47,18 @@ if ($LASTEXITCODE -ne 0) {
     throw "VPS deployment shape check failed before deploy."
 }
 
+$global:LASTEXITCODE = 0
+& (Join-Path $PSScriptRoot "frontend-nginx-check.ps1")
+if ($LASTEXITCODE -ne 0) {
+    throw "Frontend nginx proxy shape check failed before deploy."
+}
+
+$global:LASTEXITCODE = 0
+& (Join-Path $PSScriptRoot "reverse-proxy-check.ps1")
+if ($LASTEXITCODE -ne 0) {
+    throw "Reverse proxy template check failed before deploy."
+}
+
 if ($BackupBeforeDeploy) {
     Write-Host "Creating pre-deploy database backup..."
     & (Join-Path $PSScriptRoot "backup-postgres.ps1") -ComposeFile $composePath -EnvFile $envPath

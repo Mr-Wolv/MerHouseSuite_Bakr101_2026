@@ -115,6 +115,24 @@ function Assert-DeploymentEnvAuditContract {
     Write-Host "Deployment env audit contract check passed."
 }
 
+function Assert-DeployVpsPreflightContract {
+    $scriptPath = Join-Path $projectRoot "scripts\deploy\deploy-vps.ps1"
+    $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+    if ($scriptText -notmatch 'frontend-nginx-check\.ps1') {
+        throw "scripts\deploy\deploy-vps.ps1 must run the frontend nginx proxy shape check before applying the VPS stack."
+    }
+    if ($scriptText -notmatch 'reverse-proxy-check\.ps1') {
+        throw "scripts\deploy\deploy-vps.ps1 must run the public reverse-proxy template check before applying the VPS stack."
+    }
+    if ($scriptText -notmatch 'Frontend nginx proxy shape check failed before deploy') {
+        throw "scripts\deploy\deploy-vps.ps1 must fail clearly when the frontend nginx proxy shape check fails."
+    }
+    if ($scriptText -notmatch 'Reverse proxy template check failed before deploy') {
+        throw "scripts\deploy\deploy-vps.ps1 must fail clearly when the reverse proxy template check fails."
+    }
+    Write-Host "Deploy VPS preflight contract check passed."
+}
+
 function Assert-BackendPublicSafetyContract {
     $scriptPath = Join-Path $projectRoot "backend\src\main\java\com\merhouse\config\ProductionSafetyConfig.java"
     $scriptText = Get-Content -Raw -LiteralPath $scriptPath
@@ -306,6 +324,7 @@ try {
     Invoke-Checked "Checking backup-restore drill manifest contract..." { Assert-BackupRestoreManifestContract }
     Invoke-Checked "Checking rollback rehearsal manifest contract..." { Assert-RollbackManifestContract }
     Invoke-Checked "Checking deployment env audit contract..." { Assert-DeploymentEnvAuditContract }
+    Invoke-Checked "Checking deploy VPS preflight contract..." { Assert-DeployVpsPreflightContract }
     Invoke-Checked "Checking backend public safety contract..." { Assert-BackendPublicSafetyContract }
     Invoke-Checked "Checking Android release proof contract..." { Assert-AndroidReleaseProofContract }
     Invoke-Checked "Checking deployed V17 HTTPS target guards..." { Assert-DeployedProofHttpsGuards }
