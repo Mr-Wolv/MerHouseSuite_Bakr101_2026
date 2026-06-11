@@ -270,6 +270,26 @@ function Test-OutputFile {
             if ($null -ne $proofReport.result.failures -and [int]$proofReport.result.failures -ne $recordFailures) {
                 $script:failures += "Deployment evidence manifest outputFiles.$ProofName result.failures must match failed request records."
             }
+            if ($null -eq $proofReport.budgets -or $null -eq $proofReport.budgets.maxAverageMs -or $null -eq $proofReport.budgets.maxFailureCount) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName budgets.maxAverageMs and budgets.maxFailureCount must be present."
+            } else {
+                if ([int]$proofReport.result.failures -gt [int]$proofReport.budgets.maxFailureCount) {
+                    $script:failures += "Deployment evidence manifest outputFiles.$ProofName result.failures must be within budgets.maxFailureCount."
+                }
+                if ([double]$proofReport.result.averageMs -gt [double]$proofReport.budgets.maxAverageMs) {
+                    $script:failures += "Deployment evidence manifest outputFiles.$ProofName result.averageMs must be within budgets.maxAverageMs."
+                }
+            }
+            if ($records.Count -gt 0) {
+                $calculatedAverage = [math]::Round((($records | Measure-Object -Property ms -Average).Average), 2)
+                $calculatedMax = ($records | Measure-Object -Property ms -Maximum).Maximum
+                if ([double]$proofReport.result.averageMs -ne [double]$calculatedAverage) {
+                    $script:failures += "Deployment evidence manifest outputFiles.$ProofName result.averageMs must match request records."
+                }
+                if ([double]$proofReport.result.maxMs -ne [double]$calculatedMax) {
+                    $script:failures += "Deployment evidence manifest outputFiles.$ProofName result.maxMs must match request records."
+                }
+            }
         }
         if ($RequireBrowserTourProvenance) {
             if ($proofReport.appUrl -ne $manifest.frontendBaseUrl) {
