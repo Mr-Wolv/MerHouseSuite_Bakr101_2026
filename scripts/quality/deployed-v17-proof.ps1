@@ -470,6 +470,12 @@ function Get-ProviderStatusEvidenceState {
 
 $normalizedFrontendBaseUrl = Assert-AbsoluteHttpUrl -Name "FrontendBaseUrl" -Value $FrontendBaseUrl
 $normalizedApiBaseUrl = Assert-AbsoluteHttpUrl -Name "ApiBaseUrl" -Value $ApiBaseUrl
+if (-not $normalizedFrontendBaseUrl.StartsWith("https://")) {
+    throw "FrontendBaseUrl must be an HTTPS deployment URL for deployed V17 proof."
+}
+if (-not $normalizedApiBaseUrl.StartsWith("https://")) {
+    throw "ApiBaseUrl must be an HTTPS deployment URL for deployed V17 proof."
+}
 $providerEvidenceState = Get-ProviderStatusEvidenceState -Status $ProviderStatus
 Assert-DeployedCredential -Name "AdminEmail" -Value $AdminEmail
 Assert-DeployedCredential -Name "AdminPassword" -Value $AdminPassword

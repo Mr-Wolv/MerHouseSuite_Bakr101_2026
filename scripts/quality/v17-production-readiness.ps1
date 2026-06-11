@@ -9,6 +9,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+. (Join-Path $PSScriptRoot "url-guard-lib.ps1")
 
 function Invoke-Checked {
     param(
@@ -75,11 +76,30 @@ function Assert-RollbackManifestContract {
     Write-Host "Rollback rehearsal manifest contract check passed."
 }
 
+function Assert-DeployedProofHttpsGuards {
+    $deployedProofScriptPath = Join-Path $projectRoot "scripts\quality\deployed-v17-proof.ps1"
+    $deployedProofText = Get-Content -Raw -LiteralPath $deployedProofScriptPath
+    if ($deployedProofText -notmatch 'FrontendBaseUrl must be an HTTPS deployment URL for deployed V17 proof') {
+        throw "scripts\quality\deployed-v17-proof.ps1 must require an HTTPS frontend URL for deployed V17 proof."
+    }
+    if ($deployedProofText -notmatch 'ApiBaseUrl must be an HTTPS deployment URL for deployed V17 proof') {
+        throw "scripts\quality\deployed-v17-proof.ps1 must require an HTTPS API URL for deployed V17 proof."
+    }
+    if ($deployedProofText -notmatch 'Assert-AbsoluteHttpUrl\s+-Name\s+"FrontendBaseUrl"') {
+        throw "scripts\quality\deployed-v17-proof.ps1 must normalize the frontend URL through the shared URL guard."
+    }
+    if ($deployedProofText -notmatch 'Assert-AbsoluteHttpUrl\s+-Name\s+"ApiBaseUrl"') {
+        throw "scripts\quality\deployed-v17-proof.ps1 must normalize the API URL through the shared URL guard."
+    }
+    Write-Host "Deployed V17 HTTPS target guard check passed."
+}
+
 Push-Location $projectRoot
 try {
     Invoke-Checked "Checking PowerShell script parsing..." { Assert-ScriptParse }
     Invoke-Checked "Checking PostgreSQL backup filename guards..." { Assert-PostgresBackupNameGuards }
     Invoke-Checked "Checking rollback rehearsal manifest contract..." { Assert-RollbackManifestContract }
+    Invoke-Checked "Checking deployed V17 HTTPS target guards..." { Assert-DeployedProofHttpsGuards }
     Invoke-Checked "Checking V17 env template audit..." { & ".\scripts\deploy\env-audit.ps1" -EnvFile "deploy/vps/env.production.example" -AllowTemplate }
     Invoke-Checked "Checking V17 VPS deployment shape..." { & ".\scripts\deploy\vps-check.ps1" }
     Invoke-Checked "Checking V17 reverse proxy template..." { & ".\scripts\deploy\reverse-proxy-check.ps1" }
@@ -94,8 +114,12 @@ try {
         if ([string]::IsNullOrWhiteSpace($ApiBaseUrl)) {
             throw "-ApiBaseUrl is required when -IncludeLoadSmoke is supplied."
         }
+        $normalizedApiBaseUrl = Assert-AbsoluteHttpUrl -Name "ApiBaseUrl" -Value $ApiBaseUrl
+        if (-not $normalizedApiBaseUrl.StartsWith("https://")) {
+            throw "-ApiBaseUrl must be an HTTPS staging or production URL when -IncludeLoadSmoke is supplied."
+        }
         Invoke-Checked "Running V17 load smoke..." {
-            & ".\scripts\quality\load-smoke.ps1" -BaseUrl $ApiBaseUrl -ConcurrentUsers $ConcurrentUsers -RequestsPerUser $RequestsPerUser
+            & ".\scripts\quality\load-smoke.ps1" -BaseUrl $normalizedApiBaseUrl -ConcurrentUsers $ConcurrentUsers -RequestsPerUser $RequestsPerUser
         }
     } else {
         Write-Host ""
@@ -106,8 +130,12 @@ try {
         if ([string]::IsNullOrWhiteSpace($ApiBaseUrl)) {
             throw "-ApiBaseUrl is required when -IncludeAndroidRelease is supplied."
         }
+        $normalizedApiBaseUrl = Assert-AbsoluteHttpUrl -Name "ApiBaseUrl" -Value $ApiBaseUrl
+        if (-not $normalizedApiBaseUrl.StartsWith("https://")) {
+            throw "-ApiBaseUrl must be an HTTPS staging or production URL when -IncludeAndroidRelease is supplied."
+        }
         Invoke-Checked "Building signed Android release proof..." {
-            & ".\scripts\quality\native-android-release-check.ps1" -ApiBaseUrl $ApiBaseUrl -Bundle -OutputPath ".\reports\v17-android-release.json"
+            & ".\scripts\quality\native-android-release-check.ps1" -ApiBaseUrl $normalizedApiBaseUrl -Bundle -OutputPath ".\reports\v17-android-release.json"
         }
     } else {
         Write-Host ""

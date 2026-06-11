@@ -253,7 +253,7 @@ The default preflight parses PowerShell scripts, audits the deployment env templ
   -ApiBaseUrl "https://api.example.com"
 ```
 
-The default Android release-shape check proves the release build is configured to disable cleartext traffic, source signing/versioning from external `MERHOUSE_ANDROID_KEYSTORE_*` and `MERHOUSE_ANDROID_VERSION_*` values without requiring the secrets, and keep Google/Firebase provider hooks out while native push remains outside V17 scope. The signed Android slice requires those environment variables and writes the sanitized artifact manifest. The load-smoke slice uses the same `-ApiBaseUrl`, `-ConcurrentUsers`, and `-RequestsPerUser` values to record a small-pilot readiness signal against the deployed API health endpoint.
+The default Android release-shape check proves the release build is configured to disable cleartext traffic, source signing/versioning from external `MERHOUSE_ANDROID_KEYSTORE_*` and `MERHOUSE_ANDROID_VERSION_*` values without requiring the secrets, and keep Google/Firebase provider hooks out while native push remains outside V17 scope. The signed Android slice requires those environment variables and writes the sanitized artifact manifest. The load-smoke slice uses the same HTTPS `-ApiBaseUrl`, `-ConcurrentUsers`, and `-RequestsPerUser` values to record a small-pilot readiness signal against the deployed API health endpoint.
 
 Performance report paths are paired evidence. `performance-readiness.ps1` rejects a lone `-WebReportPath` or lone `-NativeReportPath` before building the frontend so report-backed route timing cannot be claimed from one surface only. When both are supplied, it resolves and checks both report paths before the frontend build starts, then prints the resolved web/native report inputs and resolved performance report output path. Omit both only for bundle/API-only proof. Report-backed JSON and terminal output record the supplied and resolved web/native report paths plus validated browser and installed-APK provenance snapshots so timing evidence can be traced back to the exact paired reports.
 
@@ -351,7 +351,7 @@ Run rollback rehearsal only against staging, a drill environment, or an explicit
 
 The rollback drill audits the private env file, validates the Compose shape, runs the guarded rollback/up primitive, optionally records deployed monitoring samples, and writes `v17-rollback-rehearsal-*.json` without secrets. The manifest uses `generatedAt`, matching the deployed-proof attachment contract. Local loopback rehearsals may use HTTP only with `-AllowLocalHttpRehearsal`; staging and production proof must use HTTPS targets.
 
-After rollout, run deployed proof against the public frontend and API targets:
+After rollout, run deployed proof against the public HTTPS frontend and API targets. Local HTTP URLs belong to local development gates and explicit local rollback rehearsals, not deployed V17 evidence:
 
 ```powershell
 .\scripts\quality\deployed-v17-proof.ps1 `
