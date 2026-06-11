@@ -333,7 +333,7 @@ $wrongRollbackMonitoringManifest | ConvertTo-Json -Depth 8 | Set-Content -Litera
     providerStatus = "smtp-staging-configured"
     workflowsProven = @("password-recovery")
     workflowEvidence = @{
-        "password-recovery" = "only one workflow was checked"
+        "password-recovery" = "only one workflow was checked for owner@example.com"
     }
     workflowProviderStatuses = @{
         "password-recovery" = "SENT"
@@ -472,6 +472,7 @@ try {
         $_.Exception.Message -match "outputFiles.browserTour apiUrl" -and
         $_.Exception.Message -match "emailProvider.path artifact apiBaseUrl" -and
         $_.Exception.Message -match "emailProvider.path artifact providerStatus" -and
+        $_.Exception.Message -match "emailProvider.path artifact must not include email-shaped PII" -and
         $_.Exception.Message -match "workflowsProven must include access-request" -and
         $_.Exception.Message -match "workflowEvidence.access-request" -and
         $_.Exception.Message -match "workflowProviderStatuses.access-request" -and

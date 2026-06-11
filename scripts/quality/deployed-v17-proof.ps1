@@ -89,7 +89,8 @@ function Resolve-EvidenceAttachment {
     function Assert-NoSecretLeak {
         param(
             [AllowNull()]$Value,
-            [string]$Path = ""
+            [string]$Path = "",
+            [switch]$RejectEmailAddresses
         )
 
         if ($null -eq $Value) {
@@ -99,7 +100,7 @@ function Resolve-EvidenceAttachment {
         if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string] -and $Value -isnot [System.Management.Automation.PSCustomObject]) {
             $index = 0
             foreach ($item in $Value) {
-                Assert-NoSecretLeak -Value $item -Path "$Path[$index]"
+                Assert-NoSecretLeak -Value $item -Path "$Path[$index]" -RejectEmailAddresses:$RejectEmailAddresses
                 $index++
             }
             return
@@ -115,12 +116,15 @@ function Resolve-EvidenceAttachment {
                         throw "$Name must not include $propertyPath; redact sensitive proof values before attaching deployed V17 evidence."
                     }
                 }
-                Assert-NoSecretLeak -Value $property.Value -Path $propertyPath
+                Assert-NoSecretLeak -Value $property.Value -Path $propertyPath -RejectEmailAddresses:$RejectEmailAddresses
             }
             return
         }
 
         if ($Value -is [string]) {
+            if ($RejectEmailAddresses -and $Value -match '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b') {
+                throw "$Name must not include email-shaped PII at $Path; use reviewer initials, ticket references, or non-identifying proof labels."
+            }
             if ($Value -match '(?i)\bBearer\s+[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+' -or
                 $Value -match '(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|private[_-]?key|signing[_-]?secret)\s*[:=]\s*[''"]?[A-Za-z0-9_./+=:-]{16,}') {
                 throw "$Name must not include token-shaped data at $Path; redact sensitive proof values before attaching deployed V17 evidence."
@@ -142,7 +146,8 @@ function Resolve-EvidenceAttachment {
     } catch {
         throw "$Name must be a JSON proof artifact with a schema field."
     }
-    Assert-NoSecretLeak -Value $json
+    $rejectEmailAddresses = $Name -in @("EmailProviderProofManifestPath", "AlertRoutingManifestPath", "LiveStakeholderWalkthroughManifestPath")
+    Assert-NoSecretLeak -Value $json -RejectEmailAddresses:$rejectEmailAddresses
     $schema = $json.schema
     if ([string]::IsNullOrWhiteSpace($schema) -and $Name -eq "InstalledAndroidTourReportPath") {
         $hasNativeTourProvenance =

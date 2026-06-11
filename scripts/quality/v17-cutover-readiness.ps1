@@ -79,7 +79,8 @@ function Test-NoSecretLeak {
     param(
         [string]$Context,
         [AllowNull()]$Value,
-        [string]$Path = ""
+        [string]$Path = "",
+        [switch]$RejectEmailAddresses
     )
 
     if ($null -eq $Value) {
@@ -89,7 +90,7 @@ function Test-NoSecretLeak {
     if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string] -and $Value -isnot [System.Management.Automation.PSCustomObject]) {
         $index = 0
         foreach ($item in $Value) {
-            Test-NoSecretLeak -Context $Context -Value $item -Path "$Path[$index]"
+            Test-NoSecretLeak -Context $Context -Value $item -Path "$Path[$index]" -RejectEmailAddresses:$RejectEmailAddresses
             $index++
         }
         return
@@ -105,12 +106,15 @@ function Test-NoSecretLeak {
                     $script:failures += "$Context must not include $propertyPath; redact sensitive proof values before cutover review."
                 }
             }
-            Test-NoSecretLeak -Context $Context -Value $property.Value -Path $propertyPath
+            Test-NoSecretLeak -Context $Context -Value $property.Value -Path $propertyPath -RejectEmailAddresses:$RejectEmailAddresses
         }
         return
     }
 
     if ($Value -is [string]) {
+        if ($RejectEmailAddresses -and $Value -match '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b') {
+            $script:failures += "$Context must not include email-shaped PII at $Path; use reviewer initials, ticket references, or non-identifying proof labels."
+        }
         if ($Value -match '(?i)\bBearer\s+[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+' -or
             $Value -match '(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|private[_-]?key|signing[_-]?secret)\s*[:=]\s*[''"]?[A-Za-z0-9_./+=:-]{16,}') {
             $script:failures += "$Context must not include token-shaped data at $Path; redact sensitive proof values before cutover review."
@@ -265,7 +269,8 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
         if ($proofSchema -ne $expectedAttachmentSchemas[$attachmentName]) {
             $failures += "Deployment evidence manifest attachedEvidence.$attachmentName.path artifact schema must be $($expectedAttachmentSchemas[$attachmentName])."
         }
-        Test-NoSecretLeak -Context "Deployment evidence manifest attachedEvidence.$attachmentName.path artifact" -Value $proofArtifact
+        $rejectEmailAddresses = $attachmentName -in @("emailProvider", "alertRouting", "liveStakeholderWalkthrough")
+        Test-NoSecretLeak -Context "Deployment evidence manifest attachedEvidence.$attachmentName.path artifact" -Value $proofArtifact -RejectEmailAddresses:$rejectEmailAddresses
         if ($attachmentName -eq "androidRelease" -and $proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
             $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact apiBaseUrl must match apiBaseUrl."
         }
