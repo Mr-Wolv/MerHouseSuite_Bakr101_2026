@@ -351,6 +351,8 @@ function Set-NativeHttpOriginToken {
     } else {
         Send-Cdp $Socket "Runtime.evaluate" @{ expression = "localStorage.removeItem('warehouse-console-token')"; returnByValue = $true } | Out-Null
     }
+    Send-Cdp $Socket "Page.reload" @{ ignoreCache = $true } | Out-Null
+    Start-Sleep -Seconds 2
 }
 
 function Capture-Screenshot {
