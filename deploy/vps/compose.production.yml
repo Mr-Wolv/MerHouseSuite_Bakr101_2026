@@ -74,7 +74,7 @@ services:
     ports:
       - "${MERHOUSE_HTTP_BIND:-127.0.0.1:3000}:80"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/ | grep -q '<div id=\"root\"></div>'"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ | grep -q '<div id=\"root\"></div>'"]
       interval: 15s
       timeout: 5s
       retries: 8

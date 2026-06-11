@@ -44,7 +44,7 @@ $requiredPatterns = @(
     'SPRING_DATASOURCE_URL:\s+jdbc:postgresql://postgres:5432/',
     'VITE_API_BASE_URL:',
     'curl -fsS http://localhost:8080/api/v1/health',
-    'wget -qO- http://localhost/'
+    'wget -qO- http://127.0.0.1/'
 )
 
 foreach ($pattern in $requiredPatterns) {
