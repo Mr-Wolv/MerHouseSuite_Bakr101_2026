@@ -23,6 +23,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/deployed-monitoring-proof.ps1` | Sample deployed HTTPS frontend shell and API health endpoints repeatedly with latency budgets and write a monitoring-style proof report; local HTTP requires an explicit rehearsal switch. |
 | `scripts/quality/v17-email-provider-proof.ps1` | Write the sanitized V17 email-provider proof artifact after operator-confirmed SMTP delivery for recovery, access-request/account-ready, and notification email workflows. |
 | `scripts/quality/v17-alert-routing-proof.ps1` | Write the sanitized V17 alert-routing proof artifact after operator-confirmed routing for API health, frontend health, and failed-provider-delivery signals. |
+| `scripts/quality/v17-live-stakeholder-walkthrough-proof.ps1` | Write the sanitized V17 final live-walkthrough artifact after the reviewer completes the real browser and installed-Android walkthroughs. |
 | `scripts/quality/v17-cutover-readiness.ps1` | Validate a sanitized V17 deployment evidence manifest before a separate human production cutover decision. |
 | `scripts/quality/v17-cutover-readiness-check.ps1` | Prove the cutover-readiness validator with local complete/incomplete fixture manifests. |
 | `scripts/quality/frontend-full-tour.ps1` | Run the browser tour against a running local stack. |
@@ -409,6 +410,21 @@ After alert routing has been observed, write the alert artifact without storing 
 ```
 
 The script requires HTTPS targets, explicit confirmation, and short non-secret evidence references, then emits `merhouse.v17.alert-routing.v1` for `-AlertRoutingManifestPath`. It is a proof recorder, not an alert provider; monitoring and alert routing must already have been exercised.
+
+After the final live walkthrough has actually happened with the reviewer in the real browser and installed Android app, write the manual review artifact:
+
+```powershell
+.\scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 `
+  -FrontendBaseUrl "https://app.example.com" `
+  -ApiBaseUrl "https://api.example.com" `
+  -Reviewer "release reviewer initials or ticket reference" `
+  -BrowserWalkthroughEvidence "manual browser walkthrough completed across supported roles" `
+  -InstalledAndroidWalkthroughEvidence "manual installed Android walkthrough completed across supported roles" `
+  -StakeholderCoverageEvidence "owner merchant warehouse support-admin auditor active and empty states reviewed" `
+  -ConfirmManualLiveReview
+```
+
+The script requires HTTPS targets, explicit manual-live-review confirmation, and short non-secret evidence references for browser, installed Android, and stakeholder coverage. It emits `merhouse.v17.live-stakeholder-walkthrough.v1` for `-LiveStakeholderWalkthroughManifestPath`. It does not run the walkthrough; it records the already completed human review so scripted tours cannot close the live-review requirement.
 
 Run only the lightweight deployed monitoring proof when a target needs a fast health/reachability sample. This standalone proof requires HTTPS targets unless the run is explicitly marked as a local HTTP rehearsal:
 

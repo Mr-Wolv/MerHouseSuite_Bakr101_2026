@@ -149,6 +149,29 @@ function Assert-AlertRoutingProofScriptContract {
     Write-Host "V17 alert routing proof script contract check passed."
 }
 
+function Assert-LiveStakeholderWalkthroughProofScriptContract {
+    $scriptPath = Join-Path $projectRoot "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1"
+    $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+    if ($scriptText -notmatch 'schema\s*=\s*"merhouse\.v17\.live-stakeholder-walkthrough\.v1"') {
+        throw "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 must write the V17 live stakeholder walkthrough proof schema."
+    }
+    if ($scriptText -notmatch '\[switch\]\$ConfirmManualLiveReview') {
+        throw "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 must require explicit manual live-review confirmation."
+    }
+    if ($scriptText -notmatch 'proofMode\s*=\s*"manual-live-review"') {
+        throw "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 must record manual-live-review proof mode."
+    }
+    foreach ($role in @("owner", "merchant", "warehouse", "support-admin", "auditor")) {
+        if ($scriptText -notmatch [regex]::Escape($role)) {
+            throw "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 must include $role in rolesCovered."
+        }
+    }
+    if ($scriptText -notmatch 'BrowserWalkthroughEvidence' -or $scriptText -notmatch 'InstalledAndroidWalkthroughEvidence' -or $scriptText -notmatch 'StakeholderCoverageEvidence') {
+        throw "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 must require browser, installed Android, and stakeholder coverage evidence."
+    }
+    Write-Host "V17 live stakeholder walkthrough proof script contract check passed."
+}
+
 Push-Location $projectRoot
 try {
     Invoke-Checked "Checking PowerShell script parsing..." { Assert-ScriptParse }
@@ -157,6 +180,7 @@ try {
     Invoke-Checked "Checking deployed V17 HTTPS target guards..." { Assert-DeployedProofHttpsGuards }
     Invoke-Checked "Checking V17 email provider proof script contract..." { Assert-EmailProviderProofScriptContract }
     Invoke-Checked "Checking V17 alert routing proof script contract..." { Assert-AlertRoutingProofScriptContract }
+    Invoke-Checked "Checking V17 live stakeholder walkthrough proof script contract..." { Assert-LiveStakeholderWalkthroughProofScriptContract }
     Invoke-Checked "Checking V17 env template audit..." { & ".\scripts\deploy\env-audit.ps1" -EnvFile "deploy/vps/env.production.example" -AllowTemplate }
     Invoke-Checked "Checking V17 VPS deployment shape..." { & ".\scripts\deploy\vps-check.ps1" }
     Invoke-Checked "Checking V17 reverse proxy template..." { & ".\scripts\deploy\reverse-proxy-check.ps1" }
