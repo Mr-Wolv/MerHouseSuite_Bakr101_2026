@@ -99,14 +99,17 @@ Planned scope:
 
 Current private implementation direction:
 
-- deployment lanes, in order: this machine as host through a public HTTPS tunnel for the fastest mostly-free proof; Oracle Cloud Always Free as the low-cost VPS-style option; sponsored professional hosting when budget exists for managed infrastructure, managed database, monitoring, and operational support
-- VPS + Docker Compose deployment shape
+- selected deployment lane: Neon PostgreSQL for managed data, Render Docker web service for the Spring Boot backend, Vercel for the React/Vite frontend, and GitHub Releases for signed APK distribution; this replaces the ngrok machine-hosted lane because live tunnel behavior degraded browser/API proof reliability
+- fallback deployment lanes: Cloud Run remains the next managed-container option if Render/Vercel constraints block the release; Oracle Cloud Always Free remains a low-cost VPS-style fallback; sponsored professional hosting remains the later option when budget exists for managed infrastructure, managed database, monitoring, and operational support
+- deployment configuration shape: Render backend blueprint, Vercel static frontend config, Neon JDBC environment, deployed proof wrappers, and signed Android release proof
 - Gmail/Google Workspace SMTP staging proof for recovery, access invitation, and email notifications
 - signed internal Android APK/AAB release proof
 - read-plus-draft agent runtime interface with deterministic fallback metadata and no mutations
 - small B2B pilot capacity proof before public production claims
 
 V17 refactoring rule: do not refactor code, scripts, docs, CI, deployment configuration, or repository shape during production activation unless a concrete problem requires it. Valid reasons include a failing proof, deployment blocker, security/runtime boundary issue, performance bottleneck, real duplication or coupling that blocks the deployment path, or a documented V&V/QC/QA defect. Cosmetic, speculative, or architecture-ideal refactoring is out of scope until the deployed web/backend, signed Android release, and live V&V proof are complete.
+
+V17 live-testing rule: prioritize direct live tours of the deployed web app and installed Android app over adding or tuning proof scripts. Use reports, screenshots, and JSON manifests as supporting evidence, not as a substitute for watching the real behavior. Cover happy paths and unhappy paths for each supported stakeholder role, and change code only when the live deployed tours expose a concrete defect, broken handoff, unsafe boundary, or public-readiness gap.
 
 ### VInfinite: Product Expansion Backlog
 
@@ -124,7 +127,7 @@ These are useful future ideas, not blockers for local readiness:
 ## Repository Rules
 
 - Keep the repository readable by a new developer: source, docs, scripts, CI, compose files, and root guidance should explain the current system without relying on local working notes.
-- Keep local material out of Git: use environment variables, ignored local files, or templates for values that belong to one machine or deployment.
+- Keep local material out of Git: use environment variables, ignored private workspaces, or templates for values that belong to one machine or deployment. Prefer `.secrets/deploy/` or `deploy/private/` for private V17 env files instead of root-level deployment env files.
 - Keep generated proof local unless a small summary is deliberately documented.
 - Keep markdown connected with working local links.
 - Update README, docs index, roadmap, scripts docs, and affected architecture docs when behavior or workflow ownership changes.
@@ -140,7 +143,7 @@ Every meaningful change needs matching proof:
 - Script changes: parse scripts and update script documentation.
 - Documentation changes: keep links current and run markdown proof.
 - Repository/publication changes: run the public-readiness script.
-- Browser/user-flow changes: run the browser tour or the relevant Playwright route proof.
+- Browser/user-flow changes: run the browser tour or the relevant Playwright route proof, then use live browser/mobile review for deployed V17 behavior before treating evidence as release-ready.
 
 Normal broad check:
 

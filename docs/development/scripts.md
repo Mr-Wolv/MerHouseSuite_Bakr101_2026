@@ -32,19 +32,24 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/native-android-tour.ps1` | Install the debug APK on a running emulator, authenticate seeded roles, visit native routes, capture APK screenshots, and write the `merhouse.native-android-tour.report.v1` proof schema. |
 | `scripts/quality/native-android-release-shape-check.ps1` | Statically verify the Android release Gradle/manifest shape: release cleartext disabled, signing sourced from external env vars, and no hardcoded keystore material. |
 | `scripts/quality/native-android-release-check.ps1` | Build a signed internal Android APK or AAB against an HTTPS API URL using keystore values supplied outside Git and write a sanitized release manifest. |
+| `scripts/quality/native-android-release-login-proof.ps1` | Install the signed release APK, drive the real Android login screen through ADB input, capture diagnostic launch/credential/dashboard evidence, and write signed-release login support output without requiring release WebView devtools. |
+| `scripts/quality/native-android-release-visual-tour-proof.ps1` | Convert a visually reviewed signed-release login proof into a cutover-compatible installed Android tour report when release WebView devtools are unavailable. |
 | `scripts/quality/cross-surface-tour-check.ps1` | Compare browser and installed-APK tour reports for clean records, provenance, valid native screenshot evidence, exact normalized role/path set equality, and traceable pass output. |
 | `scripts/quality/performance-readiness.ps1` | Check local deployment-shaped performance readiness through frontend bundle budgets, paired browser/installed-APK report provenance and timing when reports are supplied, and optional API smoke timing. |
 | `scripts/quality/load-smoke.ps1` | Run a small concurrent health-check smoke against a deployed or local API target and write a JSON proof report. |
 | `scripts/quality/v17-production-readiness.ps1` | Run V17 preflight proof across script parsing, env template audit, VPS/frontend-nginx/reverse-proxy deployment shape, deploy-entrypoint contracts, Android release shape, deployed-evidence attachment rules, cutover-readiness fixtures, markdown, public-readiness, performance readiness, and optional deployed load smoke or signed Android release proof. |
 | `scripts/quality/tour-report-lib.ps1` | Shared helper for reading, normalizing, and validating browser/native tour report records, including required role/path identity. |
 | `scripts/quality/url-guard-lib.ps1` | Shared helper for validating and normalizing non-blank absolute `http` or `https` local setup, native build, frontend proxy, OpenAPI docs, tour, smoke, performance, deployment, and report-provenance URLs. |
-| `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, signed Android artifacts, CI naming, and Compose config. |
+| `scripts/quality/frontend-ui-input-tour.ps1` | Run typed public-auth UI input proof against a running web target. |
+| `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, signed Android artifacts, CI naming, and Compose config while excluding generated dependency/build/report folders. |
 | `scripts/quality/deployment-readiness.ps1` | Run the V16.2 deployment-ready local certification gate with local/mock proof and optional timed API smoke. |
 | `scripts/deploy/vps-check.ps1` | Validate the V17 VPS production Compose shape against the deployment env template or a private deployment env file. |
 | `scripts/deploy/env-audit.ps1` | Audit V17 deployment env files for required values, HTTPS origins, loopback bind, absolute backup path, placeholder secrets, and SMTP requirements without printing secret values. |
 | `scripts/deploy/frontend-nginx-check.ps1` | Validate the frontend container nginx config and Dockerfile for same-origin `/api` proxying to the backend plus SPA fallback. |
 | `scripts/deploy/reverse-proxy-check.ps1` | Validate the V17 nginx reverse-proxy template for HTTPS redirect, TLS protocols, security headers, public Swagger/API-doc blocking, and frontend proxy target. |
 | `scripts/deploy/deploy-vps.ps1` | Apply the V17 VPS Compose stack from a private env file after explicit confirmation, optional image pull/build, and optional pre-deploy backup. |
+| `scripts/deploy/start-ngrok-tunnel.ps1` | Start the selected ngrok static dev-domain tunnel from a private deployment env file to the local frontend/proxy bind. |
+| `scripts/deploy/render-vercel-check.ps1` | Validate the selected V17 Render backend and Vercel frontend deployment configuration shape. |
 | `scripts/deploy/bootstrap-owner.ps1` | Create the first deployed owner through the PostgreSQL service after strict env audit, Compose shape validation, and explicit confirmation, without enabling public seed-admin startup. |
 | `scripts/deploy/backup-postgres.ps1` | Audit a private deployment env file, validate the Compose shape, refuse the example template, and create a PostgreSQL custom-format backup through the Compose postgres service. |
 | `scripts/deploy/restore-postgres.ps1` | Audit a private deployment env file, validate the Compose shape, refuse the example template, and restore a PostgreSQL backup after explicit confirmation. |
@@ -120,7 +125,11 @@ $env:FRONTEND_TOUR_BASE_URL = "http://localhost:3000"
 Remove-Item Env:\FRONTEND_TOUR_BASE_URL
 ```
 
-The full browser tour validates `-BaseUrl` and `-ApiUrl` as non-blank absolute `http` or `https` URLs and validates `-OutputPath` as a non-blank report path before Playwright starts. Its wrapper prints the browser app URL, API URL, and resolved report path before the tour runs, then writes a main route report and companion action-proof reports under `reports/`. Route reports include browser provenance such as `appUrl`, `apiUrl`, `checkedAt`, `checkedRoutes`, and route records. Companion action reports include `checkedActions`, an acceptance standard, fixture context, and action records for hierarchy/denial proof, notification scope, notification preferences, and merchant/warehouse handoff workflows.
+The full browser tour validates `-BaseUrl` and `-ApiUrl` as non-blank absolute `http` or `https` URLs and validates `-OutputPath` as a non-blank report path before Playwright starts. Its wrapper prints the browser app URL, API URL, resolved report path, coverage lane, route progress interval, and route concurrency before the tour runs, then writes a main route report and companion action-proof reports under `reports/`. `-Coverage Full` is the exhaustive local certification lane with detail-route discovery. `-Coverage Deployment` is the live V17 lane: it uses the supplied seeded stakeholder accounts, skips detail-route discovery churn, and covers public routes, authenticated role routes, desktop/narrow viewports, and active/empty stakeholder states without turning deployed proof into the local cross-surface matrix. During the route sweep, the spec inspects independent routes concurrently under the correct public or authenticated browser context, prints `[frontend-tour]` progress lines, and writes an interrupt-friendly `.partial.json` route report every `-ProgressEvery` route records. Route reports include browser provenance such as `appUrl`, `apiUrl`, `checkedAt`, `checkedRoutes`, and route records. Companion action reports include `checkedActions`, an acceptance standard, fixture context, and action records for hierarchy/denial proof, notification scope, notification preferences, and merchant/warehouse handoff workflows.
+
+`frontend-ui-input-tour.ps1` runs the typed public-auth input proof without the broad route matrix. Use it when the target question is whether the live web UI accepts real form input and submission. It drives invalid login, valid owner login, password reset request, invalid reset confirmation, and public access-request submission through form controls and writes a `.ui-input.json` companion report.
+
+`native-android-release-visual-tour-proof.ps1` is the release-mode companion to `native-android-release-login-proof.ps1`. Signed release WebViews may not expose debug targets or UIAutomator text. After the emulator/device window is visible and the signed-release dashboard screenshot has been visually reviewed, the visual-tour wrapper validates the release-login proof, APK hash, device serials, and PNG evidence, then writes a `merhouse.native-android-tour.report.v1` report with `proofMode=signed-release-visual-review`. Use the full `native-android-tour.ps1` route sweep whenever WebView devtools are intentionally available; use the visual release wrapper only for signed internal release proof where devtools are deliberately unavailable.
 
 `frontend-deploy-check.ps1` validates its frontend `-BaseUrl`, prints the normalized target, the frontend-proxy API smoke output destination, the frontend HTTP status, and the React shell marker before running API smoke through the frontend proxy.
 
@@ -189,6 +198,21 @@ $env:MERHOUSE_ANDROID_VERSION_NAME = "17.0.0-internal"
 ```
 
 Release builds force Android cleartext traffic off. The script prefers `ANDROID_HOME` or `ANDROID_SDK_ROOT`, then standard Windows, macOS, and Linux Android SDK locations before invoking Gradle. By default it builds a signed APK so the installed-Android tour can prove the same installable release fingerprint; pass `-Bundle` only when an AAB artifact is deliberately needed in addition to APK walkthrough proof. It prints the artifact path, SHA-256, byte size, and manifest path. The manifest records commit SHA, API URL, artifact kind/path, SHA-256, byte size, version code, version name, cleartext policy, and external-keystore signing boundary without recording keystore details. Keep keystores and credentials outside Git.
+
+The manual `MerHouse Android Release` GitHub Actions workflow builds the same signed internal APK for the V17 release lane and publishes it to a GitHub Release. Run it only after the Render backend URL is stable enough to compile into the APK. Supply the workflow input `api_base_url` with the Render HTTPS backend URL and keep signing material in GitHub Actions secrets: `MERHOUSE_ANDROID_KEYSTORE_BASE64`, `MERHOUSE_ANDROID_KEYSTORE_PASSWORD`, `MERHOUSE_ANDROID_KEY_ALIAS`, and `MERHOUSE_ANDROID_KEY_PASSWORD`.
+
+For signed release APK login proof, use a real HTTPS API target and a private proof account whose password is supplied outside Git:
+
+```powershell
+.\scripts\quality\native-android-release-login-proof.ps1 `
+  -ApiUrl "https://api.example.com" `
+  -ApkPath ".\frontend\android\app\build\outputs\apk\release\app-release.apk" `
+  -Email $env:MERHOUSE_V17_APK_EMAIL `
+  -Password $env:MERHOUSE_V17_APK_PASSWORD `
+  -OutputPath ".\reports\native-android-release-login-proof.json"
+```
+
+This support proof is intentionally separate from `native-android-tour.ps1`: debug APK tours use WebView devtools for route coverage, while signed release APKs keep WebView debugging unavailable. The release login proof therefore preflights the credential against the API, installs and clears the signed APK, enters the email by sending letters plus `KEYCODE_AT` for `@`, hides the keyboard with Android Back, waits for the post-login app state to settle, and captures diagnostic evidence. UIAutomator cannot reliably read text inside a signed release WebView, so this output is only a support record; the V17 release decision still depends on live reviewer inspection of the installed Android app and deployed web app.
 
 Run the native Android APK tour after the local stack is running, seeded, and an emulator is booted:
 
@@ -304,7 +328,7 @@ Audit the template in CI/preflight mode or audit a private env file before rollo
 
 ```powershell
 .\scripts\deploy\env-audit.ps1 -EnvFile "deploy/vps/env.production.example" -AllowTemplate
-.\scripts\deploy\env-audit.ps1 -EnvFile ".env.production"
+.\scripts\deploy\env-audit.ps1 -EnvFile ".secrets/deploy/env.production"
 ```
 
 Strict mode rejects in-repository deployment env files unless Git ignores them, placeholder database/JWT/SMTP credentials, malformed or placeholder email sender/reply-to values when email delivery is enabled, non-HTTPS public origins, wildcard CORS or CORS values that omit the public frontend URL, non-loopback frontend binds, relative backup paths, incomplete SMTP settings when email delivery is enabled, unsupported agent modes, out-of-range recovery and access-request throttles, and out-of-range agent timeouts. `vps-check.ps1` then verifies that the rendered Compose file wires those audited throttle values into the backend while keeping public mode on, seed-admin off, recovery-token echo off, Swagger off, deterministic agent mode on, and a bounded agent timeout present. Backend public startup validation repeats the HTTPS public frontend URL, explicit CORS, and CORS-includes-frontend checks so a directly started public API cannot bypass the deployment env audit. Deployed API smoke treats public OpenAPI proof as unavailable when the endpoint returns either an authorization block or a disabled-route not-found response. The audit prints key names and paths only, not secret values; `public-readiness.ps1` allows ignored private deployment workspaces while keeping them out of public token scanning.
@@ -325,16 +349,24 @@ The VPS frontend image accepts `MERHOUSE_FRONTEND_PUBLIC_API_URL` through the `V
 Apply the VPS stack only from a private env file and only after choosing backup posture:
 
 ```powershell
-.\scripts\deploy\deploy-vps.ps1 -EnvFile ".env.production" -Build -BackupBeforeDeploy -ConfirmDeploy
+.\scripts\deploy\deploy-vps.ps1 -EnvFile ".secrets/deploy/env.production" -Build -BackupBeforeDeploy -ConfirmDeploy
 ```
 
 `deploy-vps.ps1` refuses `env.production.example`, runs the strict env audit, reruns the rendered VPS Compose boundary check, reruns the frontend nginx same-origin proxy check and public reverse-proxy template check, can create a pre-deploy database backup, can pull configured images, and then applies `docker compose up -d --remove-orphans` with optional `--build`. Direct `backup-postgres.ps1` and `restore-postgres.ps1` runs also refuse the example env template and run the same strict env audit plus Compose shape check before touching the database; backup output defaults under ignored `reports/backups/` unless an explicit external output path is supplied. Backup and restore filenames must be simple `.dump` names containing only letters, numbers, dots, underscores, and hyphens before they are copied into the postgres container.
 
 Bootstrap the first owner only after the deployed database has migrated and only when no enabled owner exists:
 
+For the first no-domain deployment lane, start the ngrok static dev-domain tunnel after the local Docker production stack is healthy and `MERHOUSE_PUBLIC_FRONTEND_URL` in the private env file points to the ngrok HTTPS URL:
+
+```powershell
+.\scripts\deploy\start-ngrok-tunnel.ps1 -EnvFile ".secrets/deploy/env.production" -ConfirmTunnel
+```
+
+The script reads `MERHOUSE_PUBLIC_FRONTEND_URL` and `MERHOUSE_HTTP_BIND`, verifies that the public URL is an ngrok HTTPS hostname, refuses non-loopback local targets, prints the public URL and local target, then runs `ngrok http --url=<domain> <host:port>` in the current terminal.
+
 ```powershell
 .\scripts\deploy\bootstrap-owner.ps1 `
-  -EnvFile ".env.staging" `
+  -EnvFile ".secrets/deploy/env.staging" `
   -OwnerEmail "<staging-owner-email>" `
   -OwnerPassword "<private-owner-password>" `
   -ConfirmBootstrap
@@ -345,7 +377,7 @@ The bootstrap script refuses `env.production.example`, runs strict env audit and
 Run a restore drill only against the intended staging or drill environment:
 
 ```powershell
-.\scripts\deploy\backup-restore-drill.ps1 -EnvFile ".env.staging" -OutputDirectory ".\reports" -ConfirmDrill
+.\scripts\deploy\backup-restore-drill.ps1 -EnvFile ".secrets/deploy/env.staging" -OutputDirectory ".\reports" -ConfirmDrill
 ```
 
 The drill wrapper creates a custom-format PostgreSQL backup through the Compose postgres service, copies the backup to the host, restores it with the existing restore script, and writes `v17-backup-restore-drill-*.json` with commit SHA, env/Compose preflight status, backup path, SHA-256, byte size, env file name only, and restore status. It omits database credentials and env values.
@@ -353,7 +385,7 @@ The drill wrapper creates a custom-format PostgreSQL backup through the Compose 
 Run rollback rehearsal only against staging, a drill environment, or an explicitly selected production rollback window:
 
 ```powershell
-.\scripts\deploy\rollback-drill.ps1 -EnvFile ".env.staging" -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>" -ConfirmRollbackDrill
+.\scripts\deploy\rollback-drill.ps1 -EnvFile ".secrets/deploy/env.staging" -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>" -ConfirmRollbackDrill
 ```
 
 The rollback drill audits the private env file, validates the Compose shape, runs the guarded rollback/up primitive, optionally records deployed monitoring samples, and writes `v17-rollback-rehearsal-*.json` without secrets. The manifest uses `generatedAt`, matching the deployed-proof attachment contract. Local loopback rehearsals may use HTTP only with `-AllowLocalHttpRehearsal`, which is also passed through to the monitoring proof; staging and production proof must use HTTPS targets.
@@ -380,7 +412,7 @@ After rollout, run deployed proof against the public HTTPS frontend and API targ
   -IncludeBrowserTour
 ```
 
-The default deployed proof checks the frontend shell, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, and performance/API timing. `-IncludeLoadSmoke` adds concurrent health traffic and attaches the generated load-smoke report path to the deployment evidence manifest; `-IncludeBrowserTour` requires seeded stakeholder data and runs the browser tour against the deployed frontend. Every run writes `v17-deployment-evidence-*.json` with the deployment label, commit SHA, public frontend/API URLs, provider status label, proof-output paths, included proof slices, and remaining required evidence without storing secrets. Cutover readiness reopens the package if API-smoke reports do not include passed status, test-run provenance, representative API response evidence, and post-transaction table evidence. Provider status is an evidence label, not an automatic claim: `not-recorded`, `smtp-staging-configured`, `smtp-configured`, and `email-configured` keep provider-backed recovery/access-request/notification email proof open in `nextRequiredEvidence`; `smtp-staging-proven`, `smtp-production-proven`, and `email-provider-proven` also require `-EmailProviderProofManifestPath`, while `email-disabled-by-policy` closes the item as an explicit no-provider release policy. The wrapper requires explicit staging or production smoke credentials and rejects local demo values such as `admin@merhouse.local`, `local-owner-password`, and `review-password`.
+The default deployed proof checks the frontend shell, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, and performance/API timing. `-IncludeLoadSmoke` adds concurrent health traffic and attaches the generated load-smoke report path to the deployment evidence manifest; `-IncludeBrowserTour` requires seeded stakeholder data and runs the browser tour against the deployed frontend with `-Coverage Deployment`. Every run writes `v17-deployment-evidence-*.json` with the deployment label, commit SHA, public frontend/API URLs, provider status label, proof-output paths, included proof slices, and remaining required evidence without storing secrets. Cutover readiness reopens the package if API-smoke reports do not include passed status, test-run provenance, representative API response evidence, and post-transaction table evidence. Provider status is an evidence label, not an automatic claim: `not-recorded`, `smtp-staging-configured`, `smtp-configured`, and `email-configured` keep provider-backed recovery/access-request/notification email proof open in `nextRequiredEvidence`; `smtp-staging-proven`, `smtp-production-proven`, and `email-provider-proven` also require `-EmailProviderProofManifestPath`, while `email-disabled-by-policy` closes the item as an explicit no-provider release policy. The wrapper requires explicit staging or production smoke credentials and rejects local demo values such as `admin@merhouse.local`, `local-owner-password`, and `review-password`.
 
 When sibling V17 proof already exists, pass `-AndroidReleaseManifestPath`, `-InstalledAndroidTourReportPath`, `-BackupRestoreManifestPath`, `-RollbackManifestPath`, `-EmailProviderProofManifestPath`, `-AlertRoutingManifestPath`, and `-LiveStakeholderWalkthroughManifestPath`. The wrapper validates that each supplied path exists, is free of unredacted token/password-shaped proof values, and is the expected JSON proof artifact schema for that attachment, rather than accepting any schema-shaped file. The human-entered email-provider, alert-routing, and live-walkthrough artifacts also reject email-shaped PII; provider artifacts reject copied message bodies, provider logs, SMTP transcripts, headers, and message IDs; alert artifacts reject copied alert payloads, webhook bodies, request/response bodies, and delivery transcripts; live-walkthrough artifacts reject copied browser/Android logs, stack traces, console output, and screenshot data. Android release `apiBaseUrl`, installed Android tour `apiUrl`, rollback post-monitoring URLs, email-provider `apiBaseUrl`/`frontendBaseUrl`/`providerStatus`, alert-routing `apiBaseUrl`/`frontendBaseUrl`, and live walkthrough `apiBaseUrl`/`frontendBaseUrl` must match the deployed URLs before the proof can clear those evidence items. Android release evidence must also point to an existing APK/AAB whose SHA-256 digest, byte size, commit SHA, version code, version name, release cleartext policy, and external-keystore signing boundary match the sanitized release manifest and deployed commit. Installed Android tour evidence must include the APK SHA-256, APK byte size, checked timestamp, connected device serials, checked route count, at least one installed-app route record, and no bad route records; the V17 cutover path should use a signed APK artifact so the installed tour fingerprint matches the signed release APK. Backup/restore and rollback evidence must prove the same deployed commit SHA, env/Compose preflight, and secret-handling policy; backup/restore must also prove an existing backup file with matching SHA-256 and byte size plus restore status, while rollback must prove execution and post-rollback monitoring against the same deployed frontend/API URLs, including a timestamped monitoring report whose own frontend/API URLs match the rollback manifest, is not a local HTTP rehearsal, has passing sample records, and stays within its recorded frontend/API health budgets. A no-monitoring or failed-monitoring rollback rehearsal remains a drill artifact, not cutover-ready rollback evidence. Email-provider evidence must prove password recovery, access-request/account-ready, and notification email workflows with per-workflow evidence, per-workflow `SENT` provider statuses, summary delivery evidence, and a secret-handling policy. Alert-routing evidence must prove API health, frontend health, and failed-provider-delivery signals with per-signal evidence, summary delivery evidence, and a secret-handling policy. Live walkthrough evidence must prove both browser and installed-Android walkthroughs across owner, merchant, warehouse, support-admin, and auditor roles, include non-blank browser, installed-Android, and stakeholder-coverage manual evidence fields, and declare `proofMode=manual-live-review`; scripted tour output by itself remains separate proof. It then records the sanitized path, schema, API target fields, and Android release version fields under `attachedEvidence`. Attached evidence removes that item from `nextRequiredEvidence`. The deployment evidence manifest records `productionClaim=false` so smoke proof cannot be mistaken for a completed release or cutover decision.
 

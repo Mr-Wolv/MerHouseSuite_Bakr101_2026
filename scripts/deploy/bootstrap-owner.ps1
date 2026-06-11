@@ -1,6 +1,6 @@
 param(
     [string]$ComposeFile = "deploy/vps/compose.production.yml",
-    [string]$EnvFile = ".env.production",
+    [string]$EnvFile = ".secrets/deploy/env.production",
     [Parameter(Mandatory = $true)] [string]$OwnerEmail,
     [Parameter(Mandatory = $true)] [string]$OwnerPassword,
     [string]$TenantName = "Platform Admin",

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { APIRequestContext, Browser, Page } from '@playwright/test'
+import type { APIRequestContext, Browser, BrowserContext, Page } from '@playwright/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
@@ -11,6 +11,10 @@ const DETAIL_DISCOVERY_HEADING_TIMEOUT_MS = 45_000
 const ROUTE_HEADING_TIMEOUT_MS = 45_000
 const WORKFLOW_ACTION_TIMEOUT_MS = 30_000
 const FULL_TOUR_TIMEOUT_MS = Number(process.env.FRONTEND_TOUR_TIMEOUT_MS ?? '420000')
+const TOUR_PROGRESS_EVERY = Number(process.env.FRONTEND_TOUR_PROGRESS_EVERY ?? '10')
+const ROUTE_TOUR_CONCURRENCY = Number(process.env.FRONTEND_TOUR_CONCURRENCY ?? '6')
+const TOUR_COVERAGE = (process.env.FRONTEND_TOUR_COVERAGE ?? 'full').toLowerCase()
+const IS_DEPLOYMENT_COVERAGE = TOUR_COVERAGE === 'deployment'
 
 type Role = 'public' | 'owner' | 'admin' | 'supportAdmin' | 'auditor' | 'merchant' | 'warehouse'
 type AuthenticatedRole = Exclude<Role, 'public'>
@@ -47,6 +51,43 @@ type TourRecord = TourCase & {
 type ApiEntity = {
   id: string
   [key: string]: unknown
+}
+
+function progress(message: string) {
+  console.log(`[frontend-tour] ${new Date().toISOString()} ${message}`)
+}
+
+function writeRouteReport(
+  records: TourRecord[],
+  detailPathsByRole: Partial<Record<AuthenticatedRole, string[]>>,
+  partial: boolean,
+) {
+  const resolvedReportPath = resolve(process.cwd(), REPORT_PATH)
+  mkdirSync(dirname(resolvedReportPath), { recursive: true })
+  writeFileSync(
+    partial ? resolvedReportPath.replace(/\.json$/, '.partial.json') : resolvedReportPath,
+    `${JSON.stringify(
+      {
+        appUrl: APP_URL,
+        apiUrl: API_URL,
+        checkedAt: new Date().toISOString(),
+        partial,
+        checkedRoutes: records.length,
+        acceptanceStandard: 'Every routed surface records visible interactive controls and requires visible form controls to have explicit label bindings or ARIA names.',
+        detailPathsByRole,
+        totals: {
+          interactionUnits: records.reduce((sum, record) => sum + record.interactionUnitCount, 0),
+          formControls: records.reduce((sum, record) => sum + record.formControlCount, 0),
+          buttons: records.reduce((sum, record) => sum + record.buttonCount, 0),
+          enabledButtons: records.reduce((sum, record) => sum + record.enabledButtonCount, 0),
+          links: records.reduce((sum, record) => sum + record.linkCount, 0),
+        },
+        records,
+      },
+      null,
+      2,
+    )}\n`,
+  )
 }
 
 function writeActionReport(
@@ -151,6 +192,23 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
   merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/assistant', '/notifications', '/account'],
   warehouse: ['/warehouse', '/service-accountability', '/assistant', '/notifications', '/account'],
 }
+
+const deploymentRolePaths: Record<AuthenticatedRole, string[]> = {
+  owner: ['/admin', '/admin/users', '/admin/access-requests', '/admin/outbox', '/admin/audit', '/assistant', '/notifications', '/account'],
+  admin: [],
+  supportAdmin: ['/admin/users', '/admin/access-requests', '/admin/outbox', '/assistant', '/account'],
+  auditor: ['/admin/audit', '/admin/outbox', '/assistant', '/account'],
+  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/assistant', '/notifications', '/account'],
+  warehouse: ['/warehouse', '/service-accountability', '/assistant', '/notifications', '/account'],
+}
+
+const deploymentEmptyStakeholderPaths = {
+  merchant: ['/merchant', '/merchant/inventory', '/assistant', '/account'],
+  warehouse: ['/warehouse', '/assistant', '/account'],
+} as const
+
+const deploymentRouteRoles = ['owner', 'supportAdmin', 'auditor', 'merchant', 'warehouse'] as const
+const fullRouteRoles = ['owner', 'admin', 'supportAdmin', 'auditor', 'merchant', 'warehouse'] as const
 
 const viewports = {
   desktop: { width: 1366, height: 900 },
@@ -386,15 +444,6 @@ async function createEmptyStakeholderFixture(request: APIRequestContext) {
   return { emptyMerchant, emptyWarehouse }
 }
 
-async function newAuthedPage(
-  browser: Browser,
-  role: AuthenticatedRole,
-  viewport: keyof typeof viewports,
-  accounts: Record<AuthenticatedRole, Account>,
-) {
-  return newAuthedPageForAccount(browser, accounts[role], viewport)
-}
-
 async function newAuthedPageForAccount(browser: Browser, account: Account, viewport: keyof typeof viewports) {
   const context = await browser.newContext({ viewport: viewports[viewport] })
   const token = await loginToken(context.request, account)
@@ -410,6 +459,41 @@ async function newAuthedPageForAccount(browser: Browser, account: Account, viewp
   )
   const page = await context.newPage()
   return { context, page }
+}
+
+async function newAuthedContextForAccount(browser: Browser, account: Account, viewport: keyof typeof viewports) {
+  const context = await browser.newContext({ viewport: viewports[viewport] })
+  const token = await loginToken(context.request, account)
+  await context.addInitScript(
+    ({ key, value }) => {
+      try {
+        window.localStorage.setItem(key, value)
+      } catch {
+        // Chromium blocks localStorage on about:blank; the script also runs on the real app origin.
+      }
+    },
+    { key: TOKEN_KEY, value: token },
+  )
+  return context
+}
+
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+) {
+  const queue = [...items]
+  const workerCount = Math.max(1, Math.min(limit, queue.length))
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (queue.length > 0) {
+        const item = queue.shift()
+        if (item) {
+          await worker(item)
+        }
+      }
+    }),
+  )
 }
 
 async function chooseSelectOptionByText(page: Page, formLabel: string, selectLabel: string, optionText: string) {
@@ -450,16 +534,9 @@ async function collectDetailPaths(
   }
 
   for (const path of [...rolePaths[role], ...seedPaths]) {
+    progress(`discover ${role} ${path}`)
     await page.goto(`${APP_URL}${path}`, { waitUntil: 'domcontentloaded' })
-    await expect(page.locator('h1').first(), `${role} ${path} h1 should render while discovering detail routes`).toBeVisible({ timeout: DETAIL_DISCOVERY_HEADING_TIMEOUT_MS })
-    await page.waitForFunction(
-      () => {
-        const text = document.body?.innerText ?? ''
-        return !/(^|\n)\s*Loading(?:\s+[A-Za-z ]+)?\s*(\n|$)/.test(text) && !/(^|\n)\s*Restoring session\s*(\n|$)/.test(text)
-      },
-      undefined,
-      { timeout: DETAIL_DISCOVERY_HEADING_TIMEOUT_MS },
-    )
+    await waitForAppSettled(page, `${role} ${path} detail discovery`, DETAIL_DISCOVERY_HEADING_TIMEOUT_MS)
     const hrefs = await page.locator('a[href]').evaluateAll((anchors) =>
       anchors.map((anchor) => (anchor as HTMLAnchorElement).href),
     )
@@ -479,6 +556,18 @@ async function collectDetailPaths(
   return [...pathsByKind.values()]
 }
 
+async function waitForAppSettled(page: Page, label: string, timeout = ROUTE_HEADING_TIMEOUT_MS) {
+  await expect(page.locator('h1').first(), `${label} h1 should render`).toBeVisible({ timeout })
+  await page.waitForFunction(
+    () => {
+      const text = document.body?.innerText ?? ''
+      return !/(^|\n)\s*Loading(?:\s+[A-Za-z ]+)?\s*(\n|$)/.test(text) && !/(^|\n)\s*Restoring session\s*(\n|$)/.test(text)
+    },
+    undefined,
+    { timeout },
+  )
+}
+
 async function inspectPage(
   page: Page,
   role: Role,
@@ -486,6 +575,7 @@ async function inspectPage(
   viewport: 'desktop' | 'narrow',
   stakeholderState?: 'active' | 'empty',
 ) {
+  progress(`inspect ${role} ${viewport} ${path}${stakeholderState ? ` ${stakeholderState}` : ''}`)
   page.removeAllListeners('console')
   page.removeAllListeners('pageerror')
   const consoleErrors: string[] = []
@@ -501,7 +591,7 @@ async function inspectPage(
   const routeStart = Date.now()
   const response = await page.goto(`${APP_URL}${path}`, { waitUntil: 'domcontentloaded' })
   expect(response, `${role} ${path} should return a response`).toBeTruthy()
-  await expect(page.locator('h1').first(), `${role} ${path} h1 should render`).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
+  await waitForAppSettled(page, `${role} ${path}`)
   const routeReadyMs = Date.now() - routeStart
 
   const record = await page.evaluate(
@@ -595,117 +685,227 @@ async function inspectPage(
   return record as TourRecord
 }
 
+test('public auth UI input tour accepts typed happy and unhappy paths', async ({ browser }) => {
+  test.setTimeout(120_000)
+  progress(`ui input tour starting app=${APP_URL}`)
+  const records: Array<Record<string, unknown>> = []
+  const context = await browser.newContext({ viewport: viewports.desktop })
+  const page = await context.newPage()
+  const consoleErrors: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      consoleErrors.push(message.text())
+    }
+  })
+  page.on('pageerror', (error) => {
+    consoleErrors.push(error.message)
+  })
+
+  await page.goto(`${APP_URL}/login`, { waitUntil: 'domcontentloaded' })
+  await waitForAppSettled(page, 'public login input')
+  await page.getByLabel('Email').fill(`wrong-${Date.now()}@merhouse.local`)
+  await page.getByLabel('Password').fill('wrong-password')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('alert')).toContainText('Invalid email or password')
+  await expect(page).toHaveURL(`${APP_URL}/login`)
+  records.push({ route: '/login', action: 'typed invalid credentials and saw generic denial without navigation' })
+
+  await page.getByLabel('Email').fill(baseAccounts.owner.email)
+  await page.getByLabel('Password').fill(baseAccounts.owner.password)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
+  await expect(page).toHaveURL(`${APP_URL}/admin`)
+  records.push({ route: '/login', action: 'typed owner credentials and reached admin workspace' })
+
+  await page.getByRole('button', { name: 'Logout' }).click()
+  await expect(page.getByRole('heading', { name: 'Operations Console' })).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
+
+  await page.goto(`${APP_URL}/forgot-password`, { waitUntil: 'domcontentloaded' })
+  await waitForAppSettled(page, 'forgot password input')
+  await page.getByLabel('Email').fill(baseAccounts.owner.email)
+  await page.getByRole('button', { name: 'Request reset' }).click()
+  await expect(page.getByRole('status')).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
+  records.push({ route: '/forgot-password', action: 'typed owner email and received password-reset request status' })
+
+  await page.goto(`${APP_URL}/reset-password`, { waitUntil: 'domcontentloaded' })
+  await waitForAppSettled(page, 'reset password input')
+  await page.getByLabel('Reset token').fill(`invalid-token-${Date.now()}`)
+  await page.locator('#reset-password-new-password').fill('new-password')
+  await page.getByRole('button', { name: 'Reset password' }).click()
+  await expect(page.getByRole('alert')).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
+  records.push({ route: '/reset-password', action: 'typed invalid reset token and saw unhappy-path alert' })
+
+  const accessEmail = `ui-input.${Date.now()}@merhouse.local`
+  await page.goto(`${APP_URL}/request-access`, { waitUntil: 'domcontentloaded' })
+  await waitForAppSettled(page, 'request access input')
+  await page.getByLabel('Organization').fill(`UI Input Merchant ${Date.now()}`)
+  await page.getByLabel('Email').fill(accessEmail)
+  await page.getByLabel('Role').selectOption('MERCHANT')
+  await page.getByLabel('Notes').fill('Deployment UI input proof; no secrets.')
+  await page.getByRole('button', { name: 'Submit request' }).click()
+  await expect(page.getByRole('status')).toContainText(`Access request pending for ${accessEmail}`)
+  records.push({ route: '/request-access', action: 'typed access request and saw pending status' })
+
+  await context.close()
+  const unexpectedConsoleErrors = consoleErrors.filter((message) => (
+    !/Failed to load resource: the server responded with a status of (400|401|404|409)/.test(message)
+  ))
+  expect(unexpectedConsoleErrors, 'public auth UI input console errors').toEqual([])
+
+  writeActionReport(
+    'ui-input',
+    'Public auth UI input proof records typed happy and unhappy paths through login, recovery, reset, and access-request forms.',
+    records,
+  )
+  progress(`ui input tour completed ${records.length} action records`)
+})
+
 test('full frontend route tour passes with seeded accounts', async ({ browser, request }) => {
   test.setTimeout(FULL_TOUR_TIMEOUT_MS)
-  const hierarchy = await createPlatformHierarchyFixture(request)
-  const activeStakeholders = await createHarmonicFixture(request)
+  progress(`route tour starting app=${APP_URL} api=${API_URL} coverage=${TOUR_COVERAGE} timeoutMs=${FULL_TOUR_TIMEOUT_MS}`)
+  const hierarchy = IS_DEPLOYMENT_COVERAGE ? undefined : await createPlatformHierarchyFixture(request)
+  if (hierarchy) {
+    progress('platform hierarchy fixture ready')
+  }
+  const activeStakeholders = IS_DEPLOYMENT_COVERAGE ? undefined : await createHarmonicFixture(request)
+  if (activeStakeholders) {
+    progress('active stakeholder fixture ready')
+  }
   const emptyStakeholders = await createEmptyStakeholderFixture(request)
+  progress('empty stakeholder fixture ready')
   const records: TourRecord[] = []
   const detailCases: TourCase[] = []
   const detailPathsByRole: Partial<Record<AuthenticatedRole, string[]>> = {}
   const accounts = {
-    ...hierarchy.accounts,
-    merchant: activeStakeholders.merchantAccount,
-    warehouse: activeStakeholders.warehouseAccount,
+    owner: baseAccounts.owner,
+    admin: hierarchy?.accounts.admin ?? baseAccounts.owner,
+    supportAdmin: hierarchy?.accounts.supportAdmin ?? baseAccounts.supportAdmin,
+    auditor: hierarchy?.accounts.auditor ?? baseAccounts.auditor,
+    merchant: activeStakeholders?.merchantAccount ?? baseAccounts.merchant,
+    warehouse: activeStakeholders?.warehouseAccount ?? baseAccounts.warehouse,
   } satisfies Record<AuthenticatedRole, Account>
-  const platformRelationshipDetailPath = await getPlatformRelationshipDetailPath(request)
 
-  for (const role of ['owner', 'admin', 'supportAdmin', 'auditor', 'merchant', 'warehouse'] as const) {
-    const platformDetailSeeds = platformRelationshipDetailPath && ['owner', 'admin', 'supportAdmin', 'auditor'].includes(role)
-      ? [platformRelationshipDetailPath]
-      : []
-    const detailPaths = await collectDetailPaths(browser, role, accounts[role], platformDetailSeeds)
-    detailPathsByRole[role] = detailPaths
-    for (const path of detailPaths) {
-      detailCases.push({ role, path, viewport: 'desktop' }, { role, path, viewport: 'narrow' })
+  const routeRoles = IS_DEPLOYMENT_COVERAGE ? deploymentRouteRoles : fullRouteRoles
+  if (IS_DEPLOYMENT_COVERAGE) {
+    for (const role of routeRoles) {
+      detailPathsByRole[role] = []
+    }
+  } else {
+    const platformRelationshipDetailPath = await getPlatformRelationshipDetailPath(request)
+    for (const role of routeRoles) {
+      const platformDetailSeeds = platformRelationshipDetailPath && ['owner', 'admin', 'supportAdmin', 'auditor'].includes(role)
+        ? [platformRelationshipDetailPath]
+        : []
+      const detailPaths = await collectDetailPaths(browser, role, accounts[role], platformDetailSeeds)
+      detailPathsByRole[role] = detailPaths
+      progress(`discovered ${detailPaths.length} detail path(s) for ${role}`)
+      for (const path of detailPaths) {
+        detailCases.push({ role, path, viewport: 'desktop' }, { role, path, viewport: 'narrow' })
+      }
     }
   }
+
+  const routedPaths = IS_DEPLOYMENT_COVERAGE ? deploymentRolePaths : rolePaths
+  const merchantEmptyPaths = IS_DEPLOYMENT_COVERAGE ? deploymentEmptyStakeholderPaths.merchant : rolePaths.merchant
+  const warehouseEmptyPaths = IS_DEPLOYMENT_COVERAGE ? deploymentEmptyStakeholderPaths.warehouse : rolePaths.warehouse
 
   const baseCases: TourCase[] = [
     ...publicPaths.flatMap((path) => [
       { role: 'public' as const, path, viewport: 'desktop' as const },
       { role: 'public' as const, path, viewport: 'narrow' as const },
     ]),
-    ...Object.entries(rolePaths).flatMap(([role, paths]) =>
-      paths.flatMap((path) => [
+    ...routeRoles.flatMap((role) =>
+      routedPaths[role].flatMap((path) => [
         {
-          role: role as AuthenticatedRole,
+          role,
           path,
           viewport: 'desktop' as const,
           stakeholderState: role === 'merchant' || role === 'warehouse' ? 'active' as const : undefined,
         },
         {
-          role: role as AuthenticatedRole,
+          role,
           path,
           viewport: 'narrow' as const,
           stakeholderState: role === 'merchant' || role === 'warehouse' ? 'active' as const : undefined,
         },
       ]),
     ),
-    ...rolePaths.merchant.flatMap((path) => [
+    ...merchantEmptyPaths.flatMap((path) => [
       { role: 'merchant' as const, path, viewport: 'desktop' as const, stakeholderState: 'empty' as const, account: emptyStakeholders.emptyMerchant },
       { role: 'merchant' as const, path, viewport: 'narrow' as const, stakeholderState: 'empty' as const, account: emptyStakeholders.emptyMerchant },
     ]),
-    ...rolePaths.warehouse.flatMap((path) => [
+    ...warehouseEmptyPaths.flatMap((path) => [
       { role: 'warehouse' as const, path, viewport: 'desktop' as const, stakeholderState: 'empty' as const, account: emptyStakeholders.emptyWarehouse },
       { role: 'warehouse' as const, path, viewport: 'narrow' as const, stakeholderState: 'empty' as const, account: emptyStakeholders.emptyWarehouse },
     ]),
   ]
 
   const cases = [...baseCases, ...detailCases]
+  const routeConcurrency = Math.max(1, ROUTE_TOUR_CONCURRENCY)
+  progress(`route tour inspecting ${cases.length} case(s) with concurrency=${routeConcurrency}`)
+
+  const recordRoute = (record: TourRecord) => {
+    records.push(record)
+    if (records.length % Math.max(1, TOUR_PROGRESS_EVERY) === 0) {
+      progress(`inspected ${records.length}/${cases.length} route cases`)
+      writeRouteReport(records, detailPathsByRole, true)
+    }
+  }
+
+  const inspectCasesInContext = async (
+    context: BrowserContext,
+    routeCases: TourCase[],
+  ) => {
+    await runWithConcurrency(routeCases, routeConcurrency, async (tourCase) => {
+      const page = await context.newPage()
+      try {
+        recordRoute(await inspectPage(page, tourCase.role, tourCase.path, tourCase.viewport, tourCase.stakeholderState))
+      } finally {
+        await page.close()
+      }
+    })
+  }
 
   for (const viewport of Object.keys(viewports) as Array<keyof typeof viewports>) {
+    progress(`viewport ${viewport} starting`)
     const publicContext = await browser.newContext({ viewport: viewports[viewport] })
-    const publicPage = await publicContext.newPage()
-    for (const tourCase of cases.filter((candidate) => candidate.role === 'public' && candidate.viewport === viewport)) {
-      records.push(await inspectPage(publicPage, tourCase.role, tourCase.path, tourCase.viewport, tourCase.stakeholderState))
-    }
+    await inspectCasesInContext(
+      publicContext,
+      cases.filter((candidate) => candidate.role === 'public' && candidate.viewport === viewport),
+    )
     await publicContext.close()
 
-    for (const role of ['owner', 'admin', 'supportAdmin', 'auditor', 'merchant', 'warehouse'] as const) {
+    for (const role of routeRoles) {
       const roleCases = cases.filter((candidate) => candidate.role === role && candidate.viewport === viewport && !candidate.account)
       if (roleCases.length === 0) {
         continue
       }
-      const { context, page } = await newAuthedPage(browser, role, viewport, accounts)
-      for (const tourCase of roleCases) {
-        records.push(await inspectPage(page, tourCase.role, tourCase.path, tourCase.viewport, tourCase.stakeholderState))
-      }
+      const context = await newAuthedContextForAccount(browser, accounts[role], viewport)
+      await inspectCasesInContext(context, roleCases)
       await context.close()
     }
 
+    const customAccountCases = new Map<string, { account: Account; cases: TourCase[] }>()
     for (const tourCase of cases.filter((candidate) => candidate.viewport === viewport && candidate.account)) {
-      const { context, page } = await newAuthedPageForAccount(browser, tourCase.account, viewport)
-      records.push(await inspectPage(page, tourCase.role, tourCase.path, tourCase.viewport, tourCase.stakeholderState))
+      const account = tourCase.account as Account
+      const accountKey = `${account.email}\u0000${account.password}`
+      const group = customAccountCases.get(accountKey)
+      if (group) {
+        group.cases.push(tourCase)
+      } else {
+        customAccountCases.set(accountKey, { account, cases: [tourCase] })
+      }
+    }
+
+    for (const group of customAccountCases.values()) {
+      const context = await newAuthedContextForAccount(browser, group.account, viewport)
+      await inspectCasesInContext(context, group.cases)
       await context.close()
     }
   }
 
-  const resolvedReportPath = resolve(process.cwd(), REPORT_PATH)
-  mkdirSync(dirname(resolvedReportPath), { recursive: true })
-  writeFileSync(
-    resolvedReportPath,
-    `${JSON.stringify(
-      {
-        appUrl: APP_URL,
-        apiUrl: API_URL,
-        checkedAt: new Date().toISOString(),
-        checkedRoutes: records.length,
-        acceptanceStandard: 'Every routed surface records visible interactive controls and requires visible form controls to have explicit label bindings or ARIA names.',
-        detailPathsByRole,
-        totals: {
-          interactionUnits: records.reduce((sum, record) => sum + record.interactionUnitCount, 0),
-          formControls: records.reduce((sum, record) => sum + record.formControlCount, 0),
-          buttons: records.reduce((sum, record) => sum + record.buttonCount, 0),
-          enabledButtons: records.reduce((sum, record) => sum + record.enabledButtonCount, 0),
-          links: records.reduce((sum, record) => sum + record.linkCount, 0),
-        },
-        records,
-      },
-      null,
-      2,
-    )}\n`,
-  )
+  writeRouteReport(records, detailPathsByRole, false)
+  progress(`route tour completed ${records.length} route records`)
 })
 
 test('admin hierarchy tour proves role-specific actions and denials', async ({ browser, request }) => {

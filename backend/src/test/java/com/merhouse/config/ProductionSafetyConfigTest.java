@@ -301,6 +301,34 @@ class ProductionSafetyConfigTest {
     }
 
     @Test
+    void allowsPublicDeploymentWithNgrokFreeDevFrontendUrl() {
+        assertDoesNotThrow(() -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            5,
+            60,
+            false,
+            "",
+            3,
+            24,
+            "https://poppied-racheal-subuncinal.ngrok-free.dev",
+            "https://poppied-racheal-subuncinal.ngrok-free.dev,capacitor://localhost,ionic://localhost",
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            false,
+            "",
+            "",
+            "localhost",
+            "",
+            "",
+            "deterministic",
+            15
+        ));
+    }
+
+    @Test
     void rejectsPublicDeploymentWhenCorsOmitsPublicFrontendUrl() {
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
             true,

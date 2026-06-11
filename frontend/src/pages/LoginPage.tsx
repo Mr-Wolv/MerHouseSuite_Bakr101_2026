@@ -42,7 +42,7 @@ export function LoginPage() {
   return (
     <PublicAuthPanel
       title="Operations Console"
-      subtitle="Sign in with an enabled local MerHouse account."
+      subtitle="Sign in with an enabled MerHouse account."
       icon={appIcons.login}
       cues={[
         { label: 'Access boundary', detail: 'Role and tenant scope are checked after sign-in.' },

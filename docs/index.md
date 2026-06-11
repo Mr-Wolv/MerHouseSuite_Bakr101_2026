@@ -40,6 +40,8 @@ MerHouse is prepared here as a local-development stack and public-readable proje
 - [Transactional outbox](architecture/outbox.md)
 - [V17 external service activation](architecture/v17-service-activation.md)
 
+V17's selected managed deployment lane is Neon PostgreSQL, Render backend, Vercel frontend, and GitHub Release APK distribution; see [Production deployment activation](architecture/production-deployment-activation.md).
+
 ## Working Notes
 
 Durable project truth belongs in tracked documentation. When local working notes produce lasting decisions, promote those decisions into `README.md`, this docs index, the roadmap, or the affected architecture/development document.

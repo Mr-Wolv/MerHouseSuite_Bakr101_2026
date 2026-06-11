@@ -22,6 +22,8 @@ describe('LoginPage', () => {
     render(<LoginPage />, { wrapper: MemoryRouter })
 
     expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
+    expect(screen.getByText('Sign in with an enabled MerHouse account.')).toBeInTheDocument()
+    expect(screen.queryByText(/local MerHouse account/i)).not.toBeInTheDocument()
     expect(screen.getByLabelText('Public account workflow guardrails')).toHaveTextContent('Access boundary')
     expect(screen.getByText(/reviewable delivery history/i)).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toHaveValue('')

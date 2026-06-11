@@ -4,6 +4,7 @@
 
 backend/target/
 backend/.mvn/wrapper/maven-wrapper.jar
+node_modules/
 
 .env
 .env.*

@@ -43,11 +43,14 @@ Use these lanes in order unless a real sponsor or hosting budget changes the dec
 
 | Lane | When to use | What it proves | Limits |
 | --- | --- | --- | --- |
-| 1. This machine as host through a public HTTPS tunnel | Fastest mostly-free V17 proof when the workstation can stay online. Cloudflare Tunnel is the preferred shape if a domain is available. | Public HTTPS browser/API proof, email proof, signed Android API URL proof, live walkthrough, and CI/CD-style bug hunting against a real reachable target. | Availability depends on this machine, local internet, Docker, and power/sleep settings. It is acceptable for staging/pilot proof only when labeled honestly. |
-| 2. Oracle Cloud Always Free VPS-style host | Low-cost real server path when an Oracle account and available Always Free capacity exist. | VPS/Compose deployment with a public IP/domain, stronger uptime posture than a workstation, and closer production operations rehearsal. | Account setup, card verification, region capacity, VM hardening, backups, and DNS/TLS setup are still operator work. |
-| 3. Sponsored professional hosting | Use when someone funds or sponsors a more durable deployment. | Managed or professionally operated infrastructure, managed database/backups, observability, uptime, incident response, and a cleaner production claim. | Requires budget, sponsor decisions, vendor ownership, and a deliberate production operations plan. |
+| 1. Neon + Render + Vercel + GitHub Release | Selected V17 lane when the release needs free-ish managed infrastructure, stable HTTPS URLs, no owned domain, and less tunnel friction. Use Neon PostgreSQL, Render Docker backend, Vercel React/Vite frontend, and signed APK assets attached to GitHub Releases. | Stable managed database, public backend/frontend URLs, frontend CI/CD, backend Docker deployment, signed Android API URL proof, live web/Android walkthrough, and a simple release artifact channel. | Free tiers have quotas, cold starts, provider account limits, and platform-specific env wiring. Backup/restore, monitoring, and alert-routing proof still need explicit evidence. |
+| 2. Cloud Run managed container host | Use if Render/Vercel constraints block the release or a single managed-container lane becomes simpler. | Stable Google-managed `run.app` HTTPS URL, machine-independent web/API availability, and a cleaner hosted target for Android release proof. | Requires Google Cloud project/billing setup, container deployment wiring, external database decision, budget alerts, and provider-specific operations proof. |
+| 3. Oracle Cloud Always Free VPS-style host | Low-cost real server path when an Oracle account and available Always Free capacity exist. | VPS/Compose deployment with a public IP/domain or platform-provided endpoint, stronger uptime posture than a workstation, and closer production operations rehearsal. | Account setup, card verification, region capacity, VM hardening, backups, and DNS/TLS setup are still operator work. |
+| 4. Sponsored professional hosting | Use when someone funds or sponsors a more durable deployment. | Managed or professionally operated infrastructure, managed database/backups, observability, uptime, incident response, and a cleaner production claim. | Requires budget, sponsor decisions, vendor ownership, and a deliberate production operations plan. |
 
-The machine-hosted tunnel lane can still prove Gmail/Google Workspace SMTP delivery because email sending is an outbound backend operation. Password recovery, access-request/account-ready, and notification emails can work when `MERHOUSE_PUBLIC_FRONTEND_URL` points to the public HTTPS tunnel URL and SMTP credentials are configured outside Git. Links in those emails return through the tunnel to the local Compose stack. This does not automatically add Sign in with Google: Google account login is a separate OAuth/OpenID Connect feature that requires client credentials, redirect URIs, frontend/backend login flow support, and its own V&V proof.
+The earlier ngrok static dev-domain lane is no longer the selected release target. It proved useful for local reachability, but live browser/API behavior degraded enough that it should remain a temporary development tunnel only. Do not use ngrok proof as final V17 release evidence unless a future operator deliberately reopens that lane and records why the tunnel behavior is acceptable.
+
+The selected first distribution posture is Neon plus Render plus Vercel plus a signed APK published through GitHub Releases. Firebase App Distribution can be added later for tester management, but it is not required for the first no-domain release channel. Cloud Run remains the next managed fallback if Render/Vercel becomes a blocker. Gmail/Google Workspace SMTP can still be proven later because email sending is outbound from the backend and links can return through the Vercel frontend URL.
 
 ## Professional Product Bar
 
@@ -72,7 +75,18 @@ If a capability is deliberately not production-grade in the first deployment, it
 
 Production activation should start with staging. Staging must use the same deployment shape as production, but may use fake provider credentials and non-production domains.
 
-The first V17 implementation target is VPS + Docker Compose:
+The selected V17 implementation target is now provider-split managed hosting:
+
+- Neon PostgreSQL hosts the deployment database. Use the Neon JDBC URL with `sslmode=require`; keep credentials in Render environment variables or ignored private env files only.
+- `render.yaml` defines the Render Docker web service for `backend/`, health-checks `/api/v1/health`, and lists required backend environment variables without committing secrets.
+- `deploy/render/env.backend.example` documents the backend variables that must be filled in Render after the Vercel frontend URL and Neon database URL are known.
+- `frontend/vercel.json` sets the Vercel build command, output directory, and SPA fallback rewrite for the React Router app.
+- `deploy/vercel/env.frontend.example` documents the frontend `VITE_API_BASE_URL` value that points at the Render backend URL.
+- `scripts/deploy/render-vercel-check.ps1` validates the Render/Vercel deployment shape locally before provider rollout.
+- `backend/src/main/resources/application.properties` accepts Render's `PORT` environment variable while retaining the local `SERVER_PORT` fallback.
+- signed Android release proof builds the APK against the Render backend URL and publishes the APK plus SHA-256 through GitHub Releases after live web/API proof passes.
+
+The older VPS + Docker Compose target remains available as a fallback lane:
 
 - `deploy/vps/compose.production.yml` runs PostgreSQL, backend, and frontend with public startup validation enabled.
 - the production Compose shape includes PostgreSQL, backend HTTP readiness, and frontend shell healthchecks.
@@ -95,7 +109,18 @@ The first V17 implementation target is VPS + Docker Compose:
 - `scripts/quality/v17-live-stakeholder-walkthrough-proof.ps1` writes the sanitized final live-review artifact only after the reviewer completes the real browser and installed-Android walkthroughs.
 - `scripts/quality/deployed-v17-proof.ps1` runs deployed frontend/API proof against explicit public HTTPS URLs after rollout and writes a sanitized deployment evidence manifest.
 
-CI/CD becomes the ongoing bug-hunt engine after the first deployment. The release path should keep checks boring and repeatable: deploy, run smoke/monitoring/load/browser/mobile proof, fix real failures, rerun the matching proof, and only then broaden the gate if the failure shows a durable gap.
+Provider rollout order for the selected lane:
+
+1. Create the Neon project/database and copy the PostgreSQL JDBC URL with `sslmode=require`.
+2. Create the Vercel project from `frontend/` with `VITE_API_BASE_URL` temporarily set to the intended Render service URL or a harmless placeholder. This first frontend deploy only establishes the stable Vercel URL.
+3. Create the Render backend service from `render.yaml`, set the Neon JDBC URL, JWT secret, public deployment flags, and CORS/frontend values from the real Vercel URL, then deploy and confirm `/api/v1/health`.
+4. Replace the Vercel `VITE_API_BASE_URL` value with the real Render backend URL and redeploy the frontend.
+5. Bootstrap the first owner through a private operator path, then run deployed API smoke, live web browser review, signed APK build through the GitHub Release workflow, and installed Android live review.
+6. Keep SMTP disabled until provider credentials are ready; when enabled, prove recovery, access request/account-ready, and notification email delivery with sanitized evidence only.
+
+CI/CD becomes the ongoing bug-hunt engine after the first deployment. The release path should keep checks boring and repeatable: deploy, run smoke/monitoring/load/browser/mobile proof, personally tour the live web and installed Android app, fix real failures, rerun the matching proof, and only then broaden the gate if the failure shows a durable gap.
+
+Live deployed behavior is the V17 priority. The reviewer must see the actual deployed browser and installed Android app behaving correctly across happy paths and unhappy paths; screenshots, JSON reports, and scripted tours are supporting records only. Do not add more test machinery or refactor product code just because a deployment-time test feels awkward. Change the app, scripts, or deployment shape only when the live tours expose a concrete defect, unsafe public boundary, missing rollback/ops proof, or repository-readiness issue.
 
 Minimum staging proof:
 
@@ -103,12 +128,12 @@ Minimum staging proof:
 .\scripts\quality\v17-production-readiness.ps1
 .\scripts\quality\public-readiness.ps1 -SkipCompose
 .\scripts\quality\markdown-check.ps1
-.\scripts\deploy\vps-check.ps1 -EnvFile ".env.staging"
+.\scripts\deploy\vps-check.ps1 -EnvFile ".secrets/deploy/env.staging"
 .\scripts\deploy\frontend-nginx-check.ps1
 .\scripts\deploy\reverse-proxy-check.ps1
 .\scripts\quality\api-smoke.ps1 -BaseUrl "https://<staging-api-or-frontend-origin>"
 .\scripts\quality\deployed-monitoring-proof.ps1 -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>"
-.\scripts\quality\frontend-full-tour.ps1 -BaseUrl "https://<staging-frontend-origin>" -ApiUrl "https://<staging-api-or-frontend-origin>"
+.\scripts\quality\frontend-full-tour.ps1 -BaseUrl "https://<staging-frontend-origin>" -ApiUrl "https://<staging-api-or-frontend-origin>" -Coverage Deployment
 .\scripts\quality\performance-readiness.ps1 -IncludeApiSmoke -ApiBaseUrl "https://<staging-api-or-frontend-origin>"
 .\scripts\quality\load-smoke.ps1 -BaseUrl "https://<staging-api-or-frontend-origin>" -ConcurrentUsers 25 -RequestsPerUser 8
 .\scripts\quality\deployed-v17-proof.ps1 `
@@ -157,7 +182,7 @@ Staging must also include a production-shaped load and operations rehearsal befo
 The restore drill command is destructive and must target staging or a dedicated drill environment:
 
 ```powershell
-.\scripts\deploy\backup-restore-drill.ps1 -EnvFile ".env.staging" -OutputDirectory ".\reports" -ConfirmDrill
+.\scripts\deploy\backup-restore-drill.ps1 -EnvFile ".secrets/deploy/env.staging" -OutputDirectory ".\reports" -ConfirmDrill
 ```
 
 The drill writes a sanitized `v17-backup-restore-drill-*.json` manifest with commit SHA, env/Compose preflight status, host-copied backup path, backup SHA-256, byte size, env file name only, and restore status. Direct backup output defaults under ignored `reports/backups/` unless an operator supplies an explicit external path, so database archives do not become public repository material by accident.
@@ -165,7 +190,7 @@ The drill writes a sanitized `v17-backup-restore-drill-*.json` manifest with com
 The rollback rehearsal command is also deployment-changing and must target staging, a drill environment, or an explicitly selected production rollback window:
 
 ```powershell
-.\scripts\deploy\rollback-drill.ps1 -EnvFile ".env.staging" -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>" -ConfirmRollbackDrill
+.\scripts\deploy\rollback-drill.ps1 -EnvFile ".secrets/deploy/env.staging" -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>" -ConfirmRollbackDrill
 ```
 
 For a local production-shaped rehearsal on `127.0.0.1` only, pass `-AllowLocalHttpRehearsal` with the HTTP loopback URLs. Do not use that switch for staging or production claims.
@@ -223,6 +248,6 @@ V17 is complete only when:
 
 ## Current Status
 
-As of 2026-06-11, V17 is in private implementation on a deployment branch, not publicly deployed. The deployment lanes are: first this machine as host through a public HTTPS tunnel for mostly-free proof, then Oracle Cloud Always Free for a low-cost VPS-style host, then sponsored professional hosting when budget exists. The selected software target remains Docker Compose with PostgreSQL, backend, frontend, container healthchecks, nginx/TLS template with public-edge hardening checks, public-mode startup validation, private env auditing, backup/restore drill manifests, rollback rehearsal manifests, rollback/deploy scripts, deployed proof wrappers, deployed monitoring samples, deployed-evidence attachment rule validation, cutover-readiness guard fixtures, opt-in SMTP email attempts, sanitized email-provider, alert-routing, and manual live-walkthrough proof artifacts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight. The current proof contract requires public HTTPS deployment targets for deployed evidence, allows local HTTP only for explicit rollback rehearsals, requires manual evidence fields for live walkthrough proof, and rejects secrets, credential-shaped values, provider logs, copied message bodies, copied alert payloads, copied operational logs, screenshot data, and email-shaped PII in human-entered V17 evidence attachments.
+As of 2026-06-11, V17 is in private implementation on a deployment branch, not publicly deployed. The selected first lane is Neon PostgreSQL, Render Docker backend, Vercel React/Vite frontend, and GitHub Release APK distribution. This replaces the machine-hosted ngrok lane because live tunnel behavior degraded browser/API proof reliability. Cloud Run is the next managed fallback if Render/Vercel constraints block rollout; Oracle Cloud Always Free remains a low-cost VPS-style fallback, and sponsored professional hosting remains the later option when budget exists. The selected software target keeps the existing Spring Boot backend, React frontend, Flyway migrations, public-mode startup validation, private env auditing, deployed proof wrappers, deployed monitoring samples, deployed-evidence attachment rule validation, cutover-readiness guard fixtures, opt-in SMTP email attempts, sanitized email-provider, alert-routing, and manual live-walkthrough proof artifacts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight. The current proof contract requires public HTTPS deployment targets for deployed evidence, allows local HTTP only for explicit rollback rehearsals, requires manual evidence fields for live walkthrough proof, and rejects secrets, credential-shaped values, provider logs, copied message bodies, copied alert payloads, copied operational logs, screenshot data, and email-shaped PII in human-entered V17 evidence attachments.
 
-The following remain required before any production claim: real VPS access, frontend/API domain values, TLS/certificate setup, deployment secret storage, Gmail or provider SMTP credentials for staging proof, production database credentials, Android signing keystore, monitoring/alerting configuration, deployed staging URL, deployed production URL, deployed backup restore drill, deployed rollback rehearsal, load/soak proof, live browser walkthrough, and live installed-Android walkthrough against the deployed target.
+The following remain required before any production claim: Neon database URL/credentials, Render backend URL, Vercel frontend URL, deployment secret storage, Gmail or provider SMTP credentials for staging proof when email is enabled, Android signing keystore, monitoring/alerting configuration, deployed backup restore drill, deployed rollback rehearsal, load/soak proof, live browser walkthrough, and live installed-Android walkthrough against the deployed target.

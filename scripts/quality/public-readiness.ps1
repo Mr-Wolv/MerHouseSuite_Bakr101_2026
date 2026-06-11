@@ -128,6 +128,7 @@ try {
     foreach ($pattern in $patterns) {
         $result = rg -n --pcre2 `
             --glob '!/.git/**' `
+            --glob '!node_modules/**' `
             --glob '!frontend/node_modules/**' `
             --glob '!frontend/dist/**' `
             --glob '!frontend/test-results/**' `

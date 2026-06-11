@@ -85,6 +85,7 @@ import type {
 } from './types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
+const NGROK_SKIP_BROWSER_WARNING_HEADER = 'ngrok-skip-browser-warning'
 
 export class ApiError extends Error {
   status: number
@@ -103,9 +104,26 @@ type RequestOptions = {
   body?: unknown
 }
 
+function shouldSkipNgrokBrowserWarning(apiBaseUrl: string): boolean {
+  if (!apiBaseUrl) {
+    return false
+  }
+
+  try {
+    const host = new URL(apiBaseUrl).hostname
+    return host.endsWith('.ngrok-free.dev') || host.endsWith('.ngrok.app')
+  } catch {
+    return false
+  }
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers()
   headers.set('Accept', 'application/json')
+
+  if (shouldSkipNgrokBrowserWarning(API_BASE_URL)) {
+    headers.set(NGROK_SKIP_BROWSER_WARNING_HEADER, 'true')
+  }
 
   if (options.body !== undefined) {
     headers.set('Content-Type', 'application/json')

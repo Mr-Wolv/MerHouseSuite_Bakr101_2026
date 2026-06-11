@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $true)] [string]$BackupFile,
     [string]$ComposeFile = "deploy/vps/compose.production.yml",
-    [string]$EnvFile = ".env.production",
+    [string]$EnvFile = ".secrets/deploy/env.production",
     [switch]$ConfirmRestore
 )
 

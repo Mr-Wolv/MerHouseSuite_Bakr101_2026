@@ -1,0 +1,63 @@
+services:
+  - type: web
+    name: merhouse-backend
+    env: docker
+    plan: free
+    rootDir: backend
+    healthCheckPath: /api/v1/health
+    autoDeploy: false
+    envVars:
+      - key: MERHOUSE_DEPLOYMENT_PUBLIC
+        value: true
+      - key: MERHOUSE_PUBLIC_FRONTEND_URL
+        sync: false
+      - key: MERHOUSE_CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: MERHOUSE_AUTH_JWT_SECRET
+        sync: false
+      - key: MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT
+        value: 5
+      - key: MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES
+        value: 60
+      - key: MERHOUSE_ACCESS_REQUEST_LIMIT
+        value: 3
+      - key: MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS
+        value: 24
+      - key: MERHOUSE_SWAGGER_ENABLED
+        value: false
+      - key: MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN
+        value: false
+      - key: MERHOUSE_AUTH_SEED_ADMIN_ENABLED
+        value: false
+      - key: MERHOUSE_EMAIL_ENABLED
+        value: false
+      - key: MERHOUSE_EMAIL_FROM
+        value: ""
+      - key: MERHOUSE_EMAIL_REPLY_TO
+        value: ""
+      - key: MERHOUSE_SMTP_HOST
+        value: smtp.gmail.com
+      - key: MERHOUSE_SMTP_PORT
+        value: 587
+      - key: MERHOUSE_SMTP_USERNAME
+        value: ""
+      - key: MERHOUSE_SMTP_PASSWORD
+        value: ""
+      - key: MERHOUSE_SMTP_AUTH
+        value: true
+      - key: MERHOUSE_SMTP_STARTTLS_ENABLE
+        value: true
+      - key: MERHOUSE_AGENT_MODE
+        value: deterministic
+      - key: MERHOUSE_AGENT_MODEL_ENDPOINT
+        value: ""
+      - key: MERHOUSE_AGENT_MODEL_NAME
+        value: ""
+      - key: MERHOUSE_AGENT_TIMEOUT_SECONDS
+        value: 15

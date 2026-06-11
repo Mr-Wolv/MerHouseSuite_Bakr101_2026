@@ -1,6 +1,6 @@
 param(
     [string]$ComposeFile = "deploy/vps/compose.production.yml",
-    [string]$EnvFile = ".env.production",
+    [string]$EnvFile = ".secrets/deploy/env.production",
     [string]$OutputDirectory = "reports",
     [switch]$ConfirmDrill
 )

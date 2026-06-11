@@ -39,6 +39,8 @@ describe('auth recovery pages', () => {
 
     render(<ForgotPasswordPage />, { wrapper: MemoryRouter })
 
+    expect(screen.getByText('Request a reset for an enabled MerHouse account.')).toBeInTheDocument()
+    expect(screen.queryByText(/local MerHouse account/i)).not.toBeInTheDocument()
     await user.type(screen.getByLabelText('Email'), ' owner@example.test ')
     await user.click(screen.getByRole('button', { name: 'Request reset' }))
 

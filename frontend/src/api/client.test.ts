@@ -321,6 +321,29 @@ describe('api client', () => {
     }
   })
 
+  it('skips the ngrok free browser warning for configured ngrok API bases', async () => {
+    vi.resetModules()
+    vi.stubEnv('VITE_API_BASE_URL', 'https://poppied-racheal-subuncinal.ngrok-free.dev')
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({ accessToken: 'token' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    try {
+      const { api: configuredApi } = await import('./client')
+
+      await configuredApi.login('native.user@merhouse.local', 'native-password')
+
+      const headers = fetchMock.mock.calls[0][1].headers as Headers
+      expect(headers.get('ngrok-skip-browser-warning')).toBe('true')
+    } finally {
+      vi.unstubAllEnvs()
+      vi.resetModules()
+    }
+  })
+
   it('sends service-accountability agreement and statement requests', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

@@ -12,7 +12,11 @@ param(
     [string]$SupportAdminPassword = "",
     [string]$AuditorEmail = "",
     [string]$AuditorPassword = "",
-    [int]$TourTimeoutMs = 420000
+    [int]$TourTimeoutMs = 420000,
+    [int]$ProgressEvery = 10,
+    [int]$Concurrency = 6,
+    [ValidateSet("Full", "Deployment")]
+    [string]$Coverage = "Full"
 )
 
 $ErrorActionPreference = "Stop"
@@ -59,6 +63,9 @@ $previousSupportAdminPassword = $env:FRONTEND_TOUR_SUPPORT_ADMIN_PASSWORD
 $previousAuditorEmail = $env:FRONTEND_TOUR_AUDITOR_EMAIL
 $previousAuditorPassword = $env:FRONTEND_TOUR_AUDITOR_PASSWORD
 $previousTourTimeoutMs = $env:FRONTEND_TOUR_TIMEOUT_MS
+$previousProgressEvery = $env:FRONTEND_TOUR_PROGRESS_EVERY
+$previousConcurrency = $env:FRONTEND_TOUR_CONCURRENCY
+$previousCoverage = $env:FRONTEND_TOUR_COVERAGE
 
 Push-Location $frontendRoot
 try {
@@ -76,10 +83,16 @@ try {
     $env:FRONTEND_TOUR_AUDITOR_EMAIL = $AuditorEmail
     $env:FRONTEND_TOUR_AUDITOR_PASSWORD = $AuditorPassword
     $env:FRONTEND_TOUR_TIMEOUT_MS = $TourTimeoutMs.ToString()
+    $env:FRONTEND_TOUR_PROGRESS_EVERY = $ProgressEvery.ToString()
+    $env:FRONTEND_TOUR_CONCURRENCY = $Concurrency.ToString()
+    $env:FRONTEND_TOUR_COVERAGE = $Coverage.ToLowerInvariant()
 
     Write-Host "Frontend tour app URL: $normalizedBaseUrl"
     Write-Host "Frontend tour API URL: $normalizedApiUrl"
     Write-Host "Frontend tour report: $resolvedOutputPath"
+    Write-Host "Frontend tour coverage: $Coverage"
+    Write-Host "Frontend tour progress interval: every $ProgressEvery route record(s)"
+    Write-Host "Frontend tour route concurrency: $Concurrency"
     Write-Host "Running full frontend route tour against $normalizedBaseUrl"
     npm exec -- playwright test tests/e2e/full-tour.spec.ts --project=chromium
     if ($LASTEXITCODE -ne 0) {
@@ -100,6 +113,9 @@ try {
     $env:FRONTEND_TOUR_AUDITOR_EMAIL = $previousAuditorEmail
     $env:FRONTEND_TOUR_AUDITOR_PASSWORD = $previousAuditorPassword
     $env:FRONTEND_TOUR_TIMEOUT_MS = $previousTourTimeoutMs
+    $env:FRONTEND_TOUR_PROGRESS_EVERY = $previousProgressEvery
+    $env:FRONTEND_TOUR_CONCURRENCY = $previousConcurrency
+    $env:FRONTEND_TOUR_COVERAGE = $previousCoverage
     Pop-Location
 }
 

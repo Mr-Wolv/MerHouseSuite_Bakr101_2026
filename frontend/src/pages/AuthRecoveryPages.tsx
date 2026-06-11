@@ -32,7 +32,7 @@ export function ForgotPasswordPage() {
   return (
     <PublicAuthPanel
       title="Password Recovery"
-      subtitle="Request a reset for an enabled local MerHouse account."
+      subtitle="Request a reset for an enabled MerHouse account."
       icon={appIcons.password}
       cues={[
         { label: 'Generic response', detail: 'The page does not reveal whether an email exists.' },

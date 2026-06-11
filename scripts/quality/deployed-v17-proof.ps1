@@ -21,12 +21,14 @@ param(
     [string]$EmailProviderProofManifestPath = "",
     [string]$AlertRoutingManifestPath = "",
     [string]$LiveStakeholderWalkthroughManifestPath = "",
-    [string]$EnvFile = ".env.production",
+    [string]$EnvFile = ".secrets/deploy/env.production",
     [string]$PostgresContainer = "merhouse-production-postgres-1",
     [switch]$IncludeBrowserTour,
     [switch]$IncludeLoadSmoke,
     [int]$ConcurrentUsers = 25,
-    [int]$RequestsPerUser = 8
+    [int]$RequestsPerUser = 8,
+    [int]$MaxLoadAverageMs = 750,
+    [int]$BrowserTourTimeoutMs = 420000
 )
 
 $ErrorActionPreference = "Stop"
@@ -749,7 +751,8 @@ try {
                 -BaseUrl $normalizedApiBaseUrl `
                 -OutputPath $loadSmokeOutput `
                 -ConcurrentUsers $ConcurrentUsers `
-                -RequestsPerUser $RequestsPerUser
+                -RequestsPerUser $RequestsPerUser `
+                -MaxAverageMs $MaxLoadAverageMs
         }
     } else {
         Write-Host ""
@@ -776,7 +779,9 @@ if ($IncludeBrowserTour) {
             -SupportAdminEmail $SupportAdminEmail `
             -SupportAdminPassword $SupportAdminPassword `
             -AuditorEmail $AuditorEmail `
-            -AuditorPassword $AuditorPassword
+            -AuditorPassword $AuditorPassword `
+            -TourTimeoutMs $BrowserTourTimeoutMs `
+            -Coverage Deployment
     }
 } else {
     Write-Host ""

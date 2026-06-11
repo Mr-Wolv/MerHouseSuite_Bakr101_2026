@@ -176,7 +176,9 @@ jobs:
 
       - name: Run V17 deployment preflight
         shell: pwsh
-        run: ./scripts/quality/v17-production-readiness.ps1
+        run: |
+          ./scripts/deploy/render-vercel-check.ps1
+          ./scripts/quality/v17-production-readiness.ps1
 
   integration-proof:
     name: Integration Proof

@@ -266,7 +266,7 @@ public class ProductionSafetyConfig {
             failures.add("MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS must be between 1 and 168.");
         }
         String normalizedFrontendUrl = stripTrailingSlash(normalize(publicFrontendUrl));
-        if (isBlank(normalizedFrontendUrl) || !normalizedFrontendUrl.startsWith("https://") || looksLikePlaceholder(normalizedFrontendUrl)) {
+        if (isBlank(normalizedFrontendUrl) || !normalizedFrontendUrl.startsWith("https://") || looksLikePlaceholderOrigin(normalizedFrontendUrl)) {
             failures.add("MERHOUSE_PUBLIC_FRONTEND_URL must be an HTTPS deployment origin, not a placeholder.");
         }
         List<String> normalizedCorsOrigins = normalizeCsvOrigins(corsAllowedOrigins);
@@ -344,6 +344,16 @@ public class ProductionSafetyConfig {
             || normalized.contains("local")
             || normalized.contains("dev")
             || normalized.contains("password");
+    }
+
+    private static boolean looksLikePlaceholderOrigin(String value) {
+        String normalized = value.toLowerCase();
+        return normalized.contains("change")
+            || normalized.contains("replace")
+            || normalized.contains("example")
+            || normalized.contains("invalid")
+            || normalized.contains("localhost")
+            || normalized.contains("127.0.0.1");
     }
 
     private static boolean isEmailLike(String value) {
