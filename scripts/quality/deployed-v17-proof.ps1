@@ -140,6 +140,46 @@ function Resolve-EvidenceAttachment {
         }
     }
 
+    function Assert-MonitoringReportPassed {
+        param(
+            [AllowNull()]$Report
+        )
+
+        if ([bool]$Report.localHttpRehearsal) {
+            throw "$Name postRollbackMonitoring.reportPath localHttpRehearsal must be false for deployed V17 evidence."
+        }
+        if ($null -eq $Report.frontend -or $null -eq $Report.apiHealth) {
+            throw "$Name postRollbackMonitoring.reportPath frontend and apiHealth result blocks must be present."
+        }
+        if ([int]$Report.frontend.failures -ne 0) {
+            throw "$Name postRollbackMonitoring.reportPath frontend.failures must be zero."
+        }
+        if ([int]$Report.apiHealth.failures -ne 0) {
+            throw "$Name postRollbackMonitoring.reportPath apiHealth.failures must be zero."
+        }
+        if (@($Report.frontend.records).Count -lt 1) {
+            throw "$Name postRollbackMonitoring.reportPath frontend.records must include at least one sample."
+        }
+        if (@($Report.apiHealth.records).Count -lt 1) {
+            throw "$Name postRollbackMonitoring.reportPath apiHealth.records must include at least one sample."
+        }
+        if (@($Report.frontend.records | Where-Object { -not [bool]$_.ok }).Count -gt 0) {
+            throw "$Name postRollbackMonitoring.reportPath frontend.records must all be passing samples."
+        }
+        if (@($Report.apiHealth.records | Where-Object { -not [bool]$_.ok }).Count -gt 0) {
+            throw "$Name postRollbackMonitoring.reportPath apiHealth.records must all be passing samples."
+        }
+        if ($null -eq $Report.budgets -or $null -eq $Report.budgets.maxFrontendMs -or $null -eq $Report.budgets.maxApiHealthMs) {
+            throw "$Name postRollbackMonitoring.reportPath budgets.maxFrontendMs and budgets.maxApiHealthMs must be present."
+        }
+        if ([long]$Report.frontend.maxMs -gt [long]$Report.budgets.maxFrontendMs) {
+            throw "$Name postRollbackMonitoring.reportPath frontend.maxMs must be within budgets.maxFrontendMs."
+        }
+        if ([long]$Report.apiHealth.maxMs -gt [long]$Report.budgets.maxApiHealthMs) {
+            throw "$Name postRollbackMonitoring.reportPath apiHealth.maxMs must be within budgets.maxApiHealthMs."
+        }
+    }
+
     $resolvedPath = if ([System.IO.Path]::IsPathRooted($Path)) {
         [System.IO.Path]::GetFullPath($Path)
     } else {
@@ -365,6 +405,7 @@ function Resolve-EvidenceAttachment {
             if ($monitoringReport.apiBaseUrl -ne $json.postRollbackMonitoring.apiBaseUrl) {
                 throw "RollbackManifestPath postRollbackMonitoring.reportPath apiBaseUrl must match postRollbackMonitoring.apiBaseUrl."
             }
+            Assert-MonitoringReportPassed -Report $monitoringReport
         }
     }
     if ($Name -eq "AlertRoutingManifestPath") {

@@ -38,6 +38,7 @@ $validRollbackPath = Join-Path $resolvedOutputDirectory "v17-rollback-proof-chec
 $wrongRollbackPath = Join-Path $resolvedOutputDirectory "v17-rollback-proof-check-wrong.json"
 $validRollbackMonitoringPath = Join-Path $resolvedOutputDirectory "v17-rollback-monitoring-proof-check.json"
 $wrongRollbackMonitoringPath = Join-Path $resolvedOutputDirectory "v17-rollback-monitoring-proof-check-wrong.json"
+$failedRollbackMonitoringPath = Join-Path $resolvedOutputDirectory "v17-rollback-monitoring-proof-check-failed.json"
 
 Set-Content -LiteralPath $validAndroidArtifactPath -Value "fixture signed Android artifact" -Encoding utf8
 Set-Content -LiteralPath $wrongAndroidArtifactPath -Value "changed Android artifact" -Encoding utf8
@@ -275,14 +276,66 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     checkedAt = (Get-Date).ToUniversalTime().ToString("o")
     frontendBaseUrl = "https://app.example.com"
     apiBaseUrl = "https://api.example.com"
-} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validRollbackMonitoringPath -Encoding utf8
+    localHttpRehearsal = $false
+    budgets = @{
+        maxFrontendMs = 3000
+        maxApiHealthMs = 2000
+    }
+    frontend = @{
+        failures = 0
+        maxMs = 120
+        records = @(@{ ok = $true; statusCode = 200; ms = 120; error = $null })
+    }
+    apiHealth = @{
+        failures = 0
+        maxMs = 80
+        records = @(@{ ok = $true; status = "UP"; ms = 80; error = $null })
+    }
+} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $validRollbackMonitoringPath -Encoding utf8
 
 @{
     schema = "merhouse.v17.deployed-monitoring.v1"
     checkedAt = (Get-Date).ToUniversalTime().ToString("o")
     frontendBaseUrl = "https://wrong-app.example.com"
     apiBaseUrl = "https://api.example.com"
-} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongRollbackMonitoringPath -Encoding utf8
+    localHttpRehearsal = $false
+    budgets = @{
+        maxFrontendMs = 3000
+        maxApiHealthMs = 2000
+    }
+    frontend = @{
+        failures = 0
+        maxMs = 120
+        records = @(@{ ok = $true; statusCode = 200; ms = 120; error = $null })
+    }
+    apiHealth = @{
+        failures = 0
+        maxMs = 80
+        records = @(@{ ok = $true; status = "UP"; ms = 80; error = $null })
+    }
+} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $wrongRollbackMonitoringPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.deployed-monitoring.v1"
+    checkedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    localHttpRehearsal = $true
+    budgets = @{
+        maxFrontendMs = 3000
+        maxApiHealthMs = 2000
+    }
+    frontend = @{
+        failures = 1
+        maxMs = 4000
+        records = @(@{ ok = $false; statusCode = 503; ms = 4000; error = "fixture failure" })
+    }
+    apiHealth = @{
+        failures = 1
+        maxMs = 2500
+        records = @(@{ ok = $false; status = "DOWN"; ms = 2500; error = "fixture failure" })
+    }
+} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $failedRollbackMonitoringPath -Encoding utf8
 
 @{
     schema = "merhouse.v17.rollback-rehearsal.v1"
@@ -747,6 +800,40 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Rollback attachment with wrong monitoring report target was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    $failedMonitoringRollbackPath = Join-Path $resolvedOutputDirectory "v17-rollback-proof-check-failed-monitoring.json"
+    @{
+        schema = "merhouse.v17.rollback-rehearsal.v1"
+        generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+        commitSha = "fixture"
+        rollbackRan = $true
+        preflight = @{
+            envAudit = "passed"
+            vpsShape = "passed"
+        }
+        postRollbackMonitoring = @{
+            ran = $true
+            frontendBaseUrl = "https://app.example.com"
+            apiBaseUrl = "https://api.example.com"
+            reportPath = $failedRollbackMonitoringPath
+        }
+        secretPolicy = "Private env values, provider credentials, deployment logs, keystores, and backup archives are excluded from this manifest."
+    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $failedMonitoringRollbackPath -Encoding utf8
+
+    Invoke-AttachmentResolver -Name "RollbackManifestPath" -Path $failedMonitoringRollbackPath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "postRollbackMonitoring.reportPath localHttpRehearsal" -or $_.Exception.Message -match "postRollbackMonitoring.reportPath frontend.failures") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Rollback attachment with failed monitoring report was accepted."
 }
 
 $failedAsExpected = $false
