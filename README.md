@@ -285,6 +285,8 @@ Service-specific activation notes for email recovery, account invitations, email
 
 V17 private deployment work adds a VPS + Docker Compose shape under `deploy/vps/`, deployment scripts under `scripts/deploy/`, private env auditing, public reverse-proxy hardening checks, deployed proof wrappers, backend/frontend container healthchecks, HTTPS deployed monitoring samples with explicit local-rehearsal escape hatches, backup/restore drill manifests, SMTP-backed email delivery hooks with sanitized provider-proof artifacts, sanitized alert-routing and manual live-walkthrough proof artifacts, a read-plus-draft agent runtime interface with deterministic fallback metadata, load-smoke proof, Android release-shape proof, and signed internal Android release checks with sanitized release manifests. The first V17 deployment should stay simple: deploy and prove the existing product, use CI/CD plus deployed smoke/load/browser/mobile proof for bug hunting after launch, and leave only the agent as v1 prototype-grade read-plus-draft behavior with no operational mutations. Keep detailed deployment values, provider credentials, Android keystores, and proof logs private until the deployment is proven and intentionally published.
 
+Deployment lanes are tracked in the activation doc: first this machine as host through a public HTTPS tunnel for mostly-free proof, second Oracle Cloud Always Free as a low-cost VPS-style host, and third sponsored professional hosting when budget exists for managed infrastructure, database, monitoring, and operations.
+
 ## Latest Scripted Local QC Snapshot
 
 The latest scripted V16.2 QC pass on 2026-06-10 verified:

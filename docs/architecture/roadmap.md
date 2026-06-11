@@ -99,6 +99,7 @@ Planned scope:
 
 Current private implementation direction:
 
+- deployment lanes, in order: this machine as host through a public HTTPS tunnel for the fastest mostly-free proof; Oracle Cloud Always Free as the low-cost VPS-style option; sponsored professional hosting when budget exists for managed infrastructure, managed database, monitoring, and operational support
 - VPS + Docker Compose deployment shape
 - Gmail/Google Workspace SMTP staging proof for recovery, access invitation, and email notifications
 - signed internal Android APK/AAB release proof
