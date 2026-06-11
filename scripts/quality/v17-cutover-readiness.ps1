@@ -201,6 +201,18 @@ function Test-OutputFile {
             if ([int]$proofReport.totalRequests -lt 200) {
                 $script:failures += "Deployment evidence manifest outputFiles.$ProofName totalRequests must be at least 200 for V17 small-pilot proof."
             }
+            $expectedTotalRequests = [int]$proofReport.concurrentUsers * [int]$proofReport.requestsPerUser
+            if ([int]$proofReport.totalRequests -ne $expectedTotalRequests) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName totalRequests must equal concurrentUsers * requestsPerUser."
+            }
+            $records = @($proofReport.records)
+            if ($records.Count -ne [int]$proofReport.totalRequests) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName records count must match totalRequests."
+            }
+            $recordFailures = @($records | Where-Object { -not [bool]$_.ok }).Count
+            if ($null -ne $proofReport.result.failures -and [int]$proofReport.result.failures -ne $recordFailures) {
+                $script:failures += "Deployment evidence manifest outputFiles.$ProofName result.failures must match failed request records."
+            }
         }
         if ($RequireBrowserTourProvenance) {
             if ($proofReport.appUrl -ne $manifest.frontendBaseUrl) {

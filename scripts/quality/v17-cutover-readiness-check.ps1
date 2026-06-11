@@ -89,11 +89,12 @@ $smokeEvidence = @{
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidRollbackMonitoring -Encoding utf8
 @{ status = "PASSED"; generatedAt = (Get-Date).ToUniversalTime().ToString("o"); apiSmokeSeconds = 12.34 } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.performance -Encoding utf8
-@{ schema = "merhouse.load-smoke.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); baseUrl = "https://api.example.com"; concurrentUsers = 25; requestsPerUser = 8; totalRequests = 200; result = @{ passed = $true; failures = 0; averageMs = 25; maxMs = 80 } } |
+$loadSmokeRecords = @(1..200 | ForEach-Object { @{ ok = $true; ms = 25 } })
+@{ schema = "merhouse.load-smoke.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); baseUrl = "https://api.example.com"; concurrentUsers = 25; requestsPerUser = 8; totalRequests = 200; result = @{ passed = $true; failures = 0; averageMs = 25; maxMs = 80 }; records = $loadSmokeRecords } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.loadSmoke -Encoding utf8
 @{ appUrl = "https://app.example.com"; apiUrl = "https://api.example.com"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); checkedRoutes = @("/admin", "/assistant") } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.browserTour -Encoding utf8
-@{ schema = "merhouse.load-smoke.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); baseUrl = "https://wrong-api.example.com"; concurrentUsers = 1; requestsPerUser = 1; totalRequests = 0; result = @{ passed = $false; failures = 1; averageMs = 900; maxMs = 900 } } |
+@{ schema = "merhouse.load-smoke.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); baseUrl = "https://wrong-api.example.com"; concurrentUsers = 1; requestsPerUser = 1; totalRequests = 200; result = @{ passed = $false; failures = 1; averageMs = 900; maxMs = 900 }; records = @(@{ ok = $true; ms = 25 }) } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidLoadSmoke -Encoding utf8
 @{ appUrl = "https://wrong-app.example.com"; apiUrl = "https://wrong-api.example.com"; checkedAt = ""; checkedRoutes = @() } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidBrowserTour -Encoding utf8
@@ -468,6 +469,7 @@ try {
         $_.Exception.Message -match "outputFiles.loadSmoke concurrentUsers" -and
         $_.Exception.Message -match "outputFiles.loadSmoke requestsPerUser" -and
         $_.Exception.Message -match "outputFiles.loadSmoke totalRequests" -and
+        $_.Exception.Message -match "outputFiles.loadSmoke records count" -and
         $_.Exception.Message -match "outputFiles.browserTour appUrl" -and
         $_.Exception.Message -match "outputFiles.browserTour apiUrl" -and
         $_.Exception.Message -match "emailProvider.path artifact apiBaseUrl" -and
