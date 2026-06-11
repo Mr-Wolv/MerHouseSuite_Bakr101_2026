@@ -287,6 +287,8 @@ V17 private deployment work adds a VPS + Docker Compose shape under `deploy/vps/
 
 Deployment lanes are tracked in the activation doc: first this machine as host through a public HTTPS tunnel for mostly-free proof, second Oracle Cloud Always Free as a low-cost VPS-style host, and third sponsored professional hosting when budget exists for managed infrastructure, database, monitoring, and operations.
 
+Machine-hosted tunnel deployment can still prove SMTP-backed password recovery, access-request/account-ready, and notification email because those sends are outbound from the backend and email links can return through the public HTTPS tunnel URL. Gmail/Google Workspace SMTP sending is separate from Sign in with Google; Google account login would require a later OAuth/OpenID Connect feature slice.
+
 ## Latest Scripted Local QC Snapshot
 
 The latest scripted V16.2 QC pass on 2026-06-10 verified:

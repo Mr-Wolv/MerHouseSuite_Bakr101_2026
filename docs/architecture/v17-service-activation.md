@@ -41,6 +41,8 @@ The first implementation uses SMTP configuration and is safe by default:
 - Password reset requests are throttled per enabled account by `MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT` inside `MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES`; over-limit requests keep the generic public response and do not create another token or delivery.
 - Public access requests reject duplicate pending requester emails and are throttled per requester email by `MERHOUSE_ACCESS_REQUEST_LIMIT` inside `MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS`; over-limit submissions are rejected before another review record is created.
 
+This works in the machine-hosted tunnel lane as long as the backend has outbound SMTP access and public links use the tunnel/domain URL. The host location does not change the email delivery contract: MerHouse sends through SMTP, stores provider attempt evidence, and users follow HTTPS links back through the tunnel. Gmail/Google Workspace SMTP is only a sending provider here. Sign in with Google is not included in that SMTP work; it is a separate OAuth/OpenID Connect login feature and should not be claimed until redirect URIs, credentials, UI/backend flow, tests, and live proof are implemented.
+
 ## Notification Policy
 
 MerHouse should send email notifications only when the recipient, topic, and channel are allowed.

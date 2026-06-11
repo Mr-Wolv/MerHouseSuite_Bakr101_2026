@@ -47,6 +47,8 @@ Use these lanes in order unless a real sponsor or hosting budget changes the dec
 | 2. Oracle Cloud Always Free VPS-style host | Low-cost real server path when an Oracle account and available Always Free capacity exist. | VPS/Compose deployment with a public IP/domain, stronger uptime posture than a workstation, and closer production operations rehearsal. | Account setup, card verification, region capacity, VM hardening, backups, and DNS/TLS setup are still operator work. |
 | 3. Sponsored professional hosting | Use when someone funds or sponsors a more durable deployment. | Managed or professionally operated infrastructure, managed database/backups, observability, uptime, incident response, and a cleaner production claim. | Requires budget, sponsor decisions, vendor ownership, and a deliberate production operations plan. |
 
+The machine-hosted tunnel lane can still prove Gmail/Google Workspace SMTP delivery because email sending is an outbound backend operation. Password recovery, access-request/account-ready, and notification emails can work when `MERHOUSE_PUBLIC_FRONTEND_URL` points to the public HTTPS tunnel URL and SMTP credentials are configured outside Git. Links in those emails return through the tunnel to the local Compose stack. This does not automatically add Sign in with Google: Google account login is a separate OAuth/OpenID Connect feature that requires client credentials, redirect URIs, frontend/backend login flow support, and its own V&V proof.
+
 ## Professional Product Bar
 
 Production means MerHouse is operated as a real service, not just hosted somewhere public.
