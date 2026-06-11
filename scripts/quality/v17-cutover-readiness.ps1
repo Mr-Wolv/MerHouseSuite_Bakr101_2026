@@ -198,6 +198,11 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact apiBaseUrl must match apiBaseUrl."
         }
         if ($attachmentName -eq "androidRelease") {
+            if ([string]::IsNullOrWhiteSpace($proofArtifact.commitSha)) {
+                $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact commitSha must be non-blank."
+            } elseif ($proofArtifact.commitSha -ne $manifest.commitSha) {
+                $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact commitSha must match deployment commitSha."
+            }
             if ($proofArtifact.artifactKind -notin @("apk", "aab")) {
                 $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact artifactKind must be apk or aab."
             }
@@ -426,8 +431,22 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
 if ($null -ne $attached.androidRelease -and $attached.androidRelease.apiBaseUrl -ne $manifest.apiBaseUrl) {
     $failures += "Deployment evidence manifest attachedEvidence.androidRelease.apiBaseUrl must match apiBaseUrl."
 }
+if ($null -ne $attached.androidRelease -and $attached.androidRelease.commitSha -ne $manifest.commitSha) {
+    $failures += "Deployment evidence manifest attachedEvidence.androidRelease.commitSha must match commitSha."
+}
 if ($null -ne $attached.installedAndroidTour -and $attached.installedAndroidTour.apiUrl -ne $manifest.apiBaseUrl) {
     $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour.apiUrl must match apiBaseUrl."
+}
+if (
+    $null -ne $attached.androidRelease -and
+    $null -ne $attached.installedAndroidTour -and
+    $attached.androidRelease.artifactKind -eq "apk" -and
+    (
+        $attached.installedAndroidTour.apkSha256 -ne $attached.androidRelease.sha256 -or
+        [long]$attached.installedAndroidTour.apkBytes -ne [long]$attached.androidRelease.bytes
+    )
+) {
+    $failures += "Deployment evidence manifest attachedEvidence.installedAndroidTour APK fingerprint must match the signed Android release APK."
 }
 if ($null -ne $attached.emailProvider -and $attached.emailProvider.apiBaseUrl -ne $manifest.apiBaseUrl) {
     $failures += "Deployment evidence manifest attachedEvidence.emailProvider.apiBaseUrl must match apiBaseUrl."

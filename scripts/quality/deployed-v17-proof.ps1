@@ -110,6 +110,9 @@ function Resolve-EvidenceAttachment {
         if ([string]::IsNullOrWhiteSpace($json.apiBaseUrl)) {
             throw "AndroidReleaseManifestPath must include apiBaseUrl."
         }
+        if ([string]::IsNullOrWhiteSpace($json.commitSha)) {
+            throw "AndroidReleaseManifestPath must include commitSha."
+        }
         if ($json.artifactKind -notin @("apk", "aab")) {
             throw "AndroidReleaseManifestPath artifactKind must be apk or aab."
         }
@@ -346,10 +349,13 @@ function Resolve-EvidenceAttachment {
         apiBaseUrl = $json.apiBaseUrl
         apiUrl = $json.apiUrl
         providerStatus = $json.providerStatus
+        commitSha = $json.commitSha
         artifactKind = $json.artifactKind
         artifactPath = $json.artifactPath
         sha256 = $json.sha256
         bytes = $json.bytes
+        apkSha256 = $json.apkSha256
+        apkBytes = $json.apkBytes
         versionCode = $json.versionCode
         versionName = $json.versionName
         postRollbackMonitoringFrontendBaseUrl = $json.postRollbackMonitoring.frontendBaseUrl

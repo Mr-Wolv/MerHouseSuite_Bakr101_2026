@@ -42,6 +42,7 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
 @{
     schema = "merhouse.v17.android-release.v1"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    commitSha = "fixture"
     apiBaseUrl = "https://api.example.com"
     artifactKind = "aab"
     artifactPath = $validAndroidArtifactPath
@@ -56,6 +57,7 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
 @{
     schema = "merhouse.v17.android-release.v1"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    commitSha = "wrong-fixture"
     apiBaseUrl = "https://api.example.com"
     artifactKind = "aab"
     artifactPath = $wrongAndroidArtifactPath
@@ -285,7 +287,7 @@ $androidRelease = Invoke-AttachmentResolver -Name "AndroidReleaseManifestPath" -
 if ($androidRelease.schema -ne "merhouse.v17.android-release.v1") {
     throw "Valid Android release attachment did not resolve with the expected schema."
 }
-if ($androidRelease.apiBaseUrl -ne "https://api.example.com" -or $androidRelease.artifactKind -ne "aab") {
+if ($androidRelease.apiBaseUrl -ne "https://api.example.com" -or $androidRelease.artifactKind -ne "aab" -or $androidRelease.commitSha -ne "fixture") {
     throw "Valid Android release attachment did not preserve release target metadata."
 }
 if ($androidRelease.sha256 -ne $validAndroidArtifactHash -or [long]$androidRelease.bytes -ne $validAndroidArtifactBytes) {

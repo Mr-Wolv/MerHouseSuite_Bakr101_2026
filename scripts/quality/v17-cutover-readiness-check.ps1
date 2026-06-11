@@ -87,8 +87,9 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
 
 @{
     schema = "merhouse.v17.android-release.v1"
+    commitSha = "fixture"
     apiBaseUrl = "https://api.example.com"
-    artifactKind = "aab"
+    artifactKind = "apk"
     artifactPath = $artifactPaths.androidReleaseArtifact
     sha256 = $androidArtifactHash
     bytes = $androidArtifactBytes
@@ -192,8 +193,8 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.liveStakeholderWalkthrough -Encoding utf8
 
 $attached = [ordered]@{
-    androidRelease = [ordered]@{ schema = "merhouse.v17.android-release.v1"; path = $artifactPaths.androidRelease; apiBaseUrl = "https://api.example.com"; versionCode = 17; versionName = "17.0.0-internal" }
-    installedAndroidTour = [ordered]@{ schema = "merhouse.native-android-tour.report.v1"; path = $artifactPaths.installedAndroidTour; apiUrl = "https://api.example.com" }
+    androidRelease = [ordered]@{ schema = "merhouse.v17.android-release.v1"; path = $artifactPaths.androidRelease; apiBaseUrl = "https://api.example.com"; commitSha = "fixture"; artifactKind = "apk"; sha256 = $androidArtifactHash; bytes = $androidArtifactBytes; versionCode = 17; versionName = "17.0.0-internal" }
+    installedAndroidTour = [ordered]@{ schema = "merhouse.native-android-tour.report.v1"; path = $artifactPaths.installedAndroidTour; apiUrl = "https://api.example.com"; apkSha256 = $androidArtifactHash; apkBytes = $androidArtifactBytes }
     backupRestore = [ordered]@{ schema = "merhouse.v17.backup-restore-drill.v1"; path = $artifactPaths.backupRestore }
     rollback = [ordered]@{ schema = "merhouse.v17.rollback-rehearsal.v1"; path = $artifactPaths.rollback }
     emailProvider = [ordered]@{ schema = "merhouse.v17.email-provider-proof.v1"; path = $artifactPaths.emailProvider; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com"; providerStatus = "smtp-staging-proven" }
@@ -256,8 +257,9 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
 
 @{
     schema = "merhouse.v17.android-release.v1"
+    commitSha = "wrong-fixture"
     apiBaseUrl = "https://api.example.com"
-    artifactKind = "aab"
+    artifactKind = "apk"
     artifactPath = $artifactPaths.invalidAndroidReleaseArtifact
     sha256 = $androidArtifactHash
     bytes = $androidArtifactBytes
@@ -373,6 +375,7 @@ try {
 } catch {
     if (
         $_.Exception.Message -match "androidRelease schema" -and
+        $_.Exception.Message -match "androidRelease.path artifact commitSha" -and
         $_.Exception.Message -match "androidRelease.path artifact sha256" -and
         $_.Exception.Message -match "androidRelease.path artifact versionCode" -and
         $_.Exception.Message -match "androidRelease.path artifact versionName" -and
