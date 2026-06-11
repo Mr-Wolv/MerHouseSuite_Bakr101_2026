@@ -93,6 +93,15 @@ function Assert-DeployedProofHttpsGuards {
     if ($deployedProofText -notmatch 'Assert-AbsoluteHttpUrl\s+-Name\s+"ApiBaseUrl"') {
         throw "scripts\quality\deployed-v17-proof.ps1 must normalize the API URL through the shared URL guard."
     }
+    if ($deployedProofText -notmatch 'AndroidReleaseManifestPath commitSha must match deployed commitSha') {
+        throw "scripts\quality\deployed-v17-proof.ps1 must require Android release proof to match the deployed commit SHA."
+    }
+    if ($deployedProofText -notmatch 'BackupRestoreManifestPath commitSha must match deployed commitSha') {
+        throw "scripts\quality\deployed-v17-proof.ps1 must require backup restore proof to match the deployed commit SHA."
+    }
+    if ($deployedProofText -notmatch 'RollbackManifestPath commitSha must match deployed commitSha') {
+        throw "scripts\quality\deployed-v17-proof.ps1 must require rollback proof to match the deployed commit SHA."
+    }
     if ($deployedMonitoringText -notmatch 'FrontendBaseUrl must be an HTTPS deployment URL for deployed monitoring proof') {
         throw "scripts\quality\deployed-monitoring-proof.ps1 must require an HTTPS frontend URL unless local HTTP rehearsal is explicit."
     }

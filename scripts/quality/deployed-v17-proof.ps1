@@ -583,6 +583,19 @@ try {
     Pop-Location
 }
 
+if ($commitSha -eq "unavailable" -and ($androidReleaseEvidence -or $backupRestoreEvidence -or $rollbackEvidence)) {
+    throw "Git commit SHA must be available before attaching Android release, backup restore, or rollback evidence."
+}
+if ($androidReleaseEvidence -and $androidReleaseEvidence.commitSha -ne $commitSha) {
+    throw "AndroidReleaseManifestPath commitSha must match deployed commitSha. Expected $commitSha but found $($androidReleaseEvidence.commitSha)."
+}
+if ($backupRestoreEvidence -and $backupRestoreEvidence.commitSha -ne $commitSha) {
+    throw "BackupRestoreManifestPath commitSha must match deployed commitSha. Expected $commitSha but found $($backupRestoreEvidence.commitSha)."
+}
+if ($rollbackEvidence -and $rollbackEvidence.commitSha -ne $commitSha) {
+    throw "RollbackManifestPath commitSha must match deployed commitSha. Expected $commitSha but found $($rollbackEvidence.commitSha)."
+}
+
 Invoke-Checked "Checking deployed frontend shell and proxy smoke..." {
     & (Join-Path $PSScriptRoot "frontend-deploy-check.ps1") `
         -BaseUrl $normalizedFrontendBaseUrl `
