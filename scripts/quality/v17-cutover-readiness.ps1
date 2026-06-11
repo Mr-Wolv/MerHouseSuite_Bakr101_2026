@@ -86,7 +86,9 @@ function Test-OutputFile {
         [switch]$RequireApiSmokeReport,
         [switch]$RequireApiSmokeTiming,
         [switch]$RequireBrowserTourProvenance,
-        [switch]$RequireLoadSmokePassed
+        [switch]$RequireLoadSmokePassed,
+        [switch]$RequireGeneratedAt,
+        [switch]$RequireCheckedAt
     )
 
     $proofPath = Resolve-ProofPath -Path $outputFiles.$ProofName
@@ -101,6 +103,12 @@ function Test-OutputFile {
         }
         if ($RequirePassedStatus -and $proofReport.status -ne "PASSED") {
             $script:failures += "Deployment evidence manifest outputFiles.$ProofName status must be PASSED."
+        }
+        if ($RequireGeneratedAt) {
+            Test-ProofTimestamp -Context "Deployment evidence manifest outputFiles.$ProofName" -FieldName "generatedAt" -Value $proofReport.generatedAt
+        }
+        if ($RequireCheckedAt) {
+            Test-ProofTimestamp -Context "Deployment evidence manifest outputFiles.$ProofName" -FieldName "checkedAt" -Value $proofReport.checkedAt
         }
         if (-not [string]::IsNullOrWhiteSpace($ExpectedBaseUrl) -and $proofReport.baseUrl -ne $ExpectedBaseUrl) {
             $script:failures += "Deployment evidence manifest outputFiles.$ProofName baseUrl must match $ExpectedBaseUrl."
@@ -165,9 +173,9 @@ function Test-OutputFile {
 
 Test-OutputFile -ProofName "frontendProxySmoke" -ExpectedBaseUrl $manifest.frontendBaseUrl -RequireApiSmokeReport
 Test-OutputFile -ProofName "directApiSmoke" -ExpectedBaseUrl $manifest.apiBaseUrl -RequireApiSmokeReport
-Test-OutputFile -ProofName "monitoring" -ExpectedSchema "merhouse.v17.deployed-monitoring.v1" -ExpectedFrontendBaseUrl $manifest.frontendBaseUrl -ExpectedApiBaseUrl $manifest.apiBaseUrl
-Test-OutputFile -ProofName "performance" -RequirePassedStatus -RequireApiSmokeTiming
-Test-OutputFile -ProofName "loadSmoke" -ExpectedSchema "merhouse.load-smoke.v1" -ExpectedBaseUrl $manifest.apiBaseUrl -RequireLoadSmokePassed
+Test-OutputFile -ProofName "monitoring" -ExpectedSchema "merhouse.v17.deployed-monitoring.v1" -ExpectedFrontendBaseUrl $manifest.frontendBaseUrl -ExpectedApiBaseUrl $manifest.apiBaseUrl -RequireCheckedAt
+Test-OutputFile -ProofName "performance" -RequirePassedStatus -RequireApiSmokeTiming -RequireGeneratedAt
+Test-OutputFile -ProofName "loadSmoke" -ExpectedSchema "merhouse.load-smoke.v1" -ExpectedBaseUrl $manifest.apiBaseUrl -RequireLoadSmokePassed -RequireCheckedAt
 Test-OutputFile -ProofName "browserTour" -RequireBrowserTourProvenance
 
 $expectedAttachmentSchemas = @{

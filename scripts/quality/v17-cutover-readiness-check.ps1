@@ -23,8 +23,10 @@ $artifactPaths = [ordered]@{
     frontendProxySmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-frontend-proxy-smoke.json"
     directApiSmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-direct-api-smoke.json"
     monitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-monitoring.json"
+    invalidMonitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-monitoring.json"
     rollbackMonitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-rollback-monitoring.json"
     performance = Join-Path $resolvedOutputDirectory "v17-cutover-check-performance.json"
+    invalidPerformance = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-performance.json"
     loadSmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-load-smoke.json"
     invalidLoadSmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-load-smoke.json"
     browserTour = Join-Path $resolvedOutputDirectory "v17-cutover-check-browser-tour.json"
@@ -62,11 +64,11 @@ $smokeEvidence = @{
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.frontendProxySmoke -Encoding utf8
 ($smokeEvidence + @{ baseUrl = "https://api.example.com" }) |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.directApiSmoke -Encoding utf8
-@{ schema = "merhouse.v17.deployed-monitoring.v1"; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
+@{ schema = "merhouse.v17.deployed-monitoring.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.monitoring -Encoding utf8
-@{ schema = "merhouse.v17.deployed-monitoring.v1"; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
+@{ schema = "merhouse.v17.deployed-monitoring.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.rollbackMonitoring -Encoding utf8
-@{ status = "PASSED"; apiSmokeSeconds = 12.34 } |
+@{ status = "PASSED"; generatedAt = (Get-Date).ToUniversalTime().ToString("o"); apiSmokeSeconds = 12.34 } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.performance -Encoding utf8
 @{ schema = "merhouse.load-smoke.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); baseUrl = "https://api.example.com"; concurrentUsers = 25; requestsPerUser = 8; totalRequests = 200; result = @{ passed = $true; failures = 0; averageMs = 25; maxMs = 80 } } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.loadSmoke -Encoding utf8
@@ -76,6 +78,10 @@ $smokeEvidence = @{
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidLoadSmoke -Encoding utf8
 @{ appUrl = "https://wrong-app.example.com"; apiUrl = "https://wrong-api.example.com"; checkedAt = ""; checkedRoutes = @() } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidBrowserTour -Encoding utf8
+@{ schema = "merhouse.v17.deployed-monitoring.v1"; checkedAt = ""; frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidMonitoring -Encoding utf8
+@{ status = "PASSED"; generatedAt = "after timing"; apiSmokeSeconds = 12.34 } |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidPerformance -Encoding utf8
 
 Set-Content -LiteralPath $artifactPaths.androidReleaseArtifact -Value "fixture signed Android artifact" -Encoding utf8
 Set-Content -LiteralPath $artifactPaths.invalidAndroidReleaseArtifact -Value "changed Android artifact" -Encoding utf8
@@ -257,6 +263,8 @@ $wrongAttachmentManifest.attachedEvidence.alertRouting.path = $artifactPaths.inv
 $wrongAttachmentManifest.attachedEvidence.emailProvider.path = $artifactPaths.invalidEmailProvider
 $wrongAttachmentManifest.attachedEvidence.liveStakeholderWalkthrough.path = $artifactPaths.invalidLiveStakeholderWalkthrough
 $wrongAttachmentManifest.outputFiles.directApiSmoke = $artifactPaths.invalidBrowserTour
+$wrongAttachmentManifest.outputFiles.monitoring = $artifactPaths.invalidMonitoring
+$wrongAttachmentManifest.outputFiles.performance = $artifactPaths.invalidPerformance
 $wrongAttachmentManifest.outputFiles.loadSmoke = $artifactPaths.invalidLoadSmoke
 $wrongAttachmentManifest.outputFiles.browserTour = $artifactPaths.invalidBrowserTour
 $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $wrongAttachmentManifestPath -Encoding utf8
@@ -410,6 +418,8 @@ try {
         $_.Exception.Message -match "outputFiles.directApiSmoke status" -and
         $_.Exception.Message -match "outputFiles.directApiSmoke testRun" -and
         $_.Exception.Message -match "outputFiles.directApiSmoke apiResponses" -and
+        $_.Exception.Message -match "outputFiles.monitoring checkedAt" -and
+        $_.Exception.Message -match "outputFiles.performance generatedAt" -and
         $_.Exception.Message -match "outputFiles.loadSmoke baseUrl" -and
         $_.Exception.Message -match "outputFiles.loadSmoke result.passed" -and
         $_.Exception.Message -match "outputFiles.loadSmoke concurrentUsers" -and
