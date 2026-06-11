@@ -39,6 +39,8 @@ $requiredPatterns = @(
     'MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS:\s+"?[0-9]+"?',
     'MERHOUSE_AUTH_SEED_ADMIN_ENABLED:\s+"?false"?',
     'MERHOUSE_SWAGGER_ENABLED:\s+"?false"?',
+    'MERHOUSE_AGENT_MODE:\s+deterministic',
+    'MERHOUSE_AGENT_TIMEOUT_SECONDS:\s+"?[0-9]+"?',
     'SPRING_DATASOURCE_URL:\s+jdbc:postgresql://postgres:5432/',
     'VITE_API_BASE_URL:',
     'curl -fsS http://localhost:8080/api/v1/health',
