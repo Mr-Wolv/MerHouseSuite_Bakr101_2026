@@ -556,6 +556,12 @@ if ($androidReleaseEvidence -and $androidReleaseEvidence.apiBaseUrl -ne $normali
 if ($installedAndroidTourEvidence -and $installedAndroidTourEvidence.apiUrl -ne $normalizedApiBaseUrl) {
     throw "InstalledAndroidTourReportPath apiUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($installedAndroidTourEvidence.apiUrl)."
 }
+if ($androidReleaseEvidence -and $installedAndroidTourEvidence) {
+    if ($installedAndroidTourEvidence.apkSha256 -ne $androidReleaseEvidence.sha256 -or
+        [long]$installedAndroidTourEvidence.apkBytes -ne [long]$androidReleaseEvidence.bytes) {
+        throw "InstalledAndroidTourReportPath APK fingerprint must match AndroidReleaseManifestPath so the installed walkthrough proves the signed release artifact."
+    }
+}
 if ($emailProviderEvidence -and $emailProviderEvidence.apiBaseUrl -ne $normalizedApiBaseUrl) {
     throw "EmailProviderProofManifestPath apiBaseUrl must match deployed ApiBaseUrl. Expected $normalizedApiBaseUrl but found $($emailProviderEvidence.apiBaseUrl)."
 }

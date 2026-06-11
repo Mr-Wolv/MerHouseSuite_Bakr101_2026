@@ -173,6 +173,9 @@ function Assert-DeployedProofHttpsGuards {
     if ($deployedProofText -match 'recognized installed Android tour provenance') {
         throw "scripts\quality\deployed-v17-proof.ps1 must require the installed Android tour report schema instead of inferring schema-less provenance."
     }
+    if ($deployedProofText -notmatch 'InstalledAndroidTourReportPath APK fingerprint must match AndroidReleaseManifestPath') {
+        throw "scripts\quality\deployed-v17-proof.ps1 must reject mismatched Android release and installed-tour APK fingerprints."
+    }
     $cutoverReadinessScriptPath = Join-Path $projectRoot "scripts\quality\v17-cutover-readiness.ps1"
     $cutoverReadinessText = Get-Content -Raw -LiteralPath $cutoverReadinessScriptPath
     if ($cutoverReadinessText -match 'hasNativeTourProvenance') {
