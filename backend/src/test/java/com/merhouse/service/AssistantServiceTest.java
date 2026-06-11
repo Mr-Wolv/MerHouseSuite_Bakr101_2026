@@ -465,6 +465,52 @@ class AssistantServiceTest {
     }
 
     @Test
+    void mutationRequestWithPunctuationIsRefusedBeforeSummary() {
+        UUID userId = UUID.randomUUID();
+        UUID tenantId = UUID.randomUUID();
+        AppUser actor = user(userId, tenantId, UserRole.ADMIN, TenantType.MERCHANT);
+        when(currentUserService.required()).thenReturn(principal(userId, tenantId, UserRole.ADMIN));
+        when(userRepository.findWithTenantById(userId)).thenReturn(Optional.of(actor));
+        when(interactionRepository.save(any())).thenAnswer(invocation -> saved(invocation.getArgument(0)));
+
+        var response = service.interact(new AssistantInteractionRequest(
+            AssistantScope.PLATFORM_OVERVIEW,
+            null,
+            "Approve."
+        ));
+
+        assertEquals(AssistantInteractionType.REFUSAL, response.responseType());
+        assertEquals(
+            "I can summarize and suggest next review steps, but I cannot perform mutations or approve operational changes.",
+            response.responseText()
+        );
+        verifyNoInteractions(adminControlService);
+    }
+
+    @Test
+    void standaloneMutationVerbIsRefusedBeforeSummary() {
+        UUID userId = UUID.randomUUID();
+        UUID tenantId = UUID.randomUUID();
+        AppUser actor = user(userId, tenantId, UserRole.MERCHANT, TenantType.MERCHANT);
+        when(currentUserService.required()).thenReturn(principal(userId, tenantId, UserRole.MERCHANT));
+        when(userRepository.findWithTenantById(userId)).thenReturn(Optional.of(actor));
+        when(interactionRepository.save(any())).thenAnswer(invocation -> saved(invocation.getArgument(0)));
+
+        var response = service.interact(new AssistantInteractionRequest(
+            AssistantScope.MERCHANT_OPERATIONS,
+            null,
+            "delete"
+        ));
+
+        assertEquals(AssistantInteractionType.REFUSAL, response.responseType());
+        assertEquals(
+            "I can summarize and suggest next review steps, but I cannot perform mutations or approve operational changes.",
+            response.responseText()
+        );
+        verifyNoInteractions(dashboardService);
+    }
+
+    @Test
     void cannotDecideAnotherUsersSuggestion() {
         UUID userId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();

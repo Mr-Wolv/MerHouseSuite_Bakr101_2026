@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -239,17 +240,19 @@ public class DeterministicAssistantRuntime implements AssistantRuntime {
     private boolean asksForMutation(String prompt) {
         String normalized = prompt.toLowerCase();
         return List.of(
-            "approve ",
-            "cancel ",
-            "create ",
-            "delete ",
-            "disable ",
-            "enable ",
-            "reset ",
-            "ship ",
-            "settle ",
-            "suspend ",
-            "update "
-        ).stream().anyMatch(normalized::contains);
+            "approve",
+            "cancel",
+            "convert",
+            "create",
+            "delete",
+            "disable",
+            "enable",
+            "reject",
+            "reset",
+            "ship",
+            "settle",
+            "suspend",
+            "update"
+        ).stream().anyMatch(verb -> Pattern.compile("\\b" + Pattern.quote(verb) + "\\b").matcher(normalized).find());
     }
 }
