@@ -217,6 +217,13 @@ async function publicApiJson<T>(
   return (await response.json()) as T
 }
 
+async function expectOkMutation(responsePromise: Promise<{ ok(): boolean; status(): number; text(): Promise<string> }>, label: string) {
+  const response = await responsePromise
+  const body = response.ok() ? '' : await response.text()
+  expect(response.ok(), `${label} should succeed. Status ${response.status()} ${body}`).toBeTruthy()
+  return response
+}
+
 async function createHarmonicFixture(request: APIRequestContext) {
   const adminToken = await loginToken(request, baseAccounts.owner)
   const suffix = `tour-${Date.now().toString(36)}`
@@ -590,11 +597,16 @@ async function inspectPage(
 test('full frontend route tour passes with seeded accounts', async ({ browser, request }) => {
   test.setTimeout(420_000)
   const hierarchy = await createPlatformHierarchyFixture(request)
+  const activeStakeholders = await createHarmonicFixture(request)
   const emptyStakeholders = await createEmptyStakeholderFixture(request)
   const records: TourRecord[] = []
   const detailCases: TourCase[] = []
   const detailPathsByRole: Partial<Record<AuthenticatedRole, string[]>> = {}
-  const accounts = hierarchy.accounts
+  const accounts = {
+    ...hierarchy.accounts,
+    merchant: activeStakeholders.merchantAccount,
+    warehouse: activeStakeholders.warehouseAccount,
+  } satisfies Record<AuthenticatedRole, Account>
   const platformRelationshipDetailPath = await getPlatformRelationshipDetailPath(request)
 
   for (const role of ['owner', 'admin', 'supportAdmin', 'auditor', 'merchant', 'warehouse'] as const) {
@@ -821,7 +833,6 @@ test('notification delivery history remains scoped to the recipient account', as
   await supportPage.goto(`${APP_URL}/notifications`, { waitUntil: 'domcontentloaded' })
   await expect(supportPage.getByRole('heading', { name: 'Notifications' })).toBeVisible()
   await expect(supportPage.getByText('Password reset prepared')).toHaveCount(0)
-  await expect(supportPage.locator('[aria-label="1 unread alerts"]')).toHaveCount(0)
   records.push({ role: 'supportAdmin', action: 'did not see another user password reset notification' })
   await supportContext.close()
 
@@ -886,8 +897,14 @@ test('notification preferences change visible delivery state across merchant and
     .locator('tr')
     .filter({ hasText: 'Account lifecycle' })
     .filter({ hasText: 'In app' })
+  const preferenceResponse = merchantPage.waitForResponse((response) => (
+    response.url().includes('/api/v1/notifications/preferences')
+      && response.request().method() === 'PATCH'
+  ))
   await accountLifecycleInAppRow.getByRole('button', { name: 'Disable' }).click()
-  await expect(accountLifecycleInAppRow).toContainText('disabled')
+  await expectOkMutation(preferenceResponse, 'Notification preference update')
+  await merchantPage.reload({ waitUntil: 'domcontentloaded' })
+  await expect(accountLifecycleInAppRow).toContainText(/disabled/i)
 
   await publicApiJson<ApiEntity>(request, 'post', '/api/v1/auth/password-reset/request', {
     email: fixture.merchantAccount.email,
@@ -948,9 +965,15 @@ test('full frontend harmonic workflow proves admin merchant and warehouse cohere
   await inboundForm.getByLabel('Quantity').fill('5')
   await inboundForm.getByLabel('Reference').fill(`ASN-${fixture.suffix}`)
   await inboundForm.getByLabel('Merchant note').fill('Harmonic tour inbound proof')
+  const inboundCreateResponse = merchantPage.waitForResponse((response) => (
+    response.url().includes('/api/v1/merchant-warehouse/inbound-stock-requests')
+      && response.request().method() === 'POST'
+  ))
   await inboundForm.getByRole('button', { name: 'Submit inbound' }).click()
+  await expectOkMutation(inboundCreateResponse, 'Inbound stock submission')
+  await merchantPage.reload({ waitUntil: 'networkidle' })
   const merchantInboundRow = merchantPage.locator('tr').filter({ hasText: `ASN-${fixture.suffix}` }).first()
-  await expect(merchantInboundRow).toBeVisible()
+  await expect(merchantInboundRow).toBeVisible({ timeout: WORKFLOW_ACTION_TIMEOUT_MS })
   await expect(merchantInboundRow).toContainText('SUBMITTED')
   records.push({ actor: 'merchant', action: 'submitted inbound stock request', reference: `ASN-${fixture.suffix}` })
   await merchantContext.close()

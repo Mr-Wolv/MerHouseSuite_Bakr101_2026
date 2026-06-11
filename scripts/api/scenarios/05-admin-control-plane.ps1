@@ -95,7 +95,7 @@ RETURNING id, status;
 $pendingOutboxEvent = @($diagnosticRows | Select-Object -First 1)
 Assert-NotBlank -Value $pendingOutboxEvent.id -Message "V12 outbox diagnostic smoke did not create a pending event."
 Assert-Equal -Actual $pendingOutboxEvent.status -Expected "PENDING" -Message "V12 diagnostic outbox event did not start pending."
-$recentOutboxEvents = Invoke-Json -Context $Context -Method Get -Path "/api/v1/admin/outbox/events?limit=25" -Headers $Context.AdminHeaders
+$recentOutboxEvents = Invoke-Json -Context $Context -Method Get -Path "/api/v1/admin/outbox/events?limit=100" -Headers $Context.AdminHeaders
 Assert-Equal -Actual (@($recentOutboxEvents | Where-Object { $_.id -eq $pendingOutboxEvent.id }).Count) -Expected 1 -Message "V12 outbox events API did not include the diagnostic event."
 Invoke-ExpectedHttpFailure -Method Post -Path "/api/v1/admin/outbox/events/$($pendingOutboxEvent.id)/retry" -Headers $Context.AdminHeaders -ExpectedStatus 409
 $Context.V12DeadLetterEvent = Invoke-Json -Context $Context -Method Post -Path "/api/v1/admin/outbox/events/$($pendingOutboxEvent.id)/dead-letter" -Headers $Context.AdminHeaders -Body @{
