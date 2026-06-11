@@ -25,6 +25,7 @@ $wrongInstalledAndroidTourPath = Join-Path $resolvedOutputDirectory "v17-install
 $validEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-valid.json"
 $wrongEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-wrong.json"
 $badTimestampEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-bad-timestamp.json"
+$leakedSecretEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-leaked-secret.json"
 $validBackupRestorePath = Join-Path $resolvedOutputDirectory "v17-backup-restore-proof-check-valid.json"
 $wrongBackupRestorePath = Join-Path $resolvedOutputDirectory "v17-backup-restore-proof-check-wrong.json"
 $validBackupDumpPath = Join-Path $resolvedOutputDirectory "v17-backup-restore-proof-check.dump"
@@ -155,6 +156,28 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     deliveryEvidence = "operator-confirmed-smtp-staging-fixture"
     secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, or message bodies are stored in this parser proof fixture."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $badTimestampEmailProviderPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.email-provider-proof.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    providerStatus = "smtp-staging-proven"
+    workflowsProven = @("password-recovery", "access-request", "notification-email")
+    workflowEvidence = @{
+        "password-recovery" = "reset-link provider message accepted for staged recipient"
+        "access-request" = "account-ready provider message accepted for approved requester"
+        "notification-email" = "notification provider message accepted for opted-in recipient"
+    }
+    workflowProviderStatuses = @{
+        "password-recovery" = "SENT"
+        "access-request" = "SENT"
+        "notification-email" = "SENT"
+    }
+    deliveryEvidence = "operator-confirmed-smtp-staging-fixture"
+    accessToken = "eyJhbGciOiJIUzI1NiJ9.fixture.fixture"
+    secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, or message bodies are stored in this parser proof fixture."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $leakedSecretEmailProviderPath -Encoding utf8
 
 @{
     schema = "merhouse.v17.backup-restore-drill.v1"
@@ -444,6 +467,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Malformed email-provider timestamp was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    Invoke-AttachmentResolver -Name "EmailProviderProofManifestPath" -Path $leakedSecretEmailProviderPath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "must not include accessToken") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Leaked secret email-provider attachment was accepted."
 }
 
 $failedAsExpected = $false
