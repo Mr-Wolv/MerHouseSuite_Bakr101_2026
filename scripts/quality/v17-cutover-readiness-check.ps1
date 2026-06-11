@@ -15,9 +15,11 @@ New-Item -ItemType Directory -Force -Path $resolvedOutputDirectory | Out-Null
 $validManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-valid-deployment-evidence.json"
 $missingEvidenceManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-missing-evidence.json"
 $wrongAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment.json"
+$wrongRollbackMonitoringManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-rollback-monitoring.json"
 $validOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-valid-report.json"
 $missingOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-missing-report.json"
 $wrongAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment-report.json"
+$wrongRollbackMonitoringOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-rollback-monitoring-report.json"
 
 $artifactPaths = [ordered]@{
     frontendProxySmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-frontend-proxy-smoke.json"
@@ -26,6 +28,7 @@ $artifactPaths = [ordered]@{
     monitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-monitoring.json"
     invalidMonitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-monitoring.json"
     rollbackMonitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-rollback-monitoring.json"
+    invalidRollbackMonitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-rollback-monitoring.json"
     performance = Join-Path $resolvedOutputDirectory "v17-cutover-check-performance.json"
     invalidPerformance = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-performance.json"
     loadSmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-load-smoke.json"
@@ -43,6 +46,7 @@ $artifactPaths = [ordered]@{
     backupRestoreDump = Join-Path $resolvedOutputDirectory "v17-cutover-check-backup-restore.dump"
     rollback = Join-Path $resolvedOutputDirectory "v17-cutover-check-rollback.json"
     invalidRollback = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-rollback.json"
+    rollbackWrongMonitoring = Join-Path $resolvedOutputDirectory "v17-cutover-check-rollback-wrong-monitoring.json"
     emailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-email-provider.json"
     invalidEmailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-email-provider.json"
     alertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-routing.json"
@@ -81,6 +85,8 @@ $smokeEvidence = @{
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.monitoring -Encoding utf8
 @{ schema = "merhouse.v17.deployed-monitoring.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); frontendBaseUrl = "https://app.example.com"; apiBaseUrl = "https://api.example.com" } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.rollbackMonitoring -Encoding utf8
+@{ schema = "merhouse.v17.deployed-monitoring.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); frontendBaseUrl = "https://wrong-app.example.com"; apiBaseUrl = "https://api.example.com" } |
+    ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidRollbackMonitoring -Encoding utf8
 @{ status = "PASSED"; generatedAt = (Get-Date).ToUniversalTime().ToString("o"); apiSmokeSeconds = 12.34 } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.performance -Encoding utf8
 @{ schema = "merhouse.load-smoke.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); baseUrl = "https://api.example.com"; concurrentUsers = 25; requestsPerUser = 8; totalRequests = 200; result = @{ passed = $true; failures = 0; averageMs = 25; maxMs = 80 } } |
@@ -167,6 +173,24 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     secretPolicy = "Private env values, provider credentials, deployment logs, keystores, and backup archives are excluded from this manifest."
 } |
     ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $artifactPaths.rollback -Encoding utf8
+@{
+    schema = "merhouse.v17.rollback-rehearsal.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    commitSha = "fixture"
+    rollbackRan = $true
+    preflight = @{
+        envAudit = "passed"
+        vpsShape = "passed"
+    }
+    postRollbackMonitoring = @{
+        ran = $true
+        frontendBaseUrl = "https://app.example.com"
+        apiBaseUrl = "https://api.example.com"
+        reportPath = $artifactPaths.invalidRollbackMonitoring
+    }
+    secretPolicy = "Private env values, provider credentials, deployment logs, keystores, and backup archives are excluded from this manifest."
+} |
+    ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $artifactPaths.rollbackWrongMonitoring -Encoding utf8
 @{
     schema = "merhouse.v17.email-provider-proof.v1"
     completedAt = (Get-Date).ToUniversalTime().ToString("o")
@@ -282,6 +306,10 @@ $wrongAttachmentManifest.outputFiles.performance = $artifactPaths.invalidPerform
 $wrongAttachmentManifest.outputFiles.loadSmoke = $artifactPaths.invalidLoadSmoke
 $wrongAttachmentManifest.outputFiles.browserTour = $artifactPaths.invalidBrowserTour
 $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $wrongAttachmentManifestPath -Encoding utf8
+
+$wrongRollbackMonitoringManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+$wrongRollbackMonitoringManifest.attachedEvidence.rollback.path = $artifactPaths.rollbackWrongMonitoring
+$wrongRollbackMonitoringManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $wrongRollbackMonitoringManifestPath -Encoding utf8
 
 @{
     schema = "merhouse.v17.android-release.v1"
@@ -463,6 +491,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Wrong attachment evidence was accepted as cutover-ready."
+}
+
+$failedAsExpected = $false
+try {
+    & (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $wrongRollbackMonitoringManifestPath -OutputPath $wrongRollbackMonitoringOutputPath
+} catch {
+    if ($_.Exception.Message -match "postRollbackMonitoring.reportPath frontendBaseUrl") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Rollback evidence with wrong monitoring report target was accepted as cutover-ready."
 }
 
 Write-Host "V17 cutover readiness fixture check passed."

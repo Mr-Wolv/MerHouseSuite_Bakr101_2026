@@ -410,8 +410,16 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
                 } else {
                     try {
                         $rollbackMonitoringReport = Get-Content -Raw -LiteralPath $rollbackMonitoringPath | ConvertFrom-Json
+                        Test-NoSecretLeak -Context "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath" -Value $rollbackMonitoringReport
                         if ($rollbackMonitoringReport.schema -ne "merhouse.v17.deployed-monitoring.v1") {
                             $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath schema must be merhouse.v17.deployed-monitoring.v1."
+                        }
+                        Test-ProofTimestamp -Context "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath" -FieldName "checkedAt" -Value $rollbackMonitoringReport.checkedAt
+                        if ($rollbackMonitoringReport.frontendBaseUrl -ne $proofArtifact.postRollbackMonitoring.frontendBaseUrl) {
+                            $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath frontendBaseUrl must match postRollbackMonitoring.frontendBaseUrl."
+                        }
+                        if ($rollbackMonitoringReport.apiBaseUrl -ne $proofArtifact.postRollbackMonitoring.apiBaseUrl) {
+                            $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath apiBaseUrl must match postRollbackMonitoring.apiBaseUrl."
                         }
                     } catch {
                         $failures += "Deployment evidence manifest attachedEvidence.rollback.path artifact postRollbackMonitoring.reportPath must be readable JSON proof."

@@ -32,6 +32,7 @@ $validBackupDumpPath = Join-Path $resolvedOutputDirectory "v17-backup-restore-pr
 $validRollbackPath = Join-Path $resolvedOutputDirectory "v17-rollback-proof-check-valid.json"
 $wrongRollbackPath = Join-Path $resolvedOutputDirectory "v17-rollback-proof-check-wrong.json"
 $validRollbackMonitoringPath = Join-Path $resolvedOutputDirectory "v17-rollback-monitoring-proof-check.json"
+$wrongRollbackMonitoringPath = Join-Path $resolvedOutputDirectory "v17-rollback-monitoring-proof-check-wrong.json"
 
 Set-Content -LiteralPath $validAndroidArtifactPath -Value "fixture signed Android artifact" -Encoding utf8
 Set-Content -LiteralPath $wrongAndroidArtifactPath -Value "changed Android artifact" -Encoding utf8
@@ -211,9 +212,17 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
 
 @{
     schema = "merhouse.v17.deployed-monitoring.v1"
+    checkedAt = (Get-Date).ToUniversalTime().ToString("o")
     frontendBaseUrl = "https://app.example.com"
     apiBaseUrl = "https://api.example.com"
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validRollbackMonitoringPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.deployed-monitoring.v1"
+    checkedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://wrong-app.example.com"
+    apiBaseUrl = "https://api.example.com"
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongRollbackMonitoringPath -Encoding utf8
 
 @{
     schema = "merhouse.v17.rollback-rehearsal.v1"
@@ -546,6 +555,40 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Rollback attachment without post-rollback monitoring was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    $wrongMonitoringTargetRollbackPath = Join-Path $resolvedOutputDirectory "v17-rollback-proof-check-wrong-monitoring-target.json"
+    @{
+        schema = "merhouse.v17.rollback-rehearsal.v1"
+        generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+        commitSha = "fixture"
+        rollbackRan = $true
+        preflight = @{
+            envAudit = "passed"
+            vpsShape = "passed"
+        }
+        postRollbackMonitoring = @{
+            ran = $true
+            frontendBaseUrl = "https://app.example.com"
+            apiBaseUrl = "https://api.example.com"
+            reportPath = $wrongRollbackMonitoringPath
+        }
+        secretPolicy = "Private env values, provider credentials, deployment logs, keystores, and backup archives are excluded from this manifest."
+    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $wrongMonitoringTargetRollbackPath -Encoding utf8
+
+    Invoke-AttachmentResolver -Name "RollbackManifestPath" -Path $wrongMonitoringTargetRollbackPath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "postRollbackMonitoring.reportPath frontendBaseUrl") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Rollback attachment with wrong monitoring report target was accepted."
 }
 
 $failedAsExpected = $false

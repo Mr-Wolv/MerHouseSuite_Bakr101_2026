@@ -349,8 +349,16 @@ function Resolve-EvidenceAttachment {
             } catch {
                 throw "RollbackManifestPath postRollbackMonitoring.reportPath must be readable JSON proof."
             }
+            Assert-NoSecretLeak -Value $monitoringReport
             if ($monitoringReport.schema -ne "merhouse.v17.deployed-monitoring.v1") {
                 throw "RollbackManifestPath postRollbackMonitoring.reportPath schema must be merhouse.v17.deployed-monitoring.v1."
+            }
+            Assert-ProofTimestamp -FieldName "postRollbackMonitoring.reportPath checkedAt" -Value $monitoringReport.checkedAt
+            if ($monitoringReport.frontendBaseUrl -ne $json.postRollbackMonitoring.frontendBaseUrl) {
+                throw "RollbackManifestPath postRollbackMonitoring.reportPath frontendBaseUrl must match postRollbackMonitoring.frontendBaseUrl."
+            }
+            if ($monitoringReport.apiBaseUrl -ne $json.postRollbackMonitoring.apiBaseUrl) {
+                throw "RollbackManifestPath postRollbackMonitoring.reportPath apiBaseUrl must match postRollbackMonitoring.apiBaseUrl."
             }
         }
     }
