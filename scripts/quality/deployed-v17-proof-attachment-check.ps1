@@ -22,6 +22,7 @@ $validAndroidArtifactPath = Join-Path $resolvedOutputDirectory "v17-android-rele
 $wrongAndroidArtifactPath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-wrong.aab"
 $validInstalledAndroidTourPath = Join-Path $resolvedOutputDirectory "v17-installed-android-tour-proof-check-valid.json"
 $wrongInstalledAndroidTourPath = Join-Path $resolvedOutputDirectory "v17-installed-android-tour-proof-check-wrong.json"
+$schemaLessInstalledAndroidTourPath = Join-Path $resolvedOutputDirectory "v17-installed-android-tour-proof-check-schema-less.json"
 $validEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-valid.json"
 $wrongEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-wrong.json"
 $badTimestampEmailProviderPath = Join-Path $resolvedOutputDirectory "v17-email-provider-proof-check-bad-timestamp.json"
@@ -87,6 +88,19 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     )
     badRecords = @()
 } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $validInstalledAndroidTourPath -Encoding utf8
+
+@{
+    apiUrl = "https://api.example.com"
+    checkedAt = (Get-Date).ToUniversalTime().ToString("o")
+    apkSha256 = $validAndroidArtifactHash
+    apkBytes = $validAndroidArtifactBytes
+    deviceSerials = @("emulator-fixture")
+    checkedRoutes = 2
+    records = @(
+        @{ role = "OWNER"; route = "/admin"; screenshot = "fixture-owner-admin.png" }
+    )
+    badRecords = @()
+} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $schemaLessInstalledAndroidTourPath -Encoding utf8
 
 @{
     schema = "merhouse.native-android-tour.report.v1"
@@ -453,6 +467,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Incomplete installed Android tour attachment was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    Invoke-AttachmentResolver -Name "InstalledAndroidTourReportPath" -Path $schemaLessInstalledAndroidTourPath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "must include a non-blank schema field") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Schema-less installed Android tour attachment was accepted."
 }
 
 $failedAsExpected = $false

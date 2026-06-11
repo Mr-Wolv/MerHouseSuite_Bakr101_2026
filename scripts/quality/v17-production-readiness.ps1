@@ -102,6 +102,14 @@ function Assert-DeployedProofHttpsGuards {
     if ($deployedProofText -notmatch 'RollbackManifestPath commitSha must match deployed commitSha') {
         throw "scripts\quality\deployed-v17-proof.ps1 must require rollback proof to match the deployed commit SHA."
     }
+    if ($deployedProofText -match 'recognized installed Android tour provenance') {
+        throw "scripts\quality\deployed-v17-proof.ps1 must require the installed Android tour report schema instead of inferring schema-less provenance."
+    }
+    $cutoverReadinessScriptPath = Join-Path $projectRoot "scripts\quality\v17-cutover-readiness.ps1"
+    $cutoverReadinessText = Get-Content -Raw -LiteralPath $cutoverReadinessScriptPath
+    if ($cutoverReadinessText -match 'hasNativeTourProvenance') {
+        throw "scripts\quality\v17-cutover-readiness.ps1 must require the installed Android tour report schema instead of inferring schema-less provenance."
+    }
     if ($deployedMonitoringText -notmatch 'FrontendBaseUrl must be an HTTPS deployment URL for deployed monitoring proof') {
         throw "scripts\quality\deployed-monitoring-proof.ps1 must require an HTTPS frontend URL unless local HTTP rehearsal is explicit."
     }

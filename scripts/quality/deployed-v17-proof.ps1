@@ -149,18 +149,8 @@ function Resolve-EvidenceAttachment {
     $rejectEmailAddresses = $Name -in @("EmailProviderProofManifestPath", "AlertRoutingManifestPath", "LiveStakeholderWalkthroughManifestPath")
     Assert-NoSecretLeak -Value $json -RejectEmailAddresses:$rejectEmailAddresses
     $schema = $json.schema
-    if ([string]::IsNullOrWhiteSpace($schema) -and $Name -eq "InstalledAndroidTourReportPath") {
-        $hasNativeTourProvenance =
-            -not [string]::IsNullOrWhiteSpace($json.apkSha256) -and
-            -not [string]::IsNullOrWhiteSpace($json.apiUrl) -and
-            $null -ne $json.checkedRoutes -and
-            @($json.deviceSerials).Count -gt 0
-        if ($hasNativeTourProvenance) {
-            $schema = "merhouse.native-android-tour.report.v1"
-        }
-    }
     if ([string]::IsNullOrWhiteSpace($schema)) {
-        throw "$Name must include a non-blank schema field or recognized installed Android tour provenance."
+        throw "$Name must include a non-blank schema field."
     }
 
     $expectedSchemas = @{

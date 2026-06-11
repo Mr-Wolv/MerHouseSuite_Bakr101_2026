@@ -256,16 +256,6 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
     try {
         $proofArtifact = Get-Content -Raw -LiteralPath $proofPath | ConvertFrom-Json
         $proofSchema = $proofArtifact.schema
-        if ([string]::IsNullOrWhiteSpace($proofSchema) -and $attachmentName -eq "installedAndroidTour") {
-            $hasNativeTourProvenance =
-                -not [string]::IsNullOrWhiteSpace($proofArtifact.apkSha256) -and
-                -not [string]::IsNullOrWhiteSpace($proofArtifact.apiUrl) -and
-                $null -ne $proofArtifact.checkedRoutes -and
-                @($proofArtifact.deviceSerials).Count -gt 0
-            if ($hasNativeTourProvenance) {
-                $proofSchema = "merhouse.native-android-tour.report.v1"
-            }
-        }
         if ($proofSchema -ne $expectedAttachmentSchemas[$attachmentName]) {
             $failures += "Deployment evidence manifest attachedEvidence.$attachmentName.path artifact schema must be $($expectedAttachmentSchemas[$attachmentName])."
         }
