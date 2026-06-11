@@ -6,6 +6,8 @@ MerHouse can move from local-certified project to deployed service only through 
 
 Do not describe MerHouse as production deployed until this page has concrete values, proof links, and owners for the deployment target being used.
 
+The V17 release should stay deliberately small: deploy the existing product professionally, prove the web/backend and signed Android release against real HTTPS targets, and move future hardening into CI/CD-backed bug hunting. Do not add new broad product scope to make deployment feel more complete. The agent is the one accepted prototype in V17: it may be useful read-plus-draft assistance, but it is not production autonomous automation, does not mutate operational records, and must keep deterministic fallback behavior until a later explicit provider/tool-authorization slice is designed and proven.
+
 V17 must not rely on local defaults:
 
 - no seeded owner account in public environments
@@ -80,6 +82,8 @@ The first V17 implementation target is VPS + Docker Compose:
 - `scripts/quality/v17-alert-routing-proof.ps1` writes the sanitized alert-routing artifact only after explicit operator confirmation of API health, frontend health, and failed-provider-delivery alert evidence.
 - `scripts/quality/v17-live-stakeholder-walkthrough-proof.ps1` writes the sanitized final live-review artifact only after the reviewer completes the real browser and installed-Android walkthroughs.
 - `scripts/quality/deployed-v17-proof.ps1` runs deployed frontend/API proof against explicit public HTTPS URLs after rollout and writes a sanitized deployment evidence manifest.
+
+CI/CD becomes the ongoing bug-hunt engine after the first deployment. The release path should keep checks boring and repeatable: deploy, run smoke/monitoring/load/browser/mobile proof, fix real failures, rerun the matching proof, and only then broaden the gate if the failure shows a durable gap.
 
 Minimum staging proof:
 
@@ -199,6 +203,7 @@ V17 is complete only when:
 - CORS, HTTPS, Swagger/OpenAPI unavailability, seed admin, recovery token echo, and public startup validation match the production boundary
 - database backup and restore have been proven
 - provider-backed delivery either works with evidence or remains explicitly disabled and labeled as local/in-app only
+- all non-agent product capabilities claimed for V17 are deployed or explicitly disabled by policy; the agent remains labeled as v1 read-plus-draft prototype behavior with deterministic fallback and no mutations
 - monitoring and alerting detect API health, frontend reachability, backend errors, and failed background delivery/dispatch work
 - capacity, load, soak, provider-exchange, and cross-platform proof meet the documented first-release target
 - API smoke, frontend route proof, performance readiness, and live stakeholder walkthrough pass against the deployed environment

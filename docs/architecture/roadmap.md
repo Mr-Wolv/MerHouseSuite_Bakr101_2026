@@ -85,6 +85,8 @@ Acceptance bar:
 
 V17 should begin only when MerHouse is intentionally being deployed to real infrastructure.
 
+V17 first-release rule: finish the simplest professional deployment before expanding product scope. The target is a deployed web/backend service, signed internal Android release proof, provider-backed email for recovery/access/notifications when enabled, backup/restore/rollback rehearsal, monitoring/load proof, and live browser plus installed-Android validation. The only intentionally prototype-grade product capability in this release is the agent: it remains v1 read-plus-draft assistance with deterministic fallback and no operational mutation. Bug hunting after deployment should be driven by CI/CD, deployed smoke/load/browser/mobile proof, and concrete user-facing defects rather than broad speculative refactoring.
+
 Planned scope:
 
 - production deployment architecture recorded in [Production deployment activation](production-deployment-activation.md)

@@ -6,6 +6,8 @@ Future model-backed or provider-backed agent activation belongs to V17 or later 
 
 V17 v1 introduces the runtime seam without mutation authority. `AssistantService` owns authenticated request persistence, history scoping, suggestion decisions, and audit records; `AssistantRuntime` owns read-plus-draft generation through the deterministic `DeterministicAssistantRuntime` implementation. Assistant interactions record `agentMode`, optional `agentModelName`, `agenticWork=read-plus-draft`, `mutationPolicy`, and `runtime` metadata so deployed proof can distinguish deterministic local drafts from any later model-backed runtime.
 
+For the first deployed V17 release, this is intentionally the only prototype-grade product capability. The rest of V17 should converge on professional deployment proof for the existing web/backend, email, operations, and Android release paths. The assistant must therefore stay clearly labeled as read-plus-draft and must not become a hidden deployment blocker for model/provider work.
+
 Public deployment safety currently accepts only `MERHOUSE_AGENT_MODE=deterministic` with a bounded `MERHOUSE_AGENT_TIMEOUT_SECONDS` value from 1 to 60. Non-deterministic or provider-backed modes must fail startup and deployment env audit until a real runtime adapter, authorization model, unavailable-state behavior, and proof suite are implemented.
 
 ## Supported Scope

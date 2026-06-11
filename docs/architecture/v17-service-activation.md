@@ -2,6 +2,8 @@
 
 This note records the next service layer MerHouse may activate when the project moves beyond local certification. Private V17 implementation has begun, but this is not a current deployment claim.
 
+V17 should finish as a simple deployed release before adding more product surface. Email is the real external service target for the first deployment. Android OS notifications, push providers, and autonomous agent mutations are out of scope. The agent is the only deliberate v1 prototype: it can draft and explain next steps from authorized context, but it cannot perform operational work until a later tool-authorization release is designed, tested, audited, and proven.
+
 V16.2 keeps account recovery, access-request conversion, notifications, and assistant behavior local and auditable. V17 may replace or extend those local boundaries with real external services after staging proof, provider credentials, secrets handling, monitoring, and rollback are ready.
 
 ## Service Targets
@@ -56,6 +58,8 @@ Native Android OS notifications, lock-screen alerts, notification-tray delivery,
 ## Agentic Work Direction
 
 Any future real MerHouse agent must remain backend-mediated. The V17 v1 boundary is read-plus-draft only: the runtime may summarize approved context, propose review plans, and record scoped metadata, but it cannot call mutation tools or change operational records. A later provider-backed or tool-enabled agent can plan and call tools only through approved backend APIs; it must not connect directly to the database, bypass role/tenant authorization, or silently mutate operational records.
+
+For V17 completion, do not block deployment on model-backed reasoning. Ship the deterministic/read-plus-draft boundary, keep it visibly non-mutating, and let post-deployment CI/CD and live bug reports drive the next agent slice.
 
 Required shape:
 

@@ -42,6 +42,8 @@ V17 production work is private until the deployment is proven. Keep VPS env file
 
 During V17 production activation, do not refactor unless a concrete problem requires it: failing proof, deployment blocker, security/runtime boundary issue, performance bottleneck, real duplication or coupling that blocks deployment, or a documented V&V/QC/QA defect. Do not start cosmetic, speculative, or architecture-ideal refactors while deployment proof is waiting on real external inputs.
 
+For the first V17 deployment, keep scope simple. Finish and prove the existing product on web/backend plus signed Android release, email delivery when enabled, backup/restore/rollback, monitoring, load, and live walkthrough evidence. The agent is the only intentional v1 prototype: it remains read-plus-draft, deterministic-fallback, and non-mutating until a later provider/tool-authorization slice is deliberately designed and proven. After deployment, use CI/CD, deployed smoke/load/browser/mobile proof, and concrete defects to guide bug hunting.
+
 Keep local-only values and working context out of Git. Use environment variables, templates, ignored files, or explicit external paths for anything that belongs to one machine or one deployment.
 
 Local/demo credentials may exist only when they are obviously fake, development-scoped, and documented as such. If there is doubt, keep the value out of the repository or ask for clarification before implementing.

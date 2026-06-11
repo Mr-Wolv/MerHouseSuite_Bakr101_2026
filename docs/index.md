@@ -13,7 +13,7 @@ This repository is prepared as a public local-development project. It includes t
 - [Scripts guide](development/scripts.md): local helper scripts and when to use them.
 - [Knowledge system](development/knowledge-system.md): tracked docs, repo shape, and markdown proof.
 
-MerHouse is prepared here as a local-development stack and public-readable project. V16.2 local certification is complete through mocks, dry-run proof, cross-surface V&V/QC/QA evidence, repository checks, and a recorded final live browser/installed-APK walkthrough; actual production deployment is deferred to a later optional phase.
+MerHouse is prepared here as a local-development stack and public-readable project. V16.2 local certification is complete through mocks, dry-run proof, cross-surface V&V/QC/QA evidence, repository checks, and a recorded final live browser/installed-APK walkthrough. Private V17 deployment work targets a simple professional web/backend deployment, signed internal Android proof, email delivery proof when enabled, operations rehearsal, and CI/CD-backed bug hunting; the agent remains the only v1 prototype-grade capability until a later provider/tool-authorization release is proven.
 
 ## Architecture
 
