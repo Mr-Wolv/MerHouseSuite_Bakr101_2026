@@ -34,6 +34,9 @@ function Assert-SafeEvidenceText {
     if ($trimmed -match '(?i)(password|authorization|bearer|api[_ -]?key|secret|credential|token|otp|private[_ -]?url|screenshot\s*data|base64)') {
         throw "$Name must not include credentials, tokens, OTPs, private URLs, copied screenshot data, or logs."
     }
+    if ($trimmed -match '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b') {
+        throw "$Name must not include reviewer, operator, or stakeholder email addresses."
+    }
     if ($trimmed -match '(?i)\bBearer\s+[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+' -or
         $trimmed -match '(?i)[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{20,}' -or
         $trimmed -match '(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|private[_-]?key|signing[_-]?secret)\s*[:=]\s*[''"]?[A-Za-z0-9_./+=:-]{16,}') {

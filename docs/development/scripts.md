@@ -394,7 +394,7 @@ After staging SMTP proof has been observed, write the provider artifact without 
   -ConfirmProviderProof
 ```
 
-The script requires HTTPS targets, a proven provider-status label, explicit confirmation, short non-secret evidence references, and emits `merhouse.v17.email-provider-proof.v1` for `-EmailProviderProofManifestPath`. It is a proof recorder, not an SMTP sender; the backend delivery path and staging mailbox/provider must already have been exercised.
+The script requires HTTPS targets, a proven provider-status label, explicit confirmation, short non-secret evidence references, and emits `merhouse.v17.email-provider-proof.v1` for `-EmailProviderProofManifestPath`. It rejects copied tokens, credentials, message bodies, provider logs, and recipient/operator email addresses. It is a proof recorder, not an SMTP sender; the backend delivery path and staging mailbox/provider must already have been exercised.
 
 After alert routing has been observed, write the alert artifact without storing alert-provider credentials, endpoints, webhooks, provider logs, deployment env values, or copied alert payloads:
 
@@ -409,7 +409,7 @@ After alert routing has been observed, write the alert artifact without storing 
   -ConfirmAlertRoutingProof
 ```
 
-The script requires HTTPS targets, explicit confirmation, and short non-secret evidence references, then emits `merhouse.v17.alert-routing.v1` for `-AlertRoutingManifestPath`. It is a proof recorder, not an alert provider; monitoring and alert routing must already have been exercised.
+The script requires HTTPS targets, explicit confirmation, and short non-secret evidence references, then emits `merhouse.v17.alert-routing.v1` for `-AlertRoutingManifestPath`. It rejects provider credentials, endpoints, webhooks, provider logs, copied alert payloads, and recipient/operator email addresses. It is a proof recorder, not an alert provider; monitoring and alert routing must already have been exercised.
 
 After the final live walkthrough has actually happened with the reviewer in the real browser and installed Android app, write the manual review artifact:
 
@@ -424,7 +424,7 @@ After the final live walkthrough has actually happened with the reviewer in the 
   -ConfirmManualLiveReview
 ```
 
-The script requires HTTPS targets, explicit manual-live-review confirmation, and short non-secret evidence references for browser, installed Android, and stakeholder coverage. It emits `merhouse.v17.live-stakeholder-walkthrough.v1` for `-LiveStakeholderWalkthroughManifestPath`. It does not run the walkthrough; it records the already completed human review so scripted tours cannot close the live-review requirement.
+The script requires HTTPS targets, explicit manual-live-review confirmation, and short non-secret evidence references for browser, installed Android, and stakeholder coverage. Use reviewer initials or a ticket reference, not a personal email address. It emits `merhouse.v17.live-stakeholder-walkthrough.v1` for `-LiveStakeholderWalkthroughManifestPath`. It does not run the walkthrough; it records the already completed human review so scripted tours cannot close the live-review requirement.
 
 Run only the lightweight deployed monitoring proof when a target needs a fast health/reachability sample. This standalone proof requires HTTPS targets unless the run is explicitly marked as a local HTTP rehearsal:
 

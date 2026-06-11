@@ -45,6 +45,9 @@ function Assert-SafeEvidenceText {
     if ($trimmed -match '(?i)(password|reset[_ -]?token|otp|one[_ -]?time|authorization|bearer|api[_ -]?key|secret|credential|smtp[_ -]?pass)') {
         throw "$Name must not include secret, token, credential, OTP, password, or message-body values."
     }
+    if ($trimmed -match '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b') {
+        throw "$Name must not include recipient or operator email addresses."
+    }
     if ($trimmed -match '(?i)\bBearer\s+[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+' -or
         $trimmed -match '(?i)[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{20,}' -or
         $trimmed -match '(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|private[_-]?key|signing[_-]?secret)\s*[:=]\s*[''"]?[A-Za-z0-9_./+=:-]{16,}') {

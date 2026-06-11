@@ -123,6 +123,9 @@ function Assert-EmailProviderProofScriptContract {
     if ($scriptText -notmatch 'workflowProviderStatuses') {
         throw "scripts\quality\v17-email-provider-proof.ps1 must emit workflow provider statuses for cutover readiness."
     }
+    if ($scriptText -notmatch 'recipient or operator email addresses') {
+        throw "scripts\quality\v17-email-provider-proof.ps1 must reject email-shaped PII in proof evidence."
+    }
     Write-Host "V17 email provider proof script contract check passed."
 }
 
@@ -146,6 +149,9 @@ function Assert-AlertRoutingProofScriptContract {
             throw "scripts\quality\v17-alert-routing-proof.ps1 must emit $signal evidence for cutover readiness."
         }
     }
+    if ($scriptText -notmatch 'recipient or operator email addresses') {
+        throw "scripts\quality\v17-alert-routing-proof.ps1 must reject email-shaped PII in proof evidence."
+    }
     Write-Host "V17 alert routing proof script contract check passed."
 }
 
@@ -168,6 +174,9 @@ function Assert-LiveStakeholderWalkthroughProofScriptContract {
     }
     if ($scriptText -notmatch 'BrowserWalkthroughEvidence' -or $scriptText -notmatch 'InstalledAndroidWalkthroughEvidence' -or $scriptText -notmatch 'StakeholderCoverageEvidence') {
         throw "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 must require browser, installed Android, and stakeholder coverage evidence."
+    }
+    if ($scriptText -notmatch 'reviewer, operator, or stakeholder email addresses') {
+        throw "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 must reject email-shaped PII in proof evidence."
     }
     Write-Host "V17 live stakeholder walkthrough proof script contract check passed."
 }
