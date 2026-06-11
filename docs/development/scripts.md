@@ -29,7 +29,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/frontend-full-tour.ps1` | Run the browser tour against a running local stack. |
 | `scripts/quality/mobile-shell-check.ps1` | Check shared mobile shell metadata, manifest, icon references, and service worker markers used by web and native packaging. |
 | `scripts/quality/native-mobile-check.ps1` | Check the Capacitor Android wrapper, sync the frontend build into Android, and optionally assemble a debug APK. |
-| `scripts/quality/native-android-tour.ps1` | Install the debug APK on a running emulator, authenticate seeded roles, visit native routes, and capture APK screenshots. |
+| `scripts/quality/native-android-tour.ps1` | Install the debug APK on a running emulator, authenticate seeded roles, visit native routes, capture APK screenshots, and write the `merhouse.native-android-tour.report.v1` proof schema. |
 | `scripts/quality/native-android-release-shape-check.ps1` | Statically verify the Android release Gradle/manifest shape: release cleartext disabled, signing sourced from external env vars, and no hardcoded keystore material. |
 | `scripts/quality/native-android-release-check.ps1` | Build a signed internal Android APK or AAB against an HTTPS API URL using keystore values supplied outside Git and write a sanitized release manifest. |
 | `scripts/quality/cross-surface-tour-check.ps1` | Compare browser and installed-APK tour reports for clean records, provenance, valid native screenshot evidence, exact normalized role/path set equality, and traceable pass output. |

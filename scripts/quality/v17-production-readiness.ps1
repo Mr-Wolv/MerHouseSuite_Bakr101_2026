@@ -138,6 +138,18 @@ function Assert-EmailProviderProofScriptContract {
     Write-Host "V17 email provider proof script contract check passed."
 }
 
+function Assert-NativeAndroidTourReportContract {
+    $scriptPath = Join-Path $projectRoot "scripts\quality\native-android-tour.ps1"
+    $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+    if ($scriptText -notmatch 'schema\s*=\s*"merhouse\.native-android-tour\.report\.v1"') {
+        throw "scripts\quality\native-android-tour.ps1 must write the installed Android tour report schema."
+    }
+    if ($scriptText -notmatch 'apkSha256' -or $scriptText -notmatch 'apkBytes' -or $scriptText -notmatch 'deviceSerials') {
+        throw "scripts\quality\native-android-tour.ps1 must write APK fingerprint and device provenance."
+    }
+    Write-Host "Native Android tour report contract check passed."
+}
+
 function Assert-AlertRoutingProofScriptContract {
     $scriptPath = Join-Path $projectRoot "scripts\quality\v17-alert-routing-proof.ps1"
     $scriptText = Get-Content -Raw -LiteralPath $scriptPath
@@ -196,6 +208,7 @@ try {
     Invoke-Checked "Checking PostgreSQL backup filename guards..." { Assert-PostgresBackupNameGuards }
     Invoke-Checked "Checking rollback rehearsal manifest contract..." { Assert-RollbackManifestContract }
     Invoke-Checked "Checking deployed V17 HTTPS target guards..." { Assert-DeployedProofHttpsGuards }
+    Invoke-Checked "Checking native Android tour report contract..." { Assert-NativeAndroidTourReportContract }
     Invoke-Checked "Checking V17 email provider proof script contract..." { Assert-EmailProviderProofScriptContract }
     Invoke-Checked "Checking V17 alert routing proof script contract..." { Assert-AlertRoutingProofScriptContract }
     Invoke-Checked "Checking V17 live stakeholder walkthrough proof script contract..." { Assert-LiveStakeholderWalkthroughProofScriptContract }

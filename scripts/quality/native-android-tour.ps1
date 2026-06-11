@@ -651,6 +651,7 @@ $badRecords = @($records | Where-Object {
 })
 $checkedAt = (Get-Date).ToUniversalTime().ToString("o")
 $report = [pscustomobject]@{
+    schema = "merhouse.native-android-tour.report.v1"
     generatedAt = $checkedAt
     checkedAt = $checkedAt
     apiUrl = $normalizedApiUrl
