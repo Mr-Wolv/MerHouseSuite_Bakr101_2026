@@ -193,6 +193,9 @@ function Assert-EmailProviderProofScriptContract {
     if ($scriptText -notmatch 'SMTP transcripts' -or $scriptText -notmatch 'message IDs') {
         throw "scripts\quality\v17-email-provider-proof.ps1 must reject copied provider logs, SMTP transcripts, email headers, and message IDs."
     }
+    if ($scriptText -notmatch 'too vague for V17 proof') {
+        throw "scripts\quality\v17-email-provider-proof.ps1 must reject vague placeholder evidence."
+    }
     Write-Host "V17 email provider proof script contract check passed."
 }
 
@@ -234,6 +237,9 @@ function Assert-AlertRoutingProofScriptContract {
     if ($scriptText -notmatch 'alert payloads' -or $scriptText -notmatch 'delivery transcripts') {
         throw "scripts\quality\v17-alert-routing-proof.ps1 must reject copied provider logs, alert payloads, webhook bodies, and delivery transcripts."
     }
+    if ($scriptText -notmatch 'too vague for V17 proof') {
+        throw "scripts\quality\v17-alert-routing-proof.ps1 must reject vague placeholder evidence."
+    }
     Write-Host "V17 alert routing proof script contract check passed."
 }
 
@@ -262,6 +268,9 @@ function Assert-LiveStakeholderWalkthroughProofScriptContract {
     }
     if ($scriptText -notmatch 'browser/Android logs' -or $scriptText -notmatch 'screenshot data') {
         throw "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 must reject copied logs and screenshot data."
+    }
+    if ($scriptText -notmatch 'too vague for V17 proof') {
+        throw "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 must reject vague placeholder evidence."
     }
     Write-Host "V17 live stakeholder walkthrough proof script contract check passed."
 }

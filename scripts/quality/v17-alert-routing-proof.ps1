@@ -21,13 +21,17 @@ $projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 function Assert-SafeEvidenceText {
     param(
         [string]$Name,
-        [string]$Value
+        [string]$Value,
+        [int]$MinLength = 24
     )
 
     if ([string]::IsNullOrWhiteSpace($Value)) {
         throw "$Name must be non-blank evidence text."
     }
     $trimmed = $Value.Trim()
+    if ($trimmed.Length -lt $MinLength -or $trimmed -match '(?i)^(ok|done|passed|tested|confirmed|yes|n/a|na|proof|verified)$') {
+        throw "$Name is too vague for V17 proof; use a short non-secret ticket, monitor, route, or operator-confirmed evidence reference."
+    }
     if ($trimmed.Length -gt 240) {
         throw "$Name must be a short proof reference, not a copied alert payload or log."
     }
