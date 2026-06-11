@@ -165,7 +165,6 @@ class AccessRequestServiceTest {
     @Test
     void convertApprovedRequestCreatesTenantAndUserAndLinksAuditData() {
         UUID requestId = UUID.randomUUID();
-        UUID actorId = UUID.randomUUID();
         AccessRequest accessRequest = new AccessRequest();
         ReflectionTestUtils.setField(accessRequest, "id", requestId);
         accessRequest.setOrganizationName("Original Org");
@@ -187,7 +186,7 @@ class AccessRequestServiceTest {
         when(tenantService.create(org.mockito.ArgumentMatchers.any())).thenReturn(tenant);
         when(userService.create(org.mockito.ArgumentMatchers.any())).thenReturn(user);
 
-        service.convert(requestId, actorId, new AccessRequestConvertRequest(
+        service.convert(requestId, new AccessRequestConvertRequest(
             "Converted Org",
             "temporary-password",
             "Provision approved request"
@@ -220,7 +219,6 @@ class AccessRequestServiceTest {
 
         assertThrows(DomainConflictException.class, () -> service.convert(
             requestId,
-            UUID.randomUUID(),
             new AccessRequestConvertRequest("Tenant", "temporary-password", "Too early")
         ));
         verify(tenantService, never()).create(org.mockito.ArgumentMatchers.any());

@@ -95,7 +95,7 @@ public class AccessRequestService {
     }
 
     @Transactional
-    public AccessRequest convert(UUID id, UUID actorId, AccessRequestConvertRequest request) {
+    public AccessRequest convert(UUID id, AccessRequestConvertRequest request) {
         AccessRequest accessRequest = requestRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Access request not found: " + id));
         if (accessRequest.getStatus() != AccessRequestStatus.APPROVED) {

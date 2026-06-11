@@ -77,7 +77,7 @@ public class AccessRequestController {
         @Valid @RequestBody AccessRequestConvertRequest request
     ) {
         UUID actorId = currentUserService.required().id();
-        var converted = accessRequestService.convert(id, actorId, request);
+        var converted = accessRequestService.convert(id, request);
         adminAuditService.record(actorId, "ACCESS_REQUEST_CONVERTED", "AccessRequest", id, request.reason());
         return AccessRequestResponse.from(converted);
     }

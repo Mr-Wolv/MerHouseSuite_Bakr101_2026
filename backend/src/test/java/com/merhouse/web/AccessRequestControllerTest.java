@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.merhouse.config.JacksonConfig;
 import com.merhouse.dto.AccessRequestCreateRequest;
+import com.merhouse.dto.AccessRequestConvertRequest;
 import com.merhouse.dto.AccessRequestReviewRequest;
 import com.merhouse.entity.AccessRequest;
 import com.merhouse.entity.AccessRequestStatus;
@@ -138,6 +139,36 @@ class AccessRequestControllerTest {
             "AccessRequest",
             requestId,
             "Not enough context"
+        );
+    }
+
+    @Test
+    void convertRecordsPrivilegedAuditEventWithConversionReason() throws Exception {
+        UUID requestId = UUID.randomUUID();
+        UUID actorId = UUID.randomUUID();
+        AccessRequest converted = accessRequest(requestId, AccessRequestStatus.APPROVED);
+        when(currentUserService.required()).thenReturn(new UserPrincipal(actorId, UUID.randomUUID(), "owner@merhouse.local", UserRole.OWNER, true));
+        when(accessRequestService.convert(
+            eq(requestId),
+            eq(new AccessRequestConvertRequest("Converted Merchant", "temporary-password", "Provision approved request"))
+        )).thenReturn(converted);
+
+        mockMvc.perform(patch("/api/v1/access-requests/{id}/convert", requestId)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(new AccessRequestConvertRequest(
+                    "Converted Merchant",
+                    "temporary-password",
+                    "Provision approved request"
+                ))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("APPROVED"));
+
+        verify(adminAuditService).record(
+            actorId,
+            "ACCESS_REQUEST_CONVERTED",
+            "AccessRequest",
+            requestId,
+            "Provision approved request"
         );
     }
 
