@@ -36,7 +36,7 @@ If the roadmap is absent, work from the tracked project source only:
 
 The repository is meant to be readable by a developer who just cloned it. Keep source, docs, scripts, CI, compose files, root configuration, and agent guidance useful and current.
 
-The current public-facing posture is local-certified project/codebase, not production SaaS launch. V16.2 local convergence evidence is recorded in `docs/architecture/cross-surface-convergence.md`; cloud deployment, app-store release, production monitoring, provider-backed delivery, backup/restore operations, and incident response belong to later activation unless the roadmap is deliberately changed.
+The current public-facing posture is local-certified project/codebase, not production SaaS launch. V16.2 local convergence evidence is recorded in `docs/architecture/cross-surface-convergence.md`; cloud deployment, app-store release, production monitoring, provider-backed delivery, backup/restore operations, and incident response belong to V17 activation only when the roadmap and active branch deliberately say so.
 
 V17 production work is private until the deployment is proven. Keep VPS env files, SMTP credentials, Android keystores, deployment logs, backup artifacts, provider details, and live URLs out of Git unless the roadmap and public docs deliberately publish sanitized values.
 
@@ -70,6 +70,6 @@ If a gap cannot be closed in the current change, record it in the roadmap, a tra
 
 ## Working Standard
 
-Keep changes focused, keep documentation aligned with the code, and run the checks that match the affected area. Write docs, scripts, CI, and app source for a future reader, not just for the current local session. V16.2 belongs to completed deployment-ready local certification; SaaS production activation belongs to a later explicit deployment phase.
+Keep changes focused, keep documentation aligned with the code, and run the checks that match the affected area. Write docs, scripts, CI, and app source for a future reader, not just for the current local session. V16.2 belongs to completed deployment-ready local certification; V17 production activation belongs to the private deployment phase until external proof and an intentional publication decision make it public.
 
 When reporting completion, name the QC proof that was run and any QC rule that shaped the change. If proof was intentionally skipped, say why and name the remaining risk. If a requested shortcut would weaken the roadmap QC rules, stop and explain the conflict instead of silently taking the shortcut.
