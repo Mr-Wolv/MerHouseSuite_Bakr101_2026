@@ -84,8 +84,11 @@ The first V17 implementation target is VPS + Docker Compose:
 Minimum staging proof:
 
 ```powershell
+.\scripts\quality\v17-production-readiness.ps1
 .\scripts\quality\public-readiness.ps1 -SkipCompose
 .\scripts\quality\markdown-check.ps1
+.\scripts\deploy\vps-check.ps1 -EnvFile ".env.staging"
+.\scripts\deploy\frontend-nginx-check.ps1
 .\scripts\deploy\reverse-proxy-check.ps1
 .\scripts\quality\api-smoke.ps1 -BaseUrl "https://<staging-api-or-frontend-origin>"
 .\scripts\quality\deployed-monitoring-proof.ps1 -FrontendBaseUrl "https://<staging-frontend-origin>" -ApiBaseUrl "https://<staging-api-origin>"
