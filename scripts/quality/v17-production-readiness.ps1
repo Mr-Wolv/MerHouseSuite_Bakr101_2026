@@ -79,6 +79,8 @@ function Assert-RollbackManifestContract {
 function Assert-DeployedProofHttpsGuards {
     $deployedProofScriptPath = Join-Path $projectRoot "scripts\quality\deployed-v17-proof.ps1"
     $deployedProofText = Get-Content -Raw -LiteralPath $deployedProofScriptPath
+    $deployedMonitoringScriptPath = Join-Path $projectRoot "scripts\quality\deployed-monitoring-proof.ps1"
+    $deployedMonitoringText = Get-Content -Raw -LiteralPath $deployedMonitoringScriptPath
     if ($deployedProofText -notmatch 'FrontendBaseUrl must be an HTTPS deployment URL for deployed V17 proof') {
         throw "scripts\quality\deployed-v17-proof.ps1 must require an HTTPS frontend URL for deployed V17 proof."
     }
@@ -90,6 +92,15 @@ function Assert-DeployedProofHttpsGuards {
     }
     if ($deployedProofText -notmatch 'Assert-AbsoluteHttpUrl\s+-Name\s+"ApiBaseUrl"') {
         throw "scripts\quality\deployed-v17-proof.ps1 must normalize the API URL through the shared URL guard."
+    }
+    if ($deployedMonitoringText -notmatch 'FrontendBaseUrl must be an HTTPS deployment URL for deployed monitoring proof') {
+        throw "scripts\quality\deployed-monitoring-proof.ps1 must require an HTTPS frontend URL unless local HTTP rehearsal is explicit."
+    }
+    if ($deployedMonitoringText -notmatch 'ApiBaseUrl must be an HTTPS deployment URL for deployed monitoring proof') {
+        throw "scripts\quality\deployed-monitoring-proof.ps1 must require an HTTPS API URL unless local HTTP rehearsal is explicit."
+    }
+    if ($deployedMonitoringText -notmatch '\[switch\]\$AllowLocalHttpRehearsal') {
+        throw "scripts\quality\deployed-monitoring-proof.ps1 must keep local HTTP rehearsal explicit."
     }
     Write-Host "Deployed V17 HTTPS target guard check passed."
 }

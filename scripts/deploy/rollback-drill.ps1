@@ -93,7 +93,8 @@ if (-not [string]::IsNullOrWhiteSpace($FrontendBaseUrl) -or -not [string]::IsNul
         -FrontendBaseUrl $normalizedFrontendBaseUrl `
         -ApiBaseUrl $normalizedApiBaseUrl `
         -Samples $MonitoringSamples `
-        -OutputPath $monitoringReportPath
+        -OutputPath $monitoringReportPath `
+        -AllowLocalHttpRehearsal:$AllowLocalHttpRehearsal
     if ($LASTEXITCODE -ne 0) {
         throw "Post-rollback monitoring proof failed."
     }

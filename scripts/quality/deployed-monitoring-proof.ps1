@@ -4,7 +4,8 @@ param(
     [string]$OutputPath = "",
     [int]$Samples = 3,
     [int]$MaxApiHealthMs = 2000,
-    [int]$MaxFrontendMs = 3000
+    [int]$MaxFrontendMs = 3000,
+    [switch]$AllowLocalHttpRehearsal
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,6 +15,12 @@ $projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 
 $normalizedFrontendBaseUrl = Assert-AbsoluteHttpUrl -Name "FrontendBaseUrl" -Value $FrontendBaseUrl
 $normalizedApiBaseUrl = Assert-AbsoluteHttpUrl -Name "ApiBaseUrl" -Value $ApiBaseUrl
+if (-not $AllowLocalHttpRehearsal -and -not $normalizedFrontendBaseUrl.StartsWith("https://")) {
+    throw "FrontendBaseUrl must be an HTTPS deployment URL for deployed monitoring proof."
+}
+if (-not $AllowLocalHttpRehearsal -and -not $normalizedApiBaseUrl.StartsWith("https://")) {
+    throw "ApiBaseUrl must be an HTTPS deployment URL for deployed monitoring proof."
+}
 if ($Samples -lt 1) {
     throw "Samples must be at least 1."
 }
@@ -108,6 +115,7 @@ $report = [ordered]@{
     checkedAt = (Get-Date).ToUniversalTime().ToString("o")
     frontendBaseUrl = $normalizedFrontendBaseUrl
     apiBaseUrl = $normalizedApiBaseUrl
+    localHttpRehearsal = [bool]$AllowLocalHttpRehearsal
     samples = $Samples
     budgets = [ordered]@{
         maxFrontendMs = $MaxFrontendMs
@@ -147,4 +155,3 @@ if ($apiMax -gt $MaxApiHealthMs) {
 }
 
 Write-Host "Deployed monitoring proof passed."
-
