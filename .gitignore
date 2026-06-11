@@ -1,0 +1,40 @@
+.idea/
+.vscode/
+*.iml
+
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+node_modules/
+
+.env
+.env.*
+!.env.example
+*.log
+reports/
+
+# Local editor workspace state
+.obsidian/
+
+# Local working notes and reference material
+.notes/
+private/
+.secrets/
+deploy/private/
+
+# Local deployment secrets and signed artifacts
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kubeconfig
+*.apk
+*.aab
+
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+frontend/vite-dev*.log
+
+.vercel

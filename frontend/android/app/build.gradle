@@ -1,0 +1,69 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "com.merhouse.operations"
+    compileSdk = rootProject.ext.compileSdkVersion
+    buildFeatures {
+        buildConfig = true
+    }
+    defaultConfig {
+        applicationId "com.merhouse.operations"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        def merhouseVersionCode = System.getenv("MERHOUSE_ANDROID_VERSION_CODE")
+        def merhouseVersionName = System.getenv("MERHOUSE_ANDROID_VERSION_NAME")
+        def merhouseProofWebViewDebug = System.getenv("MERHOUSE_ANDROID_PROOF_WEBVIEW_DEBUG") == "true"
+        versionCode merhouseVersionCode ? merhouseVersionCode.toInteger() : 1
+        versionName merhouseVersionName ?: "1.0"
+        manifestPlaceholders = [usesCleartextTraffic: "true"]
+        buildConfigField "boolean", "MERHOUSE_PROOF_WEBVIEW_DEBUG", merhouseProofWebViewDebug ? "true" : "false"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        release {
+            def keystorePath = System.getenv("MERHOUSE_ANDROID_KEYSTORE_PATH")
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("MERHOUSE_ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("MERHOUSE_ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("MERHOUSE_ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            manifestPlaceholders = [usesCleartextTraffic: "false"]
+            debuggable System.getenv("MERHOUSE_ANDROID_PROOF_WEBVIEW_DEBUG") == "true"
+            if (System.getenv("MERHOUSE_ANDROID_KEYSTORE_PATH")) {
+                signingConfig signingConfigs.release
+            }
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'

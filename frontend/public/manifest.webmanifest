@@ -1,0 +1,20 @@
+{
+  "name": "MerHouse Operations Console",
+  "short_name": "MerHouse",
+  "description": "Role-aware fulfillment coordination for merchants, warehouse operators, and platform teams.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f7f9",
+  "theme_color": "#0f766e",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

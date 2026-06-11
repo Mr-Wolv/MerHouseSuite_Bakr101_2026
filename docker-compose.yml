@@ -1,0 +1,70 @@
+name: merhouse
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: merhouse-postgres
+    environment:
+      POSTGRES_DB: ${MERHOUSE_POSTGRES_DB:-merhouse}
+      POSTGRES_USER: ${MERHOUSE_POSTGRES_USER:-merhouse_local}
+      POSTGRES_PASSWORD: ${MERHOUSE_POSTGRES_PASSWORD:?Set MERHOUSE_POSTGRES_PASSWORD in local .env}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MERHOUSE_POSTGRES_USER:-merhouse_local} -d ${MERHOUSE_POSTGRES_DB:-merhouse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: merhouse-backend
+    build:
+      context: ./backend
+      dockerfile: backend-compose.Dockerfile
+    container_name: merhouse-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${MERHOUSE_POSTGRES_DB:-merhouse}
+      SPRING_DATASOURCE_USERNAME: ${MERHOUSE_POSTGRES_USER:-merhouse_local}
+      SPRING_DATASOURCE_PASSWORD: ${MERHOUSE_POSTGRES_PASSWORD:?Set MERHOUSE_POSTGRES_PASSWORD in local .env}
+      MERHOUSE_AUTH_JWT_SECRET: ${MERHOUSE_AUTH_JWT_SECRET:?Set MERHOUSE_AUTH_JWT_SECRET in local .env}
+      MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN: ${MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN:-false}
+      MERHOUSE_AUTH_SEED_ADMIN_ENABLED: ${MERHOUSE_AUTH_SEED_ADMIN_ENABLED:-false}
+      MERHOUSE_AUTH_SEED_ADMIN_EMAIL: ${MERHOUSE_AUTH_SEED_ADMIN_EMAIL:-}
+      MERHOUSE_AUTH_SEED_ADMIN_PASSWORD: ${MERHOUSE_AUTH_SEED_ADMIN_PASSWORD:-}
+      MERHOUSE_DEPLOYMENT_PUBLIC: ${MERHOUSE_DEPLOYMENT_PUBLIC:-false}
+      MERHOUSE_SWAGGER_ENABLED: ${MERHOUSE_SWAGGER_ENABLED:-true}
+      MERHOUSE_PUBLIC_FRONTEND_URL: ${MERHOUSE_PUBLIC_FRONTEND_URL:-http://localhost:3000}
+      MERHOUSE_EMAIL_ENABLED: ${MERHOUSE_EMAIL_ENABLED:-false}
+      MERHOUSE_EMAIL_FROM: ${MERHOUSE_EMAIL_FROM:-}
+      MERHOUSE_EMAIL_REPLY_TO: ${MERHOUSE_EMAIL_REPLY_TO:-}
+      MERHOUSE_SMTP_HOST: ${MERHOUSE_SMTP_HOST:-localhost}
+      MERHOUSE_SMTP_PORT: ${MERHOUSE_SMTP_PORT:-1025}
+      MERHOUSE_SMTP_USERNAME: ${MERHOUSE_SMTP_USERNAME:-}
+      MERHOUSE_SMTP_PASSWORD: ${MERHOUSE_SMTP_PASSWORD:-}
+      MERHOUSE_SMTP_AUTH: ${MERHOUSE_SMTP_AUTH:-false}
+      MERHOUSE_SMTP_STARTTLS_ENABLE: ${MERHOUSE_SMTP_STARTTLS_ENABLE:-false}
+      MERHOUSE_AGENT_MODE: ${MERHOUSE_AGENT_MODE:-deterministic}
+      MERHOUSE_AGENT_MODEL_ENDPOINT: ${MERHOUSE_AGENT_MODEL_ENDPOINT:-}
+      MERHOUSE_AGENT_MODEL_NAME: ${MERHOUSE_AGENT_MODEL_NAME:-}
+      MERHOUSE_AGENT_TIMEOUT_SECONDS: ${MERHOUSE_AGENT_TIMEOUT_SECONDS:-15}
+    ports:
+      - "8080:8080"
+
+  frontend:
+    image: merhouse-frontend
+    build:
+      context: ./frontend
+      dockerfile: frontend-compose.Dockerfile
+    container_name: merhouse-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  postgres-data:

@@ -1,0 +1,292 @@
+name: MerHouse Quality Gate
+run-name: MerHouse Quality Gate - ${{ github.event_name }} on ${{ github.ref_name }}
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merhouse-quality-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Run backend tests
+        working-directory: backend
+        run: ./mvnw test
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test -- --run
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Run performance readiness
+        shell: pwsh
+        run: ./scripts/proof/release/performance-readiness.ps1
+
+  native-android:
+    name: Native Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Android debug APK
+        shell: pwsh
+        run: ./scripts/proof/android/native-mobile-check.ps1 -Assemble -ApiBaseUrl "http://10.0.2.2:8080"
+
+  compose:
+    name: Compose
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Validate Docker Compose
+        run: docker compose --env-file .env.example config --quiet
+
+  public-readiness:
+    name: Public Readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Check markdown links
+        shell: pwsh
+        run: ./scripts/quality/markdown-check.ps1
+
+      - name: Check PowerShell scripts parse
+        shell: pwsh
+        run: |
+          $errors = @()
+          Get-ChildItem scripts -Recurse -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors) {
+              $errors += $parseErrors | ForEach-Object { "$($_.Extent.File):$($_.Extent.StartLineNumber): $($_.Message)" }
+            }
+          }
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "PowerShell script parser check passed."
+
+      - name: Check shared mobile shell
+        shell: pwsh
+        run: ./scripts/proof/android/mobile-shell-check.ps1
+
+      - name: Run public readiness checks
+        shell: pwsh
+        run: ./scripts/quality/public-readiness.ps1 -SkipCompose
+
+  v17-deployment-preflight:
+    name: V17 Deployment Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run V17 deployment preflight
+        shell: pwsh
+        run: |
+          ./scripts/deploy/huggingface-vercel-check.ps1
+          ./scripts/quality/v17-production-readiness.ps1
+
+  integration-proof:
+    name: Integration Proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs:
+      - backend
+      - frontend
+      - native-android
+      - compose
+      - public-readiness
+      - v17-deployment-preflight
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Create masked CI environment
+        shell: bash
+        run: |
+          ci_postgres_password="$(openssl rand -hex 32)"
+          ci_jwt_secret="$(openssl rand -hex 48)"
+          ci_admin_email="admin@merhouse.local"
+          ci_admin_password="$(openssl rand -hex 32)"
+          ci_review_password="$(openssl rand -hex 32)"
+
+          echo "::add-mask::$ci_postgres_password"
+          echo "::add-mask::$ci_jwt_secret"
+          echo "::add-mask::$ci_admin_password"
+          echo "::add-mask::$ci_review_password"
+
+          {
+            echo "CI_ADMIN_EMAIL=$ci_admin_email"
+            echo "CI_ADMIN_PASSWORD=$ci_admin_password"
+            echo "CI_REVIEW_PASSWORD=$ci_review_password"
+          } >> "$GITHUB_ENV"
+
+          cat > .env <<EOF
+          MERHOUSE_POSTGRES_DB=merhouse
+          MERHOUSE_POSTGRES_USER=merhouse_local
+          MERHOUSE_POSTGRES_PASSWORD=$ci_postgres_password
+          MERHOUSE_AUTH_JWT_SECRET=$ci_jwt_secret
+          MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=false
+          MERHOUSE_AUTH_SEED_ADMIN_ENABLED=true
+          MERHOUSE_AUTH_SEED_ADMIN_EMAIL=$ci_admin_email
+          MERHOUSE_AUTH_SEED_ADMIN_PASSWORD=$ci_admin_password
+          MERHOUSE_SWAGGER_ENABLED=true
+          MERHOUSE_DEPLOYMENT_PUBLIC=false
+          EOF
+
+      - name: Start Docker Compose stack
+        run: docker compose --env-file .env up --build -d
+
+      - name: Wait for backend login
+        shell: pwsh
+        run: |
+          $body = @{
+            email = $env:CI_ADMIN_EMAIL
+            password = $env:CI_ADMIN_PASSWORD
+          } | ConvertTo-Json
+
+          for ($attempt = 1; $attempt -le 60; $attempt++) {
+            try {
+              $response = Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/v1/auth/login" -ContentType "application/json" -Body $body
+              if ($response.accessToken) {
+                Write-Host "Backend accepted seeded owner login."
+                exit 0
+              }
+            } catch {
+              Write-Host "Waiting for backend login readiness ($attempt/60)..."
+              Start-Sleep -Seconds 5
+            }
+          }
+
+          throw "Backend did not accept seeded owner login before timeout."
+
+      - name: Run API smoke
+        shell: pwsh
+        run: ./scripts/quality/api-smoke.ps1 -BaseUrl "http://localhost:8080" -OutputPath "reports/ci-api-smoke.json" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD
+
+      - name: Seed frontend tour data
+        shell: pwsh
+        run: ./scripts/local/seed-demo.ps1 -BaseUrl "http://localhost:8080" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD -CreateReviewAccounts -ReviewPassword $env:CI_REVIEW_PASSWORD -Suffix "ci" -SuppressCredentialOutput
+
+      - name: Run frontend full tour
+        shell: pwsh
+        run: ./scripts/proof/web/frontend-full-tour.ps1 -BaseUrl "http://localhost:3000" -ApiUrl "http://localhost:3000" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD -MerchantPassword $env:CI_REVIEW_PASSWORD -WarehousePassword $env:CI_REVIEW_PASSWORD -SupportAdminPassword $env:CI_REVIEW_PASSWORD -AuditorPassword $env:CI_REVIEW_PASSWORD -OutputPath "reports/ci-frontend-full-tour.json"
+
+      - name: Print Docker Compose logs
+        if: failure()
+        run: docker compose --env-file .env logs --no-color
+
+      - name: Stop Docker Compose stack
+        if: always()
+        run: docker compose --env-file .env down -v
