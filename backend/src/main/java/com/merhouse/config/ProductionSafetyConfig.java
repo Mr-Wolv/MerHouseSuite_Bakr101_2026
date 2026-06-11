@@ -27,6 +27,7 @@ public class ProductionSafetyConfig {
         @Value("${springdoc.swagger-ui.enabled:true}") boolean swaggerUiEnabled,
         @Value("${merhouse.email.enabled:false}") boolean emailEnabled,
         @Value("${merhouse.email.from:}") String emailFrom,
+        @Value("${merhouse.email.reply-to:}") String emailReplyTo,
         @Value("${spring.mail.host:}") String smtpHost,
         @Value("${spring.mail.username:}") String smtpUsername,
         @Value("${spring.mail.password:}") String smtpPassword,
@@ -48,6 +49,7 @@ public class ProductionSafetyConfig {
             swaggerUiEnabled,
             emailEnabled,
             emailFrom,
+            emailReplyTo,
             smtpHost,
             smtpUsername,
             smtpPassword,
@@ -71,6 +73,52 @@ public class ProductionSafetyConfig {
         boolean swaggerUiEnabled,
         boolean emailEnabled,
         String emailFrom,
+        String smtpHost,
+        String smtpUsername,
+        String smtpPassword,
+        String agentMode,
+        int agentTimeoutSeconds
+    ) {
+        validate(
+            publicDeployment,
+            jwtSecret,
+            exposeResetToken,
+            recoveryRequestLimit,
+            recoveryRequestWindowMinutes,
+            seedAdminEnabled,
+            seedAdminPassword,
+            accessRequestLimit,
+            accessRequestWindowHours,
+            databasePassword,
+            apiDocsEnabled,
+            swaggerUiEnabled,
+            emailEnabled,
+            emailFrom,
+            "",
+            smtpHost,
+            smtpUsername,
+            smtpPassword,
+            agentMode,
+            agentTimeoutSeconds
+        );
+    }
+
+    static void validate(
+        boolean publicDeployment,
+        String jwtSecret,
+        boolean exposeResetToken,
+        int recoveryRequestLimit,
+        int recoveryRequestWindowMinutes,
+        boolean seedAdminEnabled,
+        String seedAdminPassword,
+        int accessRequestLimit,
+        int accessRequestWindowHours,
+        String databasePassword,
+        boolean apiDocsEnabled,
+        boolean swaggerUiEnabled,
+        boolean emailEnabled,
+        String emailFrom,
+        String emailReplyTo,
         String smtpHost,
         String smtpUsername,
         String smtpPassword,
@@ -118,6 +166,11 @@ public class ProductionSafetyConfig {
         if (emailEnabled) {
             if (isBlank(emailFrom)) {
                 failures.add("MERHOUSE_EMAIL_FROM must be set when email delivery is enabled for public deployments.");
+            } else if (!isEmailLike(emailFrom) || looksLikePlaceholder(emailFrom)) {
+                failures.add("MERHOUSE_EMAIL_FROM must be a deployment sender email address, not a placeholder.");
+            }
+            if (!isBlank(emailReplyTo) && (!isEmailLike(emailReplyTo) || looksLikePlaceholder(emailReplyTo))) {
+                failures.add("MERHOUSE_EMAIL_REPLY_TO must be blank or a deployment reply-to email address, not a placeholder.");
             }
             if (isBlank(smtpHost) || smtpHost.equalsIgnoreCase("localhost") || smtpHost.equals("127.0.0.1")) {
                 failures.add("MERHOUSE_SMTP_HOST must point to an external provider when email delivery is enabled for public deployments.");
@@ -157,5 +210,9 @@ public class ProductionSafetyConfig {
             || normalized.contains("local")
             || normalized.contains("dev")
             || normalized.contains("password");
+    }
+
+    private static boolean isEmailLike(String value) {
+        return value != null && value.trim().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
     }
 }

@@ -258,6 +258,7 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_FRONTEND_PUBLIC_API_URL` | Optional frontend container build-time API URL; leave blank for same-origin reverse-proxy deployments |
 | `MERHOUSE_EMAIL_ENABLED` | Enables SMTP-backed email delivery attempts for configured email channels |
 | `MERHOUSE_EMAIL_FROM` | Sender address for provider-backed email delivery |
+| `MERHOUSE_EMAIL_REPLY_TO` | Optional reply-to address; deployment checks reject placeholders or malformed values when email is enabled |
 | `MERHOUSE_SMTP_HOST` / `MERHOUSE_SMTP_PORT` | SMTP provider target, such as Gmail/Google Workspace SMTP for staging proof |
 | `MERHOUSE_SMTP_USERNAME` / `MERHOUSE_SMTP_PASSWORD` | SMTP provider account and private credential; required when email delivery is enabled |
 | `MERHOUSE_AGENT_MODE` | Agent runtime mode; V17 public/deployment checks currently accept only `deterministic` read-plus-draft behavior |

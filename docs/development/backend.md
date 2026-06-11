@@ -47,6 +47,7 @@ Important environment variables:
 | `MERHOUSE_CORS_ALLOWED_ORIGINS` | Comma-separated browser/native origins allowed to call `/api/**`; the local default includes Docker nginx, Vite dev/tour origins, and Capacitor local origins |
 | `MERHOUSE_EMAIL_ENABLED` | Opt-in SMTP-backed email delivery attempts for V17 recovery, account-ready, and notification email proof |
 | `MERHOUSE_EMAIL_FROM` | Sender address required when email delivery is enabled |
+| `MERHOUSE_EMAIL_REPLY_TO` | Optional reply-to address; public startup rejects placeholders or malformed values when set with email delivery enabled |
 | `MERHOUSE_SMTP_HOST` / `MERHOUSE_SMTP_PORT` | SMTP provider target; public startup rejects local SMTP hosts when email delivery is enabled |
 | `MERHOUSE_SMTP_USERNAME` / `MERHOUSE_SMTP_PASSWORD` | SMTP provider account and private credential required when email delivery is enabled |
 | `MERHOUSE_AGENT_MODE` | Agent runtime mode; public startup currently accepts only `deterministic` |

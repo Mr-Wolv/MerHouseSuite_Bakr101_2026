@@ -80,6 +80,25 @@ function Assert-PrivateValue {
     }
 }
 
+function Assert-EmailAddress {
+    param(
+        [hashtable]$Values,
+        [string]$Name,
+        [switch]$Optional
+    )
+
+    if ($Optional -and (-not $Values.ContainsKey($Name) -or [string]::IsNullOrWhiteSpace($Values[$Name]))) {
+        return
+    }
+    Assert-Required -Values $Values -Name $Name
+    if (-not $AllowTemplate -and (Test-PlaceholderValue $Values[$Name])) {
+        throw "$Name must be a deployment email address, not a placeholder."
+    }
+    if ($Values[$Name] -notmatch '^[^@\s]+@[^@\s]+\.[^@\s]+$') {
+        throw "$Name must be a valid email address."
+    }
+}
+
 function Assert-IntegerRange {
     param(
         [hashtable]$Values,
@@ -156,7 +175,8 @@ if (-not [System.IO.Path]::IsPathRooted($values["MERHOUSE_BACKUP_HOST_DIR"])) {
 }
 
 if (Test-Truthy $values["MERHOUSE_EMAIL_ENABLED"]) {
-    Assert-Required -Values $values -Name "MERHOUSE_EMAIL_FROM"
+    Assert-EmailAddress -Values $values -Name "MERHOUSE_EMAIL_FROM"
+    Assert-EmailAddress -Values $values -Name "MERHOUSE_EMAIL_REPLY_TO" -Optional
     Assert-Required -Values $values -Name "MERHOUSE_SMTP_HOST"
     Assert-Required -Values $values -Name "MERHOUSE_SMTP_USERNAME"
     Assert-PrivateValue -Values $values -Name "MERHOUSE_SMTP_PASSWORD"

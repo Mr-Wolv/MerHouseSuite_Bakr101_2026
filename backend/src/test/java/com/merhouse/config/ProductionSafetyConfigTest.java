@@ -24,6 +24,7 @@ class ProductionSafetyConfigTest {
             true,
             false,
             "",
+            "",
             "localhost",
             "",
             "",
@@ -48,6 +49,7 @@ class ProductionSafetyConfigTest {
             true,
             true,
             false,
+            "",
             "",
             "localhost",
             "",
@@ -74,6 +76,7 @@ class ProductionSafetyConfigTest {
             false,
             false,
             "",
+            "",
             "localhost",
             "",
             "",
@@ -99,6 +102,7 @@ class ProductionSafetyConfigTest {
             false,
             false,
             "",
+            "",
             "localhost",
             "",
             "",
@@ -123,6 +127,7 @@ class ProductionSafetyConfigTest {
             false,
             false,
             false,
+            "",
             "",
             "localhost",
             "",
@@ -174,6 +179,7 @@ class ProductionSafetyConfigTest {
             false,
             true,
             "ops@merhouse.example",
+            "",
             "localhost",
             "ops@merhouse.example",
             "GmailAppCredentialWithStrongPrivateEntropy",
@@ -199,6 +205,7 @@ class ProductionSafetyConfigTest {
             false,
             true,
             "ops@merhouse.example",
+            "",
             "smtp.gmail.com",
             "",
             "GmailAppCredentialWithStrongPrivateEntropy",
@@ -225,13 +232,42 @@ class ProductionSafetyConfigTest {
             false,
             false,
             true,
-            "ops@merhouse.example",
+            "ops@merhouse.com",
+            "support@merhouse.com",
             "smtp.gmail.com",
             "ops@merhouse.com",
             "GmailAppCredentialWithStrongPrivateEntropy",
             "deterministic",
             15
         ));
+    }
+
+    @Test
+    void rejectsPublicEmailDeliveryWithPlaceholderReplyToAddress() {
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            5,
+            60,
+            false,
+            "",
+            3,
+            24,
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            true,
+            "ops@merhouse.example",
+            "replace-with-support@example.com",
+            "smtp.gmail.com",
+            "ops@merhouse.com",
+            "GmailAppCredentialWithStrongPrivateEntropy",
+            "deterministic",
+            15
+        ));
+
+        assertThat(exception.getMessage()).contains("MERHOUSE_EMAIL_REPLY_TO must be blank or a deployment reply-to email address");
     }
 
     @Test
@@ -250,6 +286,7 @@ class ProductionSafetyConfigTest {
             false,
             false,
             false,
+            "",
             "",
             "localhost",
             "",
@@ -277,6 +314,7 @@ class ProductionSafetyConfigTest {
             false,
             false,
             "",
+            "",
             "localhost",
             "",
             "",
@@ -302,6 +340,7 @@ class ProductionSafetyConfigTest {
             false,
             false,
             false,
+            "",
             "",
             "localhost",
             "",
@@ -330,6 +369,7 @@ class ProductionSafetyConfigTest {
             false,
             false,
             false,
+            "",
             "",
             "localhost",
             "",

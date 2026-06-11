@@ -94,6 +94,21 @@ function Assert-BackupRestoreManifestContract {
     Write-Host "Backup-restore drill manifest contract check passed."
 }
 
+function Assert-DeploymentEnvAuditContract {
+    $scriptPath = Join-Path $projectRoot "scripts\deploy\env-audit.ps1"
+    $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+    if ($scriptText -notmatch 'function\s+Assert-EmailAddress') {
+        throw "scripts\deploy\env-audit.ps1 must validate deployment email envelope addresses when email is enabled."
+    }
+    if ($scriptText -notmatch 'Assert-EmailAddress\s+-Values\s+\$values\s+-Name\s+"MERHOUSE_EMAIL_FROM"') {
+        throw "scripts\deploy\env-audit.ps1 must validate MERHOUSE_EMAIL_FROM as an email address when email is enabled."
+    }
+    if ($scriptText -notmatch 'Assert-EmailAddress\s+-Values\s+\$values\s+-Name\s+"MERHOUSE_EMAIL_REPLY_TO"\s+-Optional') {
+        throw "scripts\deploy\env-audit.ps1 must validate optional MERHOUSE_EMAIL_REPLY_TO as an email address when email is enabled."
+    }
+    Write-Host "Deployment env audit contract check passed."
+}
+
 function Assert-DeployedProofHttpsGuards {
     $deployedProofScriptPath = Join-Path $projectRoot "scripts\quality\deployed-v17-proof.ps1"
     $deployedProofText = Get-Content -Raw -LiteralPath $deployedProofScriptPath
@@ -243,6 +258,7 @@ try {
     Invoke-Checked "Checking PostgreSQL backup filename guards..." { Assert-PostgresBackupNameGuards }
     Invoke-Checked "Checking backup-restore drill manifest contract..." { Assert-BackupRestoreManifestContract }
     Invoke-Checked "Checking rollback rehearsal manifest contract..." { Assert-RollbackManifestContract }
+    Invoke-Checked "Checking deployment env audit contract..." { Assert-DeploymentEnvAuditContract }
     Invoke-Checked "Checking deployed V17 HTTPS target guards..." { Assert-DeployedProofHttpsGuards }
     Invoke-Checked "Checking native Android tour report contract..." { Assert-NativeAndroidTourReportContract }
     Invoke-Checked "Checking V17 email provider proof script contract..." { Assert-EmailProviderProofScriptContract }
