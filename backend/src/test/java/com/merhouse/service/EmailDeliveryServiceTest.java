@@ -53,11 +53,11 @@ class EmailDeliveryServiceTest {
             mailSender,
             clock,
             true,
-            "ops@merhouse.example",
-            "support@merhouse.example"
+            " ops@merhouse.example ",
+            " support@merhouse.example "
         );
 
-        EmailDeliveryResult result = service.send(delivery(), "Account body");
+        EmailDeliveryResult result = service.send(delivery(" user@merhouse.example ", " Account ready "), "Account body");
 
         assertTrue(result.sent());
         assertEquals("smtp-accepted", result.providerMessageId());
@@ -75,6 +75,39 @@ class EmailDeliveryServiceTest {
     }
 
     @Test
+    void enabledProviderRequiresRecipientEmail() {
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "ops@merhouse.example", "");
+
+        EmailDeliveryResult result = service.send(delivery(" ", "Account ready"), "Body");
+
+        assertFalse(result.sent());
+        assertEquals("Recipient email is required for email delivery.", result.error());
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void enabledProviderRequiresSubject() {
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "ops@merhouse.example", "");
+
+        EmailDeliveryResult result = service.send(delivery("user@merhouse.example", " "), "Body");
+
+        assertFalse(result.sent());
+        assertEquals("Email subject is required for email delivery.", result.error());
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void enabledProviderRequiresBody() {
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "ops@merhouse.example", "");
+
+        EmailDeliveryResult result = service.send(delivery(), " ");
+
+        assertFalse(result.sent());
+        assertEquals("Email body is required for email delivery.", result.error());
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
     void providerFailureReturnsSanitizedFailureResult() {
         doThrow(new MailSendException("smtp unavailable")).when(mailSender).send(any(SimpleMailMessage.class));
         EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "ops@merhouse.example", "");
@@ -87,12 +120,16 @@ class EmailDeliveryServiceTest {
     }
 
     private NotificationDelivery delivery() {
+        return delivery("user@merhouse.example", "Account ready");
+    }
+
+    private NotificationDelivery delivery(String email, String title) {
         AppUser recipient = new AppUser();
-        recipient.setEmail("user@merhouse.example");
+        recipient.setEmail(email);
 
         NotificationDelivery delivery = new NotificationDelivery();
         delivery.setRecipient(recipient);
-        delivery.setTitle("Account ready");
+        delivery.setTitle(title);
         return delivery;
     }
 }

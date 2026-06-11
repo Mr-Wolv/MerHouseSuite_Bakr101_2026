@@ -39,17 +39,33 @@ public class EmailDeliveryService {
         if (!enabled) {
             return EmailDeliveryResult.failed("Email provider is not configured.");
         }
-        if (from == null || from.isBlank()) {
+        String fromAddress = trimToNull(from);
+        if (fromAddress == null) {
             return EmailDeliveryResult.failed("MERHOUSE_EMAIL_FROM is required when email delivery is enabled.");
+        }
+        if (delivery == null || delivery.getRecipient() == null) {
+            return EmailDeliveryResult.failed("Recipient email is required for email delivery.");
+        }
+        String recipientEmail = trimToNull(delivery.getRecipient().getEmail());
+        if (recipientEmail == null) {
+            return EmailDeliveryResult.failed("Recipient email is required for email delivery.");
+        }
+        String subject = trimToNull(delivery.getTitle());
+        if (subject == null) {
+            return EmailDeliveryResult.failed("Email subject is required for email delivery.");
+        }
+        if (body == null || body.isBlank()) {
+            return EmailDeliveryResult.failed("Email body is required for email delivery.");
         }
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(from);
-            if (replyTo != null && !replyTo.isBlank()) {
-                message.setReplyTo(replyTo);
+            message.setFrom(fromAddress);
+            String replyToAddress = trimToNull(replyTo);
+            if (replyToAddress != null) {
+                message.setReplyTo(replyToAddress);
             }
-            message.setTo(delivery.getRecipient().getEmail());
-            message.setSubject(delivery.getTitle());
+            message.setTo(recipientEmail);
+            message.setSubject(subject);
             message.setText(body);
             message.setSentDate(java.util.Date.from(Instant.now(clock)));
             mailSender.send(message);
@@ -57,5 +73,13 @@ public class EmailDeliveryService {
         } catch (MailException exception) {
             return EmailDeliveryResult.failed(exception.getMessage());
         }
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

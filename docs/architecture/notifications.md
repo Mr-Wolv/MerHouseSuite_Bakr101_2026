@@ -44,6 +44,8 @@ Provider statuses:
 
 Provider-attempt metadata includes provider message id, provider error, attempted time, sent time, failed time, and retry count.
 
+Enabled SMTP attempts validate the sender, recipient email, subject, and body before contacting the provider. Missing envelope data is recorded as a provider failure instead of escaping the notification workflow without delivery metadata.
+
 ## Account Lifecycle Hooks
 
 Password-reset requests for enabled users create an in-app `ACCOUNT_LIFECYCLE` delivery record titled `Password reset prepared`.
