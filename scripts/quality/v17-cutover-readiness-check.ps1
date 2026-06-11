@@ -86,7 +86,7 @@ $smokeEvidence = @{
     testRun = "fixture"
     baseUrl = "https://app.example.com"
     apiResponses = @{
-        adminLogin = @{ user = @{ email = "owner@example.com" }; accessToken = "eyJhbGciOiJIUzI1NiJ9.fixture.signature" }
+        adminLogin = @{ user = @{ email = "owner@example.com" }; accessToken = "fixture-token" }
         boundaryAccessRequest = @{ id = "fixture-boundary-access-request"; status = "PENDING" }
     }
     tableStateAfterTransactions = @{ tenants = @(@{ id = "fixture-tenant" }) }

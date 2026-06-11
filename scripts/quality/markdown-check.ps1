@@ -3,7 +3,7 @@ param()
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$excludedPathPattern = "\\(\.git|node_modules|target|dist|reports|playwright-report|test-results)\\"
+$excludedPathPattern = "[\\/](\.git|node_modules|target|dist|reports|playwright-report|test-results)[\\/]"
 $missingLinks = New-Object System.Collections.Generic.List[string]
 
 function Test-ExternalLink {

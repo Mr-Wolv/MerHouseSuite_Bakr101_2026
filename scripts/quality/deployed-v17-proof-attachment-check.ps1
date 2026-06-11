@@ -195,7 +195,7 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
         "notification-email" = "SENT"
     }
     deliveryEvidence = "operator-confirmed-smtp-staging-fixture"
-    accessToken = "eyJhbGciOiJIUzI1NiJ9.fixture.fixture"
+    accessToken = "fixture-token"
     secretPolicy = "No SMTP credentials, reset tokens, invitation passwords, or message bodies are stored in this parser proof fixture."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $leakedSecretEmailProviderPath -Encoding utf8
 
