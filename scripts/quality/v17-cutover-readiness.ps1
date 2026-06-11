@@ -392,6 +392,9 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             if (-not [bool]$proofArtifact.installedAndroidWalkthroughCompleted) {
                 $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact installedAndroidWalkthroughCompleted must be true."
             }
+            if ($proofArtifact.proofMode -ne "manual-live-review") {
+                $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact proofMode must be manual-live-review."
+            }
             foreach ($role in @("owner", "merchant", "warehouse", "support-admin", "auditor")) {
                 if (@($proofArtifact.rolesCovered) -notcontains $role) {
                     $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact rolesCovered must include $role."

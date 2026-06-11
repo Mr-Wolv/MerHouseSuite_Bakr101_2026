@@ -184,6 +184,7 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     apiBaseUrl = "https://api.example.com"
     browserWalkthroughCompleted = $true
     installedAndroidWalkthroughCompleted = $true
+    proofMode = "manual-live-review"
     rolesCovered = @("owner", "merchant", "warehouse", "support-admin", "auditor")
     reviewer = "local-proof-fixture"
     secretPolicy = "No smoke credentials, screenshots, or private endpoint tokens are stored in this parser proof fixture."
@@ -343,6 +344,7 @@ $wrongAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $w
     apiBaseUrl = "https://wrong-api.example.com"
     browserWalkthroughCompleted = $true
     installedAndroidWalkthroughCompleted = $false
+    proofMode = "scripted-tour-only"
     rolesCovered = @("owner", "merchant")
     reviewer = "local-proof-fixture"
     secretPolicy = "No smoke credentials are stored."
@@ -409,6 +411,7 @@ try {
         $_.Exception.Message -match "alertRouting.path artifact deliveryEvidence" -and
         $_.Exception.Message -match "liveStakeholderWalkthrough.path artifact apiBaseUrl" -and
         $_.Exception.Message -match "installedAndroidWalkthroughCompleted" -and
+        $_.Exception.Message -match "liveStakeholderWalkthrough.path artifact proofMode" -and
         $_.Exception.Message -match "rolesCovered must include warehouse"
     ) {
         $failedAsExpected = $true

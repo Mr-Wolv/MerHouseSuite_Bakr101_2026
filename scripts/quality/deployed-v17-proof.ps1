@@ -320,6 +320,9 @@ function Resolve-EvidenceAttachment {
         if (-not [bool]$json.installedAndroidWalkthroughCompleted) {
             throw "LiveStakeholderWalkthroughManifestPath must set installedAndroidWalkthroughCompleted to true."
         }
+        if ($json.proofMode -ne "manual-live-review") {
+            throw "LiveStakeholderWalkthroughManifestPath proofMode must be manual-live-review."
+        }
         foreach ($role in @("owner", "merchant", "warehouse", "support-admin", "auditor")) {
             if (@($json.rolesCovered) -notcontains $role) {
                 throw "LiveStakeholderWalkthroughManifestPath rolesCovered must include $role."
