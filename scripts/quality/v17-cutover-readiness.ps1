@@ -81,7 +81,8 @@ function Test-NoSecretLeak {
         [AllowNull()]$Value,
         [string]$Path = "",
         [switch]$RejectEmailAddresses,
-        [switch]$RejectProviderEvidenceBodies
+        [switch]$RejectProviderEvidenceBodies,
+        [switch]$RejectOperationalProofBodies
     )
 
     if ($null -eq $Value) {
@@ -91,7 +92,7 @@ function Test-NoSecretLeak {
     if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string] -and $Value -isnot [System.Management.Automation.PSCustomObject]) {
         $index = 0
         foreach ($item in $Value) {
-            Test-NoSecretLeak -Context $Context -Value $item -Path "$Path[$index]" -RejectEmailAddresses:$RejectEmailAddresses -RejectProviderEvidenceBodies:$RejectProviderEvidenceBodies
+            Test-NoSecretLeak -Context $Context -Value $item -Path "$Path[$index]" -RejectEmailAddresses:$RejectEmailAddresses -RejectProviderEvidenceBodies:$RejectProviderEvidenceBodies -RejectOperationalProofBodies:$RejectOperationalProofBodies
             $index++
         }
         return
@@ -107,7 +108,7 @@ function Test-NoSecretLeak {
                     $script:failures += "$Context must not include $propertyPath; redact sensitive proof values before cutover review."
                 }
             }
-            Test-NoSecretLeak -Context $Context -Value $property.Value -Path $propertyPath -RejectEmailAddresses:$RejectEmailAddresses -RejectProviderEvidenceBodies:$RejectProviderEvidenceBodies
+            Test-NoSecretLeak -Context $Context -Value $property.Value -Path $propertyPath -RejectEmailAddresses:$RejectEmailAddresses -RejectProviderEvidenceBodies:$RejectProviderEvidenceBodies -RejectOperationalProofBodies:$RejectOperationalProofBodies
         }
         return
     }
@@ -122,6 +123,9 @@ function Test-NoSecretLeak {
         }
         if ($RejectProviderEvidenceBodies -and $Path -ne "secretPolicy" -and $Value -match '(?i)(message[_ -]?body|provider[_ -]?log|smtp[_ -]?log|smtp[_ -]?transcript|email[_ -]?header|message[_ -]?id|raw[_ -]?email|alert[_ -]?payload|raw[_ -]?payload|webhook[_ -]?payload|webhook[_ -]?body|notification[_ -]?body|delivery[_ -]?transcript|http[_ -]?transcript|request[_ -]?body|response[_ -]?body)') {
             $script:failures += "$Context must not include copied provider logs, message bodies, alert payloads, SMTP/HTTP transcripts, headers, message IDs, or raw email/payload content at $Path."
+        }
+        if ($RejectOperationalProofBodies -and $Path -ne "secretPolicy" -and $Value -match '(?i)(deployment[_ -]?log|browser[_ -]?log|android[_ -]?log|adb[_ -]?logcat|logcat|stack[_ -]?trace|console[_ -]?output|raw[_ -]?log|screenshot[_ -]?data|data:image|base64)') {
+            $script:failures += "$Context must not include copied deployment logs, browser/Android logs, stack traces, console output, or screenshot data at $Path."
         }
     }
 }
@@ -277,7 +281,8 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
         }
         $rejectEmailAddresses = $attachmentName -in @("emailProvider", "alertRouting", "liveStakeholderWalkthrough")
         $rejectProviderEvidenceBodies = $attachmentName -in @("emailProvider", "alertRouting")
-        Test-NoSecretLeak -Context "Deployment evidence manifest attachedEvidence.$attachmentName.path artifact" -Value $proofArtifact -RejectEmailAddresses:$rejectEmailAddresses -RejectProviderEvidenceBodies:$rejectProviderEvidenceBodies
+        $rejectOperationalProofBodies = $attachmentName -eq "liveStakeholderWalkthrough"
+        Test-NoSecretLeak -Context "Deployment evidence manifest attachedEvidence.$attachmentName.path artifact" -Value $proofArtifact -RejectEmailAddresses:$rejectEmailAddresses -RejectProviderEvidenceBodies:$rejectProviderEvidenceBodies -RejectOperationalProofBodies:$rejectOperationalProofBodies
         if ($attachmentName -eq "androidRelease" -and $proofArtifact.apiBaseUrl -ne $manifest.apiBaseUrl) {
             $failures += "Deployment evidence manifest attachedEvidence.androidRelease.path artifact apiBaseUrl must match apiBaseUrl."
         }
@@ -519,6 +524,11 @@ foreach ($attachmentName in $expectedAttachmentSchemas.Keys) {
             }
             if ([string]::IsNullOrWhiteSpace($proofArtifact.reviewer)) {
                 $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact reviewer must be non-blank."
+            }
+            foreach ($evidenceName in @("browserWalkthrough", "installedAndroidWalkthrough", "stakeholderCoverage")) {
+                if ($null -eq $proofArtifact.manualEvidence -or [string]::IsNullOrWhiteSpace($proofArtifact.manualEvidence.$evidenceName)) {
+                    $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact manualEvidence.$evidenceName must be non-blank."
+                }
             }
             if ([string]::IsNullOrWhiteSpace($proofArtifact.secretPolicy)) {
                 $failures += "Deployment evidence manifest attachedEvidence.liveStakeholderWalkthrough.path artifact secretPolicy must be non-blank."

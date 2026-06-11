@@ -91,7 +91,8 @@ function Resolve-EvidenceAttachment {
             [AllowNull()]$Value,
             [string]$Path = "",
             [switch]$RejectEmailAddresses,
-            [switch]$RejectProviderEvidenceBodies
+            [switch]$RejectProviderEvidenceBodies,
+            [switch]$RejectOperationalProofBodies
         )
 
         if ($null -eq $Value) {
@@ -101,7 +102,7 @@ function Resolve-EvidenceAttachment {
         if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string] -and $Value -isnot [System.Management.Automation.PSCustomObject]) {
             $index = 0
             foreach ($item in $Value) {
-                Assert-NoSecretLeak -Value $item -Path "$Path[$index]" -RejectEmailAddresses:$RejectEmailAddresses -RejectProviderEvidenceBodies:$RejectProviderEvidenceBodies
+                Assert-NoSecretLeak -Value $item -Path "$Path[$index]" -RejectEmailAddresses:$RejectEmailAddresses -RejectProviderEvidenceBodies:$RejectProviderEvidenceBodies -RejectOperationalProofBodies:$RejectOperationalProofBodies
                 $index++
             }
             return
@@ -117,7 +118,7 @@ function Resolve-EvidenceAttachment {
                         throw "$Name must not include $propertyPath; redact sensitive proof values before attaching deployed V17 evidence."
                     }
                 }
-                Assert-NoSecretLeak -Value $property.Value -Path $propertyPath -RejectEmailAddresses:$RejectEmailAddresses -RejectProviderEvidenceBodies:$RejectProviderEvidenceBodies
+                Assert-NoSecretLeak -Value $property.Value -Path $propertyPath -RejectEmailAddresses:$RejectEmailAddresses -RejectProviderEvidenceBodies:$RejectProviderEvidenceBodies -RejectOperationalProofBodies:$RejectOperationalProofBodies
             }
             return
         }
@@ -132,6 +133,9 @@ function Resolve-EvidenceAttachment {
             }
             if ($RejectProviderEvidenceBodies -and $Path -ne "secretPolicy" -and $Value -match '(?i)(message[_ -]?body|provider[_ -]?log|smtp[_ -]?log|smtp[_ -]?transcript|email[_ -]?header|message[_ -]?id|raw[_ -]?email|alert[_ -]?payload|raw[_ -]?payload|webhook[_ -]?payload|webhook[_ -]?body|notification[_ -]?body|delivery[_ -]?transcript|http[_ -]?transcript|request[_ -]?body|response[_ -]?body)') {
                 throw "$Name must not include copied provider logs, message bodies, alert payloads, SMTP/HTTP transcripts, headers, message IDs, or raw email/payload content at $Path."
+            }
+            if ($RejectOperationalProofBodies -and $Path -ne "secretPolicy" -and $Value -match '(?i)(deployment[_ -]?log|browser[_ -]?log|android[_ -]?log|adb[_ -]?logcat|logcat|stack[_ -]?trace|console[_ -]?output|raw[_ -]?log|screenshot[_ -]?data|data:image|base64)') {
+                throw "$Name must not include copied deployment logs, browser/Android logs, stack traces, console output, or screenshot data at $Path."
             }
         }
     }
@@ -152,7 +156,8 @@ function Resolve-EvidenceAttachment {
     }
     $rejectEmailAddresses = $Name -in @("EmailProviderProofManifestPath", "AlertRoutingManifestPath", "LiveStakeholderWalkthroughManifestPath")
     $rejectProviderEvidenceBodies = $Name -in @("EmailProviderProofManifestPath", "AlertRoutingManifestPath")
-    Assert-NoSecretLeak -Value $json -RejectEmailAddresses:$rejectEmailAddresses -RejectProviderEvidenceBodies:$rejectProviderEvidenceBodies
+    $rejectOperationalProofBodies = $Name -eq "LiveStakeholderWalkthroughManifestPath"
+    Assert-NoSecretLeak -Value $json -RejectEmailAddresses:$rejectEmailAddresses -RejectProviderEvidenceBodies:$rejectProviderEvidenceBodies -RejectOperationalProofBodies:$rejectOperationalProofBodies
     $schema = $json.schema
     if ([string]::IsNullOrWhiteSpace($schema)) {
         throw "$Name must include a non-blank schema field."
@@ -412,6 +417,11 @@ function Resolve-EvidenceAttachment {
         }
         if ([string]::IsNullOrWhiteSpace($json.reviewer)) {
             throw "LiveStakeholderWalkthroughManifestPath must include reviewer."
+        }
+        foreach ($evidenceName in @("browserWalkthrough", "installedAndroidWalkthrough", "stakeholderCoverage")) {
+            if ($null -eq $json.manualEvidence -or [string]::IsNullOrWhiteSpace($json.manualEvidence.$evidenceName)) {
+                throw "LiveStakeholderWalkthroughManifestPath manualEvidence.$evidenceName must be non-blank."
+            }
         }
         if ([string]::IsNullOrWhiteSpace($json.secretPolicy)) {
             throw "LiveStakeholderWalkthroughManifestPath must include secretPolicy."

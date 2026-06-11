@@ -17,6 +17,7 @@ $wrongAlertPath = Join-Path $resolvedOutputDirectory "v17-alert-routing-proof-ch
 $leakedAlertPayloadPath = Join-Path $resolvedOutputDirectory "v17-alert-routing-proof-check-leaked-payload.json"
 $validWalkthroughPath = Join-Path $resolvedOutputDirectory "v17-live-walkthrough-proof-check-valid.json"
 $wrongWalkthroughPath = Join-Path $resolvedOutputDirectory "v17-live-walkthrough-proof-check-wrong.json"
+$leakedWalkthroughLogPath = Join-Path $resolvedOutputDirectory "v17-live-walkthrough-proof-check-leaked-log.json"
 $validAndroidReleasePath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-valid.json"
 $wrongAndroidReleasePath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-wrong.json"
 $validAndroidArtifactPath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check.aab"
@@ -364,6 +365,11 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     proofMode = "manual-live-review"
     rolesCovered = @("owner", "merchant", "warehouse", "support-admin", "auditor")
     reviewer = "local-proof-fixture"
+    manualEvidence = @{
+        browserWalkthrough = "browser walkthrough completed with reviewer initials"
+        installedAndroidWalkthrough = "installed Android walkthrough completed with reviewer initials"
+        stakeholderCoverage = "owner merchant warehouse support auditor states reviewed"
+    }
     secretPolicy = "No smoke credentials, screenshots, or private endpoint tokens are stored in this parser proof fixture."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $validWalkthroughPath -Encoding utf8
 
@@ -379,6 +385,24 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
     reviewer = "local-proof-fixture"
     secretPolicy = "No smoke credentials are stored."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongWalkthroughPath -Encoding utf8
+
+@{
+    schema = "merhouse.v17.live-stakeholder-walkthrough.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    browserWalkthroughCompleted = $true
+    installedAndroidWalkthroughCompleted = $true
+    proofMode = "manual-live-review"
+    rolesCovered = @("owner", "merchant", "warehouse", "support-admin", "auditor")
+    reviewer = "local-proof-fixture"
+    manualEvidence = @{
+        browserWalkthrough = "browser console output copied from live review"
+        installedAndroidWalkthrough = "installed Android walkthrough completed with reviewer initials"
+        stakeholderCoverage = "owner merchant warehouse support auditor states reviewed"
+    }
+    secretPolicy = "No smoke credentials, screenshots, or private endpoint tokens are stored in this parser proof fixture."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $leakedWalkthroughLogPath -Encoding utf8
 
 $tokens = $null
 $parseErrors = $null
@@ -738,6 +762,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Incomplete live walkthrough attachment was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    Invoke-AttachmentResolver -Name "LiveStakeholderWalkthroughManifestPath" -Path $leakedWalkthroughLogPath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "browser/Android logs") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Leaked live-walkthrough log attachment was accepted."
 }
 
 Write-Host "Deployed V17 proof attachment rule check passed."

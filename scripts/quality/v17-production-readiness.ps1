@@ -213,6 +213,9 @@ function Assert-LiveStakeholderWalkthroughProofScriptContract {
     if ($scriptText -notmatch 'reviewer, operator, or stakeholder email addresses') {
         throw "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 must reject email-shaped PII in proof evidence."
     }
+    if ($scriptText -notmatch 'browser/Android logs' -or $scriptText -notmatch 'screenshot data') {
+        throw "scripts\quality\v17-live-stakeholder-walkthrough-proof.ps1 must reject copied logs and screenshot data."
+    }
     Write-Host "V17 live stakeholder walkthrough proof script contract check passed."
 }
 

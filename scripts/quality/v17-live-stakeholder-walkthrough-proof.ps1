@@ -34,6 +34,9 @@ function Assert-SafeEvidenceText {
     if ($trimmed -match '(?i)(password|authorization|bearer|api[_ -]?key|secret|credential|token|otp|private[_ -]?url|screenshot\s*data|base64)') {
         throw "$Name must not include credentials, tokens, OTPs, private URLs, copied screenshot data, or logs."
     }
+    if ($trimmed -match '(?i)(deployment[_ -]?log|browser[_ -]?log|android[_ -]?log|adb[_ -]?logcat|logcat|stack[_ -]?trace|console[_ -]?output|raw[_ -]?log|screenshot[_ -]?data|data:image|base64)') {
+        throw "$Name must not include copied deployment logs, browser/Android logs, stack traces, console output, or screenshot data."
+    }
     if ($trimmed -match '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b') {
         throw "$Name must not include reviewer, operator, or stakeholder email addresses."
     }

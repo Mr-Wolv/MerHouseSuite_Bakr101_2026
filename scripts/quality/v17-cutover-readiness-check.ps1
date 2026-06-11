@@ -18,12 +18,14 @@ $wrongAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-c
 $wrongRollbackMonitoringManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-rollback-monitoring.json"
 $providerLogAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-provider-log-attachment.json"
 $alertPayloadAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-payload-attachment.json"
+$liveLogAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-live-log-attachment.json"
 $validOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-valid-report.json"
 $missingOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-missing-report.json"
 $wrongAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment-report.json"
 $wrongRollbackMonitoringOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-rollback-monitoring-report.json"
 $providerLogAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-provider-log-attachment-report.json"
 $alertPayloadAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-payload-attachment-report.json"
+$liveLogAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-live-log-attachment-report.json"
 
 $artifactPaths = [ordered]@{
     frontendProxySmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-frontend-proxy-smoke.json"
@@ -59,6 +61,7 @@ $artifactPaths = [ordered]@{
     leakedAlertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-leaked-alert-routing.json"
     liveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-live-walkthrough.json"
     invalidLiveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-live-walkthrough.json"
+    leakedLiveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-leaked-live-walkthrough.json"
 }
 
 $smokeEvidence = @{
@@ -244,6 +247,11 @@ $backupBytes = (Get-Item -LiteralPath $artifactPaths.backupRestoreDump).Length
     proofMode = "manual-live-review"
     rolesCovered = @("owner", "merchant", "warehouse", "support-admin", "auditor")
     reviewer = "local-proof-fixture"
+    manualEvidence = @{
+        browserWalkthrough = "browser walkthrough completed with reviewer initials"
+        installedAndroidWalkthrough = "installed Android walkthrough completed with reviewer initials"
+        stakeholderCoverage = "owner merchant warehouse support auditor states reviewed"
+    }
     secretPolicy = "No smoke credentials, screenshots, or private endpoint tokens are stored in this parser proof fixture."
 } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.liveStakeholderWalkthrough -Encoding utf8
@@ -325,6 +333,10 @@ $providerLogAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralP
 $alertPayloadAttachmentManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
 $alertPayloadAttachmentManifest.attachedEvidence.alertRouting.path = $artifactPaths.leakedAlertRouting
 $alertPayloadAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $alertPayloadAttachmentManifestPath -Encoding utf8
+
+$liveLogAttachmentManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+$liveLogAttachmentManifest.attachedEvidence.liveStakeholderWalkthrough.path = $artifactPaths.leakedLiveStakeholderWalkthrough
+$liveLogAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $liveLogAttachmentManifestPath -Encoding utf8
 
 @{
     schema = "merhouse.v17.android-release.v1"
@@ -461,6 +473,24 @@ $alertPayloadAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -Literal
     secretPolicy = "No smoke credentials are stored."
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidLiveStakeholderWalkthrough -Encoding utf8
 
+@{
+    schema = "merhouse.v17.live-stakeholder-walkthrough.v1"
+    completedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    browserWalkthroughCompleted = $true
+    installedAndroidWalkthroughCompleted = $true
+    proofMode = "manual-live-review"
+    rolesCovered = @("owner", "merchant", "warehouse", "support-admin", "auditor")
+    reviewer = "local-proof-fixture"
+    manualEvidence = @{
+        browserWalkthrough = "browser console output copied from live review"
+        installedAndroidWalkthrough = "installed Android walkthrough completed with reviewer initials"
+        stakeholderCoverage = "owner merchant warehouse support auditor states reviewed"
+    }
+    secretPolicy = "No smoke credentials, screenshots, or private endpoint tokens are stored in this parser proof fixture."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.leakedLiveStakeholderWalkthrough -Encoding utf8
+
 & (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $validManifestPath -OutputPath $validOutputPath
 
 $failedAsExpected = $false
@@ -589,6 +619,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Alert payload evidence was accepted as cutover-ready."
+}
+
+$failedAsExpected = $false
+try {
+    & (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $liveLogAttachmentManifestPath -OutputPath $liveLogAttachmentOutputPath
+} catch {
+    if ($_.Exception.Message -match "browser/Android logs") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Live walkthrough copied-log evidence was accepted as cutover-ready."
 }
 
 Write-Host "V17 cutover readiness fixture check passed."
