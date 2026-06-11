@@ -17,11 +17,13 @@ $missingEvidenceManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-c
 $wrongAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment.json"
 $wrongRollbackMonitoringManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-rollback-monitoring.json"
 $providerLogAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-provider-log-attachment.json"
+$alertPayloadAttachmentManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-payload-attachment.json"
 $validOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-valid-report.json"
 $missingOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-missing-report.json"
 $wrongAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-attachment-report.json"
 $wrongRollbackMonitoringOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-wrong-rollback-monitoring-report.json"
 $providerLogAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-provider-log-attachment-report.json"
+$alertPayloadAttachmentOutputPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-payload-attachment-report.json"
 
 $artifactPaths = [ordered]@{
     frontendProxySmoke = Join-Path $resolvedOutputDirectory "v17-cutover-check-frontend-proxy-smoke.json"
@@ -54,6 +56,7 @@ $artifactPaths = [ordered]@{
     providerLogEmailProvider = Join-Path $resolvedOutputDirectory "v17-cutover-check-provider-log-email-provider.json"
     alertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-alert-routing.json"
     invalidAlertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-alert-routing.json"
+    leakedAlertRouting = Join-Path $resolvedOutputDirectory "v17-cutover-check-leaked-alert-routing.json"
     liveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-live-walkthrough.json"
     invalidLiveStakeholderWalkthrough = Join-Path $resolvedOutputDirectory "v17-cutover-check-invalid-live-walkthrough.json"
 }
@@ -319,6 +322,10 @@ $providerLogAttachmentManifest = $baseManifest | ConvertTo-Json -Depth 8 | Conve
 $providerLogAttachmentManifest.attachedEvidence.emailProvider.path = $artifactPaths.providerLogEmailProvider
 $providerLogAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $providerLogAttachmentManifestPath -Encoding utf8
 
+$alertPayloadAttachmentManifest = $baseManifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+$alertPayloadAttachmentManifest.attachedEvidence.alertRouting.path = $artifactPaths.leakedAlertRouting
+$alertPayloadAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $alertPayloadAttachmentManifestPath -Encoding utf8
+
 @{
     schema = "merhouse.v17.android-release.v1"
     commitSha = "wrong-fixture"
@@ -382,6 +389,21 @@ $providerLogAttachmentManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralP
     deliveryEvidence = ""
     secretPolicy = ""
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidAlertRouting -Encoding utf8
+
+@{
+    schema = "merhouse.v17.alert-routing.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    routedSignals = @("api-health", "frontend-health", "failed-provider-delivery")
+    signalEvidence = @{
+        "api-health" = "API health alert reached the staging recipient"
+        "frontend-health" = "frontend shell alert reached the staging recipient"
+        "failed-provider-delivery" = "raw payload copied from alert provider"
+    }
+    deliveryEvidence = "operator-confirmed-alert-routing-fixture"
+    secretPolicy = "No provider credentials or alert endpoints are stored in this parser proof fixture."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.leakedAlertRouting -Encoding utf8
 
 @{
     schema = "merhouse.native-android-tour.report.v1"
@@ -552,6 +574,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Provider-log email evidence was accepted as cutover-ready."
+}
+
+$failedAsExpected = $false
+try {
+    & (Join-Path $PSScriptRoot "v17-cutover-readiness.ps1") -DeploymentEvidenceManifestPath $alertPayloadAttachmentManifestPath -OutputPath $alertPayloadAttachmentOutputPath
+} catch {
+    if ($_.Exception.Message -match "alert payloads") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Alert payload evidence was accepted as cutover-ready."
 }
 
 Write-Host "V17 cutover readiness fixture check passed."

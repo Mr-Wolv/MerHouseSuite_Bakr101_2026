@@ -184,6 +184,9 @@ function Assert-AlertRoutingProofScriptContract {
     if ($scriptText -notmatch 'recipient or operator email addresses') {
         throw "scripts\quality\v17-alert-routing-proof.ps1 must reject email-shaped PII in proof evidence."
     }
+    if ($scriptText -notmatch 'alert payloads' -or $scriptText -notmatch 'delivery transcripts') {
+        throw "scripts\quality\v17-alert-routing-proof.ps1 must reject copied provider logs, alert payloads, webhook bodies, and delivery transcripts."
+    }
     Write-Host "V17 alert routing proof script contract check passed."
 }
 

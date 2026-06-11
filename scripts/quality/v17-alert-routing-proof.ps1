@@ -34,6 +34,9 @@ function Assert-SafeEvidenceText {
     if ($trimmed -match '(?i)(password|authorization|bearer|api[_ -]?key|secret|credential|webhook|endpoint|smtp[_ -]?pass|private[_ -]?url)') {
         throw "$Name must not include secret, credential, endpoint, webhook, password, or copied provider-log values."
     }
+    if ($trimmed -match '(?i)(provider[_ -]?log|alert[_ -]?payload|raw[_ -]?payload|webhook[_ -]?payload|webhook[_ -]?body|notification[_ -]?body|delivery[_ -]?transcript|http[_ -]?transcript|request[_ -]?body|response[_ -]?body)') {
+        throw "$Name must not include copied provider logs, alert payloads, webhook bodies, delivery transcripts, or request/response bodies."
+    }
     if ($trimmed -match '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b') {
         throw "$Name must not include recipient or operator email addresses."
     }

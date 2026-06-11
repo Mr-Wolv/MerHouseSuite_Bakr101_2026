@@ -14,6 +14,7 @@ New-Item -ItemType Directory -Force -Path $resolvedOutputDirectory | Out-Null
 
 $validAlertPath = Join-Path $resolvedOutputDirectory "v17-alert-routing-proof-check-valid.json"
 $wrongAlertPath = Join-Path $resolvedOutputDirectory "v17-alert-routing-proof-check-wrong.json"
+$leakedAlertPayloadPath = Join-Path $resolvedOutputDirectory "v17-alert-routing-proof-check-leaked-payload.json"
 $validWalkthroughPath = Join-Path $resolvedOutputDirectory "v17-live-walkthrough-proof-check-valid.json"
 $wrongWalkthroughPath = Join-Path $resolvedOutputDirectory "v17-live-walkthrough-proof-check-wrong.json"
 $validAndroidReleasePath = Join-Path $resolvedOutputDirectory "v17-android-release-proof-check-valid.json"
@@ -339,6 +340,21 @@ $validBackupBytes = (Get-Item -LiteralPath $validBackupDumpPath).Length
 } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $wrongAlertPath -Encoding utf8
 
 @{
+    schema = "merhouse.v17.alert-routing.v1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    frontendBaseUrl = "https://app.example.com"
+    apiBaseUrl = "https://api.example.com"
+    routedSignals = @("api-health", "frontend-health", "failed-provider-delivery")
+    signalEvidence = @{
+        "api-health" = "API health alert reached the staging recipient"
+        "frontend-health" = "frontend shell alert reached the staging recipient"
+        "failed-provider-delivery" = "raw payload copied from alert provider"
+    }
+    deliveryEvidence = "operator-confirmed-alert-routing-fixture"
+    secretPolicy = "No provider credentials or alert endpoints are stored in this parser proof fixture."
+} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $leakedAlertPayloadPath -Encoding utf8
+
+@{
     schema = "merhouse.v17.live-stakeholder-walkthrough.v1"
     completedAt = (Get-Date).ToUniversalTime().ToString("o")
     frontendBaseUrl = "https://app.example.com"
@@ -519,6 +535,21 @@ try {
 
 if (-not $failedAsExpected) {
     throw "Wrong-schema alert-routing attachment was accepted."
+}
+
+$failedAsExpected = $false
+try {
+    Invoke-AttachmentResolver -Name "AlertRoutingManifestPath" -Path $leakedAlertPayloadPath | Out-Null
+} catch {
+    if ($_.Exception.Message -match "alert payloads") {
+        $failedAsExpected = $true
+    } else {
+        throw
+    }
+}
+
+if (-not $failedAsExpected) {
+    throw "Leaked alert payload attachment was accepted."
 }
 
 $failedAsExpected = $false
