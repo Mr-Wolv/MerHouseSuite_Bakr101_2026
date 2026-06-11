@@ -109,6 +109,20 @@ function Assert-DeploymentEnvAuditContract {
     Write-Host "Deployment env audit contract check passed."
 }
 
+function Assert-AndroidReleaseProofContract {
+    $scriptPath = Join-Path $projectRoot "scripts\quality\v17-production-readiness.ps1"
+    $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+    $androidReleaseCallPattern = 'native-android-release-check\.ps1"\s+-ApiBaseUrl\s+\$normalizedApiBaseUrl\s+-OutputPath\s+"\.\\reports\\v17-android-release\.json"'
+    if ($scriptText -notmatch $androidReleaseCallPattern) {
+        throw "scripts\quality\v17-production-readiness.ps1 must build a signed APK artifact for V17 Android proof."
+    }
+    $bundleCallPattern = 'native-android-release-check\.ps1"[\s\S]*?-Bundle[\s\S]*?-OutputPath\s+"\.\\reports\\v17-android-release\.json"'
+    if ($scriptText -match $bundleCallPattern) {
+        throw "scripts\quality\v17-production-readiness.ps1 must not use -Bundle for the broad signed Android proof; the installed Android walkthrough needs an APK fingerprint."
+    }
+    Write-Host "Android release proof contract check passed."
+}
+
 function Assert-DeployedProofHttpsGuards {
     $deployedProofScriptPath = Join-Path $projectRoot "scripts\quality\deployed-v17-proof.ps1"
     $deployedProofText = Get-Content -Raw -LiteralPath $deployedProofScriptPath
@@ -259,6 +273,7 @@ try {
     Invoke-Checked "Checking backup-restore drill manifest contract..." { Assert-BackupRestoreManifestContract }
     Invoke-Checked "Checking rollback rehearsal manifest contract..." { Assert-RollbackManifestContract }
     Invoke-Checked "Checking deployment env audit contract..." { Assert-DeploymentEnvAuditContract }
+    Invoke-Checked "Checking Android release proof contract..." { Assert-AndroidReleaseProofContract }
     Invoke-Checked "Checking deployed V17 HTTPS target guards..." { Assert-DeployedProofHttpsGuards }
     Invoke-Checked "Checking native Android tour report contract..." { Assert-NativeAndroidTourReportContract }
     Invoke-Checked "Checking V17 email provider proof script contract..." { Assert-EmailProviderProofScriptContract }
