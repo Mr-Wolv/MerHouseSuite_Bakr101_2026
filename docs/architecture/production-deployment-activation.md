@@ -137,7 +137,7 @@ The restore drill command is destructive and must target staging or a dedicated 
 .\scripts\deploy\backup-restore-drill.ps1 -EnvFile ".env.staging" -OutputDirectory ".\reports" -ConfirmDrill
 ```
 
-The drill writes a sanitized `v17-restore-drill-*.json` manifest with commit SHA, env/Compose preflight status, host-copied backup path, backup SHA-256, byte size, env file name only, and restore status. Direct backup output defaults under ignored `reports/backups/` unless an operator supplies an explicit external path, so database archives do not become public repository material by accident.
+The drill writes a sanitized `v17-backup-restore-drill-*.json` manifest with commit SHA, env/Compose preflight status, host-copied backup path, backup SHA-256, byte size, env file name only, and restore status. Direct backup output defaults under ignored `reports/backups/` unless an operator supplies an explicit external path, so database archives do not become public repository material by accident.
 
 The rollback rehearsal command is also deployment-changing and must target staging, a drill environment, or an explicitly selected production rollback window:
 

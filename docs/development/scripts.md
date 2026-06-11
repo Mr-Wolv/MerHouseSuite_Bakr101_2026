@@ -344,7 +344,7 @@ Run a restore drill only against the intended staging or drill environment:
 .\scripts\deploy\backup-restore-drill.ps1 -EnvFile ".env.staging" -OutputDirectory ".\reports" -ConfirmDrill
 ```
 
-The drill wrapper creates a custom-format PostgreSQL backup through the Compose postgres service, copies the backup to the host, restores it with the existing restore script, and writes `v17-restore-drill-*.json` with commit SHA, env/Compose preflight status, backup path, SHA-256, byte size, env file name only, and restore status. It omits database credentials and env values.
+The drill wrapper creates a custom-format PostgreSQL backup through the Compose postgres service, copies the backup to the host, restores it with the existing restore script, and writes `v17-backup-restore-drill-*.json` with commit SHA, env/Compose preflight status, backup path, SHA-256, byte size, env file name only, and restore status. It omits database credentials and env values.
 
 Run rollback rehearsal only against staging, a drill environment, or an explicitly selected production rollback window:
 

@@ -20,8 +20,8 @@ $resolvedOutputDirectory = if ([System.IO.Path]::IsPathRooted($OutputDirectory))
 }
 New-Item -ItemType Directory -Force -Path $resolvedOutputDirectory | Out-Null
 
-$backupPath = Join-Path $resolvedOutputDirectory "v17-restore-drill-$timestamp.dump"
-$manifestPath = Join-Path $resolvedOutputDirectory "v17-restore-drill-$timestamp.json"
+$backupPath = Join-Path $resolvedOutputDirectory "v17-backup-restore-drill-$timestamp.dump"
+$manifestPath = Join-Path $resolvedOutputDirectory "v17-backup-restore-drill-$timestamp.json"
 
 function Invoke-Checked {
     param(

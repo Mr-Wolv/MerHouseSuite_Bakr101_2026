@@ -76,6 +76,24 @@ function Assert-RollbackManifestContract {
     Write-Host "Rollback rehearsal manifest contract check passed."
 }
 
+function Assert-BackupRestoreManifestContract {
+    $scriptPath = Join-Path $projectRoot "scripts\deploy\backup-restore-drill.ps1"
+    $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+    if ($scriptText -notmatch 'schema\s*=\s*"merhouse\.v17\.backup-restore-drill\.v1"') {
+        throw "scripts\deploy\backup-restore-drill.ps1 must write the V17 backup-restore drill schema."
+    }
+    if ($scriptText -notmatch 'v17-backup-restore-drill-\$timestamp\.json') {
+        throw "scripts\deploy\backup-restore-drill.ps1 must write a v17-backup-restore-drill JSON manifest."
+    }
+    if ($scriptText -notmatch 'v17-backup-restore-drill-\$timestamp\.dump') {
+        throw "scripts\deploy\backup-restore-drill.ps1 must write a matching v17-backup-restore-drill backup dump."
+    }
+    if ($scriptText -notmatch 'generatedAt\s*=\s*\(Get-Date\)\.ToUniversalTime\(\)\.ToString\("o"\)') {
+        throw "scripts\deploy\backup-restore-drill.ps1 must write generatedAt so deployed proof can attach backup-restore evidence."
+    }
+    Write-Host "Backup-restore drill manifest contract check passed."
+}
+
 function Assert-DeployedProofHttpsGuards {
     $deployedProofScriptPath = Join-Path $projectRoot "scripts\quality\deployed-v17-proof.ps1"
     $deployedProofText = Get-Content -Raw -LiteralPath $deployedProofScriptPath
@@ -223,6 +241,7 @@ Push-Location $projectRoot
 try {
     Invoke-Checked "Checking PowerShell script parsing..." { Assert-ScriptParse }
     Invoke-Checked "Checking PostgreSQL backup filename guards..." { Assert-PostgresBackupNameGuards }
+    Invoke-Checked "Checking backup-restore drill manifest contract..." { Assert-BackupRestoreManifestContract }
     Invoke-Checked "Checking rollback rehearsal manifest contract..." { Assert-RollbackManifestContract }
     Invoke-Checked "Checking deployed V17 HTTPS target guards..." { Assert-DeployedProofHttpsGuards }
     Invoke-Checked "Checking native Android tour report contract..." { Assert-NativeAndroidTourReportContract }
