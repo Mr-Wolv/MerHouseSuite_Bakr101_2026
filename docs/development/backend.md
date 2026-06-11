@@ -44,7 +44,7 @@ Important environment variables:
 | `MERHOUSE_AUTH_SEED_ADMIN_ENABLED` | Local owner seeding switch |
 | `MERHOUSE_SWAGGER_ENABLED` | OpenAPI and Swagger UI switch |
 | `MERHOUSE_DEPLOYMENT_PUBLIC` | Deployment-shaped startup validation |
-| `MERHOUSE_CORS_ALLOWED_ORIGINS` | Comma-separated browser/native origins allowed to call `/api/**`; the local default includes Docker nginx, Vite dev/tour origins, and Capacitor local origins |
+| `MERHOUSE_CORS_ALLOWED_ORIGINS` | Comma-separated browser/native origins allowed to call `/api/**`; the local default includes Docker nginx, Vite dev/tour origins, and Capacitor local origins. Public startup validation rejects wildcard CORS and requires this list to include `MERHOUSE_PUBLIC_FRONTEND_URL`. |
 | `MERHOUSE_EMAIL_ENABLED` | Opt-in SMTP-backed email delivery attempts for V17 recovery, account-ready, and notification email proof |
 | `MERHOUSE_EMAIL_FROM` | Sender address required when email delivery is enabled |
 | `MERHOUSE_EMAIL_REPLY_TO` | Optional reply-to address; public startup rejects placeholders or malformed values when set with email delivery enabled |

@@ -271,6 +271,96 @@ class ProductionSafetyConfigTest {
     }
 
     @Test
+    void rejectsPublicDeploymentWithNonHttpsFrontendUrl() {
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            5,
+            60,
+            false,
+            "",
+            3,
+            24,
+            "http://app.merhouse.com",
+            "http://app.merhouse.com",
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            false,
+            "",
+            "",
+            "localhost",
+            "",
+            "",
+            "deterministic",
+            15
+        ));
+
+        assertThat(exception.getMessage()).contains("MERHOUSE_PUBLIC_FRONTEND_URL must be an HTTPS deployment origin");
+    }
+
+    @Test
+    void rejectsPublicDeploymentWhenCorsOmitsPublicFrontendUrl() {
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            5,
+            60,
+            false,
+            "",
+            3,
+            24,
+            "https://app.merhouse.com",
+            "https://wrong.merhouse.com,capacitor://localhost",
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            false,
+            "",
+            "",
+            "localhost",
+            "",
+            "",
+            "deterministic",
+            15
+        ));
+
+        assertThat(exception.getMessage()).contains("MERHOUSE_CORS_ALLOWED_ORIGINS must include MERHOUSE_PUBLIC_FRONTEND_URL");
+    }
+
+    @Test
+    void rejectsPublicDeploymentWithWildcardCors() {
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
+            true,
+            "production-jwt-secret-with-at-least-strong-private-entropy",
+            false,
+            5,
+            60,
+            false,
+            "",
+            3,
+            24,
+            "https://app.merhouse.com",
+            "*",
+            "ProdDbCredentialWithStrongPrivateEntropy",
+            false,
+            false,
+            false,
+            "",
+            "",
+            "localhost",
+            "",
+            "",
+            "deterministic",
+            15
+        ));
+
+        assertThat(exception.getMessage()).contains("MERHOUSE_CORS_ALLOWED_ORIGINS must list explicit deployment origins");
+    }
+
+    @Test
     void rejectsPublicDeploymentWithUnsupportedAgentMode() {
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ProductionSafetyConfig.validate(
             true,

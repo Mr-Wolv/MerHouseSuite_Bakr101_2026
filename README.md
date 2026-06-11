@@ -254,7 +254,8 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_AUTH_SEED_ADMIN_PASSWORD` | Initial owner password when seeding is enabled |
 | `MERHOUSE_SWAGGER_ENABLED` | Enables OpenAPI JSON and Swagger UI |
 | `MERHOUSE_DEPLOYMENT_PUBLIC` | Enables stricter startup validation for public deployment-shaped environments |
-| `MERHOUSE_PUBLIC_FRONTEND_URL` | Public frontend origin used for provider-backed account/recovery email links |
+| `MERHOUSE_PUBLIC_FRONTEND_URL` | Public HTTPS frontend origin used for provider-backed account/recovery email links; public startup validation rejects HTTP or placeholder origins |
+| `MERHOUSE_CORS_ALLOWED_ORIGINS` | Browser/native origins accepted by the backend; public startup validation rejects wildcard CORS and requires the public frontend origin |
 | `MERHOUSE_FRONTEND_PUBLIC_API_URL` | Optional frontend container build-time API URL; leave blank for same-origin reverse-proxy deployments |
 | `MERHOUSE_EMAIL_ENABLED` | Enables SMTP-backed email delivery attempts for configured email channels |
 | `MERHOUSE_EMAIL_FROM` | Sender address for provider-backed email delivery |

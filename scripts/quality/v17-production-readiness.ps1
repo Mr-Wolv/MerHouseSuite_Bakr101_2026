@@ -106,7 +106,25 @@ function Assert-DeploymentEnvAuditContract {
     if ($scriptText -notmatch 'Assert-EmailAddress\s+-Values\s+\$values\s+-Name\s+"MERHOUSE_EMAIL_REPLY_TO"\s+-Optional') {
         throw "scripts\deploy\env-audit.ps1 must validate optional MERHOUSE_EMAIL_REPLY_TO as an email address when email is enabled."
     }
+    if ($scriptText -notmatch 'wildcard CORS is not allowed for V17 deployment') {
+        throw "scripts\deploy\env-audit.ps1 must reject wildcard CORS for V17 deployment."
+    }
     Write-Host "Deployment env audit contract check passed."
+}
+
+function Assert-BackendPublicSafetyContract {
+    $scriptPath = Join-Path $projectRoot "backend\src\main\java\com\merhouse\config\ProductionSafetyConfig.java"
+    $scriptText = Get-Content -Raw -LiteralPath $scriptPath
+    if ($scriptText -notmatch 'MERHOUSE_PUBLIC_FRONTEND_URL must be an HTTPS deployment origin') {
+        throw "ProductionSafetyConfig must require an HTTPS public frontend URL for public deployments."
+    }
+    if ($scriptText -notmatch 'MERHOUSE_CORS_ALLOWED_ORIGINS must list explicit deployment origins') {
+        throw "ProductionSafetyConfig must reject wildcard CORS for public deployments."
+    }
+    if ($scriptText -notmatch 'MERHOUSE_CORS_ALLOWED_ORIGINS must include MERHOUSE_PUBLIC_FRONTEND_URL') {
+        throw "ProductionSafetyConfig must require CORS to include the public frontend URL."
+    }
+    Write-Host "Backend public safety contract check passed."
 }
 
 function Assert-AndroidReleaseProofContract {
@@ -282,6 +300,7 @@ try {
     Invoke-Checked "Checking backup-restore drill manifest contract..." { Assert-BackupRestoreManifestContract }
     Invoke-Checked "Checking rollback rehearsal manifest contract..." { Assert-RollbackManifestContract }
     Invoke-Checked "Checking deployment env audit contract..." { Assert-DeploymentEnvAuditContract }
+    Invoke-Checked "Checking backend public safety contract..." { Assert-BackendPublicSafetyContract }
     Invoke-Checked "Checking Android release proof contract..." { Assert-AndroidReleaseProofContract }
     Invoke-Checked "Checking deployed V17 HTTPS target guards..." { Assert-DeployedProofHttpsGuards }
     Invoke-Checked "Checking native Android tour report contract..." { Assert-NativeAndroidTourReportContract }

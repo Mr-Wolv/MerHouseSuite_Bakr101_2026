@@ -162,6 +162,9 @@ if ($values.ContainsKey("MERHOUSE_FRONTEND_PUBLIC_API_URL") -and -not [string]::
 }
 
 $allowedOrigins = @($values["MERHOUSE_CORS_ALLOWED_ORIGINS"].Split(",") | ForEach-Object { $_.Trim().TrimEnd("/") } | Where-Object { $_ })
+if ($allowedOrigins -contains "*") {
+    throw "MERHOUSE_CORS_ALLOWED_ORIGINS must list explicit deployment origins; wildcard CORS is not allowed for V17 deployment."
+}
 if ($allowedOrigins -notcontains $frontendUrl) {
     throw "MERHOUSE_CORS_ALLOWED_ORIGINS must include MERHOUSE_PUBLIC_FRONTEND_URL."
 }

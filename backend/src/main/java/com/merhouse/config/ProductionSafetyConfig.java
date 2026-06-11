@@ -22,6 +22,8 @@ public class ProductionSafetyConfig {
         @Value("${merhouse.auth.seed-admin.password:}") String seedAdminPassword,
         @Value("${merhouse.access-requests.request-limit:3}") int accessRequestLimit,
         @Value("${merhouse.access-requests.request-window-hours:24}") int accessRequestWindowHours,
+        @Value("${merhouse.public.frontend-url:}") String publicFrontendUrl,
+        @Value("${merhouse.cors.allowed-origins:}") String corsAllowedOrigins,
         @Value("${spring.datasource.password:}") String databasePassword,
         @Value("${springdoc.api-docs.enabled:true}") boolean apiDocsEnabled,
         @Value("${springdoc.swagger-ui.enabled:true}") boolean swaggerUiEnabled,
@@ -44,6 +46,8 @@ public class ProductionSafetyConfig {
             seedAdminPassword,
             accessRequestLimit,
             accessRequestWindowHours,
+            publicFrontendUrl,
+            corsAllowedOrigins,
             databasePassword,
             apiDocsEnabled,
             swaggerUiEnabled,
@@ -89,6 +93,8 @@ public class ProductionSafetyConfig {
             seedAdminPassword,
             accessRequestLimit,
             accessRequestWindowHours,
+            "https://app.merhouse.com",
+            "https://app.merhouse.com,capacitor://localhost,ionic://localhost",
             databasePassword,
             apiDocsEnabled,
             swaggerUiEnabled,
@@ -113,6 +119,105 @@ public class ProductionSafetyConfig {
         String seedAdminPassword,
         int accessRequestLimit,
         int accessRequestWindowHours,
+        String databasePassword,
+        boolean apiDocsEnabled,
+        boolean swaggerUiEnabled,
+        boolean emailEnabled,
+        String emailFrom,
+        String emailReplyTo,
+        String smtpHost,
+        String smtpUsername,
+        String smtpPassword,
+        String agentMode,
+        int agentTimeoutSeconds
+    ) {
+        validate(
+            publicDeployment,
+            jwtSecret,
+            exposeResetToken,
+            recoveryRequestLimit,
+            recoveryRequestWindowMinutes,
+            seedAdminEnabled,
+            seedAdminPassword,
+            accessRequestLimit,
+            accessRequestWindowHours,
+            "https://app.merhouse.com",
+            "https://app.merhouse.com,capacitor://localhost,ionic://localhost",
+            databasePassword,
+            apiDocsEnabled,
+            swaggerUiEnabled,
+            emailEnabled,
+            emailFrom,
+            emailReplyTo,
+            smtpHost,
+            smtpUsername,
+            smtpPassword,
+            agentMode,
+            agentTimeoutSeconds
+        );
+    }
+
+    static void validate(
+        boolean publicDeployment,
+        String jwtSecret,
+        boolean exposeResetToken,
+        int recoveryRequestLimit,
+        int recoveryRequestWindowMinutes,
+        boolean seedAdminEnabled,
+        String seedAdminPassword,
+        int accessRequestLimit,
+        int accessRequestWindowHours,
+        String publicFrontendUrl,
+        String corsAllowedOrigins,
+        String databasePassword,
+        boolean apiDocsEnabled,
+        boolean swaggerUiEnabled,
+        boolean emailEnabled,
+        String emailFrom,
+        String smtpHost,
+        String smtpUsername,
+        String smtpPassword,
+        String agentMode,
+        int agentTimeoutSeconds
+    ) {
+        validate(
+            publicDeployment,
+            jwtSecret,
+            exposeResetToken,
+            recoveryRequestLimit,
+            recoveryRequestWindowMinutes,
+            seedAdminEnabled,
+            seedAdminPassword,
+            accessRequestLimit,
+            accessRequestWindowHours,
+            publicFrontendUrl,
+            corsAllowedOrigins,
+            databasePassword,
+            apiDocsEnabled,
+            swaggerUiEnabled,
+            emailEnabled,
+            emailFrom,
+            "",
+            smtpHost,
+            smtpUsername,
+            smtpPassword,
+            agentMode,
+            agentTimeoutSeconds
+        );
+    }
+
+    static void validate(
+        boolean publicDeployment,
+        String jwtSecret,
+        boolean exposeResetToken,
+        int recoveryRequestLimit,
+        int recoveryRequestWindowMinutes,
+        boolean seedAdminEnabled,
+        String seedAdminPassword,
+        int accessRequestLimit,
+        int accessRequestWindowHours,
+        String publicFrontendUrl,
+        String corsAllowedOrigins,
         String databasePassword,
         boolean apiDocsEnabled,
         boolean swaggerUiEnabled,
@@ -160,6 +265,16 @@ public class ProductionSafetyConfig {
         if (accessRequestWindowHours < 1 || accessRequestWindowHours > 168) {
             failures.add("MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS must be between 1 and 168.");
         }
+        String normalizedFrontendUrl = stripTrailingSlash(normalize(publicFrontendUrl));
+        if (isBlank(normalizedFrontendUrl) || !normalizedFrontendUrl.startsWith("https://") || looksLikePlaceholder(normalizedFrontendUrl)) {
+            failures.add("MERHOUSE_PUBLIC_FRONTEND_URL must be an HTTPS deployment origin, not a placeholder.");
+        }
+        List<String> normalizedCorsOrigins = normalizeCsvOrigins(corsAllowedOrigins);
+        if (normalizedCorsOrigins.isEmpty() || normalizedCorsOrigins.contains("*")) {
+            failures.add("MERHOUSE_CORS_ALLOWED_ORIGINS must list explicit deployment origins; wildcard CORS is not allowed for public deployments.");
+        } else if (!isBlank(normalizedFrontendUrl) && !normalizedCorsOrigins.contains(normalizedFrontendUrl)) {
+            failures.add("MERHOUSE_CORS_ALLOWED_ORIGINS must include MERHOUSE_PUBLIC_FRONTEND_URL for public deployments.");
+        }
         if (apiDocsEnabled || swaggerUiEnabled) {
             failures.add("MERHOUSE_SWAGGER_ENABLED/springdoc API docs and Swagger UI must be disabled for public deployments.");
         }
@@ -200,6 +315,25 @@ public class ProductionSafetyConfig {
 
     private static String normalize(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private static String stripTrailingSlash(String value) {
+        String normalized = normalize(value);
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
+    }
+
+    private static List<String> normalizeCsvOrigins(String value) {
+        List<String> origins = new ArrayList<>();
+        for (String origin : normalize(value).split(",")) {
+            String normalized = stripTrailingSlash(origin);
+            if (!normalized.isBlank()) {
+                origins.add(normalized);
+            }
+        }
+        return origins;
     }
 
     private static boolean looksLikePlaceholder(String value) {
