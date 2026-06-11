@@ -88,7 +88,7 @@ try {
         Where-Object {
             (
                 $_.Name -match '^\.env(\..*)?$' -or
-                $_.Extension -in @(".pem", ".key", ".p12", ".pfx", ".jks", ".keystore", ".kubeconfig")
+                $_.Extension -in @(".pem", ".key", ".p12", ".pfx", ".jks", ".keystore", ".kubeconfig", ".apk", ".aab")
             )
         }
     $forbiddenFiles = $forbiddenFiles | Where-Object { $_.Name -ne ".env.example" }

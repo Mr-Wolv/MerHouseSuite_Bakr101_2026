@@ -38,7 +38,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/v17-production-readiness.ps1` | Run V17 preflight proof across script parsing, env template audit, VPS/reverse-proxy deployment shape, Android release shape, deployed-evidence attachment rules, cutover-readiness fixtures, markdown, public-readiness, performance readiness, and optional deployed load smoke or signed Android release proof. |
 | `scripts/quality/tour-report-lib.ps1` | Shared helper for reading, normalizing, and validating browser/native tour report records, including required role/path identity. |
 | `scripts/quality/url-guard-lib.ps1` | Shared helper for validating and normalizing non-blank absolute `http` or `https` local setup, native build, frontend proxy, OpenAPI docs, tour, smoke, performance, deployment, and report-provenance URLs. |
-| `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, CI naming, and Compose config. |
+| `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, signed Android artifacts, CI naming, and Compose config. |
 | `scripts/quality/deployment-readiness.ps1` | Run the V16.2 deployment-ready local certification gate with local/mock proof and optional timed API smoke. |
 | `scripts/deploy/vps-check.ps1` | Validate the V17 VPS production Compose shape against the deployment env template or a private deployment env file. |
 | `scripts/deploy/env-audit.ps1` | Audit V17 deployment env files for required values, HTTPS origins, loopback bind, absolute backup path, placeholder secrets, and SMTP requirements without printing secret values. |
