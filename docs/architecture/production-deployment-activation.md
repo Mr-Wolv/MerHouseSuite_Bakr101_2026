@@ -63,7 +63,9 @@ The first V17 implementation target is VPS + Docker Compose:
 - `deploy/vps/compose.production.yml` runs PostgreSQL, backend, and frontend with public startup validation enabled.
 - the production Compose shape includes PostgreSQL, backend HTTP readiness, and frontend shell healthchecks.
 - `deploy/vps/env.production.example` documents required runtime values without secrets. Real deployment env files, SMTP credentials, Android keystores, and signed APK/AAB artifacts may be kept in ignored repo-local workspaces such as `private/`, `.secrets/`, or `deploy/private/` so operators have one local project place for secrets while Git and public-readiness keep them out of publication.
+- `frontend/nginx.conf` is the frontend container proxy boundary for same-origin deployments, serving the React shell while forwarding `/api/` to the backend service.
 - `deploy/vps/reverse-proxy.nginx.conf` is the public TLS reverse-proxy template.
+- `scripts/deploy/frontend-nginx-check.ps1` validates the frontend nginx config and Dockerfile so the same-origin `/api` proxy and SPA fallback cannot drift from deployed proof expectations.
 - `scripts/deploy/env-audit.ps1` audits private env files before deployment without printing secret values, and rejects in-repository deployment env files unless Git ignores them.
 - `scripts/deploy/reverse-proxy-check.ps1` validates the public nginx template for HTTPS redirect, TLS protocol, security headers, API-doc blocking, forwarded HTTPS headers, and loopback frontend proxying.
 - `scripts/deploy/vps-check.ps1` validates the Compose shape before rollout without forcing private env files back to template throttle defaults.

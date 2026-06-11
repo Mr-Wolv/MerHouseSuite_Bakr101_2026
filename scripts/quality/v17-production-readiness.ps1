@@ -315,6 +315,7 @@ try {
     Invoke-Checked "Checking V17 live stakeholder walkthrough proof script contract..." { Assert-LiveStakeholderWalkthroughProofScriptContract }
     Invoke-Checked "Checking V17 env template audit..." { & ".\scripts\deploy\env-audit.ps1" -EnvFile "deploy/vps/env.production.example" -AllowTemplate }
     Invoke-Checked "Checking V17 VPS deployment shape..." { & ".\scripts\deploy\vps-check.ps1" }
+    Invoke-Checked "Checking V17 frontend nginx proxy shape..." { & ".\scripts\deploy\frontend-nginx-check.ps1" }
     Invoke-Checked "Checking V17 reverse proxy template..." { & ".\scripts\deploy\reverse-proxy-check.ps1" }
     Invoke-Checked "Checking V17 Android release shape..." { & ".\scripts\quality\native-android-release-shape-check.ps1" }
     Invoke-Checked "Checking V17 deployed evidence attachment rules..." { & ".\scripts\quality\deployed-v17-proof-attachment-check.ps1" }

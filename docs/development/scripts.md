@@ -42,6 +42,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/quality/deployment-readiness.ps1` | Run the V16.2 deployment-ready local certification gate with local/mock proof and optional timed API smoke. |
 | `scripts/deploy/vps-check.ps1` | Validate the V17 VPS production Compose shape against the deployment env template or a private deployment env file. |
 | `scripts/deploy/env-audit.ps1` | Audit V17 deployment env files for required values, HTTPS origins, loopback bind, absolute backup path, placeholder secrets, and SMTP requirements without printing secret values. |
+| `scripts/deploy/frontend-nginx-check.ps1` | Validate the frontend container nginx config and Dockerfile for same-origin `/api` proxying to the backend plus SPA fallback. |
 | `scripts/deploy/reverse-proxy-check.ps1` | Validate the V17 nginx reverse-proxy template for HTTPS redirect, TLS protocols, security headers, public Swagger/API-doc blocking, and frontend proxy target. |
 | `scripts/deploy/deploy-vps.ps1` | Apply the V17 VPS Compose stack from a private env file after explicit confirmation, optional image pull/build, and optional pre-deploy backup. |
 | `scripts/deploy/bootstrap-owner.ps1` | Create the first deployed owner through the PostgreSQL service after strict env audit, Compose shape validation, and explicit confirmation, without enabling public seed-admin startup. |
@@ -311,8 +312,11 @@ Strict mode rejects in-repository deployment env files unless Git ignores them, 
 Validate the public nginx reverse-proxy template before installing it on the VPS:
 
 ```powershell
+.\scripts\deploy\frontend-nginx-check.ps1
 .\scripts\deploy\reverse-proxy-check.ps1
 ```
+
+The frontend nginx check enforces the container boundary used by same-origin deployments: `/api/` proxies to the backend service, forwarded request headers are preserved, and all other routes fall back to the React app shell. It also verifies that the production frontend Dockerfile installs that config into the nginx runtime image.
 
 The check enforces HTTP-to-HTTPS redirect, TLS 1.2/1.3, HSTS, content-type/frame/referrer/permissions/content-security headers, public Swagger/API-doc blocking, forwarded HTTPS headers, and loopback proxying to the frontend container bind.
 
