@@ -1,10 +1,10 @@
 # Production Deployment Activation
 
-MerHouse can move from local-certified project to deployed service only through an explicit V17 activation. V16.2 proves that the codebase, docs, scripts, browser workflows, native Android wrapper, local performance checks, and public-readiness boundaries are coherent. V17 is the separate work of choosing infrastructure, replacing local-only providers, operating production data safely, and proving the deployed system in a staging or production-like environment.
+MerHouse moved from local-certified project toward deployed service through explicit V17 activation. V16.2 proves that the codebase, docs, scripts, browser workflows, native Android wrapper, local performance checks, and public-readiness boundaries are coherent. V17 is the private deployed lane for operating Neon-backed data, a Hugging Face backend, a Vercel frontend, GitHub Actions quality/release workflows, GitHub Release APK distribution, real provider configuration where enabled, and deployed proof in a staging or production-like environment.
 
 ## Activation Boundary
 
-Do not describe MerHouse as production deployed until this page has concrete values, proof links, and owners for the deployment target being used.
+Do not describe MerHouse as publicly production-ready until this page has sanitized proof references and owners for the deployment target being used. Keep concrete URLs, credentials, provider logs, APK signing material, and private evidence outside Git unless the roadmap deliberately publishes sanitized values.
 
 The V17 release should stay deliberately small: deploy the existing product professionally, prove the web/backend and signed Android release against real HTTPS targets, and move future hardening into CI/CD-backed bug hunting. Do not add new broad product scope to make deployment feel more complete. The agent is the one accepted prototype in V17: it may be useful read-plus-draft assistance, but it is not production autonomous automation, does not mutate operational records, and must keep deterministic fallback behavior until a later explicit provider/tool-authorization slice is designed and proven.
 
@@ -18,9 +18,9 @@ V17 must not rely on local defaults:
 
 `MERHOUSE_DEPLOYMENT_PUBLIC=true` is the production-shaped startup mode. Production activation must prove it is enabled in the deployed backend environment.
 
-## Required Decisions
+## Required Decisions And Proof
 
-Before implementation begins, choose and document:
+Before a production/public claim, choose, prove, and document:
 
 | Decision | Required outcome |
 | --- | --- |
@@ -213,6 +213,6 @@ V17 is complete only when:
 
 ## Current Status
 
-As of 2026-06-11, V17 is in private implementation on a deployment branch, not publicly deployed. The selected first no-card lane is Neon PostgreSQL, Hugging Face Docker Space backend, Vercel React/Vite frontend, and GitHub Release APK distribution. This replaces the machine-hosted ngrok lane because live tunnel behavior degraded browser/API proof reliability. Earlier provider trials that required a card or exposed only temporary free URLs are no longer active deployment lanes. VPS/Compose, Oracle Cloud Always Free, Cloud Run, and sponsored professional hosting are VInfinite candidates, not current progress. The selected software target keeps the existing Spring Boot backend, React frontend, Flyway migrations, public-mode startup validation, deployed proof wrappers, deployed monitoring samples, deployed-evidence attachment rule validation, cutover-readiness guard fixtures, opt-in SMTP email attempts, sanitized email-provider, alert-routing, and manual live-walkthrough proof artifacts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight. The current proof contract requires public HTTPS deployment targets for deployed evidence, requires manual evidence fields for live walkthrough proof, and rejects secrets, credential-shaped values, provider logs, copied message bodies, copied alert payloads, copied operational logs, screenshot data, and email-shaped PII in human-entered V17 evidence attachments.
+As of 2026-06-13, V17 has a private deployed footprint on the selected no-card lane: Neon PostgreSQL, Hugging Face Docker Space backend, Vercel React/Vite frontend, GitHub Actions quality/release workflows, and GitHub Release APK distribution. This replaces the machine-hosted ngrok lane because live tunnel behavior degraded browser/API proof reliability. Earlier provider trials that required a card or exposed only temporary free URLs are no longer active deployment lanes. VPS/Compose, Oracle Cloud Always Free, Cloud Run, and sponsored professional hosting are VInfinite candidates, not current progress. The selected software target keeps the existing Spring Boot backend, React frontend, Flyway migrations, public-mode startup validation, deployed proof wrappers, deployed monitoring samples, deployed-evidence attachment rule validation, cutover-readiness guard fixtures, opt-in SMTP email attempts, sanitized email-provider, alert-routing, and manual live-walkthrough proof artifacts, signed internal Android release proof, and `scripts/quality/v17-production-readiness.ps1` preflight. The current proof contract requires public HTTPS deployment targets for deployed evidence, requires manual evidence fields for live walkthrough proof, and rejects secrets, credential-shaped values, provider logs, copied message bodies, copied alert payloads, copied operational logs, screenshot data, and email-shaped PII in human-entered V17 evidence attachments.
 
-The following remain required before any production claim: Neon database URL/credentials, Hugging Face backend URL, Vercel frontend URL, deployment secret storage, Gmail or provider SMTP credentials for staging proof when email is enabled, Android signing keystore, monitoring/alerting configuration, deployed backup restore drill, deployed rollback rehearsal, load/soak proof, live browser walkthrough, and live installed-Android walkthrough against the deployed target.
+The following remain required before any production/public claim: sanitized deployment evidence for the current Neon, Hugging Face, Vercel, GitHub Actions, and GitHub Release targets; proof that deployment secrets are stored outside Git; Gmail or provider SMTP evidence when email is enabled; Android signing evidence without checked-in keystore material; monitoring/alerting configuration; deployed backup restore drill; deployed rollback rehearsal; load/soak proof; live browser walkthrough; and live installed-Android walkthrough against the deployed target.

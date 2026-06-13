@@ -1,10 +1,10 @@
 # V17 External Service Activation
 
-This note records the next service layer MerHouse may activate when the project moves beyond local certification. Private V17 implementation has begun, but this is not a current deployment claim.
+This note records the external-service layer MerHouse activates during the private V17 deployed lane. Private V17 deployment exists, but this is not a public production claim until sanitized service proof and cutover evidence are complete.
 
 V17 should finish as a simple deployed release before adding more product surface. Email is the real external service target for the first deployment. Android OS notifications, push providers, and autonomous agent mutations are out of scope. The agent is the only deliberate v1 prototype: it can draft and explain next steps from authorized context, but it cannot perform operational work until a later tool-authorization release is designed, tested, audited, and proven.
 
-V16.2 keeps account recovery, access-request conversion, notifications, and assistant behavior local and auditable. V17 may replace or extend those local boundaries with real external services after staging proof, provider credentials, secrets handling, monitoring, and rollback are ready.
+V16.2 kept account recovery, access-request conversion, notifications, and assistant behavior local and auditable. V17 extends those boundaries with real external services only after staging proof, provider credentials, secrets handling, monitoring, and rollback are ready.
 
 ## Service Targets
 
@@ -19,7 +19,7 @@ V16.2 keeps account recovery, access-request conversion, notifications, and assi
 
 The initial real delivery direction is email, not phone OS notifications.
 
-Before implementation, choose whether MerHouse uses:
+Before a production/public service claim, choose whether MerHouse uses:
 
 - a dedicated Gmail/Google Workspace mailbox for development or early staging proof
 - a transactional email provider for production-shaped sending
@@ -41,7 +41,7 @@ The first implementation uses SMTP configuration and is safe by default:
 - Password reset requests are throttled per enabled account by `MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT` inside `MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES`; over-limit requests keep the generic public response and do not create another token or delivery.
 - Public access requests reject duplicate pending requester emails and are throttled per requester email by `MERHOUSE_ACCESS_REQUEST_LIMIT` inside `MERHOUSE_ACCESS_REQUEST_WINDOW_HOURS`; over-limit submissions are rejected before another review record is created.
 
-This works in the machine-hosted tunnel lane as long as the backend has outbound SMTP access and public links use the tunnel/domain URL. The host location does not change the email delivery contract: MerHouse sends through SMTP, stores provider attempt evidence, and users follow HTTPS links back through the tunnel. Gmail/Google Workspace SMTP is only a sending provider here. Sign in with Google is not included in that SMTP work; it is a separate OAuth/OpenID Connect login feature and should not be claimed until redirect URIs, credentials, UI/backend flow, tests, and live proof are implemented.
+This works in the selected managed lane as long as the Hugging Face backend has outbound SMTP access and public links use the Vercel frontend URL. The host location does not change the email delivery contract: MerHouse sends through SMTP, stores provider attempt evidence, and users follow HTTPS links back through the configured frontend. Gmail/Google Workspace SMTP is only a sending provider here. Sign in with Google is not included in that SMTP work; it is a separate OAuth/OpenID Connect login feature and should not be claimed until redirect URIs, credentials, UI/backend flow, tests, and live proof are implemented.
 
 ## Notification Policy
 
@@ -101,4 +101,4 @@ Do not call these services activated until proof exists for:
 - load/performance proof against production-shaped seeded data and expected first-release user volume
 - updated diagrams, roadmap, README, scripts, and affected tests
 
-Until that proof exists against staging and production targets, MerHouse remains locally certified with default local delivery records, opt-in SMTP attempt plumbing, and deterministic read-plus-draft assistant behavior.
+Until that proof exists against deployed staging or production targets, MerHouse remains privately deployed with default in-app delivery records, opt-in SMTP attempt plumbing, and deterministic read-plus-draft assistant behavior.

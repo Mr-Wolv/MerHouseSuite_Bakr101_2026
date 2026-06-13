@@ -1,8 +1,8 @@
 # Notifications
 
-MerHouse provides a local notification foundation. It records account-lifecycle and operational alert history, exposes per-user notification preferences, and treats unread routed records as an action inbox without connecting to an external provider or native OS notification channel.
+MerHouse provides an in-app notification foundation. It records account-lifecycle and operational alert history, exposes per-user notification preferences, and treats unread routed records as an action inbox without requiring an external provider or native OS notification channel.
 
-This is local proof behavior by default. The backend stores delivery records for visibility and proof. V17 adds opt-in SMTP-backed email delivery attempts for the email channel while keeping in-app alerts as the action inbox. SMS, phone OS push, lock-screen alerts, notification-tray delivery, webhooks, and push-provider rollout are scratched unless a later roadmap change deliberately reopens them.
+This is in-app behavior by default. The backend stores delivery records for visibility and proof. V17 adds opt-in SMTP-backed email delivery attempts for the email channel while keeping in-app alerts as the action inbox. SMS, phone OS push, lock-screen alerts, notification-tray delivery, webhooks, and push-provider rollout are out of scope unless a later roadmap change deliberately reopens them.
 
 ## Model
 
@@ -167,7 +167,7 @@ Until that decision is made, polling remains the local implementation path.
 
 ## Repository Boundary
 
-This notification foundation runs without provider setup in the repository. V16.2 proves the local/mock boundary across web and native Android; provider-backed email delivery must be introduced later through externalized configuration during V17 real activation or later. The Android app should continue to use the shared in-app Alerts surface unless a future roadmap deliberately adds push infrastructure.
+This notification foundation runs without provider setup in the repository. V16.2 proves the local/mock boundary across web and native Android; provider-backed email delivery is activated only through externalized configuration and V17 proof, not checked-in defaults. The Android app should continue to use the shared in-app Alerts surface unless a future roadmap deliberately adds push infrastructure.
 
 ## Proof
 

@@ -4,7 +4,7 @@ This roadmap is the project planning and quality source of truth. It should stay
 
 ## Current Status
 
-MerHouse is a local-development fulfillment coordination system for merchants, warehouse providers, and platform operators. It is deployment-ready as a desktop web app and has a native Android local-certification path that packages the same frontend shell through Capacitor: Docker Compose, local mocks, proof scripts, tests, docs, and CI are in place. It is not a SaaS production deployment or app-store release.
+MerHouse is a fulfillment coordination system for merchants, warehouse providers, and platform operators. V16.2 local certification is complete, and V17 production activation has moved into a private deployed footprint on Neon PostgreSQL, a Hugging Face Docker Space backend, Vercel frontend hosting, GitHub Actions quality/release workflows, and GitHub Release APK distribution. The repository must now describe both truths clearly: local Docker Compose remains the reproducible developer path, while deployed V17 targets are the active private release path until sanitized proof and an intentional cutover decision make a production/public claim appropriate.
 
 The repository is intended to be public-readable. Keep source, docs, scripts, CI, compose files, and root guidance useful to a developer who just cloned the project. Runtime values belong in environment variables, ignored local files, explicit external files, or templates.
 
@@ -19,9 +19,9 @@ The repository is intended to be public-readable. Keep source, docs, scripts, CI
 - Account settings with account context and current-password-verified password change.
 - Native Android wrapper that packages the same frontend build through Capacitor without duplicating product code.
 - Shared mobile shell metadata with manifest, app icon, and online-first service worker used by the web runtime and native package input.
-- Local notification records, preferences, action inbox, and delivery history without external provider delivery.
+- In-app notification records, preferences, action inbox, delivery history, and optional SMTP-backed email attempts when enabled in V17 deployment configuration.
 - Deterministic local operations assistant with scoped summaries, review-only suggestions, refusals, decision audit, and no operational mutation.
-- Local deployment-readiness harness for checks, smoke flows, browser proof, bundle/performance budgets, publication readiness, and mock-provider boundaries.
+- Local and deployed readiness harnesses for checks, smoke flows, browser proof, bundle/performance budgets, publication readiness, provider boundaries, and sanitized V17 evidence attachment.
 
 ## Recent Certification
 
@@ -68,22 +68,22 @@ Acceptance bar:
 - `system-diagrams.html`, README, development docs, scripts docs, and roadmap agree with current backend/frontend/mobile behavior.
 - Any remaining limitation is documented as a local boundary, V17 production activation work, or VInfinite product expansion.
 
-## Local Boundaries
+## Runtime Boundaries
 
-- Notification and password recovery delivery are local records by default. Private V17 work can make opt-in SMTP email attempts when email configuration is enabled and proven; SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
-- Carrier/provider handoff is represented by local outbox and carrier-dispatch records.
+- Notification and password recovery delivery are in-app records by default. V17 deployment configuration can make opt-in SMTP email attempts when enabled and proven; SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
+- Carrier/provider handoff is represented by outbox and carrier-dispatch records unless a later provider adapter is deliberately implemented and proven.
 - Assistant behavior is deterministic local review assistance, not provider-backed AI.
 - Service statements are local service-unit records, not invoices or payment collection.
 - Dispute evidence is stored as notes and linked local records, not uploaded legal attachment packets.
 - Failed and returned shipments are delivery-state evidence, not full customer RMA/refund/inspection/disposition workflows.
-- Health, backup/restore, dependency, and publication-readiness proof are local or dry-run checks.
-- Native Android support is a local debug APK wrapper backed by the shared frontend shell, not app-store deployment.
+- Health, dependency, and publication-readiness proof have local checks; V17 backup/restore, rollback, monitoring, load, deployed browser, and installed-Android proof must be recorded with sanitized private evidence before release claims.
+- Native Android support is a Capacitor wrapper backed by the shared frontend shell. Local proof uses a debug APK; V17 release proof uses a signed APK published through GitHub Releases.
 
 ## Next Work
 
 ### V17: Production Deployment Activation
 
-V17 should begin only when MerHouse is intentionally being deployed to real infrastructure.
+V17 is the active private deployment phase for the first real infrastructure lane.
 
 V17 first-release rule: finish the simplest professional deployment before expanding product scope. The target is a deployed web/backend service, signed internal Android release proof, provider-backed email for recovery/access/notifications when enabled, backup/restore/rollback rehearsal, monitoring/load proof, and live browser plus installed-Android validation. The only intentionally prototype-grade product capability in this release is the agent: it remains v1 read-plus-draft assistance with deterministic fallback and no operational mutation. Bug hunting after deployment should be driven by CI/CD, deployed smoke/load/browser/mobile proof, and concrete user-facing defects rather than broad speculative refactoring.
 
@@ -97,11 +97,11 @@ Planned scope:
 - public operational runbooks
 - final production validation
 
-Current private implementation direction:
+Current private deployment direction:
 
-- selected no-card deployment lane: Neon PostgreSQL for managed data, a Hugging Face Docker Space for the Spring Boot backend, Vercel for the React/Vite frontend, and GitHub Releases for signed APK distribution; this replaces the ngrok machine-hosted lane because live tunnel behavior degraded browser/API proof reliability
+- selected no-card deployment lane: Neon PostgreSQL for managed data, a Hugging Face Docker Space for the Spring Boot backend, Vercel for the React/Vite frontend, GitHub Actions for quality and signed Android release workflows, and GitHub Releases for signed APK distribution; this replaces the ngrok machine-hosted lane because live tunnel behavior degraded browser/API proof reliability
 - fallback deployment lanes: none in current progress; VPS/Compose hosting, Oracle Cloud Always Free, Cloud Run, and sponsored professional hosting belong to VInfinite unless a later deployment decision deliberately reopens them
-- deployment configuration shape: Hugging Face Docker Space backend template, Vercel static frontend config, Neon JDBC environment, deployed proof wrappers, and signed Android release proof
+- deployment configuration shape: Hugging Face Docker Space backend template, Vercel static frontend config, Neon JDBC environment, GitHub Actions quality/release workflows, deployed proof wrappers, and signed Android release proof
 - Gmail/Google Workspace SMTP staging proof for recovery, access invitation, and email notifications
 - signed internal Android APK/AAB release proof
 - read-plus-draft agent runtime interface with deterministic fallback metadata and no mutations

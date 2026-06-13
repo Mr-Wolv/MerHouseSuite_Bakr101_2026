@@ -2,15 +2,15 @@
 
 MerHouse is a B2B fulfillment coordination system for merchants and warehouse providers.
 
-This repository is prepared as a public-readable local-development project. It includes application source, documentation, scripts, CI configuration, Docker Compose setup, and agent guidance needed to understand and run MerHouse. Local-only working files stay outside Git.
+This repository is prepared as a public-readable project with both local development and private V17 deployment paths. It includes application source, documentation, scripts, CI configuration, Docker Compose setup, managed deployment templates, GitHub Actions workflows, and agent guidance needed to understand and run MerHouse. Local-only and deployment-private working files stay outside Git.
 
 It models the operating relationship between a brand or merchant and a warehouse partner: products, inventory expectations, inbound stock, customer orders, allocation, fulfillment progress, exceptions, shipment evidence, and service accountability all move through one role-aware workflow.
 
 ## Project Status
 
-MerHouse is public-readable as source code and local product proof. The current repository proves a local Docker Compose runtime, backend and frontend tests, browser route proof, native Android debug-APK proof, cross-surface parity checks, performance-readiness checks, and a recorded local live browser/installed-APK walkthrough.
+MerHouse is public-readable as source code, local product proof, and sanitized deployment automation. The current repository proves a local Docker Compose runtime, backend and frontend tests, browser route proof, native Android debug-APK proof, cross-surface parity checks, performance-readiness checks, and a recorded local live browser/installed-APK walkthrough.
 
-MerHouse is not yet a production SaaS deployment. Private V17 activation work targets Neon PostgreSQL, a Hugging Face Docker Space backend, a Vercel React/Vite frontend, GitHub Release APK distribution, opt-in SMTP email delivery, signed Android release proof, and deployment preflight checks. Provider credentials, live environment values, Android signing material, deployment logs, proof reports, and non-APK proof artifacts stay out of Git.
+V17 activation now uses a private deployed footprint: Neon PostgreSQL, a Hugging Face Docker Space backend, a Vercel React/Vite frontend, GitHub Actions quality/release workflows, GitHub Release APK distribution, opt-in SMTP email delivery, signed Android release proof, and deployment preflight checks. Provider credentials, live environment values, Android signing material, deployment logs, proof reports, and non-APK proof artifacts stay out of Git. Do not make a public production claim until sanitized deployed proof, rollback/backup evidence, load/monitoring proof, and live web/installed-Android walkthrough evidence are complete.
 
 Routine CI is pass/fail only and intentionally publishes no GitHub Actions artifacts. The only intended public binary distribution lane is a deliberate GitHub Release APK asset.
 
@@ -22,8 +22,8 @@ Routine CI is pass/fail only and intentionally publishes no GitHub Actions artif
 - Platform workflows for tenant management, user management, onboarding requests, role changes, account status, relationship governance, audit evidence, outbox diagnostics, and attention-first operational review.
 - Service accountability for agreement setup, agreement proposal and acceptance, at-risk SLA work, service statements, disputes, claims, review requests, and import evidence.
 - Account settings after sign-in for account context and current-password-verified self-service password changes.
-- Deterministic local operations assistant for scoped summaries, review-only suggestions, refusals, pending-decision review, and auditable interaction history.
-- Local notification action inbox for account lifecycle events, connected operational handoffs, service accountability updates, outbox health, per-user preferences, delivery history, and app-shell alert counts without external provider delivery.
+- Deterministic operations assistant for scoped summaries, review-only suggestions, refusals, pending-decision review, and auditable interaction history.
+- Notification action inbox for account lifecycle events, connected operational handoffs, service accountability updates, outbox health, per-user preferences, delivery history, app-shell alert counts, and optional SMTP-backed email attempts when V17 email delivery is enabled.
 - REST API with validation, authorization, tenant-aware data access, Flyway migrations, PostgreSQL persistence, and OpenAPI metadata.
 - Native Android packages the same frontend build through Capacitor, with the same MerHouse app icon identity and without a second product implementation.
 
@@ -274,21 +274,21 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_AGENT_MODE` | Agent runtime mode; V17 public/deployment checks currently accept only `deterministic` read-plus-draft behavior |
 | `MERHOUSE_AGENT_TIMEOUT_SECONDS` | Agent runtime timeout guard; deployment checks require 1-60 seconds |
 
-## Local Mocks And Non-Deployed Boundaries
+## Local Development And Runtime Boundaries
 
-V16.2 proves deployment readiness locally; it does not deploy MerHouse.
+V16.2 proved deployment readiness locally. V17 now carries the private deployed lane, while local Docker Compose remains the reproducible development and regression-proof path.
 
-- Notification delivery and password recovery delivery are local records by default, with per-account recovery throttling. V17 can make opt-in SMTP email attempts when email configuration is enabled and proven; SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
-- Carrier/provider handoff is represented by local outbox and carrier-dispatch records.
+- Notification delivery and password recovery delivery are in-app records by default, with per-account recovery throttling. V17 can make opt-in SMTP email attempts when email configuration is enabled and proven; SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
+- Carrier/provider handoff is represented by outbox and carrier-dispatch records unless a later provider adapter is deliberately implemented and proven.
 - Assistant behavior is deterministic read-plus-draft review assistance. Public/deployment checks reject non-deterministic agent modes until a provider-backed runtime is implemented, authorized, audited, and proven.
-- Health, backup/restore, dependency, and public-readiness proof are local/dry-run checks.
+- Health, dependency, and public-readiness proof have local checks; V17 backup/restore, rollback, monitoring, load, deployed browser, and installed-Android proof must be recorded with sanitized private evidence before release claims.
 - Service statements are local service-unit records, not invoices or payment collection; dispute evidence is stored as notes and linked local records, not uploaded legal attachment packets.
 - Failed and returned shipments are delivery-state evidence, not a full customer RMA, refund, inspection, disposition, or accounting workflow.
 - Native Android support means a Capacitor wrapper around the same frontend build. Local proof uses a debug APK. V17 distribution uses a signed APK published as a deliberate GitHub Release asset.
 - App-store packaging, native OS notification delivery, native push provider rollout, camera/barcode APIs, and offline sync are later work.
 - Runtime-only values belong in `.env`, your shell environment, or ignored repo-local private workspaces such as `private/`, `.secrets/`, or `deploy/private/`. Keep generated proof reports, local data, deployment env files, provider credentials, provider CLI binding state such as Vercel link metadata, Android keystores, and signed APK/AAB build outputs out of Git.
 
-Production activation is separate from local development and must replace local mocks with real provider contracts, deployment configuration, monitoring, backup/restore operations, load/performance proof, cross-platform release proof, provider-exchange reliability, and deployment-specific operations proof.
+Production activation is now the private V17 deployment lane and must finish replacing local-only assumptions with real provider contracts, deployment configuration, monitoring, backup/restore operations, load/performance proof, cross-platform release proof, provider-exchange reliability, and deployment-specific operations proof.
 The tracked activation checklist lives in [Production deployment activation](docs/operations/production-deployment-activation.md).
 Service-specific activation notes for email recovery, account invitations, email notifications, and real agentic work live in [V17 external service activation](docs/operations/v17-service-activation.md).
 

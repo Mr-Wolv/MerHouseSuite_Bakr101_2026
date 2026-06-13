@@ -1,7 +1,9 @@
 package com.merhouse.web;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +53,7 @@ import com.merhouse.service.MerchantWarehouseService;
 import com.merhouse.service.OrderService;
 import com.merhouse.service.OrderImportService;
 import com.merhouse.service.ServiceAccountabilityService;
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -120,11 +123,25 @@ class ApiControllerTest {
     @MockitoBean
     private AdminAuditService adminAuditService;
 
+    @MockitoBean
+    private DataSource dataSource;
+
     @Test
     void healthEndpointReportsReadinessWithoutDomainData() throws Exception {
+        java.sql.Connection connection = mock(java.sql.Connection.class);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.isValid(anyInt())).thenReturn(true);
         mockMvc.perform(get("/api/v1/health"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("UP"));
+    }
+
+    @Test
+    void healthEndpointReportsDownWhenDatabaseIsUnreachable() throws Exception {
+        when(dataSource.getConnection()).thenThrow(new java.sql.SQLException("Connection refused"));
+        mockMvc.perform(get("/api/v1/health"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("DOWN"));
     }
 
     @Test

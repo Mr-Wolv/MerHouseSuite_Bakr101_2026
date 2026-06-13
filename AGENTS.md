@@ -26,7 +26,7 @@ If the roadmap is absent, work from the tracked project source only:
 
 - `backend/` contains the Spring Boot API, domain services, repositories, Flyway migrations, and backend tests.
 - `frontend/` contains the React application, route configuration, API client, components, pages, Vitest tests, and Playwright tests.
-- `docs/` contains engineering documentation for the current local-development codebase.
+- `docs/` contains engineering documentation for the current codebase, local development path, and private V17 deployment path.
 - `scripts/local/` contains local runtime helpers.
 - `scripts/quality/` contains verification helpers.
 - `scripts/maintenance/` contains cleanup helpers.
@@ -36,7 +36,7 @@ If the roadmap is absent, work from the tracked project source only:
 
 The repository is meant to be readable by a developer who just cloned it. Keep source, docs, scripts, CI, compose files, root configuration, and agent guidance useful and current.
 
-The current public-facing posture is local-certified project/codebase, not production SaaS launch. V16.2 local convergence evidence is recorded in `docs/quality/cross-surface-convergence.md`; cloud deployment, app-store release, production monitoring, provider-backed delivery, backup/restore operations, and incident response belong to V17 activation only when the roadmap and active branch deliberately say so. The selected V17 deployment lane is Neon PostgreSQL, Hugging Face Docker Space backend, Vercel frontend, and GitHub Release APK distribution unless the roadmap is deliberately changed again.
+The current public-facing posture is local-certified project/codebase plus private V17 deployment activation, not an ungated public production SaaS claim. V16.2 local convergence evidence is recorded in `docs/quality/cross-surface-convergence.md`; cloud deployment, production monitoring, provider-backed delivery, backup/restore operations, incident response, and signed APK release proof belong to V17 activation and need sanitized evidence before public claims. The selected V17 deployment lane is Neon PostgreSQL, Hugging Face Docker Space backend, Vercel frontend, GitHub Actions quality/release workflows, and GitHub Release APK distribution unless the roadmap is deliberately changed again.
 
 V17 production work is private until the deployment is proven. Keep deployment env files, SMTP credentials, Android keystores, signed APK/AAB artifacts, deployment logs, backup artifacts, provider details, and live URLs out of Git unless the roadmap and public docs deliberately publish sanitized values. Repo-local private material may live under ignored workspaces such as `private/`, `.secrets/`, or `deploy/private/`; do not force-add those files.
 
@@ -72,6 +72,6 @@ If a gap cannot be closed in the current change, record it in the roadmap, a tra
 
 ## Working Standard
 
-Keep changes focused, keep documentation aligned with the code, and run the checks that match the affected area. Write docs, scripts, CI, and app source for a future reader, not just for the current local session. V16.2 belongs to completed deployment-ready local certification; V17 production activation belongs to the private deployment phase until external proof and an intentional publication decision make it public.
+Keep changes focused, keep documentation aligned with the code, and run the checks that match the affected area. Write docs, scripts, CI, and app source for a future reader, not just for the current local session. V16.2 belongs to completed deployment-ready local certification; V17 production activation belongs to the private deployed phase until sanitized external proof and an intentional publication decision make it public.
 
 When reporting completion, name the QC proof that was run and any QC rule that shaped the change. If proof was intentionally skipped, say why and name the remaining risk. If a requested shortcut would weaken the roadmap QC rules, stop and explain the conflict instead of silently taking the shortcut.

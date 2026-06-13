@@ -1,6 +1,6 @@
 # Deployment-Ready Local Certification
 
-V16.2 prepares MerHouse for future deployment without deploying it now. The phase proves that the codebase, configuration, docs, scripts, and local runtime are shaped for deployment later while every external dependency remains local, mocked, or explicitly deferred.
+V16.2 prepared MerHouse for future deployment without deploying it during that phase. The phase proves that the codebase, configuration, docs, scripts, and local runtime were shaped for deployment later while every external dependency remained local, mocked, or explicitly deferred. Current V17 status lives in the [roadmap](../architecture/roadmap.md) and [production deployment activation](../operations/production-deployment-activation.md) docs.
 
 ## Boundary
 
