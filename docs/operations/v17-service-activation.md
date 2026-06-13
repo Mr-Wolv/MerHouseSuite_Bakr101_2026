@@ -4,6 +4,8 @@ This note records the external-service layer MerHouse activates during the priva
 
 V17 should finish as a simple deployed release before adding more product surface. Email is the real external service target for the first deployment. Android OS notifications, push providers, and autonomous agent mutations are out of scope. The agent is the only deliberate v1 prototype: it can draft and explain next steps from authorized context, but it cannot perform operational work until a later tool-authorization release is designed, tested, audited, and proven.
 
+> **Deployment status update (2026-06-13):** The private V17 deployment is **confirmed live** on Neon PostgreSQL, Hugging Face Docker Space, Vercel, and GitHub Actions CI/CD. The remaining V17 work is completing four portfolio features that demonstrate the full user lifecycle: Access Request & Approve-and-Activate, OTP Password Recovery, How To Use Page, and AI Assistant Completion with conversation threading. See [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) for the detailed scope and acceptance criteria.
+
 V16.2 kept account recovery, access-request conversion, notifications, and assistant behavior local and auditable. V17 extends those boundaries with real external services only after staging proof, provider credentials, secrets handling, monitoring, and rollback are ready.
 
 ## Service Targets

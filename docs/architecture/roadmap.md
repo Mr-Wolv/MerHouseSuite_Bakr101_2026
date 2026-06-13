@@ -2,6 +2,9 @@
 
 This roadmap is the project planning and quality source of truth. It should stay short enough for a new maintainer to read before changing code, docs, scripts, CI, database migrations, or repository shape.
 
+> **V17 Scope Update:** [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) is an additional source of truth for V17 work. It reclassifies the original deployment-focused V17 scope into a **portfolio-completion release** with deployment infrastructure confirmed as complete (Tier 1) and remaining work focused on four portfolio features (Tier 2: Access Request & Approve-and-Activate, OTP Password Recovery, How To Use Page, AI Assistant Completion). When the roadmap and re-evaluation disagree, the re-evaluation takes precedence for V17-specific scope decisions, while the roadmap retains authority over QC rules, repository rules, and the Change Quality Rule.
+>
+
 ## Current Status
 
 MerHouse is a fulfillment coordination system for merchants, warehouse providers, and platform operators. V16.2 local certification is complete, and V17 production activation has moved into a private deployed footprint on Neon PostgreSQL, a Hugging Face Docker Space backend, Vercel frontend hosting, GitHub Actions quality/release workflows, and GitHub Release APK distribution. The repository must now describe both truths clearly: local Docker Compose remains the reproducible developer path, while deployed V17 targets are the active private release path until sanitized proof and an intentional cutover decision make a production/public claim appropriate.
@@ -81,33 +84,35 @@ Acceptance bar:
 
 ## Next Work
 
-### V17: Production Deployment Activation
+### V17: Portfolio Completion (Deployment Confirmed Live)
 
-V17 is the active private deployment phase for the first real infrastructure lane.
+> **Status update:** As of 2026-06-13, deployment is **confirmed live** on Neon PostgreSQL, Hugging Face Docker Space backend, Vercel frontend, GitHub Actions CI/CD, and GitHub Release APK distribution. The original deployment infrastructure work is complete (Tier 1). V17 now means **completing the four portfolio features** that demonstrate a full user lifecycle and professional UX. See [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) for the detailed scope, acceptance criteria, and task ordering.
+>
+> The re-evaluation classifies remaining work into three tiers: Tier 1 (deployment infrastructure — already done), Tier 2 (portfolio features — code work), Tier 3 (execution-only — run existing scripts against the live stack).
 
-V17 first-release rule: finish the simplest professional deployment before expanding product scope. The target is a deployed web/backend service, signed internal Android release proof, provider-backed email for recovery/access/notifications when enabled, backup/restore/rollback rehearsal, monitoring/load proof, and live browser plus installed-Android validation. The only intentionally prototype-grade product capability in this release is the agent: it remains v1 read-plus-draft assistance with deterministic fallback and no operational mutation. Bug hunting after deployment should be driven by CI/CD, deployed smoke/load/browser/mobile proof, and concrete user-facing defects rather than broad speculative refactoring.
+V17 first-release rule: finish the portfolio features before expanding product scope. The target is a demonstrable portfolio release that handles the full identity lifecycle (request → approve → activate → login → recover), provides user guidance, and offers a context-aware AI assistant.
 
-Planned scope:
+Planned scope (Tier 2 — portfolio features):
+
+- Feature A: Access Request & Approval Workflow with auto-activation and email delivery
+- Feature B: Password Recovery with OTP (6-digit code, 15-minute TTL, replay protection)
+- Feature C: How To Use Page (roles, onboarding, order workflow, warehouse workflow, navigation)
+- Feature D: AI Assistant Completion (conversation threading, contextual awareness, chat-like UI, workflow guidance)
+- Email console capture mode (`MERHOUSE_EMAIL_PROVIDER=log`) for local demo without SMTP
+
+Deployment infrastructure (Tier 1 — already complete, not new work):
 
 - production deployment architecture recorded in [Production deployment activation](../operations/production-deployment-activation.md)
 - external service activation recorded in [V17 external service activation](../operations/v17-service-activation.md)
-- deployment configuration infrastructure
-- professional product proof for performance, load, concurrent users, provider exchanges, cross-platform release behavior, and operations readiness
-- provider-backed notification, recovery, carrier, monitoring, backup, rollback, and incident-response operations
+- deployment configuration infrastructure (Hugging Face Docker Space, Vercel frontend, Neon PostgreSQL)
+- CI/CD quality and release workflows (GitHub Actions)
+- professional product proof scripts (performance, load, monitoring, deployed browser, mobile)
+- signed Android release workflow and proof harnesses
+- provider-backed notification, recovery, and email plumbing (when SMTP is configured)
 - public operational runbooks
-- final production validation
+- final production validation scripts
 
-Current private deployment direction:
-
-- selected no-card deployment lane: Neon PostgreSQL for managed data, a Hugging Face Docker Space for the Spring Boot backend, Vercel for the React/Vite frontend, GitHub Actions for quality and signed Android release workflows, and GitHub Releases for signed APK distribution; this replaces the ngrok machine-hosted lane because live tunnel behavior degraded browser/API proof reliability
-- fallback deployment lanes: none in current progress; VPS/Compose hosting, Oracle Cloud Always Free, Cloud Run, and sponsored professional hosting belong to VInfinite unless a later deployment decision deliberately reopens them
-- deployment configuration shape: Hugging Face Docker Space backend template, Vercel static frontend config, Neon JDBC environment, GitHub Actions quality/release workflows, deployed proof wrappers, and signed Android release proof
-- Gmail/Google Workspace SMTP staging proof for recovery, access invitation, and email notifications
-- signed internal Android APK/AAB release proof
-- read-plus-draft agent runtime interface with deterministic fallback metadata and no mutations
-- small B2B pilot capacity proof before public production claims
-
-V17 refactoring rule: do not refactor code, scripts, docs, CI, deployment configuration, or repository shape during production activation unless a concrete problem requires it. Valid reasons include a failing proof, deployment blocker, security/runtime boundary issue, performance bottleneck, real duplication or coupling that blocks the deployment path, or a documented V&V/QC/QA defect. Cosmetic, speculative, or architecture-ideal refactoring is out of scope until the deployed web/backend, signed Android release, and live V&V proof are complete.
+V17 refactoring rule: do not refactor code, scripts, docs, CI, deployment configuration, or repository shape during portfolio feature completion unless a concrete problem requires it. Valid reasons include a failing proof, feature implementation blocker, security/runtime boundary issue, performance bottleneck, real duplication or coupling that blocks a portfolio feature, or a documented V&V/QC/QA defect. Cosmetic, speculative, or architecture-ideal refactoring is out of scope until the four portfolio features are complete and the live deployment is stable.
 
 V17 live-testing rule: prioritize direct live tours of the deployed web app and installed Android app over adding or tuning proof scripts. Use reports, screenshots, and JSON manifests as supporting evidence, not as a substitute for watching the real behavior. Cover happy paths and unhappy paths for each supported stakeholder role, and change code only when the live deployed tours expose a concrete defect, broken handoff, unsafe boundary, or public-readiness gap.
 

@@ -11,7 +11,7 @@ This directory is the public-readable documentation layer for the current MerHou
 - [Quality docs](quality/quality-docs.md): local certification, live evidence, and cross-surface proof.
 - [Operations docs](operations/operations-docs.md): V17 deployment activation, managed deployment proof, and external service proof.
 
-MerHouse is prepared here as a public-readable project with a reproducible local development stack and a private V17 deployed lane. V16.2 local certification is complete through mocks, dry-run proof, cross-surface V&V/QC/QA evidence, repository checks, and a recorded final live browser/installed-APK walkthrough. V17 deployment now uses Neon PostgreSQL, a Hugging Face Docker Space backend, a Vercel React/Vite frontend, GitHub Actions quality/release workflows, GitHub Release APK distribution, opt-in SMTP email delivery attempts, signed internal Android release checks, and live web/Android proof before any production claim.
+MerHouse is prepared here as a public-readable project with a reproducible local development stack and a **confirmed live** private V17 deployed lane. V16.2 local certification is complete through mocks, dry-run proof, cross-surface V&V/QC/QA evidence, repository checks, and a recorded final live browser/installed-APK walkthrough. V17 deployment is now confirmed live on Neon PostgreSQL, Hugging Face Docker Space backend, Vercel React/Vite frontend, GitHub Actions CI/CD, and GitHub Release APK distribution. The remaining V17 work focuses on four portfolio features: Access Request & Approve-and-Activate, OTP Password Recovery, How To Use Page, and AI Assistant Completion with conversation threading. See [`V17-RE-EVALUATION.md`](refactor/V17-RE-EVALUATION.md) for the full scope.
 
 ## Documentation Lanes
 

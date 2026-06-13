@@ -1,5 +1,7 @@
 # MerHouse Implementation Sequence
 
+> **Status:** SUPERCEDED by [`V17-RE-EVALUATION.md`](./V17-RE-EVALUATION.md). This document remains as the historical audit foundation that informed the V17 re-evaluation. For current V17 scope and task ordering, refer to the re-evaluation document, which reclassifies deployment infrastructure as complete and focuses remaining work on portfolio features (Access Request, OTP Recovery, How To Use, AI Assistant Completion).
+>
 > **Purpose:** Single source of truth for all V17 deployment work. This document consolidates findings from a comprehensive codebase audit, PowerShell script evaluation, and re-evaluation of all tasks against the V17 refactoring rule to identify the safest path to successful V17 deployment.
 >
 > **Constraint:** The V17 refactoring rule (`docs/architecture/roadmap.md` line 110) permits changes only for failing proof, deployment blockers, security/runtime boundary issues, performance bottlenecks, real coupling that blocks deployment, or documented defects. Everything else waits.

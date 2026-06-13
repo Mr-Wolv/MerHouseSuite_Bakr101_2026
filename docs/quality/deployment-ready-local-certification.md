@@ -1,6 +1,6 @@
 # Deployment-Ready Local Certification
 
-V16.2 prepared MerHouse for future deployment without deploying it during that phase. The phase proves that the codebase, configuration, docs, scripts, and local runtime were shaped for deployment later while every external dependency remained local, mocked, or explicitly deferred. Current V17 status lives in the [roadmap](../architecture/roadmap.md) and [production deployment activation](../operations/production-deployment-activation.md) docs.
+V16.2 prepared MerHouse for future deployment without deploying it during that phase. The phase proves that the codebase, configuration, docs, scripts, and local runtime were shaped for deployment later while every external dependency remained local, mocked, or explicitly deferred. **Current V17 status:** deployment is confirmed live on Neon, Hugging Face Docker Space, Vercel, and GitHub Actions. The remaining V17 work is completing four portfolio features (Access Request & Approve-and-Activate, OTP Password Recovery, How To Use Page, AI Assistant Completion). See the [roadmap](../architecture/roadmap.md), [production deployment activation](../operations/production-deployment-activation.md), and [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) for current scope.
 
 ## Boundary
 

@@ -24,7 +24,17 @@ A pending suggestion can be accepted or rejected by the same authenticated actor
 
 The V14 assistant remains deterministic local proof behavior through V16.2. V17 keeps that deterministic behavior as the default runtime while separating the runtime boundary for later model-backed activation. Current responses are generated from existing local application services and stored in `assistant_interactions` with `prototype_local=true`, a legacy schema flag that marks the interaction as local review evidence rather than provider-backed output. Suggestion decisions are stored on the same row as `action_status`, `decision_note`, `decided_by_user_id`, and `decided_at`.
 
-The assistant is expected to be useful within that boundary: it should not merely repeat counters when the user asks what comes next. It should choose a scoped queue, explain why that queue comes before lower-risk work, and refuse mutation requests instead of taking action.
+For V17 portfolio completion, the assistant gains three enhancements (Feature D):
+
+1. **Conversation Threading:** `AssistantInteractionRequest` accepts an optional `parentInteractionId`. When provided, `AssistantService.interact()` loads the parent interaction and passes its context (scope, metrics, response) to `DeterministicAssistantRuntime.draft()`. The runtime can reference previous context: "Last time we reviewed your platform overview. Since then, 2 new access requests have arrived."
+
+2. **Contextual Awareness:** `DeterministicAssistantRuntime` builds a richer context including the current user's role, recent interactions, and current metrics. Platform scope shows pending access requests, failed outbox, open exceptions, open service risks, and failed shipments. Merchant scope shows orders, backorders, open exceptions, inbound open, and stock risk. Warehouse scope shows workload, open exceptions, and inbound open. Real counts are pulled from `AdminControlService.summary()` and `DashboardService.merchantSummary()`/`warehouseSummary()`.
+
+3. **Workflow Guidance:** When the user asks "how do I create an order?" or "how does receiving work?", the assistant explains the workflow steps using the same content source that powers the How To Use page. This ties Feature D to Feature C.
+
+4. **Chat-Like UI:** `AssistantPage.tsx` is redesigned as a conversation view with user messages on the right, assistant responses on the left, a typing indicator, auto-scroll, and scope detection from prompt keywords ("merchant" → `MERCHANT_OPERATIONS`, "warehouse" → `WAREHOUSE_OPERATIONS`, "platform" → `PLATFORM_OVERVIEW`). Manual scope override remains for power users. The existing flat interaction history is retained as an expandable audit trail below the chat.
+
+All enhancements stay within the deterministic read-plus-draft boundary: no provider key required, no mutation authority, `prototypeLocal=true` preserved, and `adminAuditService.record()` called for every interaction.
 
 ## Future Agent Direction
 
