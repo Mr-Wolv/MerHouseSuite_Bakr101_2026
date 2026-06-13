@@ -1,12 +1,12 @@
 # V17 Portfolio-Completion Re-Evaluation
 
-> **Purpose:** Adjust V17 scope in light of **confirmed live deployment** (Neon + Hugging Face Docker Space + Vercel, active via `.secrets` configs). The deployment infrastructure is already built, running, and continuously verified by CI. The remaining V17 work is **portfolio-feature completion** (Features A–D) and **execution of the deployed proof harness** against the live stack. After V17 is marked complete, development stops except for critical bug fixes; all future work belongs to Vinfinite.
+> **Purpose:** Adjust V17 scope in light of **confirmed live deployment** (Neon + Hugging Face Docker Space + Vercel, active via `.secrets` configs). The deployment infrastructure is already built, running, and continuously verified by CI. The remaining V17 work is **portfolio-feature completion** (Features A–C) and **execution of the deployed proof harness** against the live stack. Feature D (AI Assistant Completion) is deferred to Vinfinite to reduce scope and focus on the core identity lifecycle. After V17 is marked complete, development stops except for critical bug fixes; all future work belongs to Vinfinite.
 >
 > **Date:** 2026-06-13
 >
-> **Status:** Deployment confirmed live. Re-evaluation complete — based on both planning documents and actual source code audit. All four portfolio features are verified against the real codebase state.
+> **Status:** Deployment confirmed live. Re-evaluation complete — based on both planning documents and actual source code audit. Three portfolio features (A–C) verified against the real codebase state; Feature D deferred to Vinfinite.
 >
-> **Note on scope shift:** This document re-evaluates the V17 completion criteria from a time when deployment was *planned* to a time when deployment is *confirmed*. Many items that were previously gated behind "first deploy, then prove" are now either already done (deployment scripts exist and run in CI) or merely need to be executed against the live stack. The four portfolio features (Access Request, OTP Recovery, How To Use, AI Assistant Completion) remain the only substantial missing product behavior.
+> **Note on scope shift:** This document re-evaluates the V17 completion criteria from a time when deployment was *planned* to a time when deployment is *confirmed*. Many items that were previously gated behind "first deploy, then prove" are now either already done (deployment scripts exist and run in CI) or merely need to be executed against the live stack. The three portfolio features (Access Request, OTP Recovery, How To Use) remain the only substantial missing product behavior. AI Assistant Completion is deferred to Vinfinite.
 
 ---
 
@@ -46,16 +46,17 @@ This re-evaluation is grounded in the comprehensive audit documented in [`IMPLEM
 
 V17 was originally planned as a private production deployment activation — the first real infrastructure lane for MerHouse. As of this re-evaluation, **deployment is confirmed live** (Neon PostgreSQL, Hugging Face Docker Space backend, Vercel frontend, GitHub Actions CI/CD, `.secrets` deployment configs). The deployment scripts, proof harnesses, and CI pipelines exist in the repository and are actively enforced.
 
-This re-evaluation therefore adjusts V17 to mean: **complete the portfolio features that demonstrate a full user lifecycle and professional UX, while the deployment infrastructure is already operational.**
+This re-evaluation therefore adjusts V17 to mean: **complete the portfolio features that demonstrate a full identity lifecycle and user guidance, while the deployment infrastructure is already operational.** Feature D (AI Assistant Completion) is deferred to Vinfinite to focus V17 on core onboarding and recovery workflows.
 
 **What changes:**
 - **Confirmed live:** Neon + HuggingFace + Vercel deployment is active, running, and CI-validated.
 - **Already done (Tier 1):** Deployment scripts, CI workflows, Android release harness, load/smoke scripts, monitoring proof scripts, V17 proof attachment checks, all exist and run in CI. No further development needed.
-- **Remaining work (Tier 2 — 4 features):** Access Request & Approval Workflow with email activation, Password Recovery Workflow with OTP via email, How To Use Page, AI Assistant completion with conversation threading and contextual awareness.
+- **Remaining work (Tier 2 — 3 features):** Access Request & Approval Workflow with email activation, Password Recovery Workflow with OTP via email, How To Use Page.
+- **Deferred to Vinfinite (Tier 4):** AI Assistant Completion (conversation threading, contextual awareness, chat-like UI, workflow guidance) — moved out of V17 scope to reduce effort and focus on core identity lifecycle.
 - **Execution-only (Tier 3):** Run the existing deployed proof scripts (load, monitoring, browser tour, backup/restore, rollback) against the live stack. These are *execution*, not new development. They confirm the already-live deployment.
-- **Downgraded to Vinfinite (Tier 4):** Prometheus/Micrometer, token refresh, cosmetic frontend refactors, `@BatchSize`, `@ConfigurationProperties`, custom hooks, code splitting.
+- **Downgraded to Vinfinite (Tier 4):** Prometheus/Micrometer, token refresh, cosmetic frontend refactors, `@BatchSize`, `@ConfigurationProperties`, custom hooks, code splitting, AI Assistant Completion.
 
-**Net effect:** V17 becomes a *demonstrable portfolio release* focused on complete business workflows, backed by a confirmed live deployment. A viewer can clone the repo, run `docker compose up` and see the platform locally, or view the live deployment. The remaining code work is ~12–17 days of focused feature development.
+**Net effect:** V17 becomes a *demonstrable portfolio release* focused on complete identity lifecycle and user guidance, backed by a confirmed live deployment. A viewer can clone the repo, run `docker compose up` and see the platform locally, or view the live deployment. The remaining code work is ~7–10 days of focused feature development.
 
 ---
 
@@ -314,9 +315,9 @@ The deployment infrastructure is confirmed operational via the `.secrets/` confi
 | Tier | Classification | Items | Rationale |
 |------|---------------|-------|-----------|
 | **Tier 1** | **Already Complete — No Work Needed** | T0-4 health endpoints, T0-6 login rate limiting, S0-1/S0-2 script fixes, T0-3 backup/restore docs, T1-13 migration rollback docs, T1-14 operational runbook, T1-10 authorization tests, T0-1 pagination, actuator health, all CI workflows, all deployment scripts, Android release workflow, load/smoke scripts, deployed monitoring scripts, V17 proof scripts, public-readiness script, email plumbing (`EmailDeliveryService`), in-app notification mechanism, Docker Compose local stack | Verified in code and CI. These exist and run. No further development, writing, or creation is required. |
-| **Tier 2** | **Remaining Code Work — V17 Portfolio Features** | Feature A (Access Request & Approve-and-Activate), Feature B (Password Recovery with OTP), Feature C (How To Use Page), Feature D (AI Assistant Completion with threading + chat UI), Email console capture mode (`MERHOUSE_EMAIL_PROVIDER=log`) | These are genuinely missing product behaviors. They require new code, tests, and frontend changes. This is the real V17 remaining work. |
+| **Tier 2** | **Remaining Code Work — V17 Portfolio Features** | Feature A (Access Request & Approve-and-Activate), Feature B (Password Recovery with OTP), Feature C (How To Use Page), Email console capture mode (`MERHOUSE_EMAIL_PROVIDER=log`) | These are genuinely missing product behaviors. They require new code, tests, and frontend changes. This is the real V17 remaining work. |
 | **Tier 3** | **Execution-Only — Run Existing Scripts Against Live Stack** | Load smoke against live deployment, deployed monitoring proof against live URLs, backup/restore drill against live DB, rollback rehearsal, signed Android release against live API/frontend, email provider proof (if SMTP is configured), live stakeholder walkthrough, deployed browser tour | Scripts exist and are validated by CI. The remaining task is to execute them against the confirmed live deployment and attach the evidence. This is **operations**, not development. Estimate: 1–2 days. |
-| **Tier 4** | **Vinfinite / Never Do** | Prometheus/Micrometer metrics, token refresh/rotation, frontend code splitting, frontend monolithic page refactoring, custom data-fetching hooks, `@BatchSize`, `@ConfigurationProperties`, Tier 3 cosmetic tasks, package-by-domain refactoring, AOP auth extraction, deployed monitoring proof *execution* (wait, no — that's Tier 3), architectural refactors | Not in code, not user-facing, or purely cosmetic. These do not affect the portfolio value of a confirmed live deployment. |
+| **Tier 4** | **Vinfinite / Never Do** | Prometheus/Micrometer metrics, token refresh/rotation, frontend code splitting, frontend monolithic page refactoring, custom data-fetching hooks, `@BatchSize`, `@ConfigurationProperties`, Tier 3 cosmetic tasks, package-by-domain refactoring, AOP auth extraction, AI Assistant Completion (conversation threading, chat UI, contextual awareness, workflow guidance, scope auto-detection) | Not in code, not user-facing, purely cosmetic, or deferred to reduce V17 scope. These do not affect the portfolio value of a confirmed live deployment. |
 
 ### Important Correction from Previous Version
 
@@ -336,14 +337,13 @@ These were marked as "Vinfinite" in the original re-evaluation, which would have
 ### Must Do Before V17 Complete (Portfolio-Completion Priority)
 
 | Priority | Feature | Effort | Dependencies | Code Files to Create/Modify |
-|----------|---------|--------|-------------|---------------------------|
-| **P0** | **Feature D: AI Assistant Completion** | 5–7 days | None independently; benefits from Feature C content | `AssistantInteractionRequest.java`, `DeterministicAssistantRuntime.java`, `AssistantService.java`, `AssistantPage.tsx`, `types.ts`, `client.ts` |
+|----------|---------|--------|-------------|----------------------------|
 | **P1** | **Feature A: Access Request & Approval** | 3–4 days | `EmailDeliveryService` exists; needs `log` mode first | `AccessRequestService.java`, `AccessRequestController.java`, `AdminPages.tsx`, `types.ts`, `client.ts` |
 | **P2** | **Feature B: Password Recovery with OTP** | 3–4 days | `EmailDeliveryService` exists; needs `log` mode first | New `OTPService.java`, `AuthController.java`, new service methods, `AuthRecoveryPages.tsx`, new `VerifyOtpPage.tsx` |
 | **P3** | **Feature C: How To Use Page** | 1–2 days | None | New `HowToUsePage.tsx`, `App.tsx` route, `LoginPage.tsx` footer, `AppLayout.tsx` nav |
 | — | **Email console capture mode** | 0.5 day | Precedes P1 and P2 | `EmailDeliveryService.java` (`MERHOUSE_EMAIL_PROVIDER=log`) |
 
-**Total new code effort: 12–17 days**
+**Total new code effort: 7–10 days**
 
 ### Already Complete (Tier 1 — Verified in Code and CI)
 
@@ -459,32 +459,10 @@ V17 is complete only when **all** of the following pass. Each criterion is groun
 - [ ] Markdown links valid
 - [ ] Frontend tests for page rendering and navigation
 
-### Feature D: AI Assistant Completion
-
-- [ ] Backend: `AssistantInteractionRequest` accepts optional `parentInteractionId` (UUID, nullable)
-- [ ] Backend: `AssistantService.interact()` loads parent interaction when `parentInteractionId` provided, passes context to `AssistantRuntime`
-- [ ] Backend: `DeterministicAssistantRuntime.draft()` receives previous interaction context (scope, metrics, response) and can reference it in responses
-- [ ] Backend: Platform scope shows real current metrics: pending access requests, failed outbox events, open exceptions, open service risks, failed shipments
-- [ ] Backend: Merchant scope shows real current metrics: orders, open backorders, open exceptions, inbound open, stock risk
-- [ ] Backend: Warehouse scope shows real current metrics: workload, open exceptions, inbound open
-- [ ] Backend: Workflow guidance responses (e.g., "To create an order: first create inventory items, then..." )
-- [ ] Backend: Existing refusal model preserved — no mutations allowed
-- [ ] Backend: `prototypeLocal=true` preserved on all interactions
-- [ ] Frontend: Chat-like conversation view with message grouping
-- [ ] Frontend: User messages styled as user-side, assistant responses as assistant-side
-- [ ] Frontend: Typing indicator while long summaries generate
-- [ ] Frontend: Auto-scroll to latest message
-- [ ] Frontend: Existing flat interaction history expandable below chat
-- [ ] Frontend: Scope detection from prompt keywords with manual override
-- [ ] Frontend: Scope detection indicator visible to user
-- [ ] Frontend: Suggestion accept/reject buttons preserved in chat view
-- [ ] Backend tests for threading, contextual awareness, workflow guidance
-- [ ] Frontend tests for chat UI, conversation threading, scope detection
-
 ### General V17 Acceptance
 
 - [ ] `docker compose up` starts all services (verified: Docker Compose exists ✅)
-- [ ] All four portfolio features demonstrable via local browser at `http://localhost:3000`
+- [ ] All three portfolio features demonstrable via local browser at `http://localhost:3000`
 - [ ] No external SMTP credentials required for local demo (email works via `MERHOUSE_EMAIL_PROVIDER=log`)
 - [ ] No seed credentials required for feature demonstration
 - [ ] `.ackenduild.ps1 test` (or `.ackenduild.ps1 test` via Maven wrapper) passes
@@ -590,42 +568,26 @@ These are excluded from the V17 completion bar and belong to Vinfinite or are dr
 | 19 | Backend tests | New test file | OTP service + controllers |
 | 20 | Frontend tests | New test file | OTP page |
 
-### Phase 6: AI Assistant Completion (5–7 Days)
-
-| Order | Task | Code File | Change |
-|-------|------|-----------|--------|
-| 21 | Add `parentInteractionId` to request DTO | New DTO or update | Field + validation |
-| 22 | Update `AssistantInteraction` entity | Entity file | New field (migration) |
-| 23 | Update `AssistantService.interact()` | `AssistantService.java` | Load parent context |
-| 24 | Update `DeterministicAssistantRuntime.draft()` | `DeterministicAssistantRuntime.java` | Use context, add workflow guidance |
-| 25 | Add workflow guidance content | `DeterministicAssistantRuntime.java` | How-to content |
-| 26 | Enhance dashboard context methods | `DashboardService.java` | Richer metrics |
-| 27 | Backend tests | Multiple test files | Threading, context, guidance |
-| 28 | Redesign `AssistantPage.tsx` as chat UI | `AssistantPage.tsx` | Conversation view, typing indicator |
-| 29 | Add scope detection | `AssistantPage.tsx` | Prompt keyword detection |
-| 30 | Frontend tests | `AssistantPage.test.tsx` | Chat UI, threading |
-
-### Phase 7: Documentation & Tier 3 Execution (2–3 Days, Parallel with Phase 6)
+### Phase 6: Documentation & Tier 3 Execution (2–3 Days, Parallel with Phase 5)
 
 | Order | Task | Effort | Type |
 |-------|------|--------|------|
-| 31 | Update `IMPLEMENTATION_SEQUENCE.md` | 0.5 day | Doc |
-| 32 | Update `docs/architecture/roadmap.md` | 0.5 day | Doc |
-| 33 | Update `AGENTS.md` | 0.25 day | Doc |
-| 34 | Update `docs/architecture/system-diagrams.html` | 1 day | Doc |
-| 35 | Update `docs/architecture/account-lifecycle.md` | 0.5 day | Doc |
-| 36 | Update `docs/architecture/agentic-operations-assistance.md` | 0.5 day | Doc |
-| 37 | Update `docs/operations/v17-service-activation.md` | 0.5 day | Doc |
-| 38 | Update `docs/operations/production-deployment-activation.md` | 0.5 day | Doc |
-| 39 | Update `docs/development/frontend.md` | 0.25 day | Doc |
-| 40 | Update `docs/development/backend.md` | 0.25 day | Doc |
-| 41 | Update `README.md` | 0.5 day | Doc |
-| 42 | Run full quality gate | 1 day | Execution |
-| 43 | Run public-readiness | 0.5 day | Execution |
-| 44 | Tier 3: Load smoke against live deployment | 0.5 day | Execution |
-| 45 | Tier 3: Deployed monitoring against live deployment | 0.5 day | Execution |
-| 46 | Tier 3: Live stakeholder walkthrough | 1 day | Execution |
-| 47 | Final live walkthrough | 1 day | Execution |
+| 21 | Update `IMPLEMENTATION_SEQUENCE.md` | 0.5 day | Doc |
+| 22 | Update `docs/architecture/roadmap.md` | 0.5 day | Doc |
+| 23 | Update `AGENTS.md` | 0.25 day | Doc |
+| 24 | Update `docs/architecture/system-diagrams.html` | 1 day | Doc |
+| 25 | Update `docs/architecture/account-lifecycle.md` | 0.5 day | Doc |
+| 26 | Update `docs/operations/v17-service-activation.md` | 0.5 day | Doc |
+| 27 | Update `docs/operations/production-deployment-activation.md` | 0.5 day | Doc |
+| 28 | Update `docs/development/frontend.md` | 0.25 day | Doc |
+| 29 | Update `docs/development/backend.md` | 0.25 day | Doc |
+| 30 | Update `README.md` | 0.5 day | Doc |
+| 31 | Run full quality gate | 1 day | Execution |
+| 32 | Run public-readiness | 0.5 day | Execution |
+| 33 | Tier 3: Load smoke against live deployment | 0.5 day | Execution |
+| 34 | Tier 3: Deployed monitoring against live deployment | 0.5 day | Execution |
+| 35 | Tier 3: Live stakeholder walkthrough | 1 day | Execution |
+| 36 | Final live walkthrough | 1 day | Execution |
 
 ---
 
@@ -640,30 +602,28 @@ These are excluded from the V17 completion bar and belong to Vinfinite or are dr
 | Phase 3: How To Use Page | 1–2 days | Yes — independent | Code |
 | Phase 4: Access Request & Approval | 3–4 days | Yes — independent of Phase 3 | Code |
 | Phase 5: Password Recovery OTP | 3–4 days | Starts after Phase 2 | Code |
-| Phase 6: AI Assistant Completion | 5–7 days | Starts after Phase 2 | Code |
-| Phase 7: Documentation + Tier 3 execution | 2–3 days | Parallel with Phase 6 | Doc + Execution |
-| **Total code effort** | **12–17 days** | With parallel: **8–12 calendar days** | |
-| **Total execution effort** | **1–2 days** | Parallel with Phase 7 | Execution |
-| **Grand total** | **13–19 days** | With parallel: **9–14 calendar days** | |
+| Phase 6: Documentation + Tier 3 execution | 2–3 days | Parallel with Phase 5 | Doc + Execution |
+| **Total code effort** | **7–10 days** | With parallel: **5–8 calendar days** | |
+| **Total execution effort** | **1–2 days** | Parallel with Phase 6 | Execution |
+| **Grand total** | **8–12 days** | With parallel: **6–10 calendar days** | |
 
 ### Critical Path
 
 ```
 Phase 2 (0.5d) ──┬── Phase 4 (3–4d) ──┐
                   ├── Phase 5 (3–4d) ──┤
-                  ├── Phase 6 (5–7d) ──┤
                   ├── Phase 3 (1–2d) ──┤
-                  └── Phase 7 (2–3d) ──┤
+                  └── Phase 6 (2–3d) ──┤
                                        └── Done
 ```
 
 **Estimated calendar time on critical path:**
 - Phase 2: 0.5 day
-- Phase 6 (longest): 7 days
-- Phase 7: 3 days (can start 2 days before Phase 6 ends)
-- **Total: ~9–11 calendar days** (code work only)
-- Plus Tier 3 execution: +1–2 days (can run in parallel with Phase 7 documentation)
-- **Grand total: ~10–13 calendar days**
+- Phase 4 or 5 (longest remaining): 4 days
+- Phase 6: 3 days (can start 2 days before Phase 4/5 ends)
+- **Total: ~5–7 calendar days** (code work only)
+- Plus Tier 3 execution: +1–2 days (can run in parallel with Phase 6 documentation)
+- **Grand total: ~6–9 calendar days**
 
 ---
 
@@ -671,11 +631,10 @@ Phase 2 (0.5d) ──┬── Phase 4 (3–4d) ──┐
 
 ### V17 Is Complete When:
 
-**Portfolio features (all 4 required — Tier 2):**
+**Portfolio features (all 3 required — Tier 2):**
 - [ ] Feature A: User requests access → admin clicks "Approve & activate" → tenant+user created → email sent → user signs in
 - [ ] Feature B: User clicks "Forgot Password" → email entered → OTP generated → OTP verified → password reset
 - [ ] Feature C: `/how-to-use` page explains roles, onboarding, order workflow, warehouse workflow, navigation — no legal content
-- [ ] Feature D: Assistant supports conversation threading, gives contextual responses from real metrics, explains workflows, has chat-like UI
 
 **Quality gates (verified against actual test infrastructure):**
 - [ ] `.ackenduild.ps1 test` passes (36+ existing test files)
@@ -706,9 +665,8 @@ Phase 2 (0.5d) ──┬── Phase 4 (3–4d) ──┐
 
 ### V17 Is Explicitly NOT Complete When:
 
-- Only deployment infrastructure is done but portfolio features are missing (this is the current state — deployment is done, features A–D are missing)
+- Only deployment infrastructure is done but portfolio features are missing (this is the current state — deployment is done, features A–C are missing)
 - Email plumbing exists but no workflow uses it (current state — Features A and B will fix this)
-- AI assistant shows flat interactions with no conversation context (current state — Feature D will fix this)
 - How To Use page is missing (current state — Feature C will fix this)
 - Access request requires manual conversion with password entry (current state — Feature A will fix this)
 - Password recovery requires token exposure (current state — Feature B will fix this)
@@ -720,12 +678,11 @@ Phase 2 (0.5d) ──┬── Phase 4 (3–4d) ──┐
 ### Documents to Update
 
 | Document | Source Files Referenced | Required Changes |
-|----------|----------------------|-----------------|
+|----------|----------------------|------------------|
 | `IMPLEMENTATION_SEQUENCE.md` | All planning audit | Rewrite V17 scope from "deployment tasks" to "portfolio features + Tier 3 execution"; remove deployment as work item |
 | `docs/architecture/roadmap.md` | All architecture docs | Reclassify V17; state deployment is confirmed live; add portfolio scope; keep Tier 3 execution as recommended |
-| `docs/architecture/system-diagrams.html` | App.tsx, all services | Add How To Use node; update access request flow; add OTP recovery; update assistant |
+| `docs/architecture/system-diagrams.html` | App.tsx, all services | Add How To Use node; update access request flow; add OTP recovery |
 | `docs/architecture/account-lifecycle.md` | `AccessRequestService.java`, `AuthRecoveryService.java`, `OTPService` | Add auto-activation; add OTP recovery section |
-| `docs/architecture/agentic-operations-assistance.md` | `AssistantService.java`, `DeterministicAssistantRuntime.java` | Add threading; add workflow guidance; update V17 role |
 | `docs/architecture/notifications.md` | `NotificationService.java` | Add activation email as notification event |
 | `docs/operations/v17-service-activation.md` | `AuthRecoveryService`, `EmailDeliveryService` | Update service targets; note deployment is confirmed live; move Tier 3 execution to recommended |
 | `docs/operations/production-deployment-activation.md` | `deploy/managed/` configs | Add V17 portfolio completion note; confirm deployment is live |
@@ -763,7 +720,7 @@ Cloning the repo and running `docker compose up` shows:
 - A confirmed live deployment on Neon + HuggingFace + Vercel ✅ (new in this re-evaluation)
 - A CI/CD pipeline that enforces quality on every commit ✅ (new in this re-evaluation)
 - An Android release workflow that builds signed APKs ✅ (new in this re-evaluation)
-- An AI assistant that works but shows flat interactions with no conversation history ❌
+- An AI assistant that works with real data but shows flat interactions (deferred to Vinfinite)
 - Access requests that require a two-step approval + manual conversion with password entry ❌
 - Password recovery that requires `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=true` and puts a URL in the browser ❌
 - No user guidance page — only empty-state descriptions ❌
@@ -775,19 +732,19 @@ Cloning the repo and running `docker compose up` shows:
 1. A complete onboarding flow: request access → admin approves → email shows activation → user signs in
 2. A complete recovery flow: forgot password → OTP emailed → OTP entered → password reset
 3. A How To Use page that explains the entire platform in 2 minutes
-4. An AI assistant that remembers conversation context, references real operational data, and explains workflows
+4. A functional AI assistant that reads real operational data (advanced features deferred to Vinfinite)
 5. Email that works via console capture without SMTP credentials
 6. A confirmed live deployment with CI/CD, load testing, monitoring, and Android release infrastructure
 
 ### Why This Matters
 
 | Portfolio Dimension | Before V17 (Current) | After V17 |
-|--------------------|-----------|-----------|
+|--------------------|-----------|----------|
 | **Identity lifecycle** | Login only | Request → Approve → Activate → Login → Recover |
 | **User onboarding** | Manual seed accounts or two-step conversion | Self-service with one-click admin approval |
 | **Password management** | Token that must be echo-enabled | Professional OTP flow with throttling + expiration |
 | **User guidance** | Empty states only | Dedicated How To Use page |
-| **AI assistant** | Tech demo — flat interaction list | Useful tool — conversation threading, real context |
+| **AI assistant** | Functional prototype — flat interaction list | Same — advanced features deferred to Vinfinite |
 | **Email delivery** | Requires SMTP credentials | Works in demo mode (console capture) |
 | **One-command demo** | Needed seed data + config | `docker compose up` → all features work |
 | **Deployment** | Planned | Confirmed live (Neon + HuggingFace + Vercel) |
@@ -804,13 +761,13 @@ The infrastructure work (Neon, HuggingFace, Vercel, signed APK, CI/CD) is **done
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| Portfolio features add 12–17 days of code work | Medium | High | Parallelization across phases; critical path is 5–7 days (Feature D) |
+| Portfolio features add 7–10 days of code work | Medium | Medium | Parallelization across phases; critical path is 3–4 days (Feature A or B) |
 | Email console capture is less impressive than real SMTP | Low | Medium | Document clearly as "local demo mode"; Tier 3 execution can prove live SMTP if configured |
-| AI assistant threading increases complexity | Medium | Low | Stay within `DeterministicAssistantRuntime` — no provider/model changes needed |
 | Existing tests break with new features | Medium | Medium | Write focused tests alongside; run full gate before completion |
 | OTP implementation adds security surface area | Low | Medium | Follow existing patterns: hashing, expiration, throttling, audit, generic errors |
 | Portfolio evaluator expects deployed production URL | Low | Medium | README and roadmap state deployment is confirmed live; live URL is available |
 | Tier 3 execution against live deployment fails | Low | Medium | Scripts are CI-validated; failures indicate real deployment issues that need fixing before V17 closeout |
+| AI assistant deferred may seem incomplete | Low | Low | Document clearly as intentional deferral; current assistant is functional with real data |
 
 ### Risks Mitigated by This Re-Evaluation
 
@@ -818,6 +775,6 @@ The infrastructure work (Neon, HuggingFace, Vercel, signed APK, CI/CD) is **done
 |------|--------|-------|
 | V17 drifts into indefinite deployment work | High — deployment always has more to do | Low — deployment is confirmed live; remaining work is bounded feature development |
 | V17 completes but has no visible features | High — everything is behind deployment wall | Low — all features demonstrable locally and on live deployment |
-| AI assistant left as unfinished prototype | Medium | Low — threading + context makes it portfolio-ready |
+| V17 scope too large to complete | Medium — 12-17 days of work | Low — 7-10 days with Feature D deferred |
 | Developer infrastructure without user-facing demo | High | Low — features done first, deployment already done |
 | Deployment scripts frozen by incorrect re-evaluation | High — would break CI | Low — scripts correctly classified as Tier 1 (done) |
