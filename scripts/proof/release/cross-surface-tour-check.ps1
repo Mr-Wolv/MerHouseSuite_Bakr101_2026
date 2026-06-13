@@ -5,7 +5,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 . (Join-Path $PSScriptRoot "..\lib\tour-report-lib.ps1")
 
 function Assert-ExactRoleCoverage {

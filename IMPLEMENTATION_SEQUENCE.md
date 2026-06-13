@@ -1059,6 +1059,67 @@ Do the 7 "Must do" tasks. Deploy V17. Then let production evidence — not theor
 
 ---
 
+## Script-Code Alignment Audit
+
+> Scripts must validate what the code implements, for both local and deployment. Docs, diagrams, and CI must align with all three.
+
+### Backend: Controller-to-Scenario Coverage
+
+17 backend controllers mapped against 17+ API smoke scenarios:
+
+| Controller | Scenarios | Status |
+|---|---|---|
+| AuthController | 00, 02, 14 | Covered; rate limiting added in scenario 17 |
+| AccessRequestController | 14 | Good |
+| AdminControlController | 05 | Good |
+| AdminOutboxController | 13 | Good |
+| AdminUserController | 02, 05 | Good |
+| AssistantController | 16 | Good (includes cross-tenant refusal) |
+| DashboardController | 09 | Basic |
+| FulfillmentController | 06, 09 | Good |
+| HealthController | 18 | **Added** -- scenario 18 validates `/api/v1/health` and `/actuator/health` |
+| InventoryController | 01 | Good |
+| MerchantWarehouseController | 01, 03 | Good |
+| NotificationController | 04 | Good |
+| OperationalDetailController | 10 | Good |
+| OrderController | 06, 07 | Good |
+| ServiceAccountabilityController | 04 | Good |
+| TenantController | 01 | Good |
+| WarehouseController | 01, 09 | Good |
+
+**Gaps closed:**
+1. **Login rate limiting** (T0-6) -- scenario 17 sends 6 failed logins, verifies 429 with `Retry-After`, confirms per-email isolation
+2. **Health endpoint** (T0-4) -- scenario 18 validates both `/api/v1/health` (public) and `/actuator/health` (with DB indicator)
+
+**Remaining gap:**
+- **Authorization boundaries** (T1-10) -- scenarios 02 and 11 include some 403 checks but lack systematic cross-tenant isolation tests. T1-10 is a separate task for dedicated backend unit/integration tests.
+
+### Frontend (Web): Route Coverage
+
+`full-tour.spec.ts` (Playwright) navigates all routes with all 5 roles (owner, merchant, warehouse, support-admin, auditor). `ui-input-tour` validates public auth UI input. Page-level `.test.tsx` files cover component logic. **No gap for V17.**
+
+### Mobile (Android): Build and Proof Coverage
+
+7 scripts cover: build config, signed APK assembly, login proof, visual tour proof, device sync, native tour, release shape check. **No gap for V17.**
+
+### Deployment Scripts
+
+| Script | Status | Issue Found |
+|---|---|---|
+| huggingface-vercel-check | Works | Static shape check (config files present and correct) |
+| huggingface-space-sync | **Fixed** | Was missing robocopy verification, had unreliable Python stdin piping, no exit code checking |
+| docker-compose config | Works | Config validation only |
+
+### CI Workflow Alignment
+
+CI (`merhouse-quality-gate.yml`) runs: backend tests, frontend tests, API smoke (now includes rate limiting and health), seed-demo, frontend-full-tour, v17-production-readiness, public-readiness (now uses PowerShell-native token scanning instead of `rg`), HF/Vercel check, performance-readiness, mobile-shell-check, markdown-check.
+
+**CI gaps closed:**
+- `public-readiness.ps1` no longer depends on `rg` (ripgrep) -- uses `Get-ChildItem` + `Select-String`
+- API smoke now validates T0-4 (health) and T0-6 (rate limiting) at the integration level
+
+---
+
 ## Implementation Log
 
 ### T0-4: Health/Readiness Endpoints — COMPLETED
@@ -1106,3 +1167,28 @@ Do the 7 "Must do" tasks. Deploy V17. Then let production evidence — not theor
 - Default: 5 failed attempts per 15 minutes. Successful login resets the counter.
 
 **Test proof:** 213 tests pass, 0 failures, 0 errors.
+
+### Script-Code Alignment Fixes — COMPLETED
+
+**Date:** 2026-06-14
+
+**Changes made:**
+
+1. **`scripts/quality/public-readiness.ps1`** — Replaced `rg` (ripgrep) dependency with PowerShell-native `Get-ChildItem` + `Select-String` for token-shaped value scanning. Removed external tool dependency from CI and local runs.
+
+2. **`scripts/deploy/huggingface-space-sync.ps1`** — Four fixes:
+   - Removed `/NFL /NDL` from robocopy so copied files are visible in output
+   - Added post-robocopy verification that `mvnw`, `pom.xml`, and `src/` exist in the checkout
+   - Replaced unreliable Python stdin piping with temp file execution
+   - Added `$LASTEXITCODE` check after Python execution
+
+3. **`scripts/api/scenarios/17-login-rate-limit.ps1`** — New scenario validating T0-6 at integration level: 5 failed logins expect 401, 6th expects 429 with `Retry-After`, different email still works.
+
+4. **`scripts/api/scenarios/18-health-endpoint.ps1`** — New scenario validating T0-4 at integration level: `/api/v1/health` returns UP, `/actuator/health` includes database health indicator.
+
+5. **`scripts/api/run-all.ps1`** — Added scenarios 17 and 18 to the smoke suite.
+
+**Decisions:**
+- Rate limit test uses `Invoke-WebRequest` for the 429 check to capture response headers (Retry-After), since `Invoke-ExpectedHttpFailure` only checks status codes.
+- Health scenario uses `ConvertTo-Json` string matching for actuator response format flexibility across Spring Boot versions.
+- Python temp file in `huggingface-space-sync.ps1` uses GUID-named files to avoid collisions, cleaned up in `finally` block.

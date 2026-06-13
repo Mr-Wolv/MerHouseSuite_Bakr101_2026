@@ -7,12 +7,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$envPath = if ([System.IO.Path]::IsPathRooted($EnvFile)) {
-    [System.IO.Path]::GetFullPath($EnvFile)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $EnvFile))
-}
+. (Join-Path $PSScriptRoot "..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
+$envPath = Resolve-MerHousePath -Path $EnvFile -ProjectRoot $projectRoot
 
 if (-not (Test-Path $envPath)) {
     throw "Deployment env file was not found: $envPath"
@@ -89,11 +86,21 @@ New-Item -ItemType Directory -Force -Path $checkoutFullPath | Out-Null
 Copy-Item -LiteralPath $spaceReadme -Destination (Join-Path $checkoutFullPath "README.md") -Force
 Copy-Item -LiteralPath $spaceDockerfile -Destination (Join-Path $checkoutFullPath "Dockerfile") -Force
 Write-Host "Copying backend source into temporary Space checkout..."
-robocopy $backendSource (Join-Path $checkoutFullPath "backend") /E /R:2 /W:2 /NFL /NDL /NP /XD target .gradle build /XF *.log *.tmp | Out-Host
+robocopy $backendSource (Join-Path $checkoutFullPath "backend") /E /R:2 /W:2 /NP /XD target .gradle build /XF *.log *.tmp | Out-Host
 if ($LASTEXITCODE -gt 7) {
     throw "Backend source copy failed with robocopy exit code $LASTEXITCODE."
 }
 $global:LASTEXITCODE = 0
+
+$backendCheckout = Join-Path $checkoutFullPath "backend"
+foreach ($requiredFile in @("mvnw", "pom.xml")) {
+    if (-not (Test-Path (Join-Path $backendCheckout $requiredFile))) {
+        throw "Backend copy is incomplete: $requiredFile was not found in $backendCheckout."
+    }
+}
+if (-not (Test-Path (Join-Path $backendCheckout "src"))) {
+    throw "Backend copy is incomplete: src/ directory was not found in $backendCheckout."
+}
 
 $pythonScript = @'
 from huggingface_hub import upload_folder
@@ -136,7 +143,16 @@ $env:HF_TOKEN = $values["HF_TOKEN"]
 $env:HF_SPACE_FOLDER = $checkoutFullPath
 $env:HF_COMMIT_MESSAGE = "Sync MerHouse backend Space"
 try {
-    $pythonScript | & $PythonPath -
+    $pythonTempFile = Join-Path ([System.IO.Path]::GetTempPath()) "merhouse-hf-space-sync-$([Guid]::NewGuid().ToString('N')).py"
+    Set-Content -LiteralPath $pythonTempFile -Value $pythonScript -Encoding UTF8
+    try {
+        & $PythonPath $pythonTempFile
+        if ($LASTEXITCODE -ne 0) {
+            throw "Hugging Face Space upload failed with Python exit code $LASTEXITCODE."
+        }
+    } finally {
+        Remove-Item -LiteralPath $pythonTempFile -ErrorAction SilentlyContinue
+    }
 } finally {
     Remove-Item Env:\HF_SPACE_REPO_ID, Env:\HF_TOKEN, Env:\HF_SPACE_FOLDER, Env:\HF_COMMIT_MESSAGE -ErrorAction SilentlyContinue
 }

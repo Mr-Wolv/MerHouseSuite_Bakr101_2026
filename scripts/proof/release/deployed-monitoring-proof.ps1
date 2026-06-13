@@ -10,7 +10,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 . (Join-Path $PSScriptRoot "..\lib\url-guard-lib.ps1")
 
 $normalizedFrontendBaseUrl = Assert-AbsoluteHttpUrl -Name "FrontendBaseUrl" -Value $FrontendBaseUrl
@@ -29,11 +30,7 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $OutputPath = ".\reports\v17-deployed-monitoring-$timestamp.json"
 }
-$resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
-    [System.IO.Path]::GetFullPath($OutputPath)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $OutputPath))
-}
+$resolvedOutputPath = Resolve-MerHousePath -Path $OutputPath -ProjectRoot $projectRoot
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $resolvedOutputPath) | Out-Null
 
 function Invoke-TimedWebRequest {

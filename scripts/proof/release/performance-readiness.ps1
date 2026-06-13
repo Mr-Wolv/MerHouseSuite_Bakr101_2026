@@ -21,7 +21,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 $frontendRoot = Join-Path $projectRoot "frontend"
 $distRoot = Join-Path $frontendRoot "dist"
 $assetRoot = Join-Path $distRoot "assets"
@@ -82,10 +83,7 @@ function Resolve-PerformancePath {
     if ([string]::IsNullOrWhiteSpace($Path)) {
         return ""
     }
-    if ([System.IO.Path]::IsPathRooted($Path)) {
-        return [System.IO.Path]::GetFullPath($Path)
-    }
-    return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
+    return Resolve-MerHousePath -Path $Path -ProjectRoot $projectRoot
 }
 
 $webReportResolvedPath = $null
@@ -186,7 +184,7 @@ if ($assets.Count -eq 0) {
 $assetMetrics = @($assets | ForEach-Object {
     $gzipBytes = Get-GzipLength $_.FullName
     [pscustomobject]@{
-        path = $_.FullName.Substring($projectRoot.Path.Length + 1)
+        path = $_.FullName.Substring($projectRoot.Length + 1)
         type = $_.Extension.TrimStart(".")
         bytes = $_.Length
         kb = ConvertTo-Kb $_.Length

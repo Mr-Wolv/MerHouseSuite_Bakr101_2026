@@ -15,7 +15,8 @@ if (-not $ConfirmManualLiveReview) {
     throw "Re-run with -ConfirmManualLiveReview only after the live browser and installed Android walkthroughs were completed with the reviewer."
 }
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 . (Join-Path $PSScriptRoot "..\lib\url-guard-lib.ps1")
 
 function Assert-SafeEvidenceText {
@@ -70,11 +71,7 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $OutputPath = ".\reports\v17-live-stakeholder-walkthrough-$timestamp.json"
 }
-$resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
-    [System.IO.Path]::GetFullPath($OutputPath)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $OutputPath))
-}
+$resolvedOutputPath = Resolve-MerHousePath -Path $OutputPath -ProjectRoot $projectRoot
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $resolvedOutputPath) | Out-Null
 
 $report = [ordered]@{

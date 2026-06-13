@@ -33,7 +33,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 . (Join-Path $PSScriptRoot "..\lib\url-guard-lib.ps1")
 
 function Assert-DeployedCredential {
@@ -184,11 +185,7 @@ function Resolve-EvidenceAttachment {
         }
     }
 
-    $resolvedPath = if ([System.IO.Path]::IsPathRooted($Path)) {
-        [System.IO.Path]::GetFullPath($Path)
-    } else {
-        [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
-    }
+    $resolvedPath = Resolve-MerHousePath -Path $Path -ProjectRoot $projectRoot
     if (-not (Test-Path -LiteralPath $resolvedPath)) {
         throw "$Name was not found: $resolvedPath"
     }
@@ -233,11 +230,7 @@ function Resolve-EvidenceAttachment {
         if ([string]::IsNullOrWhiteSpace($json.artifactPath)) {
             throw "AndroidReleaseManifestPath must include artifactPath."
         }
-        $artifactPath = if ([System.IO.Path]::IsPathRooted($json.artifactPath)) {
-            [System.IO.Path]::GetFullPath($json.artifactPath)
-        } else {
-            [System.IO.Path]::GetFullPath((Join-Path $projectRoot $json.artifactPath))
-        }
+        $artifactPath = Resolve-MerHousePath -Path $json.artifactPath -ProjectRoot $projectRoot
         if (-not (Test-Path -LiteralPath $artifactPath)) {
             throw "AndroidReleaseManifestPath artifactPath was not found: $artifactPath"
         }
@@ -335,11 +328,7 @@ function Resolve-EvidenceAttachment {
         if ([string]::IsNullOrWhiteSpace($json.backupPath)) {
             throw "BackupRestoreManifestPath must include backupPath."
         }
-        $backupPath = if ([System.IO.Path]::IsPathRooted($json.backupPath)) {
-            [System.IO.Path]::GetFullPath($json.backupPath)
-        } else {
-            [System.IO.Path]::GetFullPath((Join-Path $projectRoot $json.backupPath))
-        }
+        $backupPath = Resolve-MerHousePath -Path $json.backupPath -ProjectRoot $projectRoot
         if (-not (Test-Path -LiteralPath $backupPath)) {
             throw "BackupRestoreManifestPath backupPath was not found: $backupPath"
         }
@@ -385,11 +374,7 @@ function Resolve-EvidenceAttachment {
             if ([string]::IsNullOrWhiteSpace($json.postRollbackMonitoring.apiBaseUrl)) {
                 throw "RollbackManifestPath postRollbackMonitoring.apiBaseUrl must be present when monitoring ran."
             }
-            $monitoringPath = if ([System.IO.Path]::IsPathRooted($json.postRollbackMonitoring.reportPath)) {
-                [System.IO.Path]::GetFullPath($json.postRollbackMonitoring.reportPath)
-            } else {
-                [System.IO.Path]::GetFullPath((Join-Path $projectRoot $json.postRollbackMonitoring.reportPath))
-            }
+            $monitoringPath = Resolve-MerHousePath -Path $json.postRollbackMonitoring.reportPath -ProjectRoot $projectRoot
             if (-not (Test-Path -LiteralPath $monitoringPath)) {
                 throw "RollbackManifestPath postRollbackMonitoring.reportPath was not found: $monitoringPath"
             }
@@ -594,11 +579,7 @@ if ($liveStakeholderWalkthroughEvidence -and $liveStakeholderWalkthroughEvidence
     throw "LiveStakeholderWalkthroughManifestPath frontendBaseUrl must match deployed FrontendBaseUrl. Expected $normalizedFrontendBaseUrl but found $($liveStakeholderWalkthroughEvidence.frontendBaseUrl)."
 }
 
-$resolvedOutputDirectory = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
-    [System.IO.Path]::GetFullPath($OutputDirectory)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $OutputDirectory))
-}
+$resolvedOutputDirectory = Resolve-MerHousePath -Path $OutputDirectory -ProjectRoot $projectRoot
 New-Item -ItemType Directory -Force -Path $resolvedOutputDirectory | Out-Null
 
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -658,11 +639,7 @@ function Set-OrClearEnvVar {
     }
 }
 
-$envPath = if ([System.IO.Path]::IsPathRooted($EnvFile)) {
-    [System.IO.Path]::GetFullPath($EnvFile)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $EnvFile))
-}
+$envPath = Resolve-MerHousePath -Path $EnvFile -ProjectRoot $projectRoot
 if (-not (Test-Path -LiteralPath $envPath)) {
     throw "Deployment EnvFile was not found: $envPath"
 }

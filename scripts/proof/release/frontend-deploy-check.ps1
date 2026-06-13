@@ -8,7 +8,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 $smokeScript = Join-Path $PSScriptRoot "..\..\quality\api-smoke.ps1"
 
 . (Join-Path $PSScriptRoot "..\lib\url-guard-lib.ps1")
@@ -16,11 +17,7 @@ $smokeScript = Join-Path $PSScriptRoot "..\..\quality\api-smoke.ps1"
 $normalizedBaseUrl = Assert-AbsoluteHttpUrl -Name "BaseUrl" -Value $BaseUrl
 $resolvedOutputPath = ""
 if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-    $resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
-        [System.IO.Path]::GetFullPath($OutputPath)
-    } else {
-        [System.IO.Path]::GetFullPath((Join-Path $projectRoot $OutputPath))
-    }
+    $resolvedOutputPath = Resolve-MerHousePath -Path $OutputPath -ProjectRoot $projectRoot
 }
 
 if (-not (Test-Path $smokeScript)) {

@@ -11,15 +11,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 
 function Resolve-ProjectPath {
     param([Parameter(Mandatory = $true)] [string]$Path)
 
-    if ([System.IO.Path]::IsPathRooted($Path)) {
-        return [System.IO.Path]::GetFullPath($Path)
-    }
-    return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
+    return Resolve-MerHousePath -Path $Path -ProjectRoot $projectRoot
 }
 
 . (Join-Path $PSScriptRoot "..\lib\url-guard-lib.ps1")

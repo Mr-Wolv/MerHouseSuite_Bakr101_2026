@@ -13,7 +13,8 @@ if ($Assemble) {
     $Sync = $true
 }
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$repoRoot = Get-MerHouseProjectRoot
 $frontendRoot = Join-Path $repoRoot "frontend"
 $androidRoot = Join-Path $frontendRoot "android"
 $manifestPath = Join-Path $androidRoot "app\src\main\AndroidManifest.xml"

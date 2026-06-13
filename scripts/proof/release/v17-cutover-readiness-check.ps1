@@ -4,12 +4,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
-$resolvedOutputDirectory = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
-    [System.IO.Path]::GetFullPath($OutputDirectory)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $OutputDirectory))
-}
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
+$resolvedOutputDirectory = Resolve-MerHousePath -Path $OutputDirectory -ProjectRoot $projectRoot
 New-Item -ItemType Directory -Force -Path $resolvedOutputDirectory | Out-Null
 
 $validManifestPath = Join-Path $resolvedOutputDirectory "v17-cutover-check-valid-deployment-evidence.json"

@@ -19,7 +19,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 
 function Assert-NonBlankPathParameter {
     param(
@@ -36,9 +37,9 @@ Assert-NonBlankPathParameter -Name "ApkPath" -Value $ApkPath
 Assert-NonBlankPathParameter -Name "OutputPath" -Value $OutputPath
 Assert-NonBlankPathParameter -Name "ScreenshotDirectory" -Value $ScreenshotDirectory
 
-$resolvedApkPath = if ([System.IO.Path]::IsPathRooted($ApkPath)) { [System.IO.Path]::GetFullPath($ApkPath) } else { [System.IO.Path]::GetFullPath((Join-Path $projectRoot $ApkPath)) }
-$resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) { [System.IO.Path]::GetFullPath($OutputPath) } else { [System.IO.Path]::GetFullPath((Join-Path $projectRoot $OutputPath)) }
-$resolvedScreenshotDirectory = if ([System.IO.Path]::IsPathRooted($ScreenshotDirectory)) { [System.IO.Path]::GetFullPath($ScreenshotDirectory) } else { [System.IO.Path]::GetFullPath((Join-Path $projectRoot $ScreenshotDirectory)) }
+$resolvedApkPath = Resolve-MerHousePath -Path $ApkPath -ProjectRoot $projectRoot
+$resolvedOutputPath = Resolve-MerHousePath -Path $OutputPath -ProjectRoot $projectRoot
+$resolvedScreenshotDirectory = Resolve-MerHousePath -Path $ScreenshotDirectory -ProjectRoot $projectRoot
 
 . (Join-Path $PSScriptRoot "..\lib\url-guard-lib.ps1")
 . (Join-Path $PSScriptRoot "..\lib\tour-report-lib.ps1")

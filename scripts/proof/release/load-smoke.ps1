@@ -8,7 +8,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 . (Join-Path $PSScriptRoot "..\lib\url-guard-lib.ps1")
 
 if ($ConcurrentUsers -lt 1) {
@@ -30,11 +31,7 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $OutputPath = ".\reports\load-smoke-$timestamp.json"
 }
-$resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
-    [System.IO.Path]::GetFullPath($OutputPath)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $OutputPath))
-}
+$resolvedOutputPath = Resolve-MerHousePath -Path $OutputPath -ProjectRoot $projectRoot
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $resolvedOutputPath) | Out-Null
 
 Write-Host "Running load smoke against $healthUrl"

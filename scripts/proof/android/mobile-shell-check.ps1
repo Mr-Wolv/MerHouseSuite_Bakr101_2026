@@ -4,12 +4,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-$resolvedFrontendRoot = if ([System.IO.Path]::IsPathRooted($FrontendRoot)) {
-    [System.IO.Path]::GetFullPath($FrontendRoot)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $FrontendRoot))
-}
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
+$resolvedFrontendRoot = Resolve-MerHousePath -Path $FrontendRoot -ProjectRoot $projectRoot
 
 $indexPath = Join-Path $resolvedFrontendRoot "index.html"
 $manifestPath = Join-Path $resolvedFrontendRoot "public\manifest.webmanifest"

@@ -9,8 +9,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+. (Join-Path $PSScriptRoot "..\lib\common.ps1")
 $apiRoot = $PSScriptRoot
-$projectRoot = Split-Path -Parent (Split-Path -Parent $apiRoot)
+$projectRoot = Get-MerHouseProjectRoot
 $reportsDir = Join-Path $projectRoot "reports"
 
 . (Join-Path $projectRoot "scripts\proof\lib\url-guard-lib.ps1")
@@ -59,6 +60,8 @@ Write-Host "Running MerHouse API smoke test against $normalizedBaseUrl"
 . (Join-Path $apiRoot "scenarios\14-auth-recovery-access.ps1") -Context $context
 . (Join-Path $apiRoot "scenarios\15-api-boundary-assurance.ps1") -Context $context
 . (Join-Path $apiRoot "scenarios\16-assistant-operations.ps1") -Context $context
+. (Join-Path $apiRoot "scenarios\17-login-rate-limit.ps1") -Context $context
+. (Join-Path $apiRoot "scenarios\18-health-endpoint.ps1") -Context $context
 
 $report = New-SmokeReport -Context $context
 $report | ConvertTo-Json -Depth 12 | Set-Content -Path $OutputPath -Encoding UTF8

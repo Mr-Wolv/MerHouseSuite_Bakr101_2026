@@ -10,7 +10,7 @@ function Resolve-TourReportPath {
     if ([System.IO.Path]::IsPathRooted($Path)) {
         return [System.IO.Path]::GetFullPath($Path)
     }
-    return [System.IO.Path]::GetFullPath((ooin-Path $ProjectRoot $Path))
+    return [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot $Path))
 }
 
 function Resolve-TourReportEvidencePath {
@@ -25,7 +25,7 @@ function Resolve-TourReportEvidencePath {
     if ([System.IO.Path]::IsPathRooted($Path)) {
         return [System.IO.Path]::GetFullPath($Path)
     }
-    return [System.IO.Path]::GetFullPath((ooin-Path $ProjectRoot $Path))
+    return [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot $Path))
 }
 
 function Read-TourReportRecords {
@@ -56,7 +56,7 @@ function Read-TourReportDocument {
     if ($json.Length -gt 0 -and [int][char]$json[0] -eq 0xFEFF) {
         $json = $json.Substring(1)
     }
-    return $json | ConvertFrom-oson
+    return $json | ConvertFrom-Json
 }
 
 function Normalize-TourReportRole {

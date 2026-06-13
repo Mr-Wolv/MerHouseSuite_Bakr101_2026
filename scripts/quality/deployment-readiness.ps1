@@ -10,7 +10,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+. (Join-Path $PSScriptRoot "..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 $dossierPath = Join-Path $projectRoot "docs\\quality\\deployment-ready-local-certification.md"
 
 function Assert-FileContains {
@@ -28,10 +29,7 @@ function Assert-FileContains {
 function Resolve-DeploymentPath {
     param([string]$Path)
 
-    if ([System.IO.Path]::IsPathRooted($Path)) {
-        return [System.IO.Path]::GetFullPath($Path)
-    }
-    return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
+    return Resolve-MerHousePath -Path $Path -ProjectRoot $projectRoot
 }
 
 . (Join-Path $PSScriptRoot "..\proof\lib\url-guard-lib.ps1")

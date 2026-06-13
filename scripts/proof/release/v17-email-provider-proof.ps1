@@ -16,7 +16,8 @@ if (-not $ConfirmProviderProof) {
     throw "Re-run with -ConfirmProviderProof only after staging or production email delivery was observed without storing tokens, credentials, or message bodies."
 }
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 . (Join-Path $PSScriptRoot "..\lib\url-guard-lib.ps1")
 
 function Assert-ProvenProviderStatus {
@@ -82,11 +83,7 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $OutputPath = ".\reports\v17-email-provider-proof-$timestamp.json"
 }
-$resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
-    [System.IO.Path]::GetFullPath($OutputPath)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $OutputPath))
-}
+$resolvedOutputPath = Resolve-MerHousePath -Path $OutputPath -ProjectRoot $projectRoot
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $resolvedOutputPath) | Out-Null
 
 $report = [ordered]@{

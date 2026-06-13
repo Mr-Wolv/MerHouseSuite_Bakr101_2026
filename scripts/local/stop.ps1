@@ -4,7 +4,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+. (Join-Path $PSScriptRoot "..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 
 Push-Location $projectRoot
 try {

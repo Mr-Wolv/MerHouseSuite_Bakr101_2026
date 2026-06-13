@@ -5,12 +5,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
-$manifestPath = if ([System.IO.Path]::IsPathRooted($DeploymentEvidenceManifestPath)) {
-    [System.IO.Path]::GetFullPath($DeploymentEvidenceManifestPath)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $DeploymentEvidenceManifestPath))
-}
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
+$manifestPath = Resolve-MerHousePath -Path $DeploymentEvidenceManifestPath -ProjectRoot $projectRoot
 if (-not (Test-Path -LiteralPath $manifestPath)) {
     throw "Deployment evidence manifest was not found: $manifestPath"
 }
@@ -46,10 +43,7 @@ function Resolve-ProofPath {
     if ([string]::IsNullOrWhiteSpace($Path)) {
         return ""
     }
-    if ([System.IO.Path]::IsPathRooted($Path)) {
-        return [System.IO.Path]::GetFullPath($Path)
-    }
-    return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
+    return Resolve-MerHousePath -Path $Path -ProjectRoot $projectRoot
 }
 
 function Test-ProofTimestamp {
@@ -665,11 +659,7 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $OutputPath = ".\reports\v17-cutover-readiness-$timestamp.json"
 }
-$resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
-    [System.IO.Path]::GetFullPath($OutputPath)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $projectRoot $OutputPath))
-}
+$resolvedOutputPath = Resolve-MerHousePath -Path $OutputPath -ProjectRoot $projectRoot
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $resolvedOutputPath) | Out-Null
 
 $report = [ordered]@{

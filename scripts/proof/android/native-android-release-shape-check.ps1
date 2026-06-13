@@ -2,7 +2,8 @@ param()
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 $androidRoot = Join-Path $projectRoot "frontend\android"
 $buildGradlePath = Join-Path $androidRoot "app\build.gradle"
 $rootBuildGradlePath = Join-Path $androidRoot "build.gradle"

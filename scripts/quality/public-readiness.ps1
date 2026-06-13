@@ -4,7 +4,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+. (Join-Path $PSScriptRoot "..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 
 function Invoke-Checked {
     param(
@@ -185,29 +186,53 @@ try {
         '\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b',
         '\b[0-9]{3}-[0-9]{2}-[0-9]{4}\b'
     )
+    $excludedDirSegments = @(
+        '.git', 'node_modules', 'target', 'dist',
+        'test-results', 'playwright-report',
+        'reports', '.secrets'
+    )
+    $excludedDirPaths = @('private', 'deploy/private')
+    $excludedFileNames = @('package-lock.json')
+    $excludedExtensions = @(
+        '.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp',
+        '.jar', '.class', '.dll', '.exe', '.so',
+        '.zip', '.tar', '.gz', '.7z',
+        '.woff', '.woff2', '.ttf', '.eot',
+        '.keystore', '.jks', '.p12', '.pfx', '.pem', '.key'
+    )
+    $scanFiles = Get-ChildItem -Path $projectRoot -File -Recurse -Force |
+        Where-Object {
+            $relPath = $_.FullName.Substring($projectRoot.Length + 1)
+            $pathSegments = $relPath -split '[\\/]'
+            $hitExcluded = $false
+            foreach ($seg in $pathSegments) {
+                if ($excludedDirSegments -contains $seg) { $hitExcluded = $true; break }
+            }
+            if (-not $hitExcluded) {
+                $relPathForward = $relPath -replace '\\', '/'
+                foreach ($dp in $excludedDirPaths) {
+                    $dpForward = $dp -replace '\\', '/'
+                    if ($relPathForward.StartsWith("$dpForward/") -or $relPathForward -eq $dpForward) {
+                        $hitExcluded = $true; break
+                    }
+                }
+            }
+            -not $hitExcluded -and
+                $excludedFileNames -notcontains $_.Name -and
+                $excludedExtensions -notcontains $_.Extension.ToLower()
+        }
     $matches = @()
     foreach ($pattern in $patterns) {
-        $result = rg -n --pcre2 `
-            --glob '!/.git/**' `
-            --glob '!node_modules/**' `
-            --glob '!frontend/node_modules/**' `
-            --glob '!frontend/dist/**' `
-            --glob '!frontend/test-results/**' `
-            --glob '!frontend/playwright-report/**' `
-            --glob '!backend/target/**' `
-            --glob '!reports/**' `
-            --glob '!private/**' `
-            --glob '!.secrets/**' `
-            --glob '!deploy/private/**' `
-            --glob '!package-lock.json' `
-            --glob '!frontend/package-lock.json' `
-            -- $pattern . 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            $matches += $result
-        } elseif ($LASTEXITCODE -eq 1) {
-            $global:LASTEXITCODE = 0
-        } else {
-            throw "Sensitive-pattern scan failed while checking pattern: $pattern"
+        try {
+            $hits = $scanFiles | Select-String -Pattern $pattern -ErrorAction SilentlyContinue
+            if ($hits) {
+                foreach ($hit in $hits) {
+                    $relPath = $hit.Path.Substring($projectRoot.Length + 1) -replace '\\', '/'
+                    $matches += "$relPath`:$($hit.LineNumber):$($hit.Line.Trim())"
+                }
+            }
+        } catch {
+            throw "Sensitive-pattern scan failed while checking pattern: $pattern -- $($_.Exception.Message)"
         }
     }
     if ($matches.Count -gt 0) {

@@ -15,7 +15,8 @@ if ($OlderThanDays -lt 0) {
     throw "-OlderThanDays must be 0 or greater."
 }
 
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+. (Join-Path $PSScriptRoot "..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 $reportsDir = Join-Path $projectRoot "reports"
 
 if (-not (Test-Path -LiteralPath $reportsDir)) {

@@ -6,6 +6,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
 . (Join-Path $PSScriptRoot "..\lib\url-guard-lib.ps1")
 
 function Use-AndroidSdk {
@@ -90,7 +91,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Native sync failed before release assembly."
 }
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+$repoRoot = Get-MerHouseProjectRoot
 $androidRoot = Join-Path $repoRoot "frontend\android"
 Push-Location $androidRoot
 try {
@@ -123,16 +124,12 @@ if (-not (Test-Path $artifact)) {
 $hash = (Get-FileHash $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
 $bytes = (Get-Item $artifact).Length
 $artifactKind = if ($Bundle) { "aab" } else { "apk" }
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+$repoRoot = Get-MerHouseProjectRoot
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $OutputPath = ".\reports\v17-android-release-$timestamp.json"
 }
-$resolvedOutputPath = if ([System.IO.Path]::IsPathRooted($OutputPath)) {
-    [System.IO.Path]::GetFullPath($OutputPath)
-} else {
-    [System.IO.Path]::GetFullPath((Join-Path $repoRoot $OutputPath))
-}
+$resolvedOutputPath = Resolve-MerHousePath -Path $OutputPath -ProjectRoot $repoRoot
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $resolvedOutputPath) | Out-Null
 
 $commitSha = ""

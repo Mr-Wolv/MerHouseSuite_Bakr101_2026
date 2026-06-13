@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+. (Join-Path $PSScriptRoot "..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 $spaceReadmePath = Join-Path $projectRoot "deploy\managed\huggingface-backend\space-readme-template.md"
 $spaceDockerfilePath = Join-Path $projectRoot "deploy\managed\huggingface-backend\Dockerfile"
 $backendEnvPath = Join-Path $projectRoot "deploy\managed\huggingface-backend\env.backend.example"

@@ -12,16 +12,14 @@ if (-not $ConfirmVisualReview) {
     throw "Re-run with -ConfirmVisualReview only after the signed release APK screenshot was visually reviewed on the real emulator/device."
 }
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+. (Join-Path $PSScriptRoot "..\..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 . (Join-Path $PSScriptRoot "..\lib\tour-report-lib.ps1")
 
 function Resolve-ProjectPath {
     param([Parameter(Mandatory = $true)] [string]$Path)
 
-    if ([System.IO.Path]::IsPathRooted($Path)) {
-        return [System.IO.Path]::GetFullPath($Path)
-    }
-    return [System.IO.Path]::GetFullPath((Join-Path $projectRoot $Path))
+    return Resolve-MerHousePath -Path $Path -ProjectRoot $projectRoot
 }
 
 $resolvedProofPath = Resolve-ProjectPath -Path $ReleaseLoginProofPath

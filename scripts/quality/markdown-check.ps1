@@ -2,7 +2,8 @@ param()
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+. (Join-Path $PSScriptRoot "..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 $excludedPathPattern = "[\\/](\.git|node_modules|target|dist|reports|playwright-report|test-results)[\\/]"
 $missingLinks = New-Object System.Collections.Generic.List[string]
 

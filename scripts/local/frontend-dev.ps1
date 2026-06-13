@@ -6,7 +6,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+. (Join-Path $PSScriptRoot "..\lib\common.ps1")
+$projectRoot = Get-MerHouseProjectRoot
 $frontendRoot = Join-Path $projectRoot "frontend"
 $packageJson = Join-Path $frontendRoot "package.json"
 $nodeModules = Join-Path $frontendRoot "node_modules"
