@@ -18,6 +18,7 @@ import com.merhouse.dto.UserResponse;
 import com.merhouse.entity.UserRole;
 import com.merhouse.repository.AppUserRepository;
 import com.merhouse.security.JwtService;
+import com.merhouse.security.LoginRateLimitExceededException;
 import com.merhouse.security.UserPrincipal;
 import com.merhouse.service.AdminAuditService;
 import com.merhouse.service.AppUserDetailsService;
@@ -160,5 +161,26 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(new SelfPasswordChangeRequest("current-password", "new-password"))))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.details[0]").value("Authentication required."));
+    }
+
+    @Test
+    void loginReturns429WhenRateLimited() throws Exception {
+        when(authService.login(new LoginRequest("blocked@merhouse.local", "password")))
+            .thenThrow(new LoginRateLimitExceededException(600));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType("application/json")
+                .content("""
+                    {
+                      "email": "blocked@merhouse.local",
+                      "password": "password"
+                    }
+                    """))
+            .andExpect(status().isTooManyRequests())
+            .andExpect(jsonPath("$.error").value("Too Many Requests"))
+            .andExpect(result -> {
+                String retryAfter = result.getResponse().getHeader("Retry-After");
+                assert retryAfter != null && Long.parseLong(retryAfter) > 0;
+            });
     }
 }

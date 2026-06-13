@@ -3,6 +3,7 @@ package com.merhouse.web;
 import com.merhouse.dto.ErrorResponse;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.exception.ResourceNotFoundException;
+import com.merhouse.security.LoginRateLimitExceededException;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -54,6 +55,14 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> accessDenied(AccessDeniedException exception) {
         return error(HttpStatus.FORBIDDEN, exception.getMessage());
+    }
+
+    @ExceptionHandler(LoginRateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> loginRateLimited(LoginRateLimitExceededException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .header("Retry-After", String.valueOf(exception.getRetryAfterSeconds()))
+            .body(new ErrorResponse(Instant.now(), HttpStatus.TOO_MANY_REQUESTS.value(),
+                "Too Many Requests", List.of(exception.getMessage())));
     }
 
     private ResponseEntity<ErrorResponse> error(HttpStatus status, String detail) {

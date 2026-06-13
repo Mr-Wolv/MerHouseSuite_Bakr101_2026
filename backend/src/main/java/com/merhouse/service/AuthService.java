@@ -6,6 +6,8 @@ import com.merhouse.dto.UserResponse;
 import com.merhouse.entity.AppUser;
 import com.merhouse.repository.AppUserRepository;
 import com.merhouse.security.JwtService;
+import com.merhouse.security.LoginRateLimiter;
+import com.merhouse.security.LoginRateLimitExceededException;
 import com.merhouse.security.UserPrincipal;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,24 +19,37 @@ public class AuthService {
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final LoginRateLimiter loginRateLimiter;
 
-    public AuthService(AppUserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(AppUserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, LoginRateLimiter loginRateLimiter) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.loginRateLimiter = loginRateLimiter;
     }
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        AppUser user = userRepository.findByEmailIgnoreCase(request.email().trim())
-            .orElseThrow(() -> new BadCredentialsException("Invalid email or password."));
+        String email = request.email().trim();
+        if (loginRateLimiter.isBlocked(email)) {
+            throw new LoginRateLimitExceededException(loginRateLimiter.retryAfterSeconds(email));
+        }
+
+        AppUser user = userRepository.findByEmailIgnoreCase(email)
+            .orElseThrow(() -> {
+                loginRateLimiter.recordFailure(email);
+                return new BadCredentialsException("Invalid email or password.");
+            });
         if (!user.isEnabled()) {
+            loginRateLimiter.recordFailure(email);
             throw new BadCredentialsException("Invalid email or password.");
         }
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            loginRateLimiter.recordFailure(email);
             throw new BadCredentialsException("Invalid email or password.");
         }
 
+        loginRateLimiter.recordSuccess(email);
         UserPrincipal principal = new UserPrincipal(user);
         return new AuthResponse(
             jwtService.createToken(principal),

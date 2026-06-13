@@ -180,7 +180,7 @@ The existing `/api/v1/health` endpoint is already referenced in deployment docs.
 | Refactor risk | **Low** | Additive; can be disabled by configuration |
 | Evidence the problem exists | **High** | The other public endpoints (recovery, access requests) already have throttling. Login is the only public endpoint without it. This is a concrete gap. |
 
-**Disposition: Must do before V17**
+**Disposition: Must do before V17** ~~✓ COMPLETED~~
 
 **Revised scope:** Simple in-memory rate limiter: 5 failed attempts per email per 15 minutes. Returns 429 with `Retry-After` header. No Redis needed for a single-instance Hugging Face Space.
 
@@ -1085,3 +1085,24 @@ Do the 7 "Must do" tasks. Deploy V17. Then let production evidence — not theor
 - `/api/v1/health` remains the public backward-compatible endpoint referenced by deployment docs and scripts.
 
 **Test proof:** 204 tests pass, 0 failures, 0 errors (excluding Testcontainers integration tests that require Docker).
+
+### T0-6: Login Rate Limiting — COMPLETED
+
+**Date:** 2026-06-13
+
+**Changes made:**
+
+1. **`backend/src/main/java/com/merhouse/security/LoginRateLimiter.java`** — New component: in-memory rate limiter tracking failed login attempts per normalized email. Blocks after 5 failures within 15 minutes. Uses `ConcurrentHashMap` with `AttemptTracker` records. Provides `isBlocked()`, `recordFailure()`, `recordSuccess()`, `retryAfterSeconds()`, and `cleanup()` methods.
+2. **`backend/src/main/java/com/merhouse/security/LoginRateLimitExceededException.java`** — New exception carrying `retryAfterSeconds`. Mapped to 429 with `Retry-After` header in the exception handler.
+3. **`backend/src/main/java/com/merhouse/service/AuthService.java`** — Integrated `LoginRateLimiter`: checks `isBlocked()` before authentication, records failures on bad credentials, records success on valid login.
+4. **`backend/src/main/java/com/merhouse/web/ApiExceptionHandler.java`** — Added `@ExceptionHandler(LoginRateLimitExceededException.class)` returning 429 with `Retry-After` header.
+5. **`backend/src/test/java/com/merhouse/security/LoginRateLimiterTest.java`** — 7 unit tests covering: initial state, blocking after max attempts, success resets counter, retry-after header value, independent email tracking, case-insensitive normalization, expired entry cleanup.
+6. **`backend/src/test/java/com/merhouse/service/AuthServiceTest.java`** — Updated to inject `LoginRateLimiter` mock, added test for blocked email returning 429.
+7. **`backend/src/test/java/com/merhouse/web/AuthControllerTest.java`** — Added test verifying 429 response with `Retry-After` header when rate-limited.
+
+**Decisions:**
+- Used in-memory `ConcurrentHashMap` instead of Redis because V17 runs as a single Hugging Face Space instance. Post-V17, if multi-instance deployment is needed, replace with Redis-backed rate limiting.
+- Rate limit applies per normalized email (lowercase, trimmed), not per IP. This prevents brute-force on specific accounts while allowing legitimate users on shared networks.
+- Default: 5 failed attempts per 15 minutes. Successful login resets the counter.
+
+**Test proof:** 213 tests pass, 0 failures, 0 errors.
