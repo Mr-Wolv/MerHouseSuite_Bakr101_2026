@@ -52,6 +52,7 @@ public class JwtService {
         payload.put("email", principal.getUsername());
         payload.put("tenantId", principal.tenantId().toString());
         payload.put("role", principal.role().name());
+        payload.put("enabled", principal.isEnabled());
         payload.put("iat", now.getEpochSecond());
         payload.put("exp", now.plusSeconds(expiresInSeconds).getEpochSecond());
 
@@ -76,12 +77,14 @@ public class JwtService {
             throw new IllegalArgumentException("Token has expired.");
         }
 
+        Object enabledClaim = payload.getOrDefault("enabled", Boolean.TRUE);
+        boolean enabled = Boolean.TRUE.equals(enabledClaim);
         return new UserPrincipal(
             UUID.fromString((String) payload.get("sub")),
             UUID.fromString((String) payload.get("tenantId")),
             (String) payload.get("email"),
             UserRole.valueOf((String) payload.get("role")),
-            true
+            enabled
         );
     }
 

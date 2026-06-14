@@ -139,7 +139,7 @@ const baseAccounts: Record<'owner' | 'supportAdmin' | 'auditor' | 'merchant' | '
   },
 }
 
-const publicPaths = ['/login', '/forgot-password', '/reset-password', '/request-access']
+const publicPaths = ['/login', '/forgot-password', '/verify-otp', '/reset-password', '/request-access', '/how-to-use']
 const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
   owner: [
     '/admin',
@@ -521,6 +521,10 @@ async function chooseSelectOptionByText(page: Page, formLabel: string, selectLab
   )
 }
 
+async function expectNotificationTitle(page: Page, title: string) {
+  await expect(page.locator('article').filter({ hasText: title }).first()).toBeVisible()
+}
+
 async function collectDetailPaths(
   browser: Browser,
   role: AuthenticatedRole,
@@ -723,9 +727,10 @@ test('public auth UI input tour accepts typed happy and unhappy paths', async ({
   await page.goto(`${APP_URL}/forgot-password`, { waitUntil: 'domcontentloaded' })
   await waitForAppSettled(page, 'forgot password input')
   await page.getByLabel('Email').fill(baseAccounts.owner.email)
-  await page.getByRole('button', { name: 'Request reset' }).click()
-  await expect(page.getByRole('status')).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
-  records.push({ route: '/forgot-password', action: 'typed owner email and received password-reset request status' })
+  await page.getByRole('button', { name: 'Send reset code' }).click()
+  await expect(page).toHaveURL(/\/verify-otp(\?|$)/)
+  await expect(page.getByLabel('One-time password')).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
+  records.push({ route: '/forgot-password', action: 'typed owner email and navigated to OTP verification' })
 
   await page.goto(`${APP_URL}/reset-password`, { waitUntil: 'domcontentloaded' })
   await waitForAppSettled(page, 'reset password input')
@@ -990,7 +995,9 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
     adminPage.locator('tr').filter({ hasText: `hierarchy-access.${hierarchy.suffix}@merhouse.local` }),
   ).first()
   await expect(requestRow).toBeVisible()
-  await requestRow.getByRole('button', { name: 'Approve' }).click()
+  const approveButton = requestRow.getByRole('button', { name: 'Approve & activate' })
+  await expect(approveButton).toBeVisible()
+  await approveButton.click()
   await expect(requestRow).toContainText('APPROVED')
   await adminPage.goto(`${APP_URL}/admin/tenants`, { waitUntil: 'networkidle' })
   await expect(adminPage.locator('h1').filter({ hasText: 'Tenants' })).toBeVisible()

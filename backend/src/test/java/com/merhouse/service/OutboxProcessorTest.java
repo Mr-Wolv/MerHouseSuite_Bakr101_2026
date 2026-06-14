@@ -19,10 +19,15 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.SimpleTransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 class OutboxProcessorTest {
     private final OutboxEventRepository outboxEventRepository = mock(OutboxEventRepository.class);
     private final OutboxAlertService outboxAlertService = mock(OutboxAlertService.class);
+    private final TransactionTemplate transactionTemplate = inlineTransactionTemplate();
 
     @Test
     void processBatchMarksHandledEventsProcessed() {
@@ -38,6 +43,7 @@ class OutboxProcessorTest {
             outboxEventRepository,
             outboxAlertService,
             List.of(handler),
+            transactionTemplate,
             3,
             true
         );
@@ -68,6 +74,7 @@ class OutboxProcessorTest {
             outboxEventRepository,
             outboxAlertService,
             List.of(handler),
+            transactionTemplate,
             3,
             true
         );
@@ -99,6 +106,7 @@ class OutboxProcessorTest {
             outboxEventRepository,
             outboxAlertService,
             List.of(handler),
+            transactionTemplate,
             3,
             true
         );
@@ -120,5 +128,19 @@ class OutboxProcessorTest {
         event.setPayload(Map.of("eventType", eventType));
         event.setNextAttemptAt(Instant.now());
         return event;
+    }
+
+    private static TransactionTemplate inlineTransactionTemplate() {
+        return new TransactionTemplate(mock(org.springframework.transaction.PlatformTransactionManager.class)) {
+            @Override
+            public <T> T execute(TransactionCallback<T> action) {
+                return action.doInTransaction(new SimpleTransactionStatus());
+            }
+
+            @Override
+            public void executeWithoutResult(java.util.function.Consumer<TransactionStatus> action) {
+                action.accept(new SimpleTransactionStatus());
+            }
+        };
     }
 }

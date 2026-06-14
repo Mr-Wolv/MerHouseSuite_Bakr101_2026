@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,14 +16,16 @@ public class LoginRateLimiter {
 
     private final int maxAttempts;
     private final long windowSeconds;
+    private final int maxEntries;
 
     public LoginRateLimiter() {
-        this(5, 15 * 60);
+        this(5, 15 * 60, 10_000);
     }
 
-    public LoginRateLimiter(int maxAttempts, long windowSeconds) {
+    public LoginRateLimiter(int maxAttempts, long windowSeconds, int maxEntries) {
         this.maxAttempts = maxAttempts;
         this.windowSeconds = windowSeconds;
+        this.maxEntries = maxEntries;
     }
 
     public boolean isBlocked(String email) {
@@ -47,6 +51,13 @@ public class LoginRateLimiter {
     }
 
     public void recordFailure(String email) {
+        if (attempts.size() >= maxEntries) {
+            cleanup();
+            if (attempts.size() >= maxEntries) {
+                log.warn("Login rate limiter: max entries ({}) reached, refusing new tracking entries.", maxEntries);
+                return;
+            }
+        }
         String key = normalize(email);
         attempts.compute(key, (k, existing) -> {
             if (existing == null || existing.isExpired(windowSeconds)) {
@@ -62,7 +73,17 @@ public class LoginRateLimiter {
     }
 
     public void cleanup() {
+        int before = attempts.size();
         attempts.entrySet().removeIf(entry -> entry.getValue().isExpired(windowSeconds));
+        int removed = before - attempts.size();
+        if (removed > 0) {
+            log.debug("Login rate limiter: cleaned up {} expired entries, {} remaining.", removed, attempts.size());
+        }
+    }
+
+    @Scheduled(fixedDelayString = "${merhouse.auth.rate-limiter.cleanup-interval-ms:300000}")
+    public void scheduledCleanup() {
+        cleanup();
     }
 
     private static String normalize(String email) {

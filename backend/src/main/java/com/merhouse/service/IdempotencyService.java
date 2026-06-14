@@ -11,6 +11,7 @@ import java.util.HexFormat;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -64,7 +65,19 @@ public class IdempotencyService {
         record.setRequestHash(requestHash);
         record.setResponseStatus(successStatus.value());
         record.setResponseBody(objectMapper.convertValue(response, MAP_TYPE));
-        repository.save(record);
+        try {
+            repository.save(record);
+        } catch (DataIntegrityViolationException concurrentInsert) {
+            // Another request with the same key completed between our check and save.
+            // Re-read the record and return its cached response instead of failing.
+            return repository.findByKey(key)
+                .map(saved -> {
+                    T cached = objectMapper.convertValue(saved.getResponseBody(), responseType);
+                    return ResponseEntity.status(saved.getResponseStatus()).body(cached);
+                })
+                .orElseThrow(() -> new DomainConflictException(
+                    "Idempotency key conflict could not be resolved."));
+        }
         return ResponseEntity.status(successStatus).body(response);
     }
 

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { APIRequestContext, Locator } from '@playwright/test'
+import type { APIRequestContext, Locator, Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 
 const API_URL = process.env.E2E_API_URL ?? 'http://localhost:8081'
@@ -52,6 +52,10 @@ async function clickUntilVisibleState(button: () => Locator, visibleState: () =>
     }
   }
   throw lastError
+}
+
+async function expectNotificationTitle(page: Page, title: string) {
+  await expect(page.locator('article').filter({ hasText: title }).first()).toBeVisible()
 }
 
 test.describe('admin console', () => {
@@ -149,9 +153,9 @@ test.describe('admin console', () => {
     await page.getByRole('link', { name: 'Forgot password?' }).click()
     await expect(page.getByRole('heading', { name: 'Password Recovery' })).toBeVisible()
     await page.getByLabel('Email').fill(merchantEmail)
-    await page.getByRole('button', { name: 'Request reset' }).click()
-    await expect(page.getByText(/reset link has been prepared/i)).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Open reset link' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Send reset code' }).click()
+    await expect(page).toHaveURL(/\/verify-otp(\?|$)/)
+    await expect(page.getByLabel('One-time password')).toBeVisible()
 
     await page.goto('/request-access')
     const accessOrganization = `<img src=x onerror=alert(1)> E2E Access ${suffix}`
@@ -344,10 +348,10 @@ test.describe('admin console', () => {
     await expect(page.getByRole('heading', { name: 'Merchant Overview' })).toBeVisible({ timeout: 20_000 })
     await page.goto('/notifications')
     await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByText('Allocation picking started')).toBeVisible()
-    await expect(page.getByText('Allocation packed')).toBeVisible()
-    await expect(page.getByText('Shipment handed off')).toBeVisible()
-    await expect(page.getByText('Shipment delivered')).toBeVisible()
+    await expectNotificationTitle(page, 'Allocation picking started')
+    await expectNotificationTitle(page, 'Allocation packed')
+    await expectNotificationTitle(page, 'Shipment handed off')
+    await expectNotificationTitle(page, 'Shipment delivered')
     await expect(page.locator('.data-chip', { hasText: 'Shipment' }).first()).toBeVisible()
   })
 
@@ -746,10 +750,10 @@ test.describe('admin console', () => {
     await expect(page.getByRole('cell', { name: 'Claim RECEIVING REVIEW' })).toBeVisible()
     await expect(page.getByText(`V11 Import ${suffix}`)).toBeVisible()
     await page.goto('/notifications')
-    await expect(page.getByText('Service agreement active')).toBeVisible()
-    await expect(page.getByText('Service dispute opened')).toBeVisible()
-    await expect(page.getByText('Service claim opened')).toBeVisible()
-    await expect(page.getByText('Service review requested')).toBeVisible()
+    await expectNotificationTitle(page, 'Service agreement active')
+    await expectNotificationTitle(page, 'Service dispute opened')
+    await expectNotificationTitle(page, 'Service claim opened')
+    await expectNotificationTitle(page, 'Service review requested')
     await expect(page.locator('.data-chip', { hasText: 'ServiceClaim' }).first()).toBeVisible()
     await page.getByRole('button', { name: 'Logout' }).click()
     await page.getByLabel('Email').fill(warehouseEmail)
@@ -757,8 +761,8 @@ test.describe('admin console', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible()
     await page.goto('/notifications')
-    await expect(page.getByText('Service agreement proposed')).toBeVisible()
-    await expect(page.getByText('Service dispute opened')).toBeVisible()
+    await expectNotificationTitle(page, 'Service agreement proposed')
+    await expectNotificationTitle(page, 'Service dispute opened')
     await expect(page.locator('.data-chip', { hasText: 'ServiceAgreement' }).first()).toBeVisible()
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBeTruthy()
     await page.screenshot({ path: `../reports/v11/service-accountability-${suffix}.png`, fullPage: true })
