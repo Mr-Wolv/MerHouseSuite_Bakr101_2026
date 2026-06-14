@@ -148,6 +148,25 @@ describe('auth recovery pages', () => {
     expect(apiMock.resetWithOtp).toHaveBeenCalledWith('user@example.test', '123456', 'new-password')
     expect(await screen.findByRole('status')).toHaveTextContent(/password has been reset/i)
   })
+
+  it('shows error when OTP is invalid or expired', async () => {
+    const user = userEvent.setup()
+    apiMock.resetWithOtp.mockRejectedValue(new ApiError(409, 'Conflict', ['OTP code is invalid or expired.']))
+
+    render(
+      <MemoryRouter initialEntries={['/verify-otp?email=user@example.test']}>
+        <Routes>
+          <Route path="/verify-otp" element={<VerifyOtpPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await user.type(screen.getByLabelText('One-time password'), '000000')
+    await user.type(screen.getByLabelText('New password'), 'new-password')
+    await user.click(screen.getByRole('button', { name: 'Reset password' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('OTP code is invalid or expired.')
+  })
 })
 
 describe('login secondary actions', () => {

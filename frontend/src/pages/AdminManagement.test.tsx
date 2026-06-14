@@ -561,6 +561,36 @@ describe('Admin access request management', () => {
     expect(within(row).getByText('Reviewed')).toBeInTheDocument()
   })
 
+  it('approves and activates a pending access request in one step', async () => {
+    const user = userEvent.setup()
+    apiMock.approveAndActivateAccessRequest.mockResolvedValue({
+      id: 'request-1',
+      organizationName: 'New Merchant',
+      requesterEmail: 'owner@new.test',
+      requestedRole: 'MERCHANT',
+      notes: 'Ready to onboard',
+      status: 'APPROVED',
+      reviewedByUserId: 'admin-id',
+      reviewNote: 'Activated',
+      reviewedAt: '2026-05-18T00:10:00Z',
+      convertedAt: '2026-05-18T00:10:00Z',
+      convertedTenantId: 'tenant-1',
+      convertedUserId: 'user-1',
+      createdAt: '2026-05-18T00:00:00Z',
+    })
+    renderWithAuth(<AdminAccessRequestsPage />)
+
+    const pendingRow = await screen.findByRole('row', { name: /owner@new\.test/i })
+    await user.type(screen.getByLabelText('Note applied to the next review action'), 'Activated')
+    await user.click(within(pendingRow).getByRole('button', { name: 'Approve & activate' }))
+
+    expect(apiMock.approveAndActivateAccessRequest).toHaveBeenCalledWith('admin-token', 'request-1', {
+      reviewNote: 'Activated',
+    })
+    expect(within(pendingRow).getByText('APPROVED')).toBeInTheDocument()
+    expect(within(pendingRow).getByText('Account created')).toHaveClass('data-chip')
+  })
+
   it('shows access requests to support admins as review and escalation work', async () => {
     renderWithAuth(<AdminAccessRequestsPage />, {
       ...authState,

@@ -42,4 +42,12 @@ describe('LoginPage', () => {
 
     expect(authMock.login).toHaveBeenCalledWith('merchant@example.test', ' typed-password ')
   })
+
+  it('shows public account help links in the footer', () => {
+    render(<LoginPage />, { wrapper: MemoryRouter })
+
+    expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute('href', '/forgot-password')
+    expect(screen.getByRole('link', { name: 'Request access' })).toHaveAttribute('href', '/request-access')
+    expect(screen.getByRole('link', { name: 'How to use' })).toHaveAttribute('href', '/how-to-use')
+  })
 })

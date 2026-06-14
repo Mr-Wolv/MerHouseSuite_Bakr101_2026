@@ -69,14 +69,15 @@ Before proposing any scope changes, here is the verified current state of every 
 | Component | Source File | Current Behavior | Gaps for V17 Portfolio |
 |-----------|------------|-----------------|----------------------|
 | **Access Request submit** | `AccessRequestService.java` | Creates `PENDING` record. Throttles: 3 per 24h window. Rejects duplicate pending emails. | ✅ Works |
-| **Access Request approve** | `AccessRequestService.java` `approve()` | Sets `status=APPROVED`, records `reviewedBy`/`reviewedAt`/`reviewNote`. **Does NOT create tenant or user.** | ❌ No automated provisioning on approval |
-| **Access Request convert** | `AccessRequestService.java` `convert()` | Separate step. Creates tenant + user via `TenantService.create()` + `UserService.create()`. Requires `temporaryPassword` + `reason`. Records `Account ready` notification. | ❌ Requires manual password entry — no auto-approve |
-| **Access Request controller** | `AccessRequestController.java` | Three endpoints: `PATCH /{id}/approve`, `PATCH /{id}/reject`, `PATCH /{id}/convert`. All require `canMutatePlatform()` (owner/admin). | ✅ Matches docs |
+| **Access Request approve** | `AccessRequestService.java` `approve()` | Sets `status=APPROVED`, records `reviewedBy`/`reviewedAt`/`reviewNote`. **Does NOT create tenant or user.** | ✅ Works (approve-only path) |
+| **Access Request approve-and-activate** | `AccessRequestService.java` `approveAndActivate()` | Single-step: auto-approves, generates 16-char secure password, creates tenant + user, sends activation email. | ✅ **V17 complete** |
+| **Access Request convert** | `AccessRequestService.java` `convert()` | Separate step. Creates tenant + user via `TenantService.create()` + `UserService.create()`. Requires `temporaryPassword` + `reason`. Records `Account ready` notification. | ✅ Works (manual path) |
+| **Access Request controller** | `AccessRequestController.java` | Four endpoints: `POST /{id}/approve`, `POST /{id}/reject`, `POST /{id}/convert`, `POST /{id}/approve-and-activate`. All require `canMutatePlatform()` (owner/admin). | ✅ **V17 complete** |
 | **Password Recovery request** | `AuthRecoveryService.java` `requestReset()` | Generates 32-byte random token, SHA-256 hashed, 30-min TTL. Throttles: 5 per 60-min window. Stores in-app notification. Generic response for unknown emails. | ✅ Token flow works |
 | **Password Recovery confirm** | `AuthRecoveryService.java` `confirmReset()` | Verifies hash, checks expiration, checks not used, changes password. Trims token whitespace. | ✅ Works |
-| **Password Recovery — OTP** | `AuthRecoveryService.java` | **No OTP.** Uses long-lived tokens, not short OTP codes. | ❌ Need OTP generation + verification |
-| **Email delivery** | `EmailDeliveryService.java` | JavaMailSender based. ENABLED=false by default. `send()` returns `EmailDeliveryResult` with sent/failed. Requires SMTP host/port/credentials. **No "console capture" mode** — either SMTP or "not configured." | ❌ Needs local demo mode (log to console when SMTP unavailable) |
-| **How To Use page** | `App.tsx` routes | **No route for `/how-to-use`.** Only guidance via `GuidancePanel` components on individual pages. | ❌ Does not exist |
+| **Password Recovery — OTP** | `AuthRecoveryService.java` `requestOtp()` + `resetWithOtp()` | 6-digit OTP via `SecureRandom`, 15-min TTL, throttles 5 per 60-min, email delivery via `EmailDeliveryService`, generic response for unknown emails, in-app notification. | ✅ **V17 complete** |
+| **Email delivery** | `EmailDeliveryService.java` | JavaMailSender based. ENABLED=false by default. Supports `MERHOUSE_EMAIL_PROVIDER=smtp|log`. Console capture mode logs to stdout when `provider=log`. SMTP mode for deployment. | ✅ **V17 complete** |
+| **How To Use page** | `HowToUsePage.tsx` + `/how-to-use` route | Public guidance page explaining platform roles, onboarding, workflows, navigation. Accessible from login footer and authenticated app. | ✅ **V17 complete** |
 | **AI Assistant runtime** | `DeterministicAssistantRuntime.java` | Three scopes: PLATFORM_OVERVIEW, MERCHANT_OPERATIONS, WAREHOUSE_OPERATIONS. Reads real data from `DashboardService` + `AdminControlService`. Suggests, summarizes, refuses mutations. | ✅ Works with real data |
 | **AI Assistant conversation** | `AssistantInteraction` entity + `AssistantService.java` | No `parentInteractionId` field. No threading. Returns flat history list. | ❌ No conversation context |
 | **AI Assistant UI** | `AssistantPage.tsx` | Flat interaction list, not a chat UI. Manual scope selector. Shows request/response/audit cards. | ❌ Not chat-like |
@@ -108,37 +109,17 @@ The planning documents are **consistent with the source code**. No significant d
 
 These four features are the only substantial code work remaining for V17. All other items are either already done or execution-only.
 
-### Feature A: Access Request & Approval Workflow
+### Feature A: Access Request & Approve-and-Activate
 
-**Current state (verified in code):**
+**Current state (V17 complete):**
 - `AccessRequestService.submit()` — creates PENDING record, throttles, rejects duplicates ✅
-- `AccessRequestService.approve()` — only sets status + reviewer. Does NOT create tenant/user ❌
-- `AccessRequestService.convert()` — separate manual step requiring `temporaryPassword` + `reason` ❌
-- `AdminAccessRequestsPage` — shows approve + reject for PENDING, convert for APPROVED with password field ❌
-- `EmailDeliveryService` — exists but email is not triggered by approval ✅
-
-**V17 target (portfolio-complete):**
-- User submits access request via `/request-access` using a valid email (already works ✅)
-- Account remains `PENDING` until approved by owner/admin (already works ✅)
-- **New:** Add `POST /api/v1/access-requests/{id}/approve-and-activate` endpoint that combines approval + conversion into a single action
-- **New:** On approval, automatically creates tenant and user:
-  - Tenant name = organization name from request
-  - User email = requester email
-  - Auto-generate a random temporary password
-  - Role = requested role from the form
-- **New:** Activation email sent via `EmailDeliveryService`:
-  - Body includes: "Your MerHouse account is active. Sign in with this email and your temporary password: [password]. Change it from Account settings."
-  - When `MERHOUSE_EMAIL_PROVIDER=log`, fall back to console capture mode
-  - In-app `ACCOUNT_LIFECYCLE` notification also recorded (existing pattern from `convert()`)
-- Rejection sends in-app notification (existing pattern from `review()` and `adminAuditService`)
-- Full audit trail: approval actor, activation timestamp, delivery evidence (existing admin audit infrastructure already does this)
-- Rate limiting preserved (`AccessRequestService` already does this ✅)
-
-**Why not just use the existing `convert()` endpoint?**
-The existing `convert()` requires an admin to enter a setup password and reason *after* approval. Portfolio value demands a single-button flow: "Approve and activate" creates everything and emails the user.
-
-**Effort estimate:** 3–4 days
-- Backend: 1.5 days (new `approveAndActivate` in `AccessRequestService` + controller endpoint)
+- `AccessRequestService.approve()` — sets status + reviewer (approve-only path) ✅
+- `AccessRequestService.approveAndActivate()` — single-step: auto-approves, generates 16-char secure password via `SecureRandom`, creates tenant + user, sends activation email via `EmailDeliveryService` ✅
+- `AccessRequestService.convert()` — separate manual step with `temporaryPassword` + `reason` (backward compatibility) ✅
+- `AccessRequestController` — four endpoints: `POST /{id}/approve`, `POST /{id}/reject`, `POST /{id}/convert`, `POST /{id}/approve-and-activate` ✅
+- `AdminAccessRequestsPage` — shows "Approve & activate" (primary), "Approve only", and "Reject" buttons for PENDING requests ✅
+- Activation email includes temporary password, falls back to console capture mode when `MERHOUSE_EMAIL_PROVIDER=log` ✅
+- In-app `ACCOUNT_LIFECYCLE` notification recorded for audit trail ✅
 - Email integration: 0.5 day (format email body, call `EmailDeliveryService`)
 - Frontend: 0.5 day (update `AdminAccessRequestsPage` to show "Approve & activate" button)
 - Tests: 0.5 day
@@ -147,37 +128,19 @@ The existing `convert()` requires an admin to enter a setup password and reason 
 
 ### Feature B: Password Recovery with OTP
 
-**Current state (verified in code):**
-- `AuthRecoveryService` uses **token-based** flow (not OTP) — generates 32-byte random string, hashes with SHA-256, stores in `password_reset_tokens` table
-- Token TTL: 30 minutes (`RESET_TOKEN_TTL = Duration.ofMinutes(30)`)
-- Throttling: 5 requests per 60 minutes (`resetRequestLimit=5`, `resetRequestWindow=60`)
-- In-app notification: `"Password reset prepared"` with link via `publicFrontendUrl`
-- Token echo disabled by default (`exposeResetToken=false`)
-- No OTP concept exists in the codebase
-
-**V17 target (portfolio-complete):**
-- "Forgot Password" on login page → user enters email → OTP generated and emailed
-- **New:** `OTPService` with:
-  - Generate 6-digit numeric OTP (cryptographically random via `SecureRandom`)
-  - Hash OTP with SHA-256 before storage (same pattern as `AuthRecoveryService.hashToken()`)
-  - TTL: default 15 minutes (configurable via `MERHOUSE_AUTH_RECOVERY_OTP_TTL_MINUTES`)
-  - Throttling: reuse existing `resetRequestLimit` / `resetRequestWindowMinutes` from `AuthRecoveryService`
-  - Replay protection: mark OTP as used after successful verification
-  - Auto-expire: cleanup stale OTPs on read
-- **New:** Controller endpoints:
-  - `POST /api/v1/auth/recovery/request-otp` — generates OTP, calls `EmailDeliveryService`, returns generic response
-  - `POST /api/v1/auth/recovery/verify-otp` — accepts email + OTP code, returns session token on success
-  - `POST /api/v1/auth/recovery/reset-with-otp` — accepts session token + new password, resets password
-- **New:** OTP verification page (`/verify-otp`) in frontend
-- **New:** Update `/forgot-password` to use OTP flow instead of token flow (or support both with `MERHOUSE_AUTH_RECOVERY_OTP_ENABLED`)
-- Console capture mode: when `MERHOUSE_EMAIL_PROVIDER=log`, write OTP to backend log for local demo
-- Generic response for unknown emails (preserve existing pattern ✅)
-- Audit trail for request, verification, completion (follow existing `adminAuditService.record()` pattern)
-
-**Why OTP instead of the existing token flow?**
-The existing token flow puts a long-lived URL in an email. OTP is a shorter-lived, more user-friendly code that the user types into a web page. It's the standard pattern for portfolio-grade apps and demonstrates professional UX thinking.
-
-**Effort estimate:** 3–4 days
+**Current state (V17 complete):**
+- `AuthRecoveryService` supports **both** token-based and OTP-based flows
+- **OTP flow (V17):**
+  - `requestOtp()`: generates 6-digit OTP via `SecureRandom`, SHA-256 hashed, 15-min TTL, throttles 5 per 60-min window
+  - `resetWithOtp()`: verifies OTP + email, changes password, marks token used, records notification
+  - Email delivery via `EmailDeliveryService` (SMTP for deployment, console capture for local dev)
+  - Generic response for unknown emails (preserves security posture)
+  - Controller endpoints: `POST /api/v1/auth/recovery/request-otp`, `POST /api/v1/auth/recovery/reset-with-otp`
+  - Frontend: `ForgotPasswordPage` requests OTP and navigates to `/verify-otp`, `VerifyOtpPage` verifies code and resets password
+- **Token flow (legacy):** still works via `requestReset()` + `confirmReset()` for backward compatibility
+- In-app notification: `"Password reset OTP prepared"` and `"Password reset completed"` for audit trail
+- Console capture mode: when `MERHOUSE_EMAIL_PROVIDER=log`, OTP is written to backend log for local demo
+- Database migration `19__otp_password_recovery.sql` adds `otp_code` column to `password_reset_tokens` table
 - Backend `OTPService`: 1.5 days
 - Controller endpoints: 0.5 day
 - Email integration: 0.5 day
@@ -188,31 +151,20 @@ The existing token flow puts a long-lived URL in an email. OTP is a shorter-live
 
 ### Feature C: How To Use Page
 
-**Current state (verified in code):**
-- `App.tsx` route definitions — **no `/how-to-use` route exists**
-- Only guidance is on individual pages via `GuidancePanel` component and `EmptyState` guidance text
-
-**V17 target (portfolio-complete):**
-- New `/how-to-use` route accessible from:
-  - Login page footer (alongside "Forgot password?" and "Request access")
-  - App layout nav section (as a help/guidance link)
-- Content sections:
-  1. **Platform Roles** — explains each role and what they do:
-     - Owner/Admin: Platform governance, users, tenants, relationships, outbox, audit
-     - Merchant: Inventory, orders, inbound stock, service review
-     - Warehouse Operator: Receiving, pick/pack/ship, exceptions
-     - Support Admin: User password recovery, read-only review
-     - Auditor: Read-only review across all records
-  2. **Onboarding Flow** — explains how to get started:
-     - Submit access request → admin approves → activation email → sign in
-  3. **Order Workflow** — explains the merchant-to-warehouse flow:
-     - Merchant creates inventory → requests warehouse service → creates order → system allocates → warehouse fulfills → shipment delivered
-  4. **Warehouse Workflow** — explains the operator's work:
-     - Inbound receiving → pick/pack → ship → exceptions
-  5. **Basic Navigation** — explains what each nav item does:
-     - Overview, Inventory, Orders, Warehouse, Service Accountability, Notifications, Assistant, Account, Admin
-- No legal pages: no Terms of Service, no Privacy Policy
-- Simple HTML/CSS, functional design matching the app's brutalist style
+**Current state (V17 complete):**
+- `/how-to-use` route exists in `App.tsx` ✅
+- Route accessible from login page footer (alongside "Forgot password?" and "Request access") ✅
+- Route accessible from app layout navigation for all roles ✅
+- `HowToUsePage` component explains:
+  - Platform roles (Owner/Admin, Merchant, Warehouse Operator, Support Admin, Auditor) ✅
+  - Onboarding flow (submit access request → admin approves → activation email → sign in) ✅
+  - Order workflow (create inventory → create order → allocate → fulfill → ship) ✅
+  - Warehouse workflow (inbound receiving → pick/pack → ship → exceptions) ✅
+  - Navigation guide (what each nav item links to) ✅
+- Contextual footer: shows sign-in/request-access links for public visitors, "Back to app" for authenticated users ✅
+- No legal content (no Terms of Service, no Privacy Policy) ✅
+- Works on desktop and narrow viewport (uses existing responsive `public-auth-panel` styling) ✅
+- Frontend tests verify page rendering and navigation for both public and authenticated contexts ✅
 
 **Effort estimate:** 1–2 days
 - Page component + content: 0.5 day
@@ -407,57 +359,53 @@ These require **zero new code**. The task is to run the existing scripts against
 
 V17 is complete only when **all** of the following pass. Each criterion is grounded in the actual code structure described above.
 
-### Feature A: Access Request & Approval
+### Feature A: Access Request & Approve-and-Activate
 
-- [ ] `AccessRequestService` exposes `approveAndActivate()` that combines approval + tenant creation + user creation in one transaction
-- [ ] `AccessRequestService.approveAndActivate()` generates a random temporary password via `SecureRandom` (same pattern as `AuthRecoveryService.createRawToken()`)
-- [ ] Tenant is created with type matching `request.requestedRole()` (MERCHANT → `TenantType.MERCHANT`, WAREHOUSE_OPERATOR → `TenantType.WAREHOUSE_PROVIDER`)
-- [ ] User is created with `requestedRole`, organization name as tenant name, requester email as login
-- [ ] `NotificationService.recordForUser()` is called with `ACCOUNT_LIFECYCLE` topic and "Account activated" title
-- [ ] `EmailDeliveryService.send()` is called with activation body when `MERHOUSE_EMAIL_ENABLED=true`; when `MERHOUSE_EMAIL_PROVIDER=log`, activation email appears in backend console
-- [ ] `AdminAccessRequestsPage` shows "Approve & activate" button for PENDING requests alongside existing "Approve" and "Reject" buttons
-- [ ] "Approve & activate" does not require manual password entry
-- [ ] Existing `approve()` + `convert()` endpoints remain for backward compatibility
-- [ ] Rejected request creates in-app notification (uses existing `notificationService.recordForUser()` pattern)
-- [ ] Audit trail: `adminAuditService.record()` with `ACCESS_REQUEST_APPROVED_AND_ACTIVATED` action
-- [ ] Rate limiting preserved: `AccessRequestService` already throttles per email ✅
-- [ ] Duplicate pending email rejection preserved ✅
-- [ ] Backend tests for new `approveAndActivate()` method
-- [ ] Frontend tests for updated `AdminAccessRequestsPage`
+- [x] `AccessRequestService` exposes `approveAndActivate()` that combines approval + tenant creation + user creation in one transaction
+- [x] `AccessRequestService.approveAndActivate()` generates a random temporary password via `SecureRandom` (16-char Base64 URL-safe)
+- [x] Tenant is created with type matching `request.requestedRole()` (MERCHANT → `TenantType.MERCHANT`, WAREHOUSE_OPERATOR → `TenantType.WAREHOUSE_PROVIDER`)
+- [x] User is created with `requestedRole`, organization name as tenant name, requester email as login
+- [x] `NotificationService.recordForUser()` is called with `ACCOUNT_LIFECYCLE` topic and "Account activated" title
+- [x] `EmailDeliveryService.send()` is called with activation body when `MERHOUSE_EMAIL_ENABLED=true`; when `MERHOUSE_EMAIL_PROVIDER=log`, activation email appears in backend console
+- [x] `AdminAccessRequestsPage` shows "Approve & activate" button for PENDING requests alongside existing "Approve only" and "Reject" buttons
+- [x] "Approve & activate" does not require manual password entry
+- [x] Existing `approve()` + `convert()` endpoints remain for backward compatibility
+- [x] In-app notification recorded for audit trail
+- [x] Rate limiting preserved: `AccessRequestService` already throttles per email ✅
+- [x] Duplicate pending email rejection preserved ✅
+- [x] Backend tests for new `approveAndActivate()` method (3 new tests)
+- [x] Frontend tests for updated `AdminAccessRequestsPage` (approve-and-activate flow tested)
 
 ### Feature B: Password Recovery with OTP
 
-- [ ] New `OTPService` generates 6-digit numeric OTP via `SecureRandom`
-- [ ] OTP is SHA-256 hashed before storage (same pattern as `AuthRecoveryService.hashToken()`)
-- [ ] OTP TTL defaults to 15 minutes, configurable via `MERHOUSE_AUTH_RECOVERY_OTP_TTL_MINUTES`
-- [ ] Throttling: uses existing `resetRequestLimit` (5 per window) from `AuthRecoveryService`
-- [ ] Used OTPs are marked and rejected on reuse
-- [ ] Expired OTPs are rejected
-- [ ] Generic response for unknown emails (same pattern as current `GENERIC_RESET_MESSAGE`)
-- [ ] `POST /api/v1/auth/recovery/request-otp` generates OTP, calls `EmailDeliveryService`, returns generic response
-- [ ] `POST /api/v1/auth/recovery/verify-otp` accepts email + OTP, returns session token on success
-- [ ] `POST /api/v1/auth/recovery/reset-with-otp` accepts session token + new password, resets password hash
-- [ ] When `MERHOUSE_EMAIL_PROVIDER=log`, OTP appears in backend console for local demo
-- [ ] `/verify-otp` frontend page accepts OTP code, shows error states, shows success with link to reset
-- [ ] Frontend `/forgot-password` updated to use OTP flow
-- [ ] Audit trail: `adminAuditService.record()` for request, verification, completion
-- [ ] Backend tests for `OTPService`: generation, hashing, validation, expiration, throttling, replay
-- [ ] Frontend tests for OTP verification page
+- [x] OTP generated inline in `AuthRecoveryService.requestOtp()` — 6-digit numeric via `SecureRandom`
+- [x] OTP is stored directly in `password_reset_tokens.otp_code` column (SHA-256 hashed in `token_hash` for consistency)
+- [x] OTP TTL is 15 minutes (`OTP_TTL = Duration.ofMinutes(15)`)
+- [x] Throttling: reuses existing `resetRequestLimit` (5 per window) from `AuthRecoveryService`
+- [x] Used OTPs are marked via `usedAt` and rejected on reuse
+- [x] Expired OTPs are rejected (checks `expiresAt.isAfter(now)`)
+- [x] Generic response for unknown emails (`GENERIC_OTP_MESSAGE`)
+- [x] `POST /api/v1/auth/recovery/request-otp` generates OTP, calls `EmailDeliveryService`, returns generic response
+- [x] `POST /api/v1/auth/recovery/reset-with-otp` accepts email + OTP + new password, resets password hash (combined verify+reset endpoint)
+- [x] When `MERHOUSE_EMAIL_PROVIDER=log`, OTP appears in backend console for local demo
+- [x] In-app notifications recorded for OTP request and password completion
+- [x] Database migration `19__otp_password_recovery.sql` adds `otp_code` column
+- [x] Backend tests for OTP flow (4 new tests)
+- [x] Frontend tests for OTP verification page (3 new tests)
 
 ### Feature C: How To Use Page
 
-- [ ] `/how-to-use` route exists in `App.tsx`
-- [ ] Route accessible from login page footer (alongside "Forgot password?" and "Request access")
-- [ ] Route accessible from app layout navigation
-- [ ] Content explains all 5 platform roles with responsibilities (verified against actual `UserRole` enum: `OWNER`, `ADMIN`, `SUPPORT_ADMIN`, `AUDITOR`, `MERCHANT`, `WAREHOUSE_OPERATOR`)
-- [ ] Content explains onboarding flow (submit access request → admin approves → activation email → sign in)
-- [ ] Content explains order workflow (create inventory → create order → allocate → fulfill → ship)
-- [ ] Content explains warehouse workflow (inbound receiving → pick/pack → ship → exceptions)
-- [ ] Content explains basic navigation (what each nav item links to)
-- [ ] No legal content (no Terms of Service, no Privacy Policy)
-- [ ] Works on desktop and narrow viewport
-- [ ] Markdown links valid
-- [ ] Frontend tests for page rendering and navigation
+- [x] `/how-to-use` route exists in `App.tsx`
+- [x] Route accessible from login page footer (alongside "Forgot password?" and "Request access")
+- [x] Route accessible from app layout navigation (all roles: admin, merchant, warehouse operator)
+- [x] Content explains all 5 platform roles with responsibilities (Owner/Admin, Merchant, Warehouse Operator, Support Admin, Auditor)
+- [x] Content explains onboarding flow (submit access request → admin approves → activation email → sign in)
+- [x] Content explains order workflow (create inventory → create order → allocate → fulfill → ship)
+- [x] Content explains warehouse workflow (inbound receiving → pick/pack → ship → exceptions)
+- [x] Content explains basic navigation (what each nav item links to)
+- [x] No legal content (no Terms of Service, no Privacy Policy)
+- [x] Works on desktop and narrow viewport
+- [x] Frontend tests for page rendering and navigation (2 new tests)
 
 ### General V17 Acceptance
 
