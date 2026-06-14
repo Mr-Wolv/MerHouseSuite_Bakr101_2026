@@ -2,7 +2,7 @@
 
 This roadmap is the project planning and quality source of truth. It should stay short enough for a new maintainer to read before changing code, docs, scripts, CI, database migrations, or repository shape.
 
-> **V17 Scope Update:** [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) is an additional source of truth for V17 work. It reclassifies the original deployment-focused V17 scope into a **portfolio-completion release** with deployment infrastructure confirmed as complete (Tier 1) and remaining work focused on three portfolio features (Tier 2: Access Request & Approve-and-Activate, OTP Password Recovery, How To Use Page). AI Assistant Completion is deferred to Vinfinite. When the roadmap and re-evaluation disagree, the re-evaluation takes precedence for V17-specific scope decisions, while the roadmap retains authority over QC rules, repository rules, and the Change Quality Rule.
+> **V17 Scope Update:** [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) is an additional source of truth for V17 work. It records that deployment infrastructure is confirmed complete (Tier 1), the three V17 portfolio features are implemented in the current codebase (Access Request & Approve-and-Activate, OTP Password Recovery, How To Use Page), and the remaining V17 work is closure convergence plus execution of the deployed proof harness. AI Assistant Completion is deferred to Vinfinite. When the roadmap and re-evaluation disagree, the re-evaluation takes precedence for V17-specific scope decisions, while the roadmap retains authority over QC rules, repository rules, and the Change Quality Rule.
 >
 
 ## Current Status
@@ -86,18 +86,24 @@ Acceptance bar:
 
 ### V17: Portfolio Completion (Deployment Confirmed Live)
 
-> **Status update:** As of 2026-06-13, deployment is **confirmed live** on Neon PostgreSQL, Hugging Face Docker Space backend, Vercel frontend, GitHub Actions CI/CD, and GitHub Release APK distribution. The original deployment infrastructure work is complete (Tier 1). V17 now means **completing the three portfolio features** that demonstrate a full identity lifecycle and user guidance. See [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) for the detailed scope, acceptance criteria, and task ordering.
+> **Status update:** As of 2026-06-14, deployment is **confirmed live** on Neon PostgreSQL, Hugging Face Docker Space backend, Vercel frontend, GitHub Actions CI/CD, and GitHub Release APK distribution. The original deployment infrastructure work is complete (Tier 1), and the three portfolio features are implemented in the current codebase. V17 now means closing the remaining convergence work: proof execution, documentation and diagram alignment, script-inventory validation, and deployed evidence packaging. See [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) and [`Closure_Plan.md`](../refactor/Closure_Plan.md) for the active closure scope.
 >
-> The re-evaluation classifies remaining work into three tiers: Tier 1 (deployment infrastructure — already done), Tier 2 (portfolio features — code work), Tier 3 (execution-only — run existing scripts against the live stack).
+> The re-evaluation classifies the remaining V17 closure work into completed implementation, deferred Vinfinite scope, and execution/documentation closure work against the live stack.
 
-V17 first-release rule: finish the portfolio features before expanding product scope. The target is a demonstrable portfolio release that handles the full identity lifecycle (request → approve → activate → login → recover) and provides user guidance.
+V17 first-release rule: keep product scope frozen now that the portfolio features are implemented. The target is a demonstrable portfolio release that already handles the full identity lifecycle (request → approve → activate → login → recover) and provides user guidance; the remaining work is proving and documenting that reality cleanly.
 
-Planned scope (Tier 2 — portfolio features):
+Implemented V17 portfolio scope:
 
 - Feature A: Access Request & Approval Workflow with auto-activation and email delivery
 - Feature B: Password Recovery with OTP (6-digit code, 15-minute TTL, replay protection)
 - Feature C: How To Use Page (roles, onboarding, order workflow, warehouse workflow, navigation)
 - Email console capture mode (`MERHOUSE_EMAIL_PROVIDER=log`) for local demo without SMTP
+
+Remaining V17 closure work:
+
+- closure-critical browser and API proof updated for OTP recovery, `/how-to-use`, and approve-and-activate
+- docs, diagrams, and script inventory aligned with the implemented OTP, access-request, assistant, and deployment behavior
+- deployed evidence package completed for monitoring, browser proof, load smoke, backup/restore, rollback, Android release, provider proof, and live walkthrough proof
 
 Deferred to Vinfinite (Tier 4):
 
@@ -115,7 +121,7 @@ Deployment infrastructure (Tier 1 — already complete, not new work):
 - public operational runbooks
 - final production validation scripts
 
-V17 refactoring rule: do not refactor code, scripts, docs, CI, deployment configuration, or repository shape during portfolio feature completion unless a concrete problem requires it. Valid reasons include a failing proof, feature implementation blocker, security/runtime boundary issue, performance bottleneck, real duplication or coupling that blocks a portfolio feature, or a documented V&V/QC/QA defect. Cosmetic, speculative, or architecture-ideal refactoring is out of scope until the three portfolio features are complete and the live deployment is stable.
+V17 refactoring rule: do not refactor code, scripts, docs, CI, deployment configuration, or repository shape during closure convergence unless a concrete problem requires it. Valid reasons include a failing proof, deployment blocker, security/runtime boundary issue, performance bottleneck, real duplication or coupling that blocks closure proof, or a documented V&V/QC/QA defect. Cosmetic, speculative, or architecture-ideal refactoring is out of scope while closure proof and live evidence remain open.
 
 V17 live-testing rule: prioritize direct live tours of the deployed web app and installed Android app over adding or tuning proof scripts. Use reports, screenshots, and JSON manifests as supporting evidence, not as a substitute for watching the real behavior. Cover happy paths and unhappy paths for each supported stakeholder role, and change code only when the live deployed tours expose a concrete defect, broken handoff, unsafe boundary, or public-readiness gap.
 
