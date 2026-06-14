@@ -33,12 +33,14 @@ class AccessRequestServiceTest {
     private final UserService userService = mock(UserService.class);
     private final TenantService tenantService = mock(TenantService.class);
     private final NotificationService notificationService = mock(NotificationService.class);
+    private final EmailDeliveryService emailDeliveryService = mock(EmailDeliveryService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-18T00:00:00Z"), ZoneOffset.UTC);
     private final AccessRequestService service = new AccessRequestService(
         requestRepository,
         userService,
         tenantService,
         notificationService,
+        emailDeliveryService,
         clock,
         3,
         24
@@ -221,6 +223,83 @@ class AccessRequestServiceTest {
             requestId,
             new AccessRequestConvertRequest("Tenant", "temporary-password", "Too early")
         ));
+        verify(tenantService, never()).create(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void approveAndActivateCreatesTenantUserAndSendsEmail() {
+        UUID requestId = UUID.randomUUID();
+        UUID reviewerId = UUID.randomUUID();
+        AccessRequest accessRequest = new AccessRequest();
+        ReflectionTestUtils.setField(accessRequest, "id", requestId);
+        accessRequest.setOrganizationName("New Merchant Org");
+        accessRequest.setRequesterEmail("newmerchant@merhouse.local");
+        accessRequest.setRequestedRole(UserRole.MERCHANT);
+        accessRequest.setStatus(AccessRequestStatus.PENDING);
+
+        AppUser reviewer = new AppUser();
+        Tenant tenant = new Tenant();
+        tenant.setName("New Merchant Org");
+        tenant.setType(TenantType.MERCHANT);
+        AppUser user = new AppUser();
+        user.setEmail("newmerchant@merhouse.local");
+        user.setRole(UserRole.MERCHANT);
+
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(accessRequest));
+        when(userService.getRequired(reviewerId)).thenReturn(reviewer);
+        when(tenantService.create(org.mockito.ArgumentMatchers.any())).thenReturn(tenant);
+        when(userService.create(org.mockito.ArgumentMatchers.any())).thenReturn(user);
+        when(emailDeliveryService.send(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
+            .thenReturn(EmailDeliveryResult.sent("test"));
+
+        service.approveAndActivate(requestId, reviewerId, new AccessRequestReviewRequest("Auto-activate"));
+
+        assertEquals(AccessRequestStatus.APPROVED, accessRequest.getStatus());
+        assertEquals(reviewer, accessRequest.getReviewedBy());
+        assertEquals("Auto-activate", accessRequest.getReviewNote());
+        assertEquals(Instant.parse("2026-05-18T00:00:00Z"), accessRequest.getReviewedAt());
+        assertEquals(tenant, accessRequest.getConvertedTenant());
+        assertEquals(user, accessRequest.getConvertedUser());
+        assertEquals(Instant.parse("2026-05-18T00:00:00Z"), accessRequest.getConvertedAt());
+        verify(notificationService).recordForUser(
+            eq(user),
+            eq(NotificationTopic.ACCOUNT_LIFECYCLE),
+            eq("Account activated"),
+            org.mockito.ArgumentMatchers.anyString(),
+            org.mockito.ArgumentMatchers.anyString(),
+            eq("AccessRequest"),
+            eq(requestId)
+        );
+        verify(emailDeliveryService).send(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.contains("newmerchant@merhouse.local"));
+        verify(requestRepository).save(accessRequest);
+    }
+
+    @Test
+    void approveAndActivateRejectsAlreadyReviewedRequest() {
+        UUID requestId = UUID.randomUUID();
+        AccessRequest accessRequest = new AccessRequest();
+        accessRequest.setStatus(AccessRequestStatus.APPROVED);
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(accessRequest));
+
+        assertThrows(
+            DomainConflictException.class,
+            () -> service.approveAndActivate(requestId, UUID.randomUUID(), new AccessRequestReviewRequest("duplicate"))
+        );
+        verify(tenantService, never()).create(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void approveAndActivateRejectsAlreadyConvertedRequest() {
+        UUID requestId = UUID.randomUUID();
+        AccessRequest accessRequest = new AccessRequest();
+        accessRequest.setStatus(AccessRequestStatus.PENDING);
+        accessRequest.setConvertedAt(Instant.parse("2026-05-17T00:00:00Z"));
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(accessRequest));
+
+        assertThrows(
+            DomainConflictException.class,
+            () -> service.approveAndActivate(requestId, UUID.randomUUID(), new AccessRequestReviewRequest("duplicate"))
+        );
         verify(tenantService, never()).create(org.mockito.ArgumentMatchers.any());
     }
 }

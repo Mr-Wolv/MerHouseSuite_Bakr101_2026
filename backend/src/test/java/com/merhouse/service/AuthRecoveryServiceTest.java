@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.merhouse.dto.OtpResetRequest;
 import com.merhouse.dto.PasswordResetConfirmRequest;
 import com.merhouse.dto.PasswordResetRequest;
 import com.merhouse.entity.AppUser;
@@ -36,12 +37,14 @@ class AuthRecoveryServiceTest {
     private final PasswordResetTokenRepository tokenRepository = mock(PasswordResetTokenRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final NotificationService notificationService = mock(NotificationService.class);
+    private final EmailDeliveryService emailDeliveryService = mock(EmailDeliveryService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-18T00:00:00Z"), ZoneOffset.UTC);
     private final AuthRecoveryService service = new AuthRecoveryService(
         userRepository,
         tokenRepository,
         passwordEncoder,
         notificationService,
+        emailDeliveryService,
         clock,
         false,
         "https://staging.merhouse.example",
@@ -107,6 +110,7 @@ class AuthRecoveryServiceTest {
             tokenRepository,
             passwordEncoder,
             notificationService,
+            emailDeliveryService,
             clock,
             true,
             "http://localhost:3000",
@@ -130,6 +134,7 @@ class AuthRecoveryServiceTest {
             tokenRepository,
             passwordEncoder,
             notificationService,
+            emailDeliveryService,
             clock,
             false,
             "https://staging.merhouse.example",
@@ -200,6 +205,67 @@ class AuthRecoveryServiceTest {
         ArgumentCaptor<String> hashCaptor = ArgumentCaptor.forClass(String.class);
         verify(tokenRepository).findByTokenHash(hashCaptor.capture());
         assertEquals("NNMoAJsSP7uw3JPxiz5t4ez3saV4PDPf9__hkm8J6UM", hashCaptor.getValue());
+        verify(tokenRepository).save(token);
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void otpRequestDoesNotRevealMissingEmail() {
+        when(userRepository.findByEmailIgnoreCase("missing@merhouse.local")).thenReturn(Optional.empty());
+
+        var response = service.requestOtp(new PasswordResetRequest("missing@merhouse.local"));
+
+        assertEquals("If an enabled account exists for that email, a one-time password has been sent.", response.message());
+        verify(tokenRepository, never()).save(any());
+        verify(emailDeliveryService, never()).send(any(), any());
+    }
+
+    @Test
+    void otpRequestGeneratesCodeAndSendsEmailForEnabledUser() {
+        AppUser user = new AppUser();
+        user.setEmail("user@merhouse.local");
+        user.setEnabled(true);
+        when(userRepository.findByEmailIgnoreCase("user@merhouse.local")).thenReturn(Optional.of(user));
+        when(emailDeliveryService.send(any(), any())).thenReturn(com.merhouse.service.EmailDeliveryResult.sent("test"));
+
+        var response = service.requestOtp(new PasswordResetRequest("user@merhouse.local"));
+
+        assertEquals("If an enabled account exists for that email, a one-time password has been sent.", response.message());
+        ArgumentCaptor<PasswordResetToken> captor = ArgumentCaptor.forClass(PasswordResetToken.class);
+        verify(tokenRepository).save(captor.capture());
+        assertNotNull(captor.getValue().getOtpCode());
+        assertEquals(6, captor.getValue().getOtpCode().length());
+        assertEquals(Instant.parse("2026-05-18T00:15:00Z"), captor.getValue().getExpiresAt());
+        verify(emailDeliveryService).send(any(), org.mockito.ArgumentMatchers.contains("one-time password"));
+    }
+
+    @Test
+    void resetWithOtpRejectsInvalidCode() {
+        when(tokenRepository.findByOtpCodeAndUserEmailIgnoreCase(any(), any())).thenReturn(Optional.empty());
+
+        assertThrows(
+            DomainConflictException.class,
+            () -> service.resetWithOtp(new OtpResetRequest("user@merhouse.local", "000000", "new-password"))
+        );
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void resetWithOtpUpdatesPasswordAndMarksTokenUsed() {
+        AppUser user = new AppUser();
+        user.setEmail("user@merhouse.local");
+        user.setEnabled(true);
+        PasswordResetToken token = new PasswordResetToken();
+        token.setUser(user);
+        token.setOtpCode("123456");
+        token.setExpiresAt(Instant.parse("2026-05-18T00:15:00Z"));
+        when(tokenRepository.findByOtpCodeAndUserEmailIgnoreCase("123456", "user@merhouse.local")).thenReturn(Optional.of(token));
+        when(passwordEncoder.encode("new-password")).thenReturn("encoded-password");
+
+        service.resetWithOtp(new OtpResetRequest("user@merhouse.local", "123456", "new-password"));
+
+        assertEquals("encoded-password", user.getPasswordHash());
+        assertEquals(Instant.parse("2026-05-18T00:00:00Z"), token.getUsedAt());
         verify(tokenRepository).save(token);
         verify(userRepository).save(user);
     }

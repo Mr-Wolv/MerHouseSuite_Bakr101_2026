@@ -26,6 +26,7 @@ const apiMock = vi.hoisted(() => ({
   adminResetUserPassword: vi.fn(),
   accessRequests: vi.fn(),
   approveAccessRequest: vi.fn(),
+  approveAndActivateAccessRequest: vi.fn(),
   rejectAccessRequest: vi.fn(),
   convertAccessRequest: vi.fn(),
   merchantWarehouseRelationships: vi.fn(),
@@ -547,10 +548,10 @@ describe('Admin access request management', () => {
     renderWithAuth(<AdminAccessRequestsPage />)
 
     expect(await screen.findByText('owner@new.test')).toBeInTheDocument()
-    expect(screen.getByLabelText('Onboarding review controls')).toHaveTextContent('Conversion creates the tenant account')
+    expect(screen.getByLabelText('Onboarding review controls')).toHaveTextContent('Approve & activate')
     expect(screen.getByLabelText('Access request status narration')).toHaveTextContent('approved requests still need conversion')
     await user.type(screen.getByLabelText('Note applied to the next review action'), 'Looks good')
-    await user.click(screen.getByRole('button', { name: 'Approve' }))
+    await user.click(screen.getByRole('button', { name: 'Approve only' }))
 
     expect(apiMock.approveAccessRequest).toHaveBeenCalledWith('admin-token', 'request-1', {
       reviewNote: 'Looks good',
@@ -571,7 +572,8 @@ describe('Admin access request management', () => {
 
     expect(await screen.findByText('owner@new.test')).toBeInTheDocument()
     expect(screen.getByText('Review and escalate')).toHaveClass('data-chip')
-    expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Approve only' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Approve & activate' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Convert' })).not.toBeInTheDocument()
     expect(apiMock.approveAccessRequest).not.toHaveBeenCalled()
@@ -636,9 +638,9 @@ describe('Admin access request management', () => {
     renderWithAuth(<AdminAccessRequestsPage />)
 
     const pendingRow = await screen.findByRole('row', { name: /pending@new\.test/i })
-    expect(within(pendingRow).getByRole('button', { name: 'Approve' })).toBeEnabled()
+    expect(within(pendingRow).getByRole('button', { name: 'Approve & activate' })).toBeEnabled()
+    expect(within(pendingRow).getByRole('button', { name: 'Approve only' })).toBeEnabled()
     expect(within(pendingRow).getByRole('button', { name: 'Reject' })).toBeEnabled()
-    expect(within(pendingRow).getByText('Convert after approval')).toHaveClass('data-chip')
     expect(within(pendingRow).queryByRole('button', { name: 'Convert' })).not.toBeInTheDocument()
 
     const approvedRow = screen.getByRole('row', { name: /approved@new\.test/i })
@@ -649,7 +651,8 @@ describe('Admin access request management', () => {
     await user.type(screen.getByLabelText('Temporary setup password'), 'ready-password')
     expect(within(approvedRow).queryByText('Enter setup password')).not.toBeInTheDocument()
     expect(within(approvedRow).getByRole('button', { name: 'Convert' })).toBeEnabled()
-    expect(within(approvedRow).queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
+    expect(within(approvedRow).queryByRole('button', { name: 'Approve only' })).not.toBeInTheDocument()
+    expect(within(approvedRow).queryByRole('button', { name: 'Approve & activate' })).not.toBeInTheDocument()
     expect(within(approvedRow).queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
 
     const rejectedRow = screen.getByRole('row', { name: /rejected@new\.test/i })

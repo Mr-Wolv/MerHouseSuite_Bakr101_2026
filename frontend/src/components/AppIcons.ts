@@ -1,6 +1,7 @@
 import {
   ArchiveRestore,
   Bell,
+  BookOpen,
   Bot,
   Boxes,
   Building2,
@@ -33,6 +34,7 @@ export const appIcons = {
   assistant: Bot,
   audit: FileSearch,
   governance: ShieldCheck,
+  help: BookOpen,
   inventory: Boxes,
   login: LogIn,
   notFound: SearchX,

@@ -27,7 +27,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void disabledProviderFailsWithoutSending() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, false, "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, false, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Body");
 
@@ -38,7 +38,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void enabledProviderRequiresSenderAddress() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, " ", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "smtp", " ", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Body");
 
@@ -53,6 +53,7 @@ class EmailDeliveryServiceTest {
             mailSender,
             clock,
             true,
+            "smtp",
             " ops@merhouse.example ",
             " support@merhouse.example "
         );
@@ -76,7 +77,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void enabledProviderRequiresRecipientEmail() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(" ", "Account ready"), "Body");
 
@@ -87,7 +88,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void enabledProviderRequiresSubject() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery("user@merhouse.example", " "), "Body");
 
@@ -98,7 +99,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void enabledProviderRequiresBody() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), " ");
 
@@ -110,13 +111,86 @@ class EmailDeliveryServiceTest {
     @Test
     void providerFailureReturnsSanitizedFailureResult() {
         doThrow(new MailSendException("smtp unavailable")).when(mailSender).send(any(SimpleMailMessage.class));
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Body");
 
         assertFalse(result.sent());
         assertNull(result.providerMessageId());
         assertEquals("smtp unavailable", result.error());
+    }
+
+    @Test
+    void logProviderCapturesEmailInConsole() {
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "log", "ops@merhouse.example", "");
+
+        EmailDeliveryResult result = service.send(delivery(), "Test body content");
+
+        assertTrue(result.sent());
+        assertEquals("console-capture", result.providerMessageId());
+        assertNull(result.error());
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void logProviderValidatesFromAddress() {
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "log", " ", "");
+
+        EmailDeliveryResult result = service.send(delivery(), "Body");
+
+        assertFalse(result.sent());
+        assertEquals("MERHOUSE_EMAIL_FROM is required when email delivery is enabled.", result.error());
+    }
+
+    @Test
+    void logProviderValidatesRecipient() {
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "log", "ops@merhouse.example", "");
+
+        EmailDeliveryResult result = service.send(delivery(" ", "Subject"), "Body");
+
+        assertFalse(result.sent());
+        assertEquals("Recipient email is required for email delivery.", result.error());
+    }
+
+    @Test
+    void logProviderValidatesSubject() {
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "log", "ops@merhouse.example", "");
+
+        EmailDeliveryResult result = service.send(delivery("user@merhouse.example", " "), "Body");
+
+        assertFalse(result.sent());
+        assertEquals("Email subject is required for email delivery.", result.error());
+    }
+
+    @Test
+    void logProviderValidatesBody() {
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "log", "ops@merhouse.example", "");
+
+        EmailDeliveryResult result = service.send(delivery(), " ");
+
+        assertFalse(result.sent());
+        assertEquals("Email body is required for email delivery.", result.error());
+    }
+
+    @Test
+    void defaultProviderIsSmtpWhenNull() {
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, null, "ops@merhouse.example", "");
+
+        EmailDeliveryResult result = service.send(delivery(), "Body");
+
+        assertTrue(result.sent());
+        assertEquals("smtp-accepted", result.providerMessageId());
+    }
+
+    @Test
+    void providerIsCaseInsensitive() {
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, true, "LOG", "ops@merhouse.example", "");
+
+        EmailDeliveryResult result = service.send(delivery(), "Body");
+
+        assertTrue(result.sent());
+        assertEquals("console-capture", result.providerMessageId());
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
 
     private NotificationDelivery delivery() {

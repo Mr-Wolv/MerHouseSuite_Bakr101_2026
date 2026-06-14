@@ -4,6 +4,7 @@ import com.merhouse.dto.AuthResponse;
 import com.merhouse.dto.CurrentUserResponse;
 import com.merhouse.dto.LoginRequest;
 import com.merhouse.dto.MessageResponse;
+import com.merhouse.dto.OtpResetRequest;
 import com.merhouse.dto.PasswordResetConfirmRequest;
 import com.merhouse.dto.PasswordResetRequest;
 import com.merhouse.dto.PasswordResetRequestResponse;
@@ -60,6 +61,16 @@ public class AuthController {
     @PostMapping("/password-reset/confirm")
     public MessageResponse confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest request) {
         return authRecoveryService.confirmReset(request);
+    }
+
+    @PostMapping("/recovery/request-otp")
+    public PasswordResetRequestResponse requestOtp(@Valid @RequestBody PasswordResetRequest request) {
+        return authRecoveryService.requestOtp(request);
+    }
+
+    @PostMapping("/recovery/reset-with-otp")
+    public MessageResponse resetWithOtp(@Valid @RequestBody OtpResetRequest request) {
+        return authRecoveryService.resetWithOtp(request);
     }
 
     @GetMapping("/me")

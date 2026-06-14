@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, ApiError } from '../api/client'
 import { appIcons } from '../components/AppIcons'
 import { PublicAuthPanel } from '../components/PublicAuthPanel'
@@ -8,20 +8,19 @@ import { PublicAuthPanel } from '../components/PublicAuthPanel'
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
-  const [resetPath, setResetPath] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const navigate = useNavigate()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
     setMessage('')
-    setResetPath(null)
     setSubmitting(true)
     try {
-      const response = await api.requestPasswordReset(email.trim())
+      const response = await api.requestOtp(email.trim())
       setMessage(response.message)
-      setResetPath(response.resetPath)
+      navigate(`/verify-otp?email=${encodeURIComponent(email.trim())}`)
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to request reset.')
     } finally {
@@ -35,8 +34,8 @@ export function ForgotPasswordPage() {
       subtitle="Request a reset for an enabled MerHouse account."
       icon={appIcons.password}
       cues={[
+        { label: 'One-time password', detail: 'A 6-digit code will be sent to your email.' },
         { label: 'Generic response', detail: 'The page does not reveal whether an email exists.' },
-        { label: 'Delivery history', detail: 'Prepared reset events are recorded for account review.' },
       ]}
       footer={<Link className="text-link" to="/login">Back to sign in</Link>}
     >
@@ -53,17 +52,100 @@ export function ForgotPasswordPage() {
             required
           />
         </label>
-        <p id="forgot-password-help" className="field-help">Reset links remain hidden unless the local API intentionally returns a reset path.</p>
+        <p id="forgot-password-help" className="field-help">A one-time password will be sent to your email if an enabled account exists.</p>
         {error ? <div className="inline-error" role="alert">{error}</div> : null}
-        {message ? (
-          <div className="inline-success" role="status">
-            <span>{message}</span>
-            {resetPath ? <Link to={resetPath}>Open reset link</Link> : null}
-          </div>
-        ) : null}
+        {message ? <div className="inline-success" role="status"><span>{message}</span></div> : null}
         <button className="primary-button" type="submit" disabled={submitting}>
           <appIcons.password size={16} aria-hidden="true" />
-          {submitting ? 'Requesting' : 'Request reset'}
+          {submitting ? 'Sending code' : 'Send reset code'}
+        </button>
+      </form>
+    </PublicAuthPanel>
+  )
+}
+
+export function VerifyOtpPage() {
+  const [params] = useSearchParams()
+  const email = useMemo(() => params.get('email') ?? '', [params])
+  const [otpCode, setOtpCode] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError('')
+    setMessage('')
+    setSubmitting(true)
+    try {
+      const response = await api.resetWithOtp(email, otpCode.trim(), newPassword)
+      setMessage(response.message)
+      setOtpCode('')
+      setNewPassword('')
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to reset password.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <PublicAuthPanel
+      title="Verify Reset Code"
+      subtitle="Enter the 6-digit code sent to your email and choose a new password."
+      icon={appIcons.recovery}
+      cues={[
+        { label: 'Code expiry', detail: 'OTP codes expire in 15 minutes.' },
+        { label: 'After reset', detail: 'Return to sign in and use the updated password.' },
+      ]}
+      footer={<Link className="text-link" to="/login">Back to sign in</Link>}
+    >
+      <form className="form-stack" onSubmit={handleSubmit}>
+        <label htmlFor="verify-otp-email">
+          <span>Email</span>
+          <input
+            id="verify-otp-email"
+            value={email}
+            readOnly
+            type="email"
+            autoComplete="email"
+          />
+        </label>
+        <label htmlFor="verify-otp-code">
+          <span>One-time password</span>
+          <input
+            id="verify-otp-code"
+            value={otpCode}
+            onChange={(event) => setOtpCode(event.target.value)}
+            inputMode="numeric"
+            maxLength={6}
+            pattern="[0-9]{6}"
+            autoComplete="one-time-code"
+            aria-describedby="otp-code-help"
+            required
+          />
+        </label>
+        <p id="otp-code-help" className="field-help">Enter the 6-digit code from your email.</p>
+        <label htmlFor="verify-otp-new-password">
+          <span>New password</span>
+          <input
+            id="verify-otp-new-password"
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            minLength={8}
+            type="password"
+            autoComplete="new-password"
+            aria-describedby="new-password-help"
+            required
+          />
+        </label>
+        <p id="new-password-help" className="field-help">Use at least 8 characters.</p>
+        {error ? <div className="inline-error" role="alert">{error}</div> : null}
+        {message ? <div className="inline-success" role="status">{message} <Link to="/login">Return to sign in</Link></div> : null}
+        <button className="primary-button" type="submit" disabled={submitting}>
+          <appIcons.recovery size={16} aria-hidden="true" />
+          {submitting ? 'Resetting' : 'Reset password'}
         </button>
       </form>
     </PublicAuthPanel>

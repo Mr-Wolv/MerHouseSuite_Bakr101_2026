@@ -11,5 +11,8 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     @EntityGraph(attributePaths = "user.tenant")
     Optional<PasswordResetToken> findByTokenHash(String tokenHash);
 
+    @EntityGraph(attributePaths = "user.tenant")
+    Optional<PasswordResetToken> findByOtpCodeAndUserEmailIgnoreCase(String otpCode, String email);
+
     long countByUserIdAndCreatedAtAfter(UUID userId, Instant createdAfter);
 }

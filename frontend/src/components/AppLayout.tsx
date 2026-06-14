@@ -20,6 +20,7 @@ const adminNav = [
   { to: '/admin/audit', label: 'Audit trail', icon: appIcons.audit },
   { to: '/assistant', label: 'Assistant', icon: appIcons.assistant },
   { to: '/notifications', label: 'Alerts', icon: appIcons.alerts },
+  { to: '/how-to-use', label: 'How to use', icon: appIcons.help },
 ]
 
 const navByRole = {
@@ -38,12 +39,14 @@ const navByRole = {
     { to: '/service-accountability', label: 'Service review', icon: appIcons.service },
     { to: '/assistant', label: 'Assistant', icon: appIcons.assistant },
     { to: '/notifications', label: 'Alerts', icon: appIcons.alerts },
+    { to: '/how-to-use', label: 'How to use', icon: appIcons.help },
   ],
   WAREHOUSE_OPERATOR: [
     { to: '/warehouse', label: 'Work queue', icon: appIcons.warehouseWork },
     { to: '/service-accountability', label: 'Service review', icon: appIcons.service },
     { to: '/assistant', label: 'Assistant', icon: appIcons.assistant },
     { to: '/notifications', label: 'Alerts', icon: appIcons.alerts },
+    { to: '/how-to-use', label: 'How to use', icon: appIcons.help },
   ],
 }
 

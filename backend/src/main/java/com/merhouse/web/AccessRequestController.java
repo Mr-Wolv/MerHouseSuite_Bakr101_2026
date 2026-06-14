@@ -61,6 +61,15 @@ public class AccessRequestController {
         return AccessRequestResponse.from(approved);
     }
 
+    @PostMapping("/{id}/approve-and-activate")
+    @PreAuthorize("@currentUserService.canMutatePlatform()")
+    public AccessRequestResponse approveAndActivate(@PathVariable UUID id, @Valid @RequestBody AccessRequestReviewRequest request) {
+        UUID actorId = currentUserService.required().id();
+        var activated = accessRequestService.approveAndActivate(id, actorId, request);
+        adminAuditService.record(actorId, "ACCESS_REQUEST_APPROVED_AND_ACTIVATED", "AccessRequest", id, request.reviewNote());
+        return AccessRequestResponse.from(activated);
+    }
+
     @PatchMapping("/{id}/reject")
     @PreAuthorize("@currentUserService.canMutatePlatform()")
     public AccessRequestResponse reject(@PathVariable UUID id, @Valid @RequestBody AccessRequestReviewRequest request) {

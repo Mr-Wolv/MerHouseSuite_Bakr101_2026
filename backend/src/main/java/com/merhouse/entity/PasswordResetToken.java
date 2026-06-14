@@ -27,6 +27,9 @@ public class PasswordResetToken {
     @Column(nullable = false, unique = true, length = 128)
     private String tokenHash;
 
+    @Column(length = 10)
+    private String otpCode;
+
     @Column(nullable = false)
     private Instant expiresAt;
 
@@ -54,6 +57,14 @@ public class PasswordResetToken {
 
     public void setTokenHash(String tokenHash) {
         this.tokenHash = tokenHash;
+    }
+
+    public String getOtpCode() {
+        return otpCode;
+    }
+
+    public void setOtpCode(String otpCode) {
+        this.otpCode = otpCode;
     }
 
     public Instant getExpiresAt() {

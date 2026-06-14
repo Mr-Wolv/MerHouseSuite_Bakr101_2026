@@ -953,14 +953,19 @@ export function AdminAccessRequestsPage() {
       .finally(() => setLoading(false))
   }, [token])
 
-  async function reviewAccessRequest(id: string, action: 'approve' | 'reject') {
+  async function reviewAccessRequest(id: string, action: 'approve' | 'reject' | 'approve-and-activate') {
     if (!token) return
     setError('')
     setActionId(id)
     try {
-      const next = action === 'approve'
-        ? await api.approveAccessRequest(token, id, { reviewNote })
-        : await api.rejectAccessRequest(token, id, { reviewNote })
+      let next: AccessRequest
+      if (action === 'approve-and-activate') {
+        next = await api.approveAndActivateAccessRequest(token, id, { reviewNote })
+      } else if (action === 'approve') {
+        next = await api.approveAccessRequest(token, id, { reviewNote })
+      } else {
+        next = await api.rejectAccessRequest(token, id, { reviewNote })
+      }
       setRequests((current) => current.map((request) => (request.id === next.id ? next : request)))
       setReviewNote('')
     } catch (caught) {
@@ -1003,7 +1008,7 @@ export function AdminAccessRequestsPage() {
       <div className="page-stack">
         <PageHeading title="Access Requests" subtitle="Review public merchant and warehouse onboarding requests." />
         <AdminGuidancePanel title="Onboarding review controls">
-          Review notes apply to the next approve or reject action. Conversion creates the tenant account only after an approved request has a temporary setup password.
+          Use "Approve & activate" to create the tenant account and send an activation email in one step. "Approve only" records approval without provisioning. Conversion creates the tenant account only after an approved request has a temporary setup password.
         </AdminGuidancePanel>
         <LoadingState label="Loading access requests" />
       </div>
@@ -1021,7 +1026,7 @@ export function AdminAccessRequestsPage() {
     <div className="page-stack">
       <PageHeading title="Access Requests" subtitle="Review public merchant and warehouse onboarding requests." />
       <AdminGuidancePanel title="Onboarding review controls">
-        Review notes apply to the next approve or reject action. Conversion creates the tenant account only after an approved request has a temporary setup password.
+        Use "Approve & activate" to create the tenant account and send an activation email in one step. "Approve only" records approval without provisioning. Conversion creates the tenant account only after an approved request has a temporary setup password.
       </AdminGuidancePanel>
       <div className="status-row" aria-label="Access request status narration">
         <div className="status-count">
@@ -1105,12 +1110,20 @@ export function AdminAccessRequestsPage() {
                             {pending ? (
                               <>
                                 <button
+                                  className="table-button primary-button"
+                                  type="button"
+                                  disabled={actionId === request.id}
+                                  onClick={() => void reviewAccessRequest(request.id, 'approve-and-activate')}
+                                >
+                                  Approve & activate
+                                </button>
+                                <button
                                   className="table-button"
                                   type="button"
                                   disabled={actionId === request.id}
                                   onClick={() => void reviewAccessRequest(request.id, 'approve')}
                                 >
-                                  Approve
+                                  Approve only
                                 </button>
                                 <button
                                   className="table-button destructive-button"
@@ -1120,7 +1133,6 @@ export function AdminAccessRequestsPage() {
                                 >
                                   Reject
                                 </button>
-                                <span className="data-chip">Convert after approval</span>
                               </>
                             ) : null}
                             {approved && !converted ? (

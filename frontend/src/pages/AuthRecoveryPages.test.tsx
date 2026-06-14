@@ -2,11 +2,13 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { ForgotPasswordPage, RequestAccessPage, ResetPasswordPage } from './AuthRecoveryPages'
+import { ForgotPasswordPage, RequestAccessPage, ResetPasswordPage, VerifyOtpPage } from './AuthRecoveryPages'
 
 const apiMock = vi.hoisted(() => ({
   requestPasswordReset: vi.fn(),
+  requestOtp: vi.fn(),
   confirmPasswordReset: vi.fn(),
+  resetWithOtp: vi.fn(),
   submitAccessRequest: vi.fn(),
 }))
 
@@ -31,8 +33,8 @@ describe('auth recovery pages', () => {
 
   it('requests a password reset without exposing a reset link by default', async () => {
     const user = userEvent.setup()
-    apiMock.requestPasswordReset.mockResolvedValue({
-      message: 'If an enabled account exists for that email, a password reset link has been prepared.',
+    apiMock.requestOtp.mockResolvedValue({
+      message: 'If an enabled account exists for that email, a one-time password has been sent.',
       resetToken: null,
       resetPath: null,
     })
@@ -42,12 +44,10 @@ describe('auth recovery pages', () => {
     expect(screen.getByText('Request a reset for an enabled MerHouse account.')).toBeInTheDocument()
     expect(screen.queryByText(/local MerHouse account/i)).not.toBeInTheDocument()
     await user.type(screen.getByLabelText('Email'), ' owner@example.test ')
-    await user.click(screen.getByRole('button', { name: 'Request reset' }))
+    await user.click(screen.getByRole('button', { name: 'Send reset code' }))
 
-    expect(apiMock.requestPasswordReset).toHaveBeenCalledWith('owner@example.test')
+    expect(apiMock.requestOtp).toHaveBeenCalledWith('owner@example.test')
     expect(screen.getByText(/does not reveal whether an email exists/i)).toBeInTheDocument()
-    expect(await screen.findByRole('status')).toHaveTextContent(/reset link has been prepared/i)
-    expect(screen.queryByRole('link', { name: 'Open reset link' })).not.toBeInTheDocument()
   })
 
   it('confirms a password reset with the route token', async () => {
@@ -118,14 +118,35 @@ describe('auth recovery pages', () => {
 
   it('shows backend validation errors', async () => {
     const user = userEvent.setup()
-    apiMock.requestPasswordReset.mockRejectedValue(new ApiError(400, 'Validation failed', ['email must be valid']))
+    apiMock.requestOtp.mockRejectedValue(new ApiError(400, 'Validation failed', ['email must be valid']))
 
     render(<ForgotPasswordPage />, { wrapper: MemoryRouter })
 
     await user.type(screen.getByLabelText('Email'), 'blocked@example.test')
-    await user.click(screen.getByRole('button', { name: 'Request reset' }))
+    await user.click(screen.getByRole('button', { name: 'Send reset code' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('email must be valid')
+  })
+
+  it('verifies OTP and resets password', async () => {
+    const user = userEvent.setup()
+    apiMock.resetWithOtp.mockResolvedValue({ message: 'Password has been reset.' })
+
+    render(
+      <MemoryRouter initialEntries={['/verify-otp?email=user@example.test']}>
+        <Routes>
+          <Route path="/verify-otp" element={<VerifyOtpPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByLabelText('Email')).toHaveValue('user@example.test')
+    await user.type(screen.getByLabelText('One-time password'), '123456')
+    await user.type(screen.getByLabelText('New password'), 'new-password')
+    await user.click(screen.getByRole('button', { name: 'Reset password' }))
+
+    expect(apiMock.resetWithOtp).toHaveBeenCalledWith('user@example.test', '123456', 'new-password')
+    expect(await screen.findByRole('status')).toHaveTextContent(/password has been reset/i)
   })
 })
 
