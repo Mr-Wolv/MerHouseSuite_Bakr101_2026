@@ -243,6 +243,9 @@ jobs:
           MERHOUSE_AUTH_SEED_ADMIN_PASSWORD=$ci_admin_password
           MERHOUSE_SWAGGER_ENABLED=true
           MERHOUSE_DEPLOYMENT_PUBLIC=false
+          MERHOUSE_BACKEND_PORT=8080
+          MERHOUSE_FRONTEND_PORT=3000
+          MERHOUSE_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost,capacitor://localhost,ionic://localhost
           EOF
 
       - name: Start Docker Compose stack

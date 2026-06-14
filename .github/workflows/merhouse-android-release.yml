@@ -1,7 +1,10 @@
 name: MerHouse Android Release
-run-name: MerHouse Android Release - ${{ inputs.version_name }} on ${{ github.ref_name }}
+run-name: MerHouse Android Release - ${{ inputs.version_name || github.event_name }} on ${{ github.ref_name }}
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       version_code:
@@ -26,12 +29,49 @@ permissions:
   contents: write
 
 concurrency:
-  group: merhouse-android-release-${{ inputs.tag }}
+  group: merhouse-android-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  # ── Automated CI build validation ──────────────────────────────────────
+  # Runs on every push to main (like Vercel auto-builds the frontend).
+  # Verifies the frontend + Android build pipeline without signing secrets.
+  ci-build:
+    name: Android CI Build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Android debug APK
+        shell: pwsh
+        run: ./scripts/proof/android/native-mobile-check.ps1 -Assemble -ApiBaseUrl "http://10.0.2.2:8080"
+
+  # ── Signed release (manual only) ───────────────────────────────────────
+  # Produces a signed APK and publishes a GitHub Release.
+  # Requires signing secrets configured in the repository settings.
   signed-apk:
     name: Build signed APK
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
