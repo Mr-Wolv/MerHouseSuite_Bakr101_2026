@@ -1,11 +1,16 @@
 param(
-    [string]$Url = "http://localhost:8080/api/v1/health",
+    [string]$Url = "",
     [int]$TimeoutSeconds = 90,
     [int]$IntervalSeconds = 2
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "..\lib\common.ps1")
 . (Join-Path $PSScriptRoot "..\proof\lib\url-guard-lib.ps1")
+
+if ([string]::IsNullOrWhiteSpace($Url)) {
+    $Url = Join-Path (Get-MerHouseDefaultApiUrl) "/api/v1/health"
+}
 
 $readinessUrl = Assert-AbsoluteHttpUrl -Name "Url" -Value $Url
 

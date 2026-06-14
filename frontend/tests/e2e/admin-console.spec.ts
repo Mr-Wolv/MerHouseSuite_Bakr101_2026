@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Locator } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 
-const API_URL = process.env.E2E_API_URL ?? 'http://localhost:8080'
+const API_URL = process.env.E2E_API_URL ?? 'http://localhost:8081'
 const screenshotDir = '../reports/v7.5'
 
 async function api<T>(request: APIRequestContext, method: 'get' | 'post' | 'patch', path: string, token?: string, body?: unknown) {

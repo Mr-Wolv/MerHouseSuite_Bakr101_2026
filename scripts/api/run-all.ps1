@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = "http://localhost:8080",
+    [string]$BaseUrl = "",
     [string]$OutputPath = "",
     [string]$AdminEmail = "admin@merhouse.local",
     [string]$AdminPassword = "local-owner-password",
@@ -15,6 +15,10 @@ $projectRoot = Get-MerHouseProjectRoot
 $reportsDir = Join-Path $projectRoot "reports"
 
 . (Join-Path $projectRoot "scripts\proof\lib\url-guard-lib.ps1")
+
+if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
+    $BaseUrl = Get-MerHouseDefaultBaseUrl
+}
 
 $normalizedBaseUrl = Assert-AbsoluteHttpUrl -Name "BaseUrl" -Value $BaseUrl
 

@@ -12,6 +12,8 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "..\lib\common.ps1")
 $projectRoot = Get-MerHouseProjectRoot
 $composeFile = Join-Path $projectRoot "docker-compose.yml"
+$frontendUrl = Get-MerHouseDefaultFrontendUrl
+$backendUrl = Get-MerHouseDefaultApiUrl
 
 if (-not (Test-Path $composeFile)) {
     throw "docker-compose.yml was not found at $composeFile."
@@ -88,9 +90,8 @@ try {
 
     Write-Host ""
     Write-Host "Deployment is running:"
-    Write-Host "  Frontend: http://localhost:3000"
-    Write-Host "  Backend:  http://localhost:8080"
-    Write-Host "  Postgres: localhost:5432"
+    Write-Host "  Frontend: $frontendUrl"
+    Write-Host "  Backend:  $backendUrl"
     Write-Host ""
     Invoke-Docker @("compose", "ps")
     Write-Host ""

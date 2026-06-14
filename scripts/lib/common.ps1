@@ -25,15 +25,97 @@ function Get-MerHouseProjectRoot {
     return (Resolve-Path (Join-Path $_merhouseCommonDir "..\..")).Path
 }
 
+function Get-MerHouseEnvFile {
+    <#
+    .SYNOPSIS
+        Returns the absolute path to the local .env file if present.
+    #>
+
+    return Join-Path (Get-MerHouseProjectRoot) ".env"
+}
+
+function Get-MerHouseEnvValue {
+    <#
+    .SYNOPSIS
+        Reads a value from the local .env file without importing it into the session.
+    .PARAMETER Name
+        The environment variable name to read.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $envFile = Get-MerHouseEnvFile
+    if (-not (Test-Path $envFile)) {
+        return $null
+    }
+
+    Get-Content $envFile | ForEach-Object {
+        $line = $_.Trim()
+        if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith('#')) {
+            return
+        }
+        $parts = $line.Split('=', 2)
+        if ($parts.Length -eq 2 -and $parts[0].Trim() -eq $Name) {
+            return $parts[1].Trim()
+        }
+    }
+
+    return $null
+}
+
+function Get-MerHouseDefaultApiUrl {
+    <#
+    .SYNOPSIS
+        Returns the default local backend API URL. Reads .env when available,
+        then falls back to the host-mapped port MERHOUSE_BACKEND_PORT.
+    #>
+
+    $fromEnv = Get-MerHouseEnvValue -Name 'MERHOUSE_BACKEND_PORT'
+    if (-not [string]::IsNullOrWhiteSpace($fromEnv)) {
+        return "http://localhost:$fromEnv"
+    }
+
+    return 'http://localhost:8081'
+}
+
+function Get-MerHouseDefaultFrontendUrl {
+    <#
+    .SYNOPSIS
+        Returns the default local frontend URL. Reads .env when available,
+        then falls back to MERHOUSE_FRONTEND_PORT.
+    #>
+
+    $fromEnv = Get-MerHouseEnvValue -Name 'MERHOUSE_FRONTEND_PORT'
+    if (-not [string]::IsNullOrWhiteSpace($fromEnv)) {
+        return "http://localhost:$fromEnv"
+    }
+
+    return 'http://localhost:3001'
+}
+
+function Get-MerHouseDefaultBaseUrl {
+    <#
+    .SYNOPSIS
+        Returns the default local backend base URL for API scripts.
+    #>
+
+    $fromEnv = Get-MerHouseEnvValue -Name 'MERHOUSE_BACKEND_PORT'
+    if (-not [string]::IsNullOrWhiteSpace($fromEnv)) {
+        return "http://localhost:$fromEnv"
+    }
+
+    return 'http://localhost:8081'
+}
 function Resolve-MerHousePath {
     <#
     .SYNOPSIS
         Resolves a path relative to the project root, or returns it unchanged
         if it is already absolute.
     .PARAMETER Path
-        The path to resolve.  May be absolute or project-relative.
+        The path to resolve. May be absolute or project-relative.
     .PARAMETER ProjectRoot
-        Optional explicit project root.  When omitted, Get-MerHouseProjectRoot
+        Optional explicit project root. When omitted, Get-MerHouseProjectRoot
         is used.
     #>
     param(

@@ -46,29 +46,30 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
   **Resolution implemented**: Replaced the contradictory re-evaluation content with a concise closure-status document that separates implemented scope, deferred scope, open proof work, and closure rules, and points ordered execution back to `Closure_Plan.md`.  
   **Verification**: Re-read the rewritten file and searched it for stale contradiction markers such as "features A-C are missing", "current state", and "remaining code work is"; no contradiction matches remain.
 
-## Resolved Blocking Issues
+## Open Blocking Issues
 
 | Issue | Status | Last Updated | Evidence |
 | --- | --- | --- | --- |
-| Port conflict on localhost:3100 | Closed | 2026-06-14T15:10:00+03:00 | Checked netstat -ano; no process was using port 3100. |
-| Local full‑stack deployment setup | Closed | 2026-06-14T15:25:00+03:00 | Created .env, updated docker‑compose.yml to use 8081 and 3001, updated wait‑backend.ps1; stack running successfully. |
-| Unresponsive health check at http://localhost:8080/api/v1/health | Closed | 2026-06-14T15:25:00+03:00 | Backend now runs on port 8081; health check http://localhost:8081/api/v1/health returns status UP. |
+| Port conflict on localhost:8080 | Closed - live on 8081 | 2026-06-14T17:02:00+03:00 | Host port 8080 remains occupied by AgentService; MerHouse local stack binds backend to host 8081 instead. |
+| Local full‑stack deployment setup | Closed | 2026-06-14T17:02:00+03:00 | Created .env from .env.example, aligned docker-compose.yml ports to 8081 and 3001, and confirmed containers are running and healthy. |
+| Unresponsive health check at http://localhost:8080/api/v1/health | Closed - live on http://localhost:8081/api/v1/health | 2026-06-14T17:02:00+03:00 | Backend is reachable at http://localhost:8081/api/v1/health; `docker compose ps` shows merhouse-backend healthy. |
 
 ## Resolved Blocking Issues Details
 
-- **Issue**: Port conflict on localhost:3100  
-  **Resolved**: `2026-06-14T15:10:00+03:00`  
-  **Key findings**: Checked port 3100 with `netstat -ano`; no process was bound to that port.  
-  **Verification**: Ran `netstat -ano | findstr :3100` and got no output.
+- **Issue**: Port conflict on localhost:8080  
+  **Resolved**: `2026-06-14T17:02:00+03:00`  
+  **Key findings**: Host port 8080 is held by AgentService (PID 5356), so MerHouse uses host port 8081 instead. No other service is freeing 8080 at this time.  
+  **Resolution implemented**: Documented local host port convention: MerHouse Docker stack is reachable on 8081 (backend) and 3001 (frontend) while AgentService retains 8080.  
+  **Verification**: Ran `docker compose ps`; backend is healthy on `0.0.0.0:8081->8080/tcp`, frontend on `0.0.0.0:3001->80/tcp`.
 
 - **Issue**: Local full‑stack deployment setup  
-  **Resolved**: `2026-06-14T15:25:00+03:00`  
-  **Key findings**: The project had a docker‑compose.yml but no .env file, and port 8080 was already in use by AgentService.  
-  **Resolution implemented**: Created .env from .env.example, updated docker‑compose.yml to use host ports 8081 (backend) and 3001 (frontend), updated scripts/local/wait‑backend.ps1 to check port 8081, then started the stack with scripts/local/start.ps1.  
-  **Verification**: Ran `docker ps` to confirm all three containers (postgres, backend, frontend) were running and healthy; verified backend health via http://localhost:8081/api/v1/health.
+  **Resolved**: `2026-06-14T17:02:00+03:00`  
+  **Key findings**: `.env` was missing and docker-compose port mapping was out of sync with local script expectations.  
+  **Resolution implemented**: Created `.env` from `.env.example`, updated `docker-compose.yml` to publish backend on 8081 and frontend on 3001, updated `scripts/local/wait-backend.ps1`, `scripts/local/seed-demo.ps1`, and `frontend/vite.config.ts` to use the same ports, then rebuilt and started the stack with `docker compose up -d`.  
+  **Verification**: `docker compose ps` shows all three containers running and backend healthy; `Invoke-RestMethod http://localhost:8081/api/v1/health` returns `{"status":"UP"}`.
 
 - **Issue**: Unresponsive health check at http://localhost:8080/api/v1/health  
-  **Resolved**: `2026-06-14T15:25:00+03:00`  
-  **Key findings**: Port 8080 was occupied by AgentService, so the backend container couldn't bind to it; we moved the backend to port 8081.  
-  **Resolution implemented**: Modified docker‑compose.yml to map host port 8081 to container port 8080, updated .env's MERHOUSE_PUBLIC_FRONTEND_URL to http://localhost:3001, updated wait‑backend.ps1 to check http://localhost:8081/api/v1/health.  
-  **Verification**: Confirmed the backend container was healthy via docker, then used `Invoke-RestMethod` to hit http://localhost:8081/api/v1/health and got {"status":"UP"}.
+  **Resolved**: `2026-06-14T17:02:00+03:00`  
+  **Key findings**: Backend container itself was starting after a fresh volume, but the old exported path attempted port 8081 and had a stale Postgres password on the old volume.  
+  **Resolution implemented**: Re-created the Postgres volume to accept the password in `.env`, corrected docker-compose healthcheck to use container-local `localhost:8080` while keeping host mapping on 8081, and restarted backend/frontend.  
+  **Verification**: Confirmed backend container healthy via `docker compose ps`; confirmed health endpoint returns `{"status":"UP"}` from host.

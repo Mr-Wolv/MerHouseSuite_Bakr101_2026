@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = "http://localhost:8080",
+    [string]$BaseUrl = "",
     [string]$AdminEmail = "admin@merhouse.local",
     [string]$AdminPassword = "local-owner-password",
     [string]$Suffix = "",
@@ -13,7 +13,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "..\lib\common.ps1")
 . (Join-Path $PSScriptRoot "..\proof\lib\url-guard-lib.ps1")
+
+if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
+    $BaseUrl = Get-MerHouseDefaultBaseUrl
+}
 
 $apiBaseUrl = Assert-AbsoluteHttpUrl -Name "BaseUrl" -Value $BaseUrl
 
