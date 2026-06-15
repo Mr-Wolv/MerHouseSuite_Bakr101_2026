@@ -20,6 +20,7 @@ import com.merhouse.entity.NotificationPreference;
 import com.merhouse.entity.NotificationProviderStatus;
 import com.merhouse.entity.NotificationTopic;
 import com.merhouse.entity.Tenant;
+
 import com.merhouse.repository.AppUserRepository;
 import com.merhouse.repository.NotificationDeliveryRepository;
 import com.merhouse.repository.NotificationPreferenceRepository;
@@ -146,11 +147,10 @@ class NotificationServiceTest {
     }
 
     @Test
-    void recordForUserSendsProviderEmailWhenEmailDeliveryIsEnabled() {
+    void recordForUserDispatchesAsyncEmailWhenEmailDeliveryIsEnabled() {
         UUID userId = UUID.randomUUID();
         AppUser user = user(userId, UUID.randomUUID());
         when(emailDeliveryService.isEnabled()).thenReturn(true);
-        when(emailDeliveryService.send(any(), eq("Email body"))).thenReturn(EmailDeliveryResult.sent("smtp-accepted"));
 
         service.recordForUser(
             user,
@@ -165,22 +165,18 @@ class NotificationServiceTest {
         verify(deliveryRepository).save(org.mockito.ArgumentMatchers.argThat(delivery ->
             delivery.getChannel() == NotificationChannel.EMAIL_PROTOTYPE
                 && delivery.getStatus() == NotificationDeliveryStatus.PROVIDER_RECORDED
-                && delivery.getDeliveryStage() == NotificationDeliveryStage.PROVIDER_SENT
-                && delivery.getProviderStatus() == NotificationProviderStatus.SENT
-                && delivery.getProviderMessageId().equals("smtp-accepted")
-                && delivery.getProviderAttemptedAt().equals(Instant.parse("2026-05-29T12:00:00Z"))
-                && delivery.getProviderSentAt().equals(Instant.parse("2026-05-29T12:00:00Z"))
-                && delivery.getProviderRetryCount() == 1
+                && delivery.getDeliveryStage() == NotificationDeliveryStage.PREPARED
+                && delivery.getProviderStatus() == NotificationProviderStatus.READY_FOR_PROVIDER
                 && !delivery.isPrototypeLocal()
         ));
+        verify(emailDeliveryService).sendAndForget(any(), any(), any(), eq("Email body"));
     }
 
     @Test
-    void recordForUserKeepsFailedProviderEmailAsDeliveryEvidence() {
+    void recordForUserDispatchesAsyncEmailEvenWhenProviderMayFail() {
         UUID userId = UUID.randomUUID();
         AppUser user = user(userId, UUID.randomUUID());
         when(emailDeliveryService.isEnabled()).thenReturn(true);
-        when(emailDeliveryService.send(any(), eq("Email body"))).thenReturn(EmailDeliveryResult.failed("smtp unavailable"));
 
         service.recordForUser(
             user,
@@ -195,15 +191,14 @@ class NotificationServiceTest {
         verify(deliveryRepository).save(org.mockito.ArgumentMatchers.argThat(delivery ->
             delivery.getChannel() == NotificationChannel.EMAIL_PROTOTYPE
                 && delivery.getStatus() == NotificationDeliveryStatus.PROVIDER_RECORDED
-                && delivery.getDeliveryStage() == NotificationDeliveryStage.PROVIDER_FAILED
-                && delivery.getProviderStatus() == NotificationProviderStatus.FAILED
-                && delivery.getProviderError().equals("smtp unavailable")
-                && delivery.getProviderFailedAt().equals(Instant.parse("2026-05-29T12:00:00Z"))
+                && delivery.getDeliveryStage() == NotificationDeliveryStage.PREPARED
+                && delivery.getProviderStatus() == NotificationProviderStatus.READY_FOR_PROVIDER
         ));
+        verify(emailDeliveryService).sendAndForget(any(), any(), any(), eq("Email body"));
     }
 
     @Test
-    void recordForUserDoesNotSendEmailWhenEmailPreferenceIsDisabled() {
+    void recordForUserDoesNotDispatchEmailWhenEmailPreferenceIsDisabled() {
         UUID userId = UUID.randomUUID();
         AppUser user = user(userId, UUID.randomUUID());
         NotificationPreference disabled = new NotificationPreference();
@@ -230,7 +225,7 @@ class NotificationServiceTest {
                 && delivery.getStatus() == NotificationDeliveryStatus.SKIPPED_BY_PREFERENCE
                 && delivery.getDeliveryStage() == NotificationDeliveryStage.SKIPPED_BY_PREFERENCE
         ));
-        verify(emailDeliveryService, org.mockito.Mockito.never()).send(any(), any());
+        verify(emailDeliveryService, org.mockito.Mockito.never()).sendAndForget(any(), any(), any(), any());
     }
 
     @Test

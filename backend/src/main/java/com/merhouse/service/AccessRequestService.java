@@ -145,10 +145,12 @@ public class AccessRequestService {
             accessRequest.getId()
         );
 
-        // Send activation email
+        // Send activation email (async — must not block or roll back the transaction)
         String emailBody = buildActivationEmailBody(accessRequest, temporaryPassword);
-        emailDeliveryService.send(
-            createEmailDelivery(user, "Your MerHouse account is ready"),
+        emailDeliveryService.sendAndForget(
+            null,
+            accessRequest.getRequesterEmail(),
+            "Your MerHouse account is ready",
             emailBody
         );
 
@@ -179,13 +181,6 @@ public class AccessRequestService {
             temporaryPassword,
             accessRequest.getRequestedRole().name().replace('_', ' ')
         );
-    }
-
-    private com.merhouse.entity.NotificationDelivery createEmailDelivery(AppUser recipient, String title) {
-        com.merhouse.entity.NotificationDelivery delivery = new com.merhouse.entity.NotificationDelivery();
-        delivery.setRecipient(recipient);
-        delivery.setTitle(title);
-        return delivery;
     }
 
     @Transactional

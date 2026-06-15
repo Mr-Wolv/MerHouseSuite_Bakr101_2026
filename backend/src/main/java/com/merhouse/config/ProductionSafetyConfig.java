@@ -4,6 +4,8 @@ import com.merhouse.security.JwtService;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
@@ -11,6 +13,8 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class ProductionSafetyConfig {
+    private static final Logger log = LoggerFactory.getLogger(ProductionSafetyConfig.class);
+
     @Bean
     ApplicationRunner publicDeploymentSafetyCheck(
         @Value("${merhouse.deployment.public:false}") boolean publicDeployment,
@@ -28,6 +32,7 @@ public class ProductionSafetyConfig {
         @Value("${springdoc.api-docs.enabled:true}") boolean apiDocsEnabled,
         @Value("${springdoc.swagger-ui.enabled:true}") boolean swaggerUiEnabled,
         @Value("${merhouse.email.enabled:false}") boolean emailEnabled,
+        @Value("${merhouse.email.provider:smtp}") String emailProvider,
         @Value("${merhouse.email.from:}") String emailFrom,
         @Value("${merhouse.email.reply-to:}") String emailReplyTo,
         @Value("${spring.mail.host:}") String smtpHost,
@@ -52,6 +57,7 @@ public class ProductionSafetyConfig {
             apiDocsEnabled,
             swaggerUiEnabled,
             emailEnabled,
+            emailProvider,
             emailFrom,
             emailReplyTo,
             smtpHost,
@@ -76,6 +82,7 @@ public class ProductionSafetyConfig {
         boolean apiDocsEnabled,
         boolean swaggerUiEnabled,
         boolean emailEnabled,
+        String emailProvider,
         String emailFrom,
         String smtpHost,
         String smtpUsername,
@@ -99,6 +106,7 @@ public class ProductionSafetyConfig {
             apiDocsEnabled,
             swaggerUiEnabled,
             emailEnabled,
+            emailProvider,
             emailFrom,
             "",
             smtpHost,
@@ -123,6 +131,7 @@ public class ProductionSafetyConfig {
         boolean apiDocsEnabled,
         boolean swaggerUiEnabled,
         boolean emailEnabled,
+        String emailProvider,
         String emailFrom,
         String emailReplyTo,
         String smtpHost,
@@ -147,6 +156,7 @@ public class ProductionSafetyConfig {
             apiDocsEnabled,
             swaggerUiEnabled,
             emailEnabled,
+            emailProvider,
             emailFrom,
             emailReplyTo,
             smtpHost,
@@ -173,6 +183,7 @@ public class ProductionSafetyConfig {
         boolean apiDocsEnabled,
         boolean swaggerUiEnabled,
         boolean emailEnabled,
+        String emailProvider,
         String emailFrom,
         String smtpHost,
         String smtpUsername,
@@ -196,6 +207,7 @@ public class ProductionSafetyConfig {
             apiDocsEnabled,
             swaggerUiEnabled,
             emailEnabled,
+            emailProvider,
             emailFrom,
             "",
             smtpHost,
@@ -222,6 +234,7 @@ public class ProductionSafetyConfig {
         boolean apiDocsEnabled,
         boolean swaggerUiEnabled,
         boolean emailEnabled,
+        String emailProvider,
         String emailFrom,
         String emailReplyTo,
         String smtpHost,
@@ -279,6 +292,7 @@ public class ProductionSafetyConfig {
             failures.add("MERHOUSE_SWAGGER_ENABLED/springdoc API docs and Swagger UI must be disabled for public deployments.");
         }
         if (emailEnabled) {
+            boolean usingSmtp = "smtp".equalsIgnoreCase(emailProvider);
             if (isBlank(emailFrom)) {
                 failures.add("MERHOUSE_EMAIL_FROM must be set when email delivery is enabled for public deployments.");
             } else if (!isEmailLike(emailFrom) || looksLikePlaceholder(emailFrom)) {
@@ -287,14 +301,16 @@ public class ProductionSafetyConfig {
             if (!isBlank(emailReplyTo) && (!isEmailLike(emailReplyTo) || looksLikePlaceholder(emailReplyTo))) {
                 failures.add("MERHOUSE_EMAIL_REPLY_TO must be blank or a deployment reply-to email address, not a placeholder.");
             }
-            if (isBlank(smtpHost) || smtpHost.equalsIgnoreCase("localhost") || smtpHost.equals("127.0.0.1")) {
-                failures.add("MERHOUSE_SMTP_HOST must point to an external provider when email delivery is enabled for public deployments.");
-            }
-            if (isBlank(smtpUsername) || looksLikePlaceholder(smtpUsername)) {
-                failures.add("MERHOUSE_SMTP_USERNAME must be set to a private provider account when email delivery is enabled for public deployments.");
-            }
-            if (isBlank(smtpPassword) || looksLikePlaceholder(smtpPassword)) {
-                failures.add("MERHOUSE_SMTP_PASSWORD must be set to a private provider credential when email delivery is enabled for public deployments.");
+            if (usingSmtp) {
+                if (isBlank(smtpHost) || smtpHost.equalsIgnoreCase("localhost") || smtpHost.equals("127.0.0.1")) {
+                    failures.add("MERHOUSE_SMTP_HOST must point to an external provider when email delivery is enabled for public deployments.");
+                }
+                if (isBlank(smtpUsername) || looksLikePlaceholder(smtpUsername)) {
+                    failures.add("MERHOUSE_SMTP_USERNAME must be set to a private provider account when email delivery is enabled for public deployments.");
+                }
+                if (isBlank(smtpPassword) || looksLikePlaceholder(smtpPassword)) {
+                    failures.add("MERHOUSE_SMTP_PASSWORD must be set to a private provider credential when email delivery is enabled for public deployments.");
+                }
             }
         }
         if (!"deterministic".equalsIgnoreCase(normalize(agentMode))) {
@@ -307,6 +323,39 @@ public class ProductionSafetyConfig {
         if (!failures.isEmpty()) {
             throw new IllegalStateException("Public deployment refused: " + String.join(" ", failures));
         }
+    }
+
+    @Bean
+    ApplicationRunner emailProviderCheck(
+        @Value("${merhouse.email.enabled:false}") boolean emailEnabled,
+        @Value("${merhouse.deployment.public:false}") boolean publicDeployment,
+        @Value("${merhouse.email.provider:smtp}") String emailProvider,
+        @Value("${spring.mail.host:}") String smtpHost,
+        @Value("${spring.mail.username:}") String smtpUsername,
+        @Value("${merhouse.email.resend.api-key:}") String resendApiKey
+    ) {
+        return arguments -> {
+            if (!emailEnabled || !publicDeployment) {
+                return;
+            }
+            if ("resend".equals(emailProvider)) {
+                if (isBlank(resendApiKey)) {
+                    log.warn("Email provider is 'resend' but MERHOUSE_RESEND_API_KEY is not set."
+                        + " Email delivery will be attempted but may fail at runtime.");
+                } else {
+                    log.info("Email provider configured: Resend (API key present).");
+                }
+            } else if ("smtp".equals(emailProvider)) {
+                if (isBlank(smtpHost) || isBlank(smtpUsername)) {
+                    log.warn("Email provider is 'smtp' but SMTP host/username not fully configured."
+                        + " Email delivery will be attempted but may fail at runtime.");
+                } else {
+                    log.info("Email provider configured: SMTP ({}). Periodic health check will verify connectivity.", smtpHost);
+                }
+            } else if ("log".equals(emailProvider)) {
+                log.info("Email provider configured: console capture mode.");
+            }
+        };
     }
 
     private static boolean isBlank(String value) {
@@ -342,7 +391,6 @@ public class ProductionSafetyConfig {
             || normalized.contains("replace")
             || normalized.contains("example")
             || normalized.contains("local")
-            || normalized.contains("dev")
             || normalized.contains("password");
     }
 

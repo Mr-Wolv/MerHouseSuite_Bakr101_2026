@@ -217,7 +217,7 @@ class AuthRecoveryServiceTest {
 
         assertEquals("If an enabled account exists for that email, a one-time password has been sent.", response.message());
         verify(tokenRepository, never()).save(any());
-        verify(emailDeliveryService, never()).send(any(), any());
+        verify(emailDeliveryService, never()).sendAndForget(any(), any(), any(), any());
     }
 
     @Test
@@ -226,7 +226,6 @@ class AuthRecoveryServiceTest {
         user.setEmail("user@merhouse.local");
         user.setEnabled(true);
         when(userRepository.findByEmailIgnoreCase("user@merhouse.local")).thenReturn(Optional.of(user));
-        when(emailDeliveryService.send(any(), any())).thenReturn(com.merhouse.service.EmailDeliveryResult.sent("test"));
 
         var response = service.requestOtp(new PasswordResetRequest("user@merhouse.local"));
 
@@ -236,7 +235,7 @@ class AuthRecoveryServiceTest {
         assertNotNull(captor.getValue().getOtpCode());
         assertEquals(6, captor.getValue().getOtpCode().length());
         assertEquals(Instant.parse("2026-05-18T00:15:00Z"), captor.getValue().getExpiresAt());
-        verify(emailDeliveryService).send(any(), org.mockito.ArgumentMatchers.contains("one-time password"));
+        verify(emailDeliveryService).sendAndForget(isNull(), eq("user@merhouse.local"), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.contains("one-time password"));
     }
 
     @Test

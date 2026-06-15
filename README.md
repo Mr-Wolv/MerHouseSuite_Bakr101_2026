@@ -215,6 +215,7 @@ Managed rollout and deployed proof stay separate so deployment and verification 
 ```powershell
 .\scripts\deploy\huggingface-space-sync.ps1 -EnvFile ".secrets/deploy/managed/huggingface-vercel.env"
 .\scripts\deploy\huggingface-space-sync.ps1 -EnvFile ".secrets/deploy/managed/huggingface-vercel.env" -ConfirmUpload
+.\scripts\deploy\huggingface-space-sync.ps1 -EnvFile ".secrets/deploy/managed/huggingface-vercel.env" -ConfirmUpload -PushEnv
 .\scripts\proof\release\deployed-v17-proof.ps1 `
   -FrontendBaseUrl "https://app.example.com" `
   -ApiBaseUrl "https://api.example.com" `
@@ -232,7 +233,7 @@ Managed rollout and deployed proof stay separate so deployment and verification 
   -IncludeBrowserTour
 ```
 
-The Hugging Face sync script reads only an ignored private env file, prepares the Space source from tracked backend/template files, prints paths and repo IDs only, and requires `-ConfirmUpload` before pushing. Keep current managed deployment values under `.secrets/deploy/managed/`; keep provider CLI state under `.secrets/providers/`, Android signing material under `.secrets/android/keystores/`, and obsolete private material under `.secrets/archive/`.
+The Hugging Face sync script reads only an ignored private env file, prepares the Space source from tracked backend/template files, prints paths and repo IDs only, and requires `-ConfirmUpload` before pushing. Pass `-PushEnv` alongside `-ConfirmUpload` to also push runtime environment variables and secrets (DB credentials, JWT secret, SMTP credentials) directly into the Space Settings via the Hugging Face API; local-only tooling keys (`HF_TOKEN`, `HF_SPACE_REPO_ID`) are automatically excluded. Keep current managed deployment values under `.secrets/deploy/managed/`; keep provider CLI state under `.secrets/providers/`, Android signing material under `.secrets/android/keystores/`, and obsolete private material under `.secrets/archive/`.
 
 The deployed proof script checks frontend reachability, frontend-proxy API smoke, direct API smoke, repeated monitoring samples, performance/API timing, optional report-backed load smoke, optional browser tour evidence, and writes a private deployment evidence manifest. Deployed proof requires HTTPS frontend/API targets plus explicit staging or production smoke credentials, and rejects local demo defaults. Detailed attachment and cutover evidence rules live in [Production deployment activation](docs/operations/production-deployment-activation.md).
 

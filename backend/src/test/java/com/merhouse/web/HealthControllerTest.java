@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.merhouse.service.SmtpHealthMonitor;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
@@ -11,6 +12,11 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 
 class HealthControllerTest {
+    private static HealthController createController(DataSource dataSource) {
+        SmtpHealthMonitor monitor = mock(SmtpHealthMonitor.class);
+        return new HealthController(dataSource, monitor);
+    }
+
     @Test
     void healthReturnsUpWhenDatabaseIsAvailable() throws Exception {
         DataSource dataSource = mock(DataSource.class);
@@ -18,7 +24,7 @@ class HealthControllerTest {
         when(dataSource.getConnection()).thenReturn(connection);
         when(connection.isValid(2)).thenReturn(true);
 
-        HealthController controller = new HealthController(dataSource);
+        HealthController controller = createController(dataSource);
         Map<String, String> result = controller.health();
 
         assertEquals("UP", result.get("status"));
@@ -31,7 +37,7 @@ class HealthControllerTest {
         when(dataSource.getConnection()).thenReturn(connection);
         when(connection.isValid(2)).thenReturn(false);
 
-        HealthController controller = new HealthController(dataSource);
+        HealthController controller = createController(dataSource);
         Map<String, String> result = controller.health();
 
         assertEquals("DOWN", result.get("status"));
@@ -42,7 +48,7 @@ class HealthControllerTest {
         DataSource dataSource = mock(DataSource.class);
         when(dataSource.getConnection()).thenThrow(new SQLException("Connection refused"));
 
-        HealthController controller = new HealthController(dataSource);
+        HealthController controller = createController(dataSource);
         Map<String, String> result = controller.health();
 
         assertEquals("DOWN", result.get("status"));
@@ -55,7 +61,7 @@ class HealthControllerTest {
         when(dataSource.getConnection()).thenReturn(connection);
         when(connection.isValid(2)).thenThrow(new SQLException("Timeout"));
 
-        HealthController controller = new HealthController(dataSource);
+        HealthController controller = createController(dataSource);
         Map<String, String> result = controller.health();
 
         assertEquals("DOWN", result.get("status"));
@@ -66,7 +72,7 @@ class HealthControllerTest {
         DataSource dataSource = mock(DataSource.class);
         when(dataSource.getConnection()).thenThrow(new SQLException("fail"));
 
-        HealthController controller = new HealthController(dataSource);
+        HealthController controller = createController(dataSource);
         Map<String, String> result = controller.health();
 
         assertEquals(1, result.size());

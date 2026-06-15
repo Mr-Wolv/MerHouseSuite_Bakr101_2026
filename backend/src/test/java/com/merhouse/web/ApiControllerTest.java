@@ -53,18 +53,19 @@ import com.merhouse.service.MerchantWarehouseService;
 import com.merhouse.service.OrderService;
 import com.merhouse.service.OrderImportService;
 import com.merhouse.service.ServiceAccountabilityService;
-import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import com.merhouse.service.SmtpHealthMonitor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -125,6 +126,9 @@ class ApiControllerTest {
 
     @MockitoBean
     private DataSource dataSource;
+
+    @MockitoBean
+    private SmtpHealthMonitor smtpHealthMonitor;
 
     @Test
     void healthEndpointReportsReadinessWithoutDomainData() throws Exception {

@@ -249,9 +249,6 @@ class AccessRequestServiceTest {
         when(userService.getRequired(reviewerId)).thenReturn(reviewer);
         when(tenantService.create(org.mockito.ArgumentMatchers.any())).thenReturn(tenant);
         when(userService.create(org.mockito.ArgumentMatchers.any())).thenReturn(user);
-        when(emailDeliveryService.send(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
-            .thenReturn(EmailDeliveryResult.sent("test"));
-
         service.approveAndActivate(requestId, reviewerId, new AccessRequestReviewRequest("Auto-activate"));
 
         assertEquals(AccessRequestStatus.APPROVED, accessRequest.getStatus());
@@ -270,7 +267,7 @@ class AccessRequestServiceTest {
             eq("AccessRequest"),
             eq(requestId)
         );
-        verify(emailDeliveryService).send(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.contains("newmerchant@merhouse.local"));
+        verify(emailDeliveryService).sendAndForget(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq("newmerchant@merhouse.local"), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
         verify(requestRepository).save(accessRequest);
     }
 

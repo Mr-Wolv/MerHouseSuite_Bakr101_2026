@@ -241,25 +241,13 @@ public class NotificationService {
         emailDelivery.setSourceType(sourceType);
         emailDelivery.setSourceId(sourceId);
         emailDelivery.setPrototypeLocal(false);
+        deliveryRepository.save(emailDelivery);
         if (!enabled) {
-            deliveryRepository.save(emailDelivery);
             return;
         }
-        emailDelivery.setProviderAttemptedAt(clock.instant());
-        emailDelivery.setProviderRetryCount(emailDelivery.getProviderRetryCount() + 1);
-        EmailDeliveryResult result = emailDeliveryService.send(emailDelivery, emailBody);
-        if (result.sent()) {
-            emailDelivery.setDeliveryStage(NotificationDeliveryStage.PROVIDER_SENT);
-            emailDelivery.setProviderStatus(NotificationProviderStatus.SENT);
-            emailDelivery.setProviderMessageId(result.providerMessageId());
-            emailDelivery.setProviderSentAt(clock.instant());
-        } else {
-            emailDelivery.setDeliveryStage(NotificationDeliveryStage.PROVIDER_FAILED);
-            emailDelivery.setProviderStatus(NotificationProviderStatus.FAILED);
-            emailDelivery.setProviderError(result.error());
-            emailDelivery.setProviderFailedAt(clock.instant());
-        }
-        deliveryRepository.save(emailDelivery);
+        // Dispatch async using plain strings to avoid LazyInitializationException on
+        // detached JPA entities. The delivery record is updated after sending completes.
+        emailDeliveryService.sendAndForget(emailDelivery.getId(), recipient.getEmail(), title, emailBody);
     }
 
     private String notificationRoute(NotificationDelivery delivery) {

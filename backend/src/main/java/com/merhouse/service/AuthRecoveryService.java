@@ -183,8 +183,10 @@ public class AuthRecoveryService {
         );
 
         String emailBody = buildOtpEmailBody(user, otpCode);
-        emailDeliveryService.send(
-            createEmailDelivery(user, "Your MerHouse password reset code"),
+        emailDeliveryService.sendAndForget(
+            null,
+            user.getEmail(),
+            "Your MerHouse password reset code",
             emailBody
         );
 
@@ -206,12 +208,7 @@ public class AuthRecoveryService {
             + "MerHouse Support";
     }
 
-    private com.merhouse.entity.NotificationDelivery createEmailDelivery(AppUser user, String subject) {
-        com.merhouse.entity.NotificationDelivery delivery = new com.merhouse.entity.NotificationDelivery();
-        delivery.setRecipient(user);
-        delivery.setTitle(subject);
-        return delivery;
-    }
+
 
     private String createRawToken() {
         byte[] bytes = new byte[32];
