@@ -211,7 +211,7 @@ Reviewer/product owner mode: the reviewer asked the agent to drive the live brow
 
 Local stack:
 
-- Browser app URL: `http://localhost:3000`
+- Browser app URL: `http://localhost:3001`
 - API URL: `http://localhost:8080`
 - Native API base used for APK assembly: `http://10.0.2.2:8080`
 - APK path: `frontend/android/app/build/outputs/apk/debug/app-debug.apk`
@@ -221,7 +221,7 @@ Local stack:
 Evidence:
 
 - Installed Android APK was opened visibly on the `Pixel_7` emulator. The login, forgot-password, access-request, owner/admin, support-admin, auditor, active merchant, empty merchant, active warehouse, empty warehouse, notification, service-accountability, assistant, and account surfaces were driven through the WebView and checked with screenshots under `reports/final-live-walkthrough/android`.
-- Browser live proof drove the same shared React surface at `http://localhost:3000` for public routes, owner/admin, active/empty merchant, active/empty warehouse, notifications, service accountability, assistant, and account routes with screenshots under `reports/final-live-walkthrough/browser`.
+- Browser live proof drove the same shared React surface at `http://localhost:3001` for public routes, owner/admin, active/empty merchant, active/empty warehouse, notifications, service accountability, assistant, and account routes with screenshots under `reports/final-live-walkthrough/browser`.
 - The browser pass recorded 21 visible screens, 0 console errors, and no suspicious loading/error/overflow findings.
 - The first installed-APK pass recorded 37 visible screens, but manual screenshot review showed owner/support/auditor `/admin` remained on the full-page `Loading admin overview` card after the rest of the app was usable.
 
@@ -362,7 +362,7 @@ Working-tree scope for this iteration:
 
 Surfaces, roles, states, and workflows inspected:
 
-- Live Docker frontend at `http://localhost:3000` and backend at `http://localhost:8080`.
+- Live Docker frontend at `http://localhost:3001` and backend at `http://localhost:8080`.
 - Browser tour across public routes, owner, admin, support-admin, auditor, active merchant, empty merchant, active warehouse, and empty warehouse states.
 - Installed Android debug APK on `Pixel_7` emulator, device serial `emulator-5554`.
 - Native public/auth, admin, service-accountability, assistant, notifications, account, merchant, warehouse, and operational detail routes.
@@ -390,7 +390,7 @@ Fix:
 
 Proof run:
 
-- `.\scripts\proof\web\frontend-full-tour.ps1 -BaseUrl "http://localhost:3000" -ApiUrl "http://localhost:8080" -OutputPath ".\reports\wrapup-frontend-full-tour.json"` passed 5 Playwright tests and wrote the browser tour report plus action reports.
+- `.\scripts\proof\web\frontend-full-tour.ps1 -BaseUrl "http://localhost:3001" -ApiUrl "http://localhost:8080" -OutputPath ".\reports\wrapup-frontend-full-tour.json"` passed 5 Playwright tests and wrote the browser tour report plus action reports.
 - `.\scripts\proof\android\native-mobile-check.ps1 -Assemble -ApiBaseUrl "http://10.0.2.2:8080"` passed and built `frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
 - `.\scripts\proof\android\native-android-tour.ps1 -ApiUrl "http://localhost:8080" -OutputPath ".\reports\wrapup-native-android-tour.json" -ScreenshotDirectory ".\reports\wrapup-native-android-tour"` passed on `emulator-5554`.
 - `.\scripts\proof\release\cross-surface-tour-check.ps1 -WebReportPath ".\reports\wrapup-frontend-full-tour.json" -NativeReportPath ".\reports\wrapup-native-android-tour.json"` passed.

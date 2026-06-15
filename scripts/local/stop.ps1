@@ -9,11 +9,11 @@ $projectRoot = Get-MerHouseProjectRoot
 
 Push-Location $projectRoot
 try {
-    $args = @("compose", "down", "--remove-orphans")
+    $downArgs = @("compose", "down", "--remove-orphans")
     if ($RemoveVolumes) {
-        $args += "--volumes"
+        $downArgs += "--volumes"
     }
-    & docker @args
+    & docker @downArgs
     if ($LASTEXITCODE -ne 0) {
         throw "Docker Compose stop failed."
     }

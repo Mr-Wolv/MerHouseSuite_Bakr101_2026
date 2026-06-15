@@ -113,7 +113,7 @@ class AuthRecoveryServiceTest {
             emailDeliveryService,
             clock,
             true,
-            "http://localhost:3000",
+            "http://localhost:3001",
             5,
             60
         );

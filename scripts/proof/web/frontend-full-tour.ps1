@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = "http://localhost:3000",
+    [string]$BaseUrl = "http://localhost:3001",
     [string]$ApiUrl = $BaseUrl,
     [string]$OutputPath = ".\reports\latest-frontend-full-tour.json",
     [string]$AdminEmail = "admin@merhouse.local",

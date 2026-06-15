@@ -84,7 +84,7 @@ docker compose up --build
 
 Local URLs:
 
-- Frontend: `http://localhost:3000`
+- Frontend: `http://localhost:3001`
 - Backend: `http://localhost:8080`
 
 The compose stack builds and runs PostgreSQL, the Spring Boot API, and the nginx-served frontend. Compose uses `backend/backend-compose.Dockerfile` and `frontend/frontend-compose.Dockerfile`; managed deployment templates live under `deploy/managed/`. Local development does not require Neon, Hugging Face, Vercel, SMTP, or Android signing secrets.

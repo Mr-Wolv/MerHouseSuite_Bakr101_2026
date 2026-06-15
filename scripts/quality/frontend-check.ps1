@@ -51,7 +51,7 @@ try {
         $previousApiUrl = $env:E2E_API_URL
         try {
             if (-not $env:FRONTEND_TOUR_BASE_URL) {
-                $env:FRONTEND_TOUR_BASE_URL = "http://localhost:3000"
+                $env:FRONTEND_TOUR_BASE_URL = "http://localhost:3001"
             }
             if (-not $env:E2E_API_URL) {
                 $env:E2E_API_URL = $env:FRONTEND_TOUR_BASE_URL

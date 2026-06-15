@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "..\proof\lib\url-guard-lib.ps1")
 
 if ([string]::IsNullOrWhiteSpace($Url)) {
-    $Url = Join-Path (Get-MerHouseDefaultApiUrl) "/api/v1/health"
+    $Url = "$(Get-MerHouseDefaultApiUrl)/api/v1/health"
 }
 
 $readinessUrl = Assert-AbsoluteHttpUrl -Name "Url" -Value $Url

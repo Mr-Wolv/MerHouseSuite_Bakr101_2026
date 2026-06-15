@@ -53,7 +53,7 @@ public class AuthRecoveryService {
         EmailDeliveryService emailDeliveryService,
         Clock clock,
         @Value("${merhouse.auth.recovery.expose-reset-token:false}") boolean exposeResetToken,
-        @Value("${merhouse.public.frontend-url:http://localhost:3000}") String publicFrontendUrl,
+        @Value("${merhouse.public.frontend-url:http://localhost:3001}") String publicFrontendUrl,
         @Value("${merhouse.auth.recovery.request-limit:5}") int resetRequestLimit,
         @Value("${merhouse.auth.recovery.request-window-minutes:60}") long resetRequestWindowMinutes
     ) {
@@ -247,7 +247,7 @@ public class AuthRecoveryService {
 
     private String trimTrailingSlash(String value) {
         if (value == null || value.isBlank()) {
-            return "http://localhost:3000";
+            return "http://localhost:3001";
         }
         return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
     }

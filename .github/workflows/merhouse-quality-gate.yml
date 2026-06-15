@@ -244,8 +244,8 @@ jobs:
           MERHOUSE_SWAGGER_ENABLED=true
           MERHOUSE_DEPLOYMENT_PUBLIC=false
           MERHOUSE_BACKEND_PORT=8080
-          MERHOUSE_FRONTEND_PORT=3000
-          MERHOUSE_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost,capacitor://localhost,ionic://localhost
+          MERHOUSE_FRONTEND_PORT=3001
+          MERHOUSE_CORS_ALLOWED_ORIGINS=http://localhost:3001,http://localhost,capacitor://localhost,ionic://localhost
           EOF
 
       - name: Start Docker Compose stack
@@ -284,7 +284,7 @@ jobs:
 
       - name: Run frontend full tour
         shell: pwsh
-        run: ./scripts/proof/web/frontend-full-tour.ps1 -BaseUrl "http://localhost:3000" -ApiUrl "http://localhost:3000" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD -MerchantPassword $env:CI_REVIEW_PASSWORD -WarehousePassword $env:CI_REVIEW_PASSWORD -SupportAdminPassword $env:CI_REVIEW_PASSWORD -AuditorPassword $env:CI_REVIEW_PASSWORD -OutputPath "reports/ci-frontend-full-tour.json"
+        run: ./scripts/proof/web/frontend-full-tour.ps1 -BaseUrl "http://localhost:3001" -ApiUrl "http://localhost:3001" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD -MerchantPassword $env:CI_REVIEW_PASSWORD -WarehousePassword $env:CI_REVIEW_PASSWORD -SupportAdminPassword $env:CI_REVIEW_PASSWORD -AuditorPassword $env:CI_REVIEW_PASSWORD -OutputPath "reports/ci-frontend-full-tour.json"
 
       - name: Print Docker Compose logs
         if: failure()

@@ -93,7 +93,7 @@ The Playwright suite runs with one worker because the end-to-end tests share one
 When the Docker frontend is already running, point the whole Playwright suite at it so both route-tour and admin-console specs use the same browser target:
 
 ```powershell
-$env:FRONTEND_TOUR_BASE_URL = "http://localhost:3000"
+$env:FRONTEND_TOUR_BASE_URL = "http://localhost:3001"
 npm run test:e2e
 Remove-Item Env:\FRONTEND_TOUR_BASE_URL
 ```

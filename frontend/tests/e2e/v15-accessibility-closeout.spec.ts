@@ -3,7 +3,7 @@ import type { APIRequestContext, Page } from '@playwright/test'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
-const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://localhost:3000'
+const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://localhost:3001'
 const API_URL = process.env.E2E_API_URL ?? APP_URL
 const REPORT_PATH = process.env.V15_CLOSEOUT_REPORT ?? '../reports/v15-closeout/v15-accessibility-proof.json'
 

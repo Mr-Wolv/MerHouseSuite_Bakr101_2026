@@ -105,7 +105,7 @@ describe('AuthProvider comprehensive session management', () => {
 
   it('sets token, user, and localStorage on successful login', async () => {
     apiMock.login.mockResolvedValue({
-      accessToken: 'fresh-login-token',
+      accessToken: 'fresh-token',
       user: { ...mockUser, email: 'proof@merhouse.local' },
     })
 
@@ -118,8 +118,8 @@ describe('AuthProvider comprehensive session management', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Login' }))
 
     await waitFor(() => {
-      expect(localStorage.getItem(TOKEN_KEY)).toBe('fresh-login-token')
-      expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('fresh-login-token')
+      expect(localStorage.getItem(TOKEN_KEY)).toBe('fresh-token')
+      expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('fresh-token')
       expect(screen.getByText('User').nextElementSibling).toHaveTextContent('proof@merhouse.local')
     })
   })

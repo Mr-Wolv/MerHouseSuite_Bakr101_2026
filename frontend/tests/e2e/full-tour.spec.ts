@@ -521,10 +521,6 @@ async function chooseSelectOptionByText(page: Page, formLabel: string, selectLab
   )
 }
 
-async function expectNotificationTitle(page: Page, title: string) {
-  await expect(page.locator('article').filter({ hasText: title }).first()).toBeVisible()
-}
-
 async function collectDetailPaths(
   browser: Browser,
   role: AuthenticatedRole,

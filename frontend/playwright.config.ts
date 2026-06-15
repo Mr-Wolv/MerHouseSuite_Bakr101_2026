@@ -10,7 +10,7 @@ export default defineConfig({
   reporter: [['list']],
   use: {
     baseURL: frontendBaseUrl,
-    trace: 'retain-on-failure',
+    trace: 'on',
   },
   webServer: usesExternalFrontendTour
     ? undefined

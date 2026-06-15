@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = "http://localhost:3000",
+    [string]$BaseUrl = "http://localhost:3001",
     [string]$OutputPath,
     [string]$AdminEmail = "admin@merhouse.local",
     [string]$AdminPassword = "local-owner-password",

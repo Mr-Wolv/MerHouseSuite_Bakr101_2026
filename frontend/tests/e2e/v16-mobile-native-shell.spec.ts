@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://localhost:3000'
+const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://localhost:3001'
 
 test('shared mobile shell metadata supports native packaging and matches the app shell', async ({ page, request }) => {
   await page.setViewportSize({ width: 390, height: 844 })

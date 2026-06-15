@@ -109,7 +109,7 @@ The wrapper runs Vitest with `--no-file-parallelism` so the heavier jsdom route 
 `frontend-check.ps1 -IncludeE2E` defaults the shared browser and API targets to the Docker frontend on port 3000 so every Playwright spec uses the same running app. To test another running frontend, override the shared browser target:
 
 ```powershell
-$env:FRONTEND_TOUR_BASE_URL = "http://localhost:3000"
+$env:FRONTEND_TOUR_BASE_URL = "http://localhost:3001"
 .\scripts\quality\frontend-check.ps1 -SkipInstall -IncludeE2E
 Remove-Item Env:\FRONTEND_TOUR_BASE_URL
 ```

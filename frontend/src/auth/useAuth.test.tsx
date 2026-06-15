@@ -2,12 +2,14 @@ import { render, screen } from '@testing-library/react'
 import { useAuth } from './useAuth'
 
 function ErrorProbe() {
+  let message: string
   try {
     useAuth()
-    return <div>OK</div>
+    message = 'OK'
   } catch (error) {
-    return <div>{(error as Error).message}</div>
+    message = (error as Error).message
   }
+  return <div>{message}</div>
 }
 
 describe('useAuth', () => {
