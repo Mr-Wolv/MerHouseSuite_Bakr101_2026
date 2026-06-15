@@ -52,10 +52,12 @@ public class OutboxProcessor {
     }
 
     public OutboxProcessingResult processBatch(int limit) {
-        List<OutboxEvent> events = outboxEventRepository.findProcessable(
-            Instant.now(),
-            maxAttempts,
-            PageRequest.of(0, Math.max(1, limit))
+        List<OutboxEvent> events = transactionTemplate.execute(status ->
+            outboxEventRepository.findProcessable(
+                Instant.now(),
+                maxAttempts,
+                PageRequest.of(0, Math.max(1, limit))
+            )
         );
 
         int processed = 0;
@@ -97,11 +99,18 @@ public class OutboxProcessor {
             }
         }
 
+        long pendingCount = transactionTemplate.execute(status ->
+            outboxEventRepository.countByStatus(OutboxEventStatus.PENDING)
+        );
+        long failedCount = transactionTemplate.execute(status ->
+            outboxEventRepository.countByStatusAndAttemptsLessThan(OutboxEventStatus.FAILED, maxAttempts)
+        );
+
         return new OutboxProcessingResult(
             processed,
             failed,
-            outboxEventRepository.countByStatus(OutboxEventStatus.PENDING),
-            outboxEventRepository.countByStatusAndAttemptsLessThan(OutboxEventStatus.FAILED, maxAttempts)
+            pendingCount,
+            failedCount
         );
     }
 
