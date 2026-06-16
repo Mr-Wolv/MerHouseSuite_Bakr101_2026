@@ -1,5 +1,5 @@
 name: MerHouse Android Release
-run-name: MerHouse Android Release - ${{ inputs.version_name || github.event_name }} on ${{ github.ref_name }}
+run-name: MerHouse Android Release - ${{ inputs.version_name || 'auto' }} on ${{ github.ref_name }}
 
 on:
   push:
@@ -29,51 +29,20 @@ permissions:
   contents: write
 
 concurrency:
-  group: merhouse-android-${{ github.event_name }}-${{ github.ref }}
+  group: merhouse-android-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  # ── Automated CI build validation ──────────────────────────────────────
+  # ── Unified Android build: signed when secrets exist, unsigned on push ─
   # Runs on every push to main (like Vercel auto-builds the frontend).
-  # Verifies the frontend + Android build pipeline without signing secrets.
-  ci-build:
-    name: Android CI Build
-    if: github.event_name == 'push'
+  # Produces a signed APK + GitHub Release on workflow_dispatch.
+  build:
+    name: ${{ github.event_name == 'workflow_dispatch' && 'Signed APK + Release' || 'Android Build' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Set up Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build Android debug APK
-        shell: pwsh
-        run: ./scripts/proof/android/native-mobile-check.ps1 -Assemble -ApiBaseUrl "http://10.0.2.2:8080"
-
-  # ── Signed release (manual only) ───────────────────────────────────────
-  # Produces a signed APK and publishes a GitHub Release.
-  # Requires signing secrets configured in the repository settings.
-  signed-apk:
-    name: Build signed APK
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
+    env:
+      MERHOUSE_ANDROID_VERSION_CODE: ${{ inputs.version_code || '17' }}
+      MERHOUSE_ANDROID_VERSION_NAME: ${{ inputs.version_name || '0.17.0-internal' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -96,40 +65,56 @@ jobs:
         run: npm ci
 
       - name: Decode signing keystore
+        id: keystore
+        if: secrets.MERHOUSE_ANDROID_KEYSTORE_BASE64 != ''
         shell: bash
         env:
           MERHOUSE_ANDROID_KEYSTORE_BASE64: ${{ secrets.MERHOUSE_ANDROID_KEYSTORE_BASE64 }}
         run: |
-          if [ -z "$MERHOUSE_ANDROID_KEYSTORE_BASE64" ]; then
-            echo "MERHOUSE_ANDROID_KEYSTORE_BASE64 secret is required." >&2
-            exit 1
-          fi
           printf '%s' "$MERHOUSE_ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/merhouse-release.jks"
+          echo "path=$RUNNER_TEMP/merhouse-release.jks" >> "$GITHUB_OUTPUT"
+          echo "Signing keystore decoded successfully."
 
-      - name: Build signed internal APK
+      - name: Build Android APK
         shell: pwsh
         env:
-          MERHOUSE_ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/merhouse-release.jks
+          MERHOUSE_ANDROID_KEYSTORE_PATH: ${{ steps.keystore.outputs.path }}
           MERHOUSE_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.MERHOUSE_ANDROID_KEYSTORE_PASSWORD }}
           MERHOUSE_ANDROID_KEY_ALIAS: ${{ secrets.MERHOUSE_ANDROID_KEY_ALIAS }}
           MERHOUSE_ANDROID_KEY_PASSWORD: ${{ secrets.MERHOUSE_ANDROID_KEY_PASSWORD }}
-          MERHOUSE_ANDROID_VERSION_CODE: ${{ inputs.version_code }}
-          MERHOUSE_ANDROID_VERSION_NAME: ${{ inputs.version_name }}
-          MERHOUSE_ANDROID_API_BASE_URL: ${{ secrets.MERHOUSE_ANDROID_API_BASE_URL }}
-          MERHOUSE_ANDROID_FRONTEND_URL: ${{ secrets.MERHOUSE_ANDROID_FRONTEND_URL }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:MERHOUSE_ANDROID_API_BASE_URL)) {
-            throw "MERHOUSE_ANDROID_API_BASE_URL secret is required."
+          $hasSigning = -not [string]::IsNullOrWhiteSpace($env:MERHOUSE_ANDROID_KEYSTORE_PATH)
+          $apiUrl = if (-not [string]::IsNullOrWhiteSpace('${{ secrets.MERHOUSE_ANDROID_API_BASE_URL }}')) {
+            '${{ secrets.MERHOUSE_ANDROID_API_BASE_URL }}'
+          } else {
+            'http://10.0.2.2:8080'
           }
-          if ([string]::IsNullOrWhiteSpace($env:MERHOUSE_ANDROID_FRONTEND_URL)) {
-            throw "MERHOUSE_ANDROID_FRONTEND_URL secret is required."
+          $frontendUrl = if (-not [string]::IsNullOrWhiteSpace('${{ secrets.MERHOUSE_ANDROID_FRONTEND_URL }}')) {
+            '${{ secrets.MERHOUSE_ANDROID_FRONTEND_URL }}'
+          } else {
+            ''
           }
-          ./scripts/proof/android/native-android-release-check.ps1 `
-            -ApiBaseUrl "$env:MERHOUSE_ANDROID_API_BASE_URL" `
-            -FrontendUrl "$env:MERHOUSE_ANDROID_FRONTEND_URL" `
-            -OutputPath "reports/v17-android-release-${{ inputs.version_name }}.json"
+          if ($hasSigning -and $frontendUrl) {
+            Write-Host "Building signed APK with deployed URLs."
+            ./scripts/proof/android/native-android-release-check.ps1 `
+              -ApiBaseUrl $apiUrl `
+              -FrontendUrl $frontendUrl `
+              -OutputPath "reports/v17-android-release-$env:MERHOUSE_ANDROID_VERSION_NAME.json"
+          } else {
+            Write-Host "Building unsigned debug APK (signing secrets not configured)."
+            ./scripts/proof/android/native-mobile-check.ps1 -Assemble -ApiBaseUrl $apiUrl
+          }
+
+      - name: Upload APK artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event_name == 'workflow_dispatch' && 'signed-apk' || 'debug-apk' }}
+          path: frontend/android/app/build/outputs/apk/**/*.apk
+          retention-days: 14
 
       - name: Publish GitHub Release
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

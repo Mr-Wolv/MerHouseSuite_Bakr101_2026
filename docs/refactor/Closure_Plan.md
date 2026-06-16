@@ -38,28 +38,32 @@ The repository is considered closed only when all of the following are true:
 #### A-01
 
 - **ID:** `A-01`
-- **Description:** Update the hostile browser proof lane to cover the closure-critical public lifecycle flows: OTP password recovery, `/how-to-use`, and approve-and-activate.
-- **Why it exists:** These flows exist in code but are not currently proven by the main browser proof used for closure decisions.
-- **Evidence:** `frontend/tests/e2e/full-tour.spec.ts` still drives the old reset-token flow and does not prove `/how-to-use` or approve-and-activate behavior; current UI now uses OTP recovery routes in `frontend/src/pages/AuthRecoveryPages.tsx`.
+- **Description:** Expand the hostile browser proof lane to comprehensively cover all 6 stakeholder roles (OWNER, ADMIN, SUPPORT_ADMIN, AUDITOR, MERCHANT, WAREHOUSE_OPERATOR), all state machine workflows, and all system routes — including but not limited to the closure-critical OTP password recovery, `/how-to-use`, and approve-and-activate flows.
+- **Why it exists:** Deployed proof (Workstream C) is externally blocked by SMTP and live-infrastructure access constraints. Comprehensive local browser proof across every role and route strengthens local verification to the maximum feasible coverage without falsely substituting for deployed-lane artifacts.
+- **Evidence:** `frontend/tests/e2e/full-tour.spec.ts` still drives the old reset-token flow and does not prove `/how-to-use` or approve-and-activate behavior; current UI now uses OTP recovery routes in `frontend/src/pages/AuthRecoveryPages.tsx`. The existing tour already iterates routes per role but does not exercise closure-critical workflow transitions.
 - **Files affected:** `frontend/tests/e2e/full-tour.spec.ts`, `frontend/src/pages/AuthRecoveryPages.tsx`, `frontend/src/pages/HowToUsePage.tsx`, `frontend/src/pages/AdminPages.tsx`, `scripts/proof/web/frontend-full-tour.ps1`, any supporting fixtures under `frontend/tests/e2e/`.
 - **Dependencies:** None.
 - **Acceptance criteria:**
-- The browser tour runs successfully against the current application flow.
+- The browser tour runs successfully against the current application flow for all 6 authenticated roles plus public.
 - The tour proves request OTP, verify OTP screen entry, reset completion, `/how-to-use`, and approve-and-activate.
+- Every state machine transition visible through the UI is exercised for at least one role that can trigger it.
+- Every authenticated route is visited and its interactive surface recorded for each authorized role.
 - The generated report is accepted by existing report-aware proof gates without manual exceptions.
 - **Priority:** `P0`
 
 #### A-02
 
 - **ID:** `A-02`
-- **Description:** Extend the API smoke/scenario lane so closure-critical public lifecycle flows are exercised through current endpoints and states.
-- **Why it exists:** The API scenario suite still proves legacy recovery and older access-request handling, leaving current closure-critical runtime paths under-proven.
-- **Evidence:** `scripts/api/scenarios/14-auth-recovery-access.ps1` covers reset-token proof and approve/reject behavior but not OTP recovery or approve-and-activate; `scripts/api/scenarios/05-admin-control-plane.ps1` does not prove approve-and-activate.
-- **Files affected:** `scripts/api/scenarios/14-auth-recovery-access.ps1`, `scripts/api/scenarios/05-admin-control-plane.ps1`, `scripts/quality/api-smoke.ps1`, supporting helpers under `scripts/api/`.
+- **Description:** Expand the API smoke/scenario lane so every controller endpoint is exercised across role boundaries, with particular depth on closure-critical public lifecycle flows (OTP recovery, approve-and-activate) and all state machine transitions.
+- **Why it exists:** Deployed proof (Workstream C) is externally blocked. Comprehensive local API proof across all endpoints and roles provides the strongest feasible runtime verification. The existing scenario suite still proves legacy recovery and older access-request handling, leaving current runtime paths under-proven.
+- **Evidence:** `scripts/api/scenarios/14-auth-recovery-access.ps1` covers reset-token proof and approve/reject behavior but not OTP recovery or approve-and-activate; `scripts/api/scenarios/05-admin-control-plane.ps1` does not prove approve-and-activate. Several controllers (notifications, assistant, service accountability, shipment lifecycle) have scenario coverage but lack role-boundary enforcement checks.
+- **Files affected:** `scripts/api/scenarios/14-auth-recovery-access.ps1`, `scripts/api/scenarios/05-admin-control-plane.ps1`, `scripts/quality/api-smoke.ps1`, supporting helpers under `scripts/api/`, potentially new scenario files for under-covered endpoints.
 - **Dependencies:** None.
 - **Acceptance criteria:**
 - API smoke passes against a seeded local stack using `request-otp` and `reset-with-otp`.
 - API smoke proves approve-and-activate through the current controller/service behavior.
+- Every public API endpoint has at least one scenario that exercises it with correct role authorization.
+- Role-boundary enforcement is verified: unauthorized roles receive 403 on privileged endpoints.
 - Smoke output is suitable for reuse by deployment-shaped proof without custom branching.
 - **Priority:** `P0`
 
@@ -124,6 +128,8 @@ The repository is considered closed only when all of the following are true:
 
 #### C-01
 
+> **Status:** Externally blocked. Unblocking condition: SMTP credentials and deployed HTTPS URLs configured in the proof execution environment.
+
 - **ID:** `C-01`
 - **Description:** Produce a current deployed V17 evidence package with browser tour, monitoring proof, load smoke, and cutover-readiness validation.
 - **Why it exists:** Deployment cannot be considered closed until the current live lane has fresh, schema-valid evidence rather than only script availability.
@@ -137,6 +143,8 @@ The repository is considered closed only when all of the following are true:
 - **Priority:** `P0`
 
 #### C-02
+
+> **Status:** Externally blocked. Unblocking condition: Android signing keystore and deployed HTTPS target URLs available in the proof execution environment.
 
 - **ID:** `C-02`
 - **Description:** Produce signed Android release proof tied to the same deployed lane, then link it to installed-Android evidence.
@@ -152,6 +160,8 @@ The repository is considered closed only when all of the following are true:
 
 #### C-03
 
+> **Status:** Externally blocked. Unblocking condition: deployment boundary access available for backup/restore and rollback proof execution.
+
 - **ID:** `C-03`
 - **Description:** Close the backup/restore and rollback proof gap by making the repository claims and script inventory consistent, then executing the required proof path.
 - **Why it exists:** Closure cannot survive review while deployment docs claim backup/rollback proof capability that is missing or unverified in the repository.
@@ -165,6 +175,8 @@ The repository is considered closed only when all of the following are true:
 - **Priority:** `P0`
 
 #### C-04
+
+> **Status:** Externally blocked. Unblocking condition: SMTP provider (Brevo) credentials configured and operator available for live walkthrough.
 
 - **ID:** `C-04`
 - **Description:** Record email-provider, alert-routing, and final live stakeholder walkthrough proof for the current deployed lane.
@@ -340,13 +352,16 @@ The repository is considered closed only when all of the following are true:
 
 ## Suggested Execution Order
 
-1. Complete `D-01` and `D-04` first so the repository has one coherent closure story.
-2. Complete `A-01`, `A-02`, and `B-01` so closure-critical proof matches the real product flows.
-3. Complete `D-02`, `D-03`, and `E-01` so docs and diagrams converge on the tested implementation.
-4. Complete `C-03` and `F-01` so backup/rollback claims and script inventory are real and auditable.
-5. Complete `C-01`, `C-02`, `C-04`, and `F-02` against the live deployed lane.
-6. Run `F-03` and re-run the closure-critical quality and preflight gates.
-7. Finish `A-03`, `A-04`, and `E-02` if any targeted hardening remains open before declaring closure.
+> **Amendment (2026-06-16):** Deployed proof tasks (C-01, C-02, C-03, C-04) are externally blocked by SMTP, signing material, and live-infrastructure access constraints. Rather than substituting local evidence for deployed artifacts, the current strategy expands local proof lanes (A-01, A-02) to comprehensively cover all roles, routes, and state machine workflows — providing the strongest feasible local verification. Blocked tasks remain open until their unblocking conditions are met.
+
+1. ~~Complete `D-01` and `D-04` first so the repository has one coherent closure story.~~ **(Done)**
+2. Expand and complete `A-01` and `A-02` with comprehensive all-role, all-route, all-state-machine coverage so local proof is as strong as possible while deployed proof is blocked.
+3. ~~Complete `D-02`, `D-03`, and `E-01` so docs and diagrams converge on the tested implementation.~~ **(Done)**
+4. Complete `B-01` so CI validates the expanded browser and API proof lanes.
+5. Complete `A-03`, `A-04`, and `E-02` for targeted hardening.
+6. Complete `C-03` (doc/script alignment portion only) and `F-01` so backup/rollback claims and script inventory are real and auditable.
+7. **When unblocked:** Complete `C-01`, `C-02`, `C-03` (live execution), `C-04`, `B-02`, and `F-02` against the live deployed lane.
+8. Run `F-03` and re-run the closure-critical quality and preflight gates.
 
 ## Closure Gate
 

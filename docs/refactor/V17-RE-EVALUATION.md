@@ -28,7 +28,7 @@ For the ordered closure checklist, use [`Closure_Plan.md`](./Closure_Plan.md). F
 | Email console capture mode | Implemented | `EmailDeliveryService.java`, `application.properties`. |
 | AI Assistant Completion with threading/chat UI | Deferred to Vinfinite | Not implemented; current deterministic assistant remains read-plus-draft, flat-history, non-threaded behavior. |
 | Local quality baseline | Proven | V16.2 local certification and cross-surface evidence are tracked in `docs/quality/`. |
-| Deployed closure evidence package | Still open | Scripts exist, but closure still requires fresh proof artifacts and attachment validation for the active live lane. |
+| Deployed closure evidence package | Blocked | Scripts exist, but closure still requires fresh proof artifacts. Externally blocked by SMTP credentials, signing material, and deployed-infrastructure access. See `Closure_Progress_Log.md` for unblocking conditions. |
 
 ## What V17 Means Now
 
@@ -45,11 +45,13 @@ AI Assistant Completion is not part of V17 closure. Conversation threading, chat
 
 The remaining V17 work is therefore closure work:
 
-- update closure-critical browser and API proof to reflect the implemented identity-lifecycle flows
-- align CI with those updated proof lanes
+- expand closure-critical browser and API proof to comprehensively cover all 6 roles, all state machine workflows, and all routes (scope expanded because deployed proof is externally blocked)
+- align CI with those expanded proof lanes
 - align docs and diagrams with the implemented OTP, access-request, assistant, and deployment behavior
-- validate the script inventory and deployed-proof attachment chain
-- execute the remaining live-lane evidence collection for monitoring, browser proof, load smoke, backup/restore, rollback, Android release, provider proof, alert proof, and live walkthrough proof
+- validate the script inventory and make backup/rollback claims consistent with the actual repository state
+- **when unblocked:** execute the remaining live-lane evidence collection for monitoring, browser proof, load smoke, backup/restore, rollback, Android release, provider proof, alert proof, and live walkthrough proof
+
+> **Current constraint (2026-06-16):** Deployed proof tasks (C-01 through C-04) are externally blocked by SMTP credentials, signing material, and live-infrastructure access. Local proof lanes (A-01, A-02) have been expanded to provide the strongest feasible local verification across all roles, routes, and state machine workflows.
 
 ## Repository-Visible Implementation Evidence
 
@@ -109,12 +111,12 @@ The remaining closure work is tracked by `docs/refactor/Closure_Plan.md`.
 
 ### P0 closure tracks
 
-- `D-01` and `D-04`: normalize V17 scope/status docs and keep one internally consistent closure story
-- `A-01`, `A-02`, `B-01`: update browser proof, API smoke, and CI to prove OTP recovery, `/how-to-use`, and approve-and-activate
-- `D-02`, `D-03`, `E-01`: align OTP, assistant, and diagram docs with the implemented code
-- `C-03`, `F-01`: reconcile backup/rollback proof claims and script inventory with the actual repository state
-- `C-01`, `C-02`, `C-04`, `F-02`: execute the live-lane evidence package and validate the attachment chain
-- `F-03`: rerun markdown and script-validation proof after convergence edits
+- `D-01` and `D-04`: normalize V17 scope/status docs and keep one internally consistent closure story — **closed**
+- `A-01`, `A-02`, `B-01`: expand browser proof and API smoke to cover all 6 roles, all routes, all state machines; align CI — **in progress** (scope expanded due to blocked deployed proof)
+- `D-02`, `D-03`, `E-01`: align OTP, assistant, and diagram docs with the implemented code — **closed**
+- `C-03`, `F-01`: reconcile backup/rollback proof claims and script inventory with the actual repository state — **blocked** (live execution); doc/script alignment can proceed
+- `C-01`, `C-02`, `C-04`, `F-02`: execute the live-lane evidence package and validate the attachment chain — **blocked** (SMTP, signing, infrastructure access)
+- `F-03`: rerun markdown and script-validation proof after convergence edits — pending
 
 ### P1 hardening tracks
 
@@ -127,12 +129,12 @@ The remaining closure work is tracked by `docs/refactor/Closure_Plan.md`.
 | Proof area | Current status | Notes |
 | --- | --- | --- |
 | Backend tests / frontend lint / frontend tests / frontend build | Repository-run local QC exists | Re-run after closure-critical proof and doc updates. |
-| Closure-critical browser proof | Open convergence task | Existing main tour still needs the OTP, `/how-to-use`, and approve-and-activate slices refreshed. |
-| Closure-critical API smoke | Open convergence task | Existing smoke scenarios still need the current OTP and approve-and-activate paths. |
-| Deployed monitoring, load smoke, browser proof, and cutover validation | Open execution task | Scripts exist; fresh live-lane artifacts still need to be generated and validated. |
-| Signed Android release and installed-app proof | Open execution task | Workflow and proof scripts exist; fresh deployed-lane evidence is still required. |
-| Backup/restore and rollback proof | Open execution and inventory task | Closure depends on matching repository claims, implemented scripts/mechanisms, and current live-lane evidence. |
-| Email-provider, alert-routing, and live stakeholder walkthrough proof | Open execution task | Proof recorders exist; artifacts still need operator-completed execution. |
+| Closure-critical browser proof | In progress — expanded scope | Existing tour refreshed for OTP, `/how-to-use`, and approve-and-activate; scope expanded to cover all 6 roles, all routes, and all state machine transitions while deployed proof is blocked. |
+| Closure-critical API smoke | In progress — expanded scope | Existing smoke scenarios being updated for OTP and approve-and-activate; scope expanded to cover every endpoint across role boundaries. |
+| Deployed monitoring, load smoke, browser proof, and cutover validation | **Blocked** | Scripts exist; fresh live-lane artifacts cannot be generated until SMTP credentials and deployed URLs are available. |
+| Signed Android release and installed-app proof | **Blocked** | Workflow and proof scripts exist; signing passwords and deployed HTTPS target URLs are not available in the execution environment. |
+| Backup/restore and rollback proof | **Blocked** (live execution) | Closure depends on matching repository claims, implemented scripts/mechanisms, and current live-lane evidence. Doc/script alignment can proceed. |
+| Email-provider, alert-routing, and live stakeholder walkthrough proof | **Blocked** | Proof recorders exist; artifacts cannot be generated until SMTP provider credentials and operator are available. |
 
 ## Closure Rule
 

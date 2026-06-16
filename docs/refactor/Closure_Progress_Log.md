@@ -14,22 +14,22 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
 | --- | --- | --- | --- |
 | `D-01` | Closed | 2026-06-14T14:23:09.4942176+03:00 | Summary docs now consistently state that deployment is live, the three portfolio features are implemented, AI Assistant Completion is deferred, and remaining V17 work is closure convergence plus proof. |
 | `D-04` | Closed | 2026-06-14T14:23:09.4942176+03:00 | `V17-RE-EVALUATION.md` rewritten as a single closure-status document with no duplicate/conflicting status claims. |
-| `A-01` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
-| `A-02` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
+| `A-01` | In Progress | 2026-06-16T18:00:00+03:00 | Scope expanded to cover all 6 roles, all state machine workflows, and all routes (not just 3 closure-critical flows). Deployed proof is blocked; comprehensive local browser proof is the strongest feasible verification. |
+| `A-02` | In Progress | 2026-06-16T18:00:00+03:00 | Scope expanded to cover every controller endpoint across role boundaries plus role-boundary enforcement checks. |
 | `A-03` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
 | `A-04` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
 | `B-01` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
-| `B-02` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
-| `C-01` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Requires deployed proof inputs outside Git. |
-| `C-02` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Requires signing material and deployed proof inputs outside Git. |
-| `C-03` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
-| `C-04` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Requires deployed provider/operator proof inputs outside Git. |
+| `B-02` | Blocked | 2026-06-16T18:00:00+03:00 | Depends on C-02 and C-03 which are externally blocked. |
+| `C-01` | Blocked | 2026-06-16T18:00:00+03:00 | Externally blocked: requires SMTP credentials and deployed HTTPS URLs outside Git. |
+| `C-02` | Blocked | 2026-06-16T18:00:00+03:00 | Externally blocked: requires Android signing keystore and deployed HTTPS URLs outside Git. |
+| `C-03` | Blocked | 2026-06-16T18:00:00+03:00 | Externally blocked: requires deployment boundary access for backup/restore and rollback proof. Doc/script alignment portion can proceed. |
+| `C-04` | Blocked | 2026-06-16T18:00:00+03:00 | Externally blocked: requires SMTP provider (Brevo) credentials and operator for live walkthrough. |
 | `D-02` | Closed | 2026-06-16T12:00:00+03:00 | Removed non-existent `verify-otp` endpoint reference from `account-lifecycle.md`; OTP recovery section now describes the actual two-step flow: `request-otp` generates and stores OTP, `reset-with-otp` accepts email + OTP code + new password. |
 | `D-03` | Closed | 2026-06-16T12:00:00+03:00 | Replaced Feature D enhancement descriptions in `agentic-operations-assistance.md` with a deferral statement; conversation threading, chat UI, contextual awareness, and workflow guidance are deferred to Vinfinite per `V17-RE-EVALUATION.md`. |
 | `E-01` | Closed | 2026-06-16T12:00:00+03:00 | Updated `system-diagrams.html` migration count from 18 to 19; added OTP recovery and approve-and-activate references to the identity lifecycle, AccessRequest UML card, and PasswordResetToken card. |
 | `E-02` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
 | `F-01` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
-| `F-02` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Depends on deployed proof artifacts. |
+| `F-02` | Blocked | 2026-06-16T18:00:00+03:00 | Depends on C-01, C-02, C-03, C-04 which are externally blocked. |
 | `F-03` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Runs after documentation and script convergence. |
 
 ## Closed Tasks
@@ -69,8 +69,11 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
 | Issue | Status | Last Updated | Evidence |
 | --- | --- | --- | --- |
 | Port conflict on localhost:8080 | Closed - live on 8081 | 2026-06-14T17:02:00+03:00 | Host port 8080 remains occupied by AgentService; MerHouse local stack binds backend to host 8081 instead. |
-| Local fullÃ¢â‚¬â€˜stack deployment setup | Closed | 2026-06-14T17:02:00+03:00 | Created .env from .env.example, aligned docker-compose.yml ports to 8081 and 3001, and confirmed containers are running and healthy. |
+| Local full-stack deployment setup | Closed | 2026-06-14T17:02:00+03:00 | Created .env from .env.example, aligned docker-compose.yml ports to 8081 and 3001, and confirmed containers are running and healthy. |
 | Unresponsive health check at http://localhost:8080/api/v1/health | Closed - live on http://localhost:8081/api/v1/health | 2026-06-14T17:02:00+03:00 | Backend is reachable at http://localhost:8081/api/v1/health; `docker compose ps` shows merhouse-backend healthy. |
+| SMTP credentials not configured for deployment proof | Open | 2026-06-16T18:00:00+03:00 | Brevo SMTP credentials are not configured in the proof execution environment, blocking C-01 (deployed evidence), C-04 (email-provider proof, alert-routing proof, live walkthrough). Unblocking condition: configure Brevo SMTP in the deployment environment. |
+| Android signing material and deployed URLs not available for proof | Open | 2026-06-16T18:00:00+03:00 | Keystores exist in `.secrets/android/keystores/` but proof scripts require deployed HTTPS target URLs and signing passwords in the execution environment. Blocks C-02. Unblocking condition: signing passwords and deployed URLs available. |
+| Deployment boundary access not available for backup/rollback proof | Open | 2026-06-16T18:00:00+03:00 | No access to the real Neon PostgreSQL or Hugging Face Space for backup/restore and rollback execution. Blocks C-03 (live portion). Unblocking condition: operator with deployment boundary access available. |
 
 ## Resolved Blocking Issues Details
 
@@ -91,3 +94,30 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
   **Key findings**: Backend container itself was starting after a fresh volume, but the old exported path attempted port 8081 and had a stale Postgres password on the old volume.  
   **Resolution implemented**: Re-created the Postgres volume to accept the password in `.env`, corrected docker-compose healthcheck to use container-local `localhost:8080` while keeping host mapping on 8081, and restarted backend/frontend.  
   **Verification**: Confirmed backend container healthy via `docker compose ps`; confirmed health endpoint returns `{"status":"UP"}` from host.
+
+## Blocked Tasks
+
+- **Task:** `C-01` — Deployed V17 evidence package
+  **Blocked since:** `2026-06-16T18:00:00+03:00`
+  **Blocker:** SMTP credentials and deployed HTTPS URLs are not available in the proof execution environment.
+  **Unblocking condition:** Configure Brevo SMTP credentials and provide deployed Hugging Face/Vercel URLs for proof scripts.
+  **Impact:** Also blocks F-02 (attachment chain validation).
+
+- **Task:** `C-02` — Signed Android release proof
+  **Blocked since:** `2026-06-16T18:00:00+03:00`
+  **Blocker:** Signing passwords and deployed HTTPS target URLs are not available despite keystores existing in `.secrets/android/keystores/`.
+  **Unblocking condition:** Provide signing keystore passwords and deployed target URLs for the Android release workflow.
+  **Impact:** Also blocks B-02 (minimum CI path for closure).
+
+- **Task:** `C-03` — Backup/restore and rollback proof
+  **Blocked since:** `2026-06-16T18:00:00+03:00`
+  **Blocker:** No access to real Neon PostgreSQL or Hugging Face Space for backup/restore and rollback execution.
+  **Unblocking condition:** Operator with deployment boundary access available to execute backup/restore/rollback commands.
+  **Partial progress possible:** The doc/script alignment portion (making claims match reality) can proceed without live access.
+  **Impact:** Also blocks B-02 and F-01 (script inventory validation).
+
+- **Task:** `C-04` — Email-provider, alert-routing, and live walkthrough proof
+  **Blocked since:** `2026-06-16T18:00:00+03:00`
+  **Blocker:** Brevo SMTP credentials not configured; operator not available for live stakeholder walkthrough.
+  **Unblocking condition:** Configure Brevo SMTP in the deployment environment and schedule operator walkthrough.
+  **Impact:** Also blocks F-02 (attachment chain validation).
