@@ -125,6 +125,10 @@ public class FulfillmentAllocation {
         return shipment;
     }
 
+    public void setShipment(Shipment shipment) {
+        this.shipment = shipment;
+    }
+
     public Set<FulfillmentAllocationItem> getItems() {
         return items;
     }

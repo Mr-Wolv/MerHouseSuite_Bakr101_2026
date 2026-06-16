@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
@@ -713,7 +713,7 @@ describe('WarehousePage', () => {
     const card = await screen.findByLabelText(/Allocation allocati Adidas Merchant PENDING/i)
     const scan = within(card).getByLabelText('Scan')
     await user.type(scan, ' SCAN-PASTED ')
-    fireEvent.blur(scan)
+    await act(async () => { fireEvent.blur(scan) })
 
     expect(apiMock.updateAllocationWorkload).toHaveBeenCalledWith('operator-token', 'allocation-1', { scanCode: 'SCAN-PASTED' })
   })

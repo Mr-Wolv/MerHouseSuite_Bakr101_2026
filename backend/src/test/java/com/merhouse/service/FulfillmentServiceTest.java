@@ -1,6 +1,7 @@
 package com.merhouse.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
@@ -91,7 +92,7 @@ class FulfillmentServiceTest {
         );
         when(currentUserService.required()).thenReturn(actor);
         when(allocationRepository.findWithDetailsById(allocationId)).thenReturn(Optional.of(allocation));
-        when(shipmentRepository.existsByAllocationId(allocationId)).thenReturn(false);
+        when(shipmentRepository.findByAllocationId(allocationId)).thenReturn(Optional.empty());
         when(shipmentRepository.saveAndFlush(any(Shipment.class))).thenAnswer(invocation -> {
             Shipment saved = invocation.getArgument(0);
             ReflectionTestUtils.setField(saved, "id", UUID.randomUUID());
@@ -223,7 +224,7 @@ class FulfillmentServiceTest {
         allocation.setStatus(FulfillmentStatus.PACKED);
         UUID allocationId = allocation.getId();
         when(allocationRepository.findWithDetailsById(allocationId)).thenReturn(Optional.of(allocation));
-        when(shipmentRepository.existsByAllocationId(allocationId)).thenReturn(false);
+        when(shipmentRepository.findByAllocationId(allocationId)).thenReturn(Optional.empty());
 
         assertThrows(DomainConflictException.class, () -> fulfillmentService.createShipment(new CreateShipmentRequest(
             allocationId,
@@ -244,7 +245,7 @@ class FulfillmentServiceTest {
     }
 
     @Test
-    void advanceShipmentCanFailInTransitShipmentWithoutDeliveringTheOrder() {
+    void advanceShipmentCanFailInTransitShipmentAndResetAllocationToPacked() {
         UUID shipmentId = UUID.randomUUID();
         Shipment shipment = shipment(shipmentId, ShipmentStatus.IN_TRANSIT);
         when(shipmentRepository.findWithDetailsById(shipmentId)).thenReturn(Optional.of(shipment));
@@ -252,8 +253,10 @@ class FulfillmentServiceTest {
         fulfillmentService.advanceShipment(shipmentId, ShipmentStatus.FAILED);
 
         assertEquals(ShipmentStatus.FAILED, shipment.getStatus());
+        assertEquals(FulfillmentStatus.PACKED, shipment.getAllocation().getStatus());
         assertEquals(OrderStatus.SHIPPED, shipment.getAllocation().getOrder().getStatus());
         verify(orderRepository, never()).save(any());
+        verify(allocationRepository).save(shipment.getAllocation());
         verify(outboxService).publish(eq("ShipmentFailed"), eq("Shipment"), eq(shipmentId), any());
         verify(operationsAlertService).recordMerchantAlert(
             eq(shipment.getAllocation().getOrder().getMerchant().getId()),
@@ -265,7 +268,7 @@ class FulfillmentServiceTest {
     }
 
     @Test
-    void advanceShipmentCanReturnInTransitShipmentWithoutDeliveringTheOrder() {
+    void advanceShipmentCanReturnInTransitShipmentAndResetAllocationToPacked() {
         UUID shipmentId = UUID.randomUUID();
         Shipment shipment = shipment(shipmentId, ShipmentStatus.IN_TRANSIT);
         when(shipmentRepository.findWithDetailsById(shipmentId)).thenReturn(Optional.of(shipment));
@@ -274,8 +277,10 @@ class FulfillmentServiceTest {
         fulfillmentService.advanceShipment(shipmentId, ShipmentStatus.RETURNED);
 
         assertEquals(ShipmentStatus.RETURNED, shipment.getStatus());
+        assertEquals(FulfillmentStatus.PACKED, shipment.getAllocation().getStatus());
         assertEquals(OrderStatus.SHIPPED, shipment.getAllocation().getOrder().getStatus());
         verify(orderRepository, never()).save(any());
+        verify(allocationRepository).save(shipment.getAllocation());
         verify(outboxService).publish(eq("ShipmentReturned"), eq("Shipment"), eq(shipmentId), any());
     }
 
@@ -400,11 +405,174 @@ class FulfillmentServiceTest {
 
         Shipment shipment = new Shipment();
         ReflectionTestUtils.setField(shipment, "id", shipmentId);
+        ReflectionTestUtils.setField(shipment, "createdAt", Instant.parse("2026-05-19T12:00:00Z"));
         shipment.setAllocation(allocation);
         shipment.setCarrier("Carrier");
         shipment.setTrackingNumber("TRACK-1");
         shipment.setStatus(status);
         return shipment;
+    }
+
+    @Test
+    void createShipmentAllowsReShippingAfterFailedShipment() {
+        Shipment baseShipment = shipment(UUID.randomUUID(), ShipmentStatus.FAILED);
+        FulfillmentAllocation allocation = baseShipment.getAllocation();
+        allocation.setStatus(FulfillmentStatus.PACKED);
+        allocation.getOrder().setStatus(OrderStatus.SHIPPED);
+        UUID allocationId = allocation.getId();
+        UUID oldShipmentId = baseShipment.getId();
+        UserPrincipal actor = new UserPrincipal(
+            UUID.randomUUID(),
+            allocation.getWarehouse().getTenant().getId(),
+            "operator@example.test",
+            com.merhouse.entity.UserRole.WAREHOUSE_OPERATOR,
+            true
+        );
+        when(currentUserService.required()).thenReturn(actor);
+        when(allocationRepository.findWithDetailsById(allocationId)).thenReturn(Optional.of(allocation));
+        when(shipmentRepository.findByAllocationId(allocationId)).thenReturn(Optional.of(baseShipment));
+        when(shipmentRepository.saveAndFlush(any(Shipment.class))).thenAnswer(invocation -> {
+            Shipment saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", UUID.randomUUID());
+            return saved;
+        });
+
+        var response = fulfillmentService.createShipment(new CreateShipmentRequest(
+            allocationId,
+            "DHL",
+            "DHL-RE-SHIP-001",
+            1,
+            new BigDecimal("2.50"),
+            30,
+            20,
+            15,
+            "Re-shipment after previous failure",
+            Map.of()
+        ));
+
+        verify(shipmentRepository).delete(baseShipment);
+        assertEquals(FulfillmentStatus.SHIPPED, allocation.getStatus());
+        assertEquals(OrderStatus.SHIPPED, allocation.getOrder().getStatus());
+        assertEquals("DHL", response.carrier());
+        assertEquals("DHL-RE-SHIP-001", response.trackingNumber());
+        assertEquals("Re-shipment after previous failure", response.packingNote());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> replacedShipment = (Map<String, Object>) response.metadata().get("replacedShipment");
+        assertNotNull(replacedShipment);
+        assertEquals(oldShipmentId.toString(), replacedShipment.get("replacedShipmentId"));
+        assertEquals("FAILED", replacedShipment.get("replacedShipmentStatus"));
+        assertEquals("Carrier", replacedShipment.get("replacedShipmentCarrier"));
+        assertEquals("TRACK-1", replacedShipment.get("replacedShipmentTracking"));
+    }
+
+    @Test
+    void createShipmentAllowsReShippingAfterReturnedImageShipment() {
+        Shipment baseShipment = shipment(UUID.randomUUID(), ShipmentStatus.RETURNED);
+        FulfillmentAllocation allocation = baseShipment.getAllocation();
+        allocation.setStatus(FulfillmentStatus.PACKED);
+        allocation.getOrder().setStatus(OrderStatus.SHIPPED);
+        UUID allocationId = allocation.getId();
+        UserPrincipal actor = new UserPrincipal(
+            UUID.randomUUID(),
+            allocation.getWarehouse().getTenant().getId(),
+            "operator@example.test",
+            com.merhouse.entity.UserRole.WAREHOUSE_OPERATOR,
+            true
+        );
+        when(currentUserService.required()).thenReturn(actor);
+        when(allocationRepository.findWithDetailsById(allocationId)).thenReturn(Optional.of(allocation));
+        when(shipmentRepository.findByAllocationId(allocationId)).thenReturn(Optional.of(baseShipment));
+        when(shipmentRepository.saveAndFlush(any(Shipment.class))).thenAnswer(invocation -> {
+            Shipment saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", UUID.randomUUID());
+            return saved;
+        });
+
+        var response = fulfillmentService.createShipment(new CreateShipmentRequest(
+            allocationId,
+            "UPS",
+            "UPS-RE-SHIP-002",
+            1,
+            new BigDecimal("3.00"),
+            25,
+            18,
+            12,
+            "Re-shipment after return",
+            Map.of()
+        ));
+
+        verify(shipmentRepository).delete(baseShipment);
+        assertEquals(FulfillmentStatus.SHIPPED, allocation.getStatus());
+        assertEquals("UPS", response.carrier());
+        assertEquals("UPS-RE-SHIP-002", response.trackingNumber());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> replacedShipment = (Map<String, Object>) response.metadata().get("replacedShipment");
+        assertNotNull(replacedShipment);
+        assertEquals(baseShipment.getId().toString(), replacedShipment.get("replacedShipmentId"));
+        assertEquals("RETURNED", replacedShipment.get("replacedShipmentStatus"));
+        assertEquals("Carrier", replacedShipment.get("replacedShipmentCarrier"));
+        assertEquals("TRACK-1", replacedShipment.get("replacedShipmentTracking"));
+    }
+
+    @Test
+    void createShipmentRejectsReShippingWhenActiveShipmentExists() {
+        Shipment activeShipment = shipment(UUID.randomUUID(), ShipmentStatus.IN_TRANSIT);
+        FulfillmentAllocation allocation = activeShipment.getAllocation();
+        allocation.setStatus(FulfillmentStatus.PACKED);
+        UUID allocationId = allocation.getId();
+        UserPrincipal actor = new UserPrincipal(
+            UUID.randomUUID(),
+            allocation.getWarehouse().getTenant().getId(),
+            "operator@example.test",
+            com.merhouse.entity.UserRole.WAREHOUSE_OPERATOR,
+            true
+        );
+        when(currentUserService.required()).thenReturn(actor);
+        when(allocationRepository.findWithDetailsById(allocationId)).thenReturn(Optional.of(allocation));
+        when(shipmentRepository.findByAllocationId(allocationId)).thenReturn(Optional.of(activeShipment));
+
+        assertThrows(DomainConflictException.class, () -> fulfillmentService.createShipment(new CreateShipmentRequest(
+            allocationId,
+            "FedEx",
+            "FX-DUP-001",
+            1,
+            new BigDecimal("1.50"),
+            20,
+            15,
+            10,
+            "Should fail",
+            Map.of()
+        )));
+
+        assertEquals(FulfillmentStatus.PACKED, allocation.getStatus());
+        verify(shipmentRepository, never()).delete(any());
+        verify(shipmentRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void createShipmentRejectsReShippingAfterDeliveredShipment() {
+        Shipment deliveredShipment = shipment(UUID.randomUUID(), ShipmentStatus.DELIVERED);
+        FulfillmentAllocation allocation = deliveredShipment.getAllocation();
+        allocation.setStatus(FulfillmentStatus.SHIPPED);
+        UUID allocationId = allocation.getId();
+        when(allocationRepository.findWithDetailsById(allocationId)).thenReturn(Optional.of(allocation));
+        when(shipmentRepository.findByAllocationId(allocationId)).thenReturn(Optional.of(deliveredShipment));
+
+        assertThrows(DomainConflictException.class, () -> fulfillmentService.createShipment(new CreateShipmentRequest(
+            allocationId,
+            "FedEx",
+            "FX-DEL-001",
+            1,
+            new BigDecimal("1.00"),
+            20,
+            15,
+            10,
+            "Should not allow re-shipping delivered",
+            Map.of()
+        )));
+
+        verify(shipmentRepository, never()).delete(any());
+        verify(shipmentRepository, never()).saveAndFlush(any());
     }
 
     private AppUser user(Tenant tenant, UserRole role) {

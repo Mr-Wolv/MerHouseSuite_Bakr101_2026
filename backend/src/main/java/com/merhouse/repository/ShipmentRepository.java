@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
-    boolean existsByAllocationId(UUID allocationId);
+    Optional<Shipment> findByAllocationId(UUID allocationId);
 
     long countByStatus(ShipmentStatus status);
 

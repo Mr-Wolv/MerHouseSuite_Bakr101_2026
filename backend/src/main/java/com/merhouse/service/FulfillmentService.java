@@ -155,9 +155,20 @@ public class FulfillmentService {
         if (allocation.getStatus() != FulfillmentStatus.PACKED) {
             throw new DomainConflictException("Shipments can only be created for PACKED allocations.");
         }
-        if (shipmentRepository.existsByAllocationId(allocation.getId())) {
-            throw new DomainConflictException("Allocation already has a shipment.");
-        }
+        Map<String, Object> auditTrail = new LinkedHashMap<>();
+        shipmentRepository.findByAllocationId(allocation.getId()).ifPresent(existing -> {
+            if (existing.getStatus() != ShipmentStatus.FAILED && existing.getStatus() != ShipmentStatus.RETURNED) {
+                throw new DomainConflictException("Allocation already has an active shipment.");
+            }
+            auditTrail.put("replacedShipmentId", existing.getId().toString());
+            auditTrail.put("replacedShipmentStatus", existing.getStatus().name());
+            auditTrail.put("replacedShipmentCarrier", existing.getCarrier());
+            auditTrail.put("replacedShipmentTracking", existing.getTrackingNumber());
+            auditTrail.put("replacedShipmentCreatedAt", existing.getCreatedAt().toString());
+            allocation.setShipment(null);
+            shipmentRepository.delete(existing);
+            shipmentRepository.flush();
+        });
         String carrier = request.carrier().trim();
         if (!SUPPORTED_CARRIERS.contains(carrier)) {
             throw new DomainConflictException("Unsupported carrier: " + carrier);
@@ -168,17 +179,18 @@ public class FulfillmentService {
         shipment.setAllocation(allocation);
         shipment.setCarrier(carrier);
         shipment.setTrackingNumber(request.trackingNumber().trim());
-        shipment.setMetadata(shipmentMetadata(request, actor));
+        shipment.setMetadata(shipmentMetadata(request, actor, auditTrail));
         shipment.setStatus(ShipmentStatus.IN_TRANSIT);
         addShipmentPackages(shipment, request);
 
+        Shipment saved = shipmentRepository.saveAndFlush(shipment);
+        allocation.setShipment(saved);
         allocation.setStatus(FulfillmentStatus.SHIPPED);
         CustomerOrder order = allocation.getOrder();
         order.setStatus(OrderStatus.SHIPPED);
 
         orderRepository.save(order);
         allocationRepository.save(allocation);
-        Shipment saved = shipmentRepository.saveAndFlush(shipment);
         outboxService.publish(
             "ShipmentCreated",
             "Shipment",
@@ -350,9 +362,13 @@ public class FulfillmentService {
         }
 
         shipment.setStatus(nextStatus);
+        FulfillmentAllocation allocation = shipment.getAllocation();
         if (nextStatus == ShipmentStatus.DELIVERED) {
-            shipment.getAllocation().getOrder().setStatus(OrderStatus.DELIVERED);
-            orderRepository.save(shipment.getAllocation().getOrder());
+            allocation.getOrder().setStatus(OrderStatus.DELIVERED);
+            orderRepository.save(allocation.getOrder());
+        } else if (nextStatus == ShipmentStatus.FAILED || nextStatus == ShipmentStatus.RETURNED) {
+            allocation.setStatus(FulfillmentStatus.PACKED);
+            allocationRepository.save(allocation);
         }
         Shipment saved = shipmentRepository.saveAndFlush(shipment);
         outboxService.publish(
@@ -394,10 +410,13 @@ public class FulfillmentService {
         return FulfillmentAllocationResponse.from(allocation, relationship);
     }
 
-    private Map<String, Object> shipmentMetadata(CreateShipmentRequest request, UserPrincipal actor) {
+    private Map<String, Object> shipmentMetadata(CreateShipmentRequest request, UserPrincipal actor, Map<String, Object> auditTrail) {
         Map<String, Object> metadata = new LinkedHashMap<>();
         if (request.metadata() != null) {
             metadata.putAll(request.metadata());
+        }
+        if (!auditTrail.isEmpty()) {
+            metadata.put("replacedShipment", auditTrail);
         }
         metadata.put("source", metadata.getOrDefault("source", "warehouse-console"));
         metadata.put("serviceScope", "PICK_PACK_SHIP");
