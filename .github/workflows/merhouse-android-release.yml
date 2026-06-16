@@ -41,8 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      MERHOUSE_ANDROID_VERSION_CODE: ${{ inputs.version_code || '17' }}
-      MERHOUSE_ANDROID_VERSION_NAME: ${{ inputs.version_name || '0.17.0-internal' }}
+      MERHOUSE_ANDROID_VERSION_CODE: ${{ github.event_name == 'workflow_dispatch' && inputs.version_code || '17' }}
+      MERHOUSE_ANDROID_VERSION_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.version_name || '0.17.0-internal' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
