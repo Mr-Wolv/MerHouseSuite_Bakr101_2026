@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MerHouse Workflow And UML Diagrams</title>
+  <title>MerHouse System Architecture, Workflows, And UML Diagrams</title>
   <style>
     :root {
       color-scheme: light;
@@ -20,11 +20,12 @@
       --service: #b45309;
       --ops: #b91c1c;
       --proof: #6d28d9;
+      --deploy: #0369a1;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     * { box-sizing: border-box; }
     body { margin: 0; color: var(--ink); background: var(--wash); line-height: 1.5; }
-    main { width: min(1280px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 56px; }
+    main { width: min(1320px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 56px; }
     header, section {
       background: var(--paper);
       border: 1px solid var(--line);
@@ -38,192 +39,128 @@
     h2 { margin-bottom: 14px; font-size: 1.35rem; }
     h3 { margin-bottom: 8px; font-size: 1rem; }
     h4 { margin: 0; font-size: 0.95rem; }
-    .lede { max-width: 920px; margin-bottom: 0; color: var(--muted); }
+    .lede { max-width: 960px; margin-bottom: 0; color: var(--muted); }
     .meta, .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
     .pill, .chip {
-      display: inline-flex;
-      align-items: center;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: var(--soft);
-      color: var(--muted);
-      padding: 6px 10px;
-      font-size: 0.9rem;
+      display: inline-flex; align-items: center;
+      border: 1px solid var(--line); border-radius: 999px;
+      background: var(--soft); color: var(--muted); padding: 6px 10px; font-size: 0.9rem;
     }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .card {
-      border: 1px solid var(--line);
-      border-top: 5px solid var(--accent);
-      border-radius: 8px;
-      background: linear-gradient(180deg, #fff 0%, #fbfcfe 100%);
-      padding: 14px;
+      border: 1px solid var(--line); border-top: 5px solid var(--accent); border-radius: 8px;
+      background: linear-gradient(180deg, #fff 0%, #fbfcfe 100%); padding: 14px;
       box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
     }
     .card p { color: var(--muted); margin-bottom: 10px; }
     .card ul { margin: 0; padding-left: 18px; color: var(--muted); }
     .story-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
     .story {
-      border: 1px solid var(--line);
-      border-left: 6px solid var(--accent);
-      border-radius: 8px;
-      background: #fff;
-      padding: 14px;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+      border: 1px solid var(--line); border-left: 6px solid var(--accent); border-radius: 8px;
+      background: #fff; padding: 14px; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
     }
     .story h3 { margin-bottom: 10px; }
-    .story-row {
-      display: grid;
-      grid-template-columns: 94px 1fr;
-      gap: 10px;
-      padding: 8px 0;
-      border-top: 1px solid #edf1f7;
-    }
+    .story-row { display: grid; grid-template-columns: 94px 1fr; gap: 10px; padding: 8px 0; border-top: 1px solid #edf1f7; }
     .story-row:first-of-type { border-top: 0; }
     .story-row b { color: var(--ink); }
     .story-row span { color: var(--muted); }
     .flowline {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 12px;
+      display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 12px;
     }
     .node {
-      border: 1px solid #cbd5e1;
-      border-radius: 7px;
-      padding: 10px;
-      background: #fff;
-      min-height: 92px;
+      border: 1px solid #cbd5e1; border-radius: 7px; padding: 10px; background: #fff; min-height: 92px;
     }
     .node b { display: block; margin-bottom: 4px; color: var(--ink); }
     .node span { display: block; color: var(--muted); font-size: 0.9rem; }
-    .uml-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-    }
+    .uml-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
     .package {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      overflow: hidden;
-      background: #fff;
-      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+      border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+      background: #fff; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
     }
     .package > h3 {
-      margin: 0;
-      padding: 13px 16px;
-      border-left: 7px solid var(--accent);
-      border-bottom: 1px solid var(--line);
-      background: #f8fafc;
+      margin: 0; padding: 13px 16px;
+      border-left: 7px solid var(--accent); border-bottom: 1px solid var(--line); background: #f8fafc;
     }
     .package-body { padding: 14px; display: grid; gap: 12px; }
-    .class-card {
-      border: 1px solid #b9c3d2;
-      border-radius: 7px;
-      background: #fff;
-      overflow: hidden;
-    }
-    .class-card h4 {
-      padding: 10px 12px;
-      background: linear-gradient(180deg, #344256, var(--head));
-      color: #fff;
-    }
+    .class-card { border: 1px solid #b9c3d2; border-radius: 7px; background: #fff; overflow: hidden; }
+    .class-card h4 { padding: 10px 12px; background: linear-gradient(180deg, #344256, var(--head)); color: #fff; }
     .class-card dl { margin: 0; }
     .class-card div {
-      display: grid;
-      grid-template-columns: 140px 1fr;
-      gap: 8px;
-      padding: 8px 12px;
-      border-top: 1px solid #edf1f7;
-      background: #fff;
+      display: grid; grid-template-columns: 140px 1fr; gap: 8px;
+      padding: 8px 12px; border-top: 1px solid #edf1f7; background: #fff;
     }
     .class-card div:nth-child(even) { background: #f8fafc; }
     dt { font-weight: 700; color: #334155; }
     dd { margin: 0; color: var(--muted); }
     .field-list { display: flex; flex-wrap: wrap; gap: 5px; }
     .field {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      border: 1px solid #d8e0ec;
-      border-radius: 999px;
-      background: #fff;
-      padding: 3px 7px;
-      color: #334155;
-      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-      font-size: 0.78rem;
+      display: inline-flex; align-items: center; gap: 4px;
+      border: 1px solid #d8e0ec; border-radius: 999px; background: #fff; padding: 3px 7px;
+      color: #334155; font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 0.78rem;
     }
     .tag {
-      border-radius: 4px;
-      padding: 1px 4px;
+      border-radius: 4px; padding: 1px 4px;
       font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-      font-size: 0.68rem;
-      font-weight: 800;
-      letter-spacing: 0;
+      font-size: 0.68rem; font-weight: 800; letter-spacing: 0;
     }
     .tag.pk { background: #ffedd5; color: #9a3412; }
     .tag.fk { background: #dbeafe; color: #1d4ed8; }
     .tag.uk { background: #ede9fe; color: #6d28d9; }
-    .relations {
-      display: grid;
-      gap: 8px;
-      padding-top: 12px;
-      border-top: 1px dashed #cbd5e1;
-    }
+    .relations { display: grid; gap: 8px; padding-top: 12px; border-top: 1px dashed #cbd5e1; }
     .relation {
-      border: 1px solid #cbd5e1;
-      border-radius: 7px;
-      padding: 8px 10px;
-      background: #f8fafc;
-      color: #334155;
-      font-size: 0.92rem;
+      border: 1px solid #cbd5e1; border-radius: 7px; padding: 8px 10px;
+      background: #f8fafc; color: #334155; font-size: 0.92rem;
     }
     .state-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
     .state {
-      border: 1px solid var(--line);
-      border-top: 5px solid var(--accent);
-      border-radius: 8px;
-      padding: 12px;
-      background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+      border: 1px solid var(--line); border-top: 5px solid var(--accent); border-radius: 8px;
+      padding: 12px; background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
       box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
     }
     .state h3 { color: var(--head); margin-bottom: 10px; }
     .state-path { display: grid; gap: 18px; }
     .state-path span {
-      position: relative;
-      display: block;
-      border: 1px solid #d8e0ec;
-      border-radius: 999px;
-      background: #fff;
-      color: #334155;
-      padding: 7px 10px;
-      font-size: 0.92rem;
+      position: relative; display: block;
+      border: 1px solid #d8e0ec; border-radius: 999px; background: #fff;
+      color: #334155; padding: 7px 10px; font-size: 0.92rem;
     }
     .state-path span:not(:last-child)::after {
-      content: "↓";
-      position: absolute;
-      left: 16px;
-      bottom: -18px;
-      color: var(--accent);
-      font-weight: 800;
+      content: "\2193"; position: absolute; left: 16px; bottom: -18px;
+      color: var(--accent); font-weight: 800;
     }
-    .state-note {
-      margin: 12px 0 0;
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
+    .state-note { margin: 12px 0 0; color: var(--muted); font-size: 0.9rem; }
     code {
-      background: #f1f5f9;
-      border-radius: 4px;
-      padding: 2px 5px;
-      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-      font-size: 0.9em;
+      background: #f1f5f9; border-radius: 4px; padding: 2px 5px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 0.9em;
+    }
+    .route-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .route-table th, .route-table td {
+      text-align: left; padding: 8px 10px; border-bottom: 1px solid #edf1f7; font-size: 0.9rem;
+    }
+    .route-table th { background: #f8fafc; color: var(--head); font-weight: 700; }
+    .route-table td { color: var(--muted); }
+    .route-table code { font-size: 0.82em; }
+    .badge {
+      display: inline-block; border-radius: 4px; padding: 2px 6px;
+      font-size: 0.72rem; font-weight: 700; margin-right: 4px;
+    }
+    .badge.owner { background: #fef3c7; color: #92400e; }
+    .badge.admin { background: #e0e7ff; color: #3730a3; }
+    .badge.support { background: #d1fae5; color: #065f46; }
+    .badge.auditor { background: #f3e8ff; color: #6b21a8; }
+    .badge.merchant { background: #ccfbf1; color: #115e59; }
+    .badge.warehouse { background: #e0e7ff; color: #312e81; }
+    .badge.public { background: #fee2e2; color: #991b1b; }
+    @media (max-width: 1100px) {
+      .grid.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 980px) {
-      .grid, .grid.three, .story-grid, .uml-grid, .state-grid, .flowline { grid-template-columns: 1fr; }
+      .grid, .grid.three, .grid.four, .story-grid, .uml-grid, .state-grid, .flowline { grid-template-columns: 1fr; }
     }
     @media (max-width: 720px) {
-      main { width: min(100% - 20px, 1280px); padding-top: 20px; }
+      main { width: min(100% - 20px, 1320px); padding-top: 20px; }
       header, section { padding: 18px; }
       .class-card div { grid-template-columns: 1fr; gap: 2px; }
       .story-row { grid-template-columns: 1fr; gap: 2px; }
@@ -233,98 +170,155 @@
 <body>
   <main>
     <header>
-      <h1>MerHouse Workflow And UML Diagrams</h1>
+      <h1>MerHouse System Architecture, Workflows, And UML Diagrams</h1>
       <p class="lede">
-        A current architecture view focused on realistic work and durable domain shape. Source-level contracts live in code and proof scripts; this page stays at workflow and UML level.
+        A comprehensive architecture view of the MerHouse fulfillment coordination system. Covers domain model, state machines, operating workflows, identity governance, notification delivery, assistant interactions, frontend routing, and deployment infrastructure. Aligned with the current codebase, 19 Flyway migrations, and documented architecture.
       </p>
-      <div class="meta" aria-label="diagram scope">
-        <span class="pill">Current local-certified product surface</span>
-        <span class="pill">18 Flyway migrations</span>
+      <div class="meta" aria-label="system scope">
+        <span class="pill">19 Flyway migrations</span>
         <span class="pill">37 persistent tables</span>
-        <span class="pill">One shared React shell for web and Android</span>
+        <span class="pill">6 roles across 3 tenant contexts</span>
+        <span class="pill">Spring Boot 4 API + React/Vite console</span>
+        <span class="pill">Shared shell for web and Android</span>
         <span class="pill">V17 lane: Neon, Hugging Face, Vercel, GitHub Release APK</span>
       </div>
     </header>
 
+    <!-- ============================== -->
+    <!-- SYSTEM COMPONENT OVERVIEW      -->
+    <!-- ============================== -->
+    <section>
+      <h2>System Component Overview</h2>
+      <p class="lede">
+        MerHouse coordinates fulfillment work between merchants, warehouse providers, and platform operators through a Spring Boot API, a React/Vite operations console, a Neon PostgreSQL database, and a managed deployment lane.
+      </p>
+      <div class="grid four">
+        <article class="card" style="--accent: var(--platform)">
+          <h3>Backend API</h3>
+          <ul>
+            <li>Spring Boot 4 with tenant-aware auth, BCrypt passwords, JWT sessions</li>
+            <li>18 REST controllers under <code>/api/v1</code></li>
+            <li>44+ service classes for domain logic, allocation, outbox, notifications</li>
+            <li>Flyway-managed PostgreSQL schema with 19 incremental migrations</li>
+            <li>Transactional outbox with scheduled drain processor and carrier dispatch</li>
+            <li>Deterministic assistant runtime with read-plus-draft boundary</li>
+          </ul>
+        </article>
+        <article class="card" style="--accent: var(--merchant)">
+          <h3>Frontend Console</h3>
+          <ul>
+            <li>React + Vite operations console with role-gated routing</li>
+            <li>Public pages: login, request access, forgot password, OTP reset, how-to-use</li>
+            <li>Platform pages: admin overview, tenants, users, access requests, relationships, outbox, audit</li>
+            <li>Merchant pages: overview, inventory, orders with import</li>
+            <li>Warehouse page: receiving, fulfillment, shipments, exceptions, inventory</li>
+            <li>Shared pages: service accountability, notifications, assistant, account, detail pages</li>
+          </ul>
+        </article>
+        <article class="card" style="--accent: var(--warehouse)">
+          <h3>Database</h3>
+          <ul>
+            <li>PostgreSQL with pgcrypto extension for UUID generation</li>
+            <li>37 tables across identity, inventory, fulfillment, service, reliability, notification, and assistant domains</li>
+            <li>Optimistic locking on warehouse inventory via version column</li>
+            <li>Composite unique constraints for authorization invariants</li>
+            <li>Operational read indexes for bounded dense queries</li>
+          </ul>
+        </article>
+        <article class="card" style="--accent: var(--deploy)">
+          <h3>Deployment Infrastructure</h3>
+          <ul>
+            <li>Neon PostgreSQL for managed V17 data</li>
+            <li>Hugging Face Docker Space for the Spring backend</li>
+            <li>Vercel for the React frontend</li>
+            <li>GitHub Actions for CI/CD quality gates and release workflows</li>
+            <li>GitHub Releases for signed Android APK distribution</li>
+            <li>Docker Compose for local PostgreSQL + backend + nginx frontend</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============================== -->
+    <!-- REALISTIC OPERATING WORKFLOW   -->
+    <!-- ============================== -->
     <section>
       <h2>Realistic Operating Workflow</h2>
       <p class="lede">
-        MerHouse coordinates work between a merchant, a warehouse provider, and platform reviewers. The happy path is deliberately operational: relationship, inbound stock, demand, allocation, warehouse execution, evidence, alerts, and service review.
+        MerHouse coordinates work between a merchant, a warehouse provider, and platform reviewers. The happy path covers onboarding, relationship, inbound stock, demand, allocation, warehouse execution, evidence, alerts, service accountability, and review.
       </p>
-
       <div class="flowline" aria-label="primary fulfillment workflow">
-        <div class="node"><b>1. Onboard</b><span>Platform reviews access requests, creates tenants and users, and keeps support and auditor users in review-safe roles.</span></div>
-        <div class="node"><b>2. Connect</b><span>Merchant asks for provider service. Warehouse activates the relationship or platform governs exceptions.</span></div>
-        <div class="node"><b>3. Stock</b><span>Merchant creates product records and sends inbound stock. Warehouse approves, receives, rejects, or records damaged quantities.</span></div>
-        <div class="node"><b>4. Fulfill</b><span>Merchant creates order demand. Stock is allocated to an authorized warehouse, then picked, packed, shipped, or marked exceptional.</span></div>
-        <div class="node"><b>5. Review</b><span>Both parties inspect timelines, notifications, service records, and accountability evidence before closing the work.</span></div>
+        <div class="node"><b>1. Onboard</b><span>Platform reviews access requests, creates tenants and users via approve-and-activate or separate approve-then-convert, and keeps support/auditor roles in review-safe boundaries.</span></div>
+        <div class="node"><b>2. Connect</b><span>Merchant requests provider service. Warehouse activates the relationship or platform governs suspend, reactivate, and end exceptions.</span></div>
+        <div class="node"><b>3. Stock</b><span>Merchant creates product records and sends inbound stock. Warehouse approves, receives with damaged/short evidence, rejects, or the merchant cancels.</span></div>
+        <div class="node"><b>4. Fulfill</b><span>Merchant creates order demand or imports batches. Stock is allocated to an authorized warehouse relationship, then picked, packed, shipped, or marked exceptional.</span></div>
+        <div class="node"><b>5. Review</b><span>Both parties inspect timelines, notifications, service statements, SLA status, disputes, claims, and accountability evidence before closing the work.</span></div>
       </div>
 
       <div class="story-grid">
         <article class="story" style="--accent: var(--platform)">
           <h3>Story: A New Merchant Needs To Go Live</h3>
-          <div class="story-row"><b>Actor</b><span>Owner/admin reviews a public access request while support can watch the queue and auditor can inspect the decision later.</span></div>
-          <div class="story-row"><b>Tension</b><span>The requester needs an account, but duplicate emails, missing organization details, and accidental seed-style credentials must not slip into a public-facing setup.</span></div>
-          <div class="story-row"><b>Work</b><span>Platform approves or rejects the request, converts approved work into tenant and user records, and leaves the approval trail separate from the conversion actor.</span></div>
-          <div class="story-row"><b>Done</b><span>The merchant logs in to an empty but guided workspace, account-ready delivery history exists, and governance evidence is readable without exposing credentials.</span></div>
+          <div class="story-row"><b>Actor</b><span>Owner/admin reviews a public access request; support can watch the queue; auditor can inspect the decision later.</span></div>
+          <div class="story-row"><b>Tension</b><span>The requester needs an account, but duplicate emails, missing organization details, and accidental seed-style credentials must not slip through.</span></div>
+          <div class="story-row"><b>Work</b><span>Platform approves or rejects the request. Approve-and-activate creates tenant and user in one transaction with auto-generated password. Separate convert preserves the approval trail with a distinct conversion actor.</span></div>
+          <div class="story-row"><b>Done</b><span>The merchant logs in to a guided workspace, account-ready delivery history exists, and governance evidence is readable without exposing credentials.</span></div>
         </article>
-
         <article class="story" style="--accent: var(--merchant)">
           <h3>Story: A Merchant Sends The First Pallet</h3>
           <div class="story-row"><b>Actor</b><span>Merchant creates product records, picks an active warehouse relationship, and sends inbound stock to a provider warehouse.</span></div>
           <div class="story-row"><b>Tension</b><span>Real receiving is messy: quantities can be short, damaged, rejected, or partially received, and none of that should silently become clean available stock.</span></div>
-          <div class="story-row"><b>Work</b><span>Warehouse approves the inbound request, records received and damaged quantities, and the system writes inventory movement evidence.</span></div>
-          <div class="story-row"><b>Done</b><span>Only received quantity becomes available warehouse inventory; the merchant sees the receiving evidence, not just a green success state.</span></div>
+          <div class="story-row"><b>Work</b><span>Warehouse approves the inbound, records received and damaged quantities with receiving notes, and the system writes inventory movement and audit evidence.</span></div>
+          <div class="story-row"><b>Done</b><span>Only received quantity becomes available warehouse inventory; the merchant sees the receiving evidence with damaged and short quantities.</span></div>
         </article>
-
         <article class="story" style="--accent: var(--warehouse)">
           <h3>Story: Demand Becomes Warehouse Work</h3>
-          <div class="story-row"><b>Actor</b><span>Merchant creates a single order or imports many rows; warehouse operators receive allocated work tied to authorized stock.</span></div>
-          <div class="story-row"><b>Tension</b><span>Stock may be insufficient, copied order quantities may be invalid, and warehouse execution can hit exceptions after picking starts.</span></div>
-          <div class="story-row"><b>Work</b><span>The system allocates what it can, preserves backorder evidence, then warehouse records pick, pack, shipment, package, and exception details.</span></div>
+          <div class="story-row"><b>Actor</b><span>Merchant creates a single order or imports many rows; warehouse operators receive allocated work tied to authorized stock on an active relationship.</span></div>
+          <div class="story-row"><b>Tension</b><span>Stock may be insufficient, imported quantities may be invalid, and warehouse execution can hit exceptions after picking starts.</span></div>
+          <div class="story-row"><b>Work</b><span>The system allocates what it can via relationship-aware stock, preserves backorder evidence, then warehouse records pick, pack, shipment with packages, and exception details.</span></div>
           <div class="story-row"><b>Done</b><span>Merchant and warehouse share the same operational timeline: what shipped, what failed, what returned, and which exception still needs review.</span></div>
         </article>
-
         <article class="story" style="--accent: var(--service)">
           <h3>Story: Partners Need A Service Record</h3>
           <div class="story-row"><b>Actor</b><span>Merchant and warehouse agree on operating terms once the relationship is active; platform can inspect the record across tenants.</span></div>
           <div class="story-row"><b>Tension</b><span>The product must capture accountability without pretending to be invoicing, payment collection, legal casework, or attachment storage.</span></div>
-          <div class="story-row"><b>Work</b><span>Agreement terms, rate cards, SLA clocks, statements, disputes, claims, and review requests stay linked to the relationship and source records.</span></div>
-          <div class="story-row"><b>Done</b><span>Both parties can review note-and-record evidence, resolve issues, and keep support/auditor users in read-only evidence mode.</span></div>
+          <div class="story-row"><b>Work</b><span>Agreements, rate cards, SLA policies, statements with line-level source references, disputes, claims, and review requests stay linked to the relationship and source records.</span></div>
+          <div class="story-row"><b>Done</b><span>Both parties can review note-and-record evidence, resolve issues, finalize statements, and keep support/auditor users in read-only evidence mode.</span></div>
         </article>
-
         <article class="story" style="--accent: var(--ops)">
           <h3>Story: Something Needs Attention</h3>
           <div class="story-row"><b>Actor</b><span>Any role may receive local alerts, but each delivery is scoped to the recipient and tenant that actually owns the next action.</span></div>
           <div class="story-row"><b>Tension</b><span>Unread work can be buried under history, provider email might be disabled, and background handoff failures still need a review surface.</span></div>
-          <div class="story-row"><b>Work</b><span>Unread local deliveries become the action inbox; outbox records preserve retry/dead-letter evidence; assistant drafts stay non-mutating.</span></div>
-          <div class="story-row"><b>Done</b><span>The right person sees the next action, read history remains available, and external-provider claims wait for separate V17 proof.</span></div>
+          <div class="story-row"><b>Work</b><span>Unread local deliveries become the action inbox; outbox records preserve retry/dead-letter evidence; assistant drafts stay non-mutating with deterministic fallback.</span></div>
+          <div class="story-row"><b>Done</b><span>The right person sees the next action, read history remains available, and SMTP email attempts are recorded as provider evidence when enabled.</span></div>
         </article>
-
         <article class="story" style="--accent: var(--proof)">
           <h3>Story: The Same Product Ships To Web And Android</h3>
-          <div class="story-row"><b>Actor</b><span>Operator deploys the React web app, deploys the Spring backend, and builds a signed Android APK against the deployed backend URL.</span></div>
+          <div class="story-row"><b>Actor</b><span>Operator deploys the React web app via Vercel, deploys the Spring backend to Hugging Face, and builds a signed Android APK against the deployed backend URL.</span></div>
           <div class="story-row"><b>Tension</b><span>Scripts can pass while the real browser or installed app feels broken, slow, or misconfigured.</span></div>
-          <div class="story-row"><b>Work</b><span>Live browser review leads, supporting proof records follow, and Android wraps the same frontend shell instead of creating a second product.</span></div>
+          <div class="story-row"><b>Work</b><span>Live browser review leads, supporting proof records follow, and Android wraps the same Capacitor frontend shell instead of creating a second product.</span></div>
           <div class="story-row"><b>Done</b><span>V17 proof shows deployed web and visible installed Android behavior before release evidence is attached to a cutover package.</span></div>
         </article>
       </div>
     </section>
 
+    <!-- ============================== -->
+    <!-- WORKFLOW DETAIL                -->
+    <!-- ============================== -->
     <section>
       <h2>Workflow Detail: What Actually Happens</h2>
-      <div class="grid">
+      <div class="grid three">
         <article class="card" style="--accent: var(--platform)">
           <h3>Access And Account Lifecycle</h3>
-          <p>Public access requests become reviewed onboarding work. Approval can create tenant and user records, while account-ready and recovery events create local delivery history.</p>
+          <p>Public access requests become reviewed onboarding work. Approval can create tenant and user records through approve-and-activate or separate approve-then-convert steps.</p>
           <ul>
+            <li>6 roles: OWNER, ADMIN, SUPPORT_ADMIN, AUDITOR, MERCHANT, WAREHOUSE_OPERATOR</li>
             <li>empty accounts see guided first-run states</li>
             <li>owner/admin controls role, tenant, enabled state, and conversion</li>
             <li>each signed-in user can inspect account context and change their password with current-password verification</li>
-            <li>reset and account-ready delivery are local by default; SMTP attempts are V17 proof work when enabled</li>
+            <li>OTP password recovery uses <code>request-otp</code> and <code>reset-with-otp</code> endpoints with SHA-256 hashed 6-digit codes</li>
+            <li>reset-link recovery uses token-hash flow with throttling and generic responses</li>
           </ul>
         </article>
-
         <article class="card" style="--accent: var(--merchant)">
           <h3>Inbound Stock To Available Inventory</h3>
           <p>The merchant owns goods and requests a provider warehouse to receive them. Only received quantity becomes available warehouse inventory.</p>
@@ -332,306 +326,378 @@
             <li>draft and submitted requests keep merchant intent visible</li>
             <li>warehouse approval starts receiving work</li>
             <li>received, damaged, short, rejected, and cancelled states remain evidence</li>
-            <li>inventory audit logs capture quantity changes and actor context</li>
+            <li>inventory audit logs capture quantity changes with actor context and reason codes</li>
+            <li>warehouse inventory uses optimistic locking via version column</li>
           </ul>
         </article>
-
         <article class="card" style="--accent: var(--warehouse)">
           <h3>Order Fulfillment</h3>
           <p>Orders allocate against authorized stock for an active relationship. Warehouse execution creates shipment, package, event, and exception evidence.</p>
           <ul>
-            <li>partial allocation creates allocation items and possible backorder items</li>
-            <li>warehouse operators progress allocations through pick, pack, and ship work</li>
-            <li>shipments can be in transit, delivered, failed, or returned as delivery-state evidence</li>
+            <li>partial allocation creates allocation items and backorder items</li>
+            <li>warehouse operators progress allocations through pick, pack, and ship work with scan codes and priority</li>
+            <li>shipments carry carrier, tracking number, status, and package evidence with dimensions</li>
             <li>exceptions stay linked to the allocation, shipment, merchant, and provider parties</li>
+            <li>order import batches support all-or-none or partial-accept modes</li>
           </ul>
         </article>
-
         <article class="card" style="--accent: var(--service)">
           <h3>Service Accountability</h3>
           <p>Service records describe operating terms and evidence, not billing or legal settlement. They keep the merchant/provider relationship reviewable.</p>
           <ul>
-            <li>agreements, rate cards, and SLA policies attach to active relationships</li>
-            <li>statements and statement lines summarize local service units</li>
-            <li>claims, disputes, and reviews preserve note-and-record evidence</li>
+            <li>agreements with versioned terms, rate cards, and SLA policies attach to active relationships</li>
+            <li>statements with line-level source references summarize local service units</li>
+            <li>claims, disputes, and review requests preserve note-and-record evidence</li>
             <li>support and auditor roles review the evidence without service mutation controls</li>
           </ul>
         </article>
-
         <article class="card" style="--accent: var(--ops)">
           <h3>Notifications, Outbox, Assistant</h3>
-          <p>Operational handoffs create recipient-scoped local alerts. Reliability records make asynchronous work and review assistance visible without pretending to be external automation.</p>
+          <p>Operational handoffs create recipient-scoped local alerts. Reliability records make asynchronous work and review assistance visible.</p>
           <ul>
-            <li>notification preferences are scoped by user, topic, and channel</li>
+            <li>4 topics: ACCOUNT_LIFECYCLE, OPERATIONS, SERVICE_ACCOUNTABILITY, OUTBOX_HEALTH</li>
+            <li>2 channels: IN_APP and EMAIL_PROTOTYPE</li>
             <li>unread local deliveries are an action inbox; mixed delivery records remain history</li>
-            <li>outbox events and carrier dispatch records capture local handoff attempts</li>
-            <li>assistant interactions remain read-plus-draft and non-mutating</li>
+            <li>outbox events with retry/dead-letter and carrier dispatch records</li>
+            <li>assistant interactions remain read-plus-draft and non-mutating with deterministic fallback</li>
           </ul>
         </article>
-
         <article class="card" style="--accent: var(--proof)">
           <h3>Web, Android, And Release Proof</h3>
-          <p>The React product shell is shared by desktop web, narrow web, and Android packaging. The V17 release lane deploys the same product rather than a second mobile implementation.</p>
+          <p>The React product shell is shared by desktop web, narrow web, and Android packaging via Capacitor. The V17 release lane deploys the same product.</p>
           <ul>
-            <li>web runtime is deployed through Vercel</li>
-            <li>backend runtime is packaged for a Hugging Face Docker Space</li>
-            <li>data is expected to live in Neon PostgreSQL for the managed lane</li>
-            <li>signed Android APK delivery is through GitHub Releases after live proof</li>
+            <li>web runtime deployed through Vercel</li>
+            <li>backend runtime packaged for Hugging Face Docker Space</li>
+            <li>data in Neon PostgreSQL for the managed lane</li>
+            <li>signed Android APK delivery through GitHub Releases after live proof</li>
+            <li>Docker Compose for local PostgreSQL, Spring backend, and nginx-served frontend</li>
           </ul>
         </article>
       </div>
     </section>
 
+    <!-- ============================== -->
+    <!-- UML DOMAIN MODEL               -->
+    <!-- ============================== -->
     <section>
       <h2>UML Domain Model</h2>
       <p class="lede">
-        These cards summarize the current persistent model as UML-style packages. They group classes by business ownership and show only the relationships needed to understand the system.
+        These cards summarize the 37-table persistent model as UML-style packages grouped by business ownership. They show primary keys, foreign keys, unique constraints, and the relationships needed to understand the system.
       </p>
-
       <div class="uml-grid">
+
+        <!-- Package: Identity And Governance -->
         <article class="package" style="--accent: var(--platform)">
-          <h3>Identity And Governance</h3>
+          <h3>Identity And Governance (7 tables)</h3>
           <div class="package-body">
             <div class="class-card">
               <h4>Tenant</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span></span></dd></div>
-                <div><dt>attributes</dt><dd>name, type, active, created_at</dd></div>
-                <div><dt>role</dt><dd>merchant, warehouse provider, or platform tenant context</dd></div>
+                <div><dt>attributes</dt><dd>name, type (MERCHANT | WAREHOUSE_PROVIDER), active, suspension_reason, suspended_at, created_at</dd></div>
               </dl>
             </div>
             <div class="class-card">
               <h4>AppUser</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>tenant_id</span><span class="field"><span class="tag uk">UK</span>email</span></span></dd></div>
-                <div><dt>security</dt><dd>password_hash, role, enabled, created_at</dd></div>
+                <div><dt>security</dt><dd>password_hash, role (OWNER | ADMIN | SUPPORT_ADMIN | AUDITOR | MERCHANT | WAREHOUSE_OPERATOR), enabled, created_at</dd></div>
               </dl>
             </div>
             <div class="class-card">
               <h4>AccessRequest</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>reviewed_by_user_id</span><span class="field"><span class="tag fk">FK</span>converted_tenant_id</span><span class="field"><span class="tag fk">FK</span>converted_user_id</span></span></dd></div>
-                <div><dt>review</dt><dd>requester_email, organization_name, requested_role, status, notes</dd></div>
+                <div><dt>review</dt><dd>requester_email, organization_name, requested_role, status (PENDING | APPROVED | REJECTED | CONVERTED), notes, review_note, reviewed_at, converted_at</dd></div>
               </dl>
             </div>
             <div class="class-card">
               <h4>AdminAuditEvent</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>actor_user_id</span></span></dd></div>
-                <div><dt>evidence</dt><dd>action, aggregate_type, aggregate_id, details, created_at</dd></div>
+                <div><dt>evidence</dt><dd>action, aggregate_type, aggregate_id, reason, metadata (JSONB), created_at</dd></div>
+              </dl>
+            </div>
+            <div class="class-card">
+              <h4>PasswordResetToken</h4>
+              <dl>
+                <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>user_id</span><span class="field"><span class="tag uk">UK</span>token_hash</span></span></dd></div>
+                <div><dt>recovery</dt><dd>token_hash, expires_at, used_at, otp_code (V17 6-digit OTP column), created_at</dd></div>
+              </dl>
+            </div>
+            <div class="class-card">
+              <h4>IdempotencyRecord</h4>
+              <dl>
+                <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag uk">UK</span>idempotency_key</span></span></dd></div>
+                <div><dt>replay</dt><dd>method, request_path, request_hash, response_status, response_body (JSONB), created_at</dd></div>
               </dl>
             </div>
             <div class="relations">
-              <div class="relation">Tenant 1..* AppUser</div>
-              <div class="relation">AccessRequest 0..1 Tenant and 0..1 AppUser after conversion</div>
-              <div class="relation">AppUser 0..* AdminAuditEvent as actor</div>
+              <div class="relation">Tenant 1..* AppUser (tenant_id FK)</div>
+              <div class="relation">AccessRequest 0..1 Tenant (converted_tenant_id) and 0..1 AppUser (converted_user_id) after conversion</div>
+              <div class="relation">AppUser 0..* AdminAuditEvent as actor (actor_user_id FK)</div>
+              <div class="relation">AppUser 0..* PasswordResetToken (user_id FK)</div>
             </div>
           </div>
         </article>
 
+        <!-- Package: Merchant Inventory And Demand -->
         <article class="package" style="--accent: var(--merchant)">
-          <h3>Merchant Inventory And Demand</h3>
+          <h3>Merchant Inventory And Demand (6 tables)</h3>
           <div class="package-body">
             <div class="class-card">
               <h4>InventoryItem</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>merchant_id</span><span class="field"><span class="tag uk">UK</span>merchant_id + sku</span></span></dd></div>
-                <div><dt>attributes</dt><dd>sku, name, description, active, version</dd></div>
+                <div><dt>attributes</dt><dd>sku, name, attributes (JSONB), archived, created_at</dd></div>
               </dl>
             </div>
             <div class="class-card">
               <h4>CustomerOrder</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>merchant_id</span></span></dd></div>
-                <div><dt>state</dt><dd>status, idempotency_key, customer_reference, created_at</dd></div>
+                <div><dt>state</dt><dd>status (CREATED | ALLOCATED | PARTIALLY_ALLOCATED | BACKORDERED | SHIPPED | DELIVERED | CANCELLED), customer_address, created_at</dd></div>
               </dl>
             </div>
             <div class="class-card">
               <h4>OrderItem</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>order_id</span><span class="field"><span class="tag fk">FK</span>inventory_item_id</span></span></dd></div>
-                <div><dt>quantity</dt><dd>requested quantity for one order line</dd></div>
+                <div><dt>quantity</dt><dd>requested quantity for one order line (positive integer)</dd></div>
               </dl>
             </div>
             <div class="class-card">
-              <h4>OrderImportBatch / Row</h4>
+              <h4>OrderImportBatch / OrderImportRow</h4>
               <dl>
-                <div><dt>batch keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>order_import_batches.id</span><span class="field"><span class="tag fk">FK</span>merchant_id</span></span></dd></div>
-                <div><dt>row keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>order_import_rows.id</span><span class="field"><span class="tag fk">FK</span>batch_id</span><span class="field"><span class="tag fk">FK</span>created_order_id</span></span></dd></div>
+                <div><dt>batch</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>merchant_id</span></span></span> mode (ALL_OR_NONE | PARTIAL_ACCEPT), status (COMPLETED | PARTIAL_ACCEPTED | FAILED), source_label, total_rows, created_rows, rejected_rows</dd></div>
+                <div><dt>row</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>batch_id</span><span class="field"><span class="tag fk">FK</span>created_order_id</span></span></span> row_number, merchant_order_reference, sku, quantity, status (CREATED | REJECTED), failure_reason</dd></div>
+              </dl>
+            </div>
+            <div class="class-card">
+              <h4>CustomerContact</h4>
+              <dl>
+                <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>merchant_id</span></span></dd></div>
+                <div><dt>attributes</dt><dd>label, contact_name, phone, address, created_at</dd></div>
               </dl>
             </div>
             <div class="relations">
-              <div class="relation">Tenant 1..* InventoryItem</div>
-              <div class="relation">Tenant 1..* CustomerOrder 1..* OrderItem</div>
+              <div class="relation">Tenant 1..* InventoryItem (merchant_id FK)</div>
+              <div class="relation">Tenant 1..* CustomerOrder 1..* OrderItem (merchant_id, order_id FKs)</div>
               <div class="relation">OrderImportBatch 1..* OrderImportRow, optionally creating CustomerOrder</div>
+              <div class="relation">Tenant 1..* CustomerContact (merchant_id FK)</div>
             </div>
           </div>
         </article>
 
+        <!-- Package: Warehouse Operations -->
         <article class="package" style="--accent: var(--warehouse)">
-          <h3>Warehouse Operations</h3>
+          <h3>Warehouse Operations (4 tables)</h3>
           <div class="package-body">
             <div class="class-card">
               <h4>Warehouse</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>tenant_id</span></span></dd></div>
-                <div><dt>attributes</dt><dd>name, location, capacity, active</dd></div>
+                <div><dt>attributes</dt><dd>name, address, latitude, longitude, capacity (positive integer), created_at</dd></div>
               </dl>
             </div>
             <div class="class-card">
               <h4>WarehouseInventory</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>warehouse_id + inventory_item_id</span><span class="field"><span class="tag fk">FK</span>warehouse_id</span><span class="field"><span class="tag fk">FK</span>inventory_item_id</span></span></dd></div>
-                <div><dt>stock</dt><dd>quantity, reserved_quantity, version</dd></div>
+                <div><dt>stock</dt><dd>quantity, reserved_quantity (CHECK: reserved &le; quantity), version (optimistic lock), updated_at</dd></div>
               </dl>
             </div>
             <div class="class-card">
               <h4>InboundStockRequest</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>relationship_id</span><span class="field"><span class="tag fk">FK</span>merchant_id</span><span class="field"><span class="tag fk">FK</span>warehouse_provider_id</span><span class="field"><span class="tag fk">FK</span>warehouse_id</span><span class="field"><span class="tag fk">FK</span>inventory_item_id</span></span></dd></div>
-                <div><dt>evidence</dt><dd>requested_quantity, received_quantity, damaged_quantity, status, notes</dd></div>
+                <div><dt>evidence</dt><dd>requested_quantity, received_quantity, damaged_quantity (CHECK: received + damaged &le; requested), status, merchant_reference, merchant_note, receiving_note, rejection_reason, received_at</dd></div>
               </dl>
             </div>
             <div class="class-card">
               <h4>InventoryAuditLog</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>warehouse_id</span><span class="field"><span class="tag fk">FK</span>inventory_item_id</span><span class="field"><span class="tag fk">FK</span>actor_user_id</span></span></dd></div>
-                <div><dt>evidence</dt><dd>action, quantity_delta, reason_code, note, occurred_at</dd></div>
+                <div><dt>evidence</dt><dd>action (STOCK_ADDED | REMOVED | RESERVED | RELEASED | RECEIVED | ADJUSTED), before/after quantity, before/after reserved, reason_code, reason_note, occurred_at</dd></div>
               </dl>
             </div>
             <div class="relations">
-              <div class="relation">Tenant 1..* Warehouse</div>
-              <div class="relation">Warehouse *..* InventoryItem through WarehouseInventory</div>
-              <div class="relation">InboundStockRequest changes WarehouseInventory through receiving evidence</div>
+              <div class="relation">Tenant 1..* Warehouse (tenant_id FK)</div>
+              <div class="relation">Warehouse *..* InventoryItem through WarehouseInventory (composite PK)</div>
+              <div class="relation">InboundStockRequest receiving changes WarehouseInventory and writes InventoryAuditLog</div>
+              <div class="relation">InboundStockRequest requires active MerchantWarehouseRelationship</div>
             </div>
           </div>
         </article>
 
+        <!-- Package: Fulfillment And Shipment Evidence -->
         <article class="package" style="--accent: var(--warehouse)">
-          <h3>Fulfillment And Shipment Evidence</h3>
+          <h3>Fulfillment And Shipment Evidence (7 tables)</h3>
           <div class="package-body">
             <div class="class-card">
               <h4>FulfillmentAllocation</h4>
               <dl>
-                <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>order_id</span><span class="field"><span class="tag fk">FK</span>warehouse_id</span><span class="field"><span class="tag fk">FK</span>assigned_user_id</span><span class="field"><span class="tag uk">UK</span>scan_code</span></span></dd></div>
-                <div><dt>state</dt><dd>status, priority, workload, created_at</dd></div>
+                <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>order_id</span><span class="field"><span class="tag fk">FK</span>warehouse_id</span><span class="field"><span class="tag fk">FK</span>assigned_user_id</span><span class="field"><span class="tag uk">UK</span>scan_code (partial)</span></span></dd></div>
+                <div><dt>state</dt><dd>status (PENDING | PICKING | PACKED | SHIPPED | CANCELLED), priority (1-5), scan_code, pick_sheet_printed_at, created_at</dd></div>
               </dl>
             </div>
             <div class="class-card">
               <h4>FulfillmentAllocationItem</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>allocation_id</span><span class="field"><span class="tag fk">FK</span>inventory_item_id</span></span></dd></div>
-                <div><dt>quantity</dt><dd>allocated quantity reserved for warehouse work</dd></div>
+                <div><dt>quantity</dt><dd>allocated quantity reserved for warehouse work (positive integer)</dd></div>
               </dl>
             </div>
             <div class="class-card">
-              <h4>Shipment / Package / Event</h4>
+              <h4>Shipment</h4>
               <dl>
-                <div><dt>shipment keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>shipments.id</span><span class="field"><span class="tag uk">UK</span>allocation_id</span><span class="field"><span class="tag fk">FK</span>allocation_id</span></span></dd></div>
-                <div><dt>package keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>shipment_packages.id</span><span class="field"><span class="tag fk">FK</span>shipment_id</span><span class="field"><span class="tag uk">UK</span>shipment_id + package_number</span><span class="field"><span class="tag fk">FK</span>package_id events</span></span></dd></div>
+                <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag uk">UK</span>allocation_id</span><span class="field"><span class="tag fk">FK</span>allocation_id</span></span></dd></div>
+                <div><dt>delivery</dt><dd>carrier, tracking_number, status (IN_TRANSIT | DELIVERED | FAILED | RETURNED), metadata (JSONB), created_at</dd></div>
               </dl>
             </div>
             <div class="class-card">
-              <h4>BackorderItem / FulfillmentException</h4>
+              <h4>ShipmentPackage / ShipmentPackageEvent</h4>
               <dl>
-                <div><dt>backorder keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>backorder_items.id</span><span class="field"><span class="tag fk">FK</span>order_id</span><span class="field"><span class="tag fk">FK</span>inventory_item_id</span></span></dd></div>
-                <div><dt>exception keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>fulfillment_exceptions.id</span><span class="field"><span class="tag fk">FK</span>allocation_id</span><span class="field"><span class="tag fk">FK</span>shipment_id</span><span class="field"><span class="tag fk">FK</span>merchant_id</span><span class="field"><span class="tag fk">FK</span>warehouse_provider_id</span></span></dd></div>
+                <div><dt>package</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>shipment_id</span><span class="field"><span class="tag uk">UK</span>shipment_id + package_number</span></span></span> label_code, weight_kg, length_cm, width_cm, height_cm, status (PACKED | HANDED_OFF | DELIVERED | FAILED | RETURNED)</dd></div>
+                <div><dt>event</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>package_id</span></span></span> event_type, note, occurred_at</dd></div>
+              </dl>
+            </div>
+            <div class="class-card">
+              <h4>BackorderItem</h4>
+              <dl>
+                <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>order_id</span><span class="field"><span class="tag fk">FK</span>inventory_item_id</span></span></dd></div>
+                <div><dt>state</dt><dd>quantity, status (OPEN | FULFILLED | CANCELLED), created_at</dd></div>
+              </dl>
+            </div>
+            <div class="class-card">
+              <h4>FulfillmentException</h4>
+              <dl>
+                <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>allocation_id</span><span class="field"><span class="tag fk">FK</span>shipment_id</span><span class="field"><span class="tag fk">FK</span>merchant_id</span><span class="field"><span class="tag fk">FK</span>warehouse_provider_id</span></span></dd></div>
+                <div><dt>evidence</dt><dd>reason_code, description, resolution_note, status (OPEN | RESOLVED), resolved_at (CHECK: at least one of allocation_id or shipment_id)</dd></div>
               </dl>
             </div>
             <div class="relations">
               <div class="relation">CustomerOrder 1..* FulfillmentAllocation 0..1 Shipment</div>
               <div class="relation">FulfillmentAllocation 1..* FulfillmentAllocationItem</div>
               <div class="relation">Shipment 0..* ShipmentPackage 0..* ShipmentPackageEvent</div>
+              <div class="relation">CustomerOrder 0..* BackorderItem for unallocated demand</div>
+              <div class="relation">FulfillmentAllocation or Shipment 0..* FulfillmentException</div>
             </div>
           </div>
         </article>
 
+        <!-- Package: Relationship And Service Accountability -->
         <article class="package" style="--accent: var(--service)">
-          <h3>Relationship And Service Accountability</h3>
+          <h3>Relationship And Service Accountability (10 tables)</h3>
           <div class="package-body">
             <div class="class-card">
               <h4>MerchantWarehouseRelationship</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>merchant_id</span><span class="field"><span class="tag fk">FK</span>warehouse_provider_id</span><span class="field"><span class="tag uk">UK</span>merchant_id + warehouse_provider_id</span></span></dd></div>
-                <div><dt>state</dt><dd>status, requested_at, activated_at, suspended_at, ended_at</dd></div>
+                <div><dt>state</dt><dd>status (REQUESTED | ACTIVE | SUSPENDED | ENDED), service_notes, approved_at, suspended_at, ended_at, status_reason (CHECK: merchant_id &ne; warehouse_provider_id)</dd></div>
               </dl>
             </div>
             <div class="class-card">
               <h4>ServiceAgreement</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>relationship_id</span><span class="field"><span class="tag fk">FK</span>merchant_id</span><span class="field"><span class="tag fk">FK</span>warehouse_provider_id</span><span class="field"><span class="tag fk">FK</span>supersedes_agreement_id</span><span class="field"><span class="tag uk">UK</span>relationship_id + version_number</span></span></dd></div>
-                <div><dt>state</dt><dd>status, version_number, proposed_at, accepted_at</dd></div>
+                <div><dt>terms</dt><dd>status (DRAFT | PROPOSED | ACTIVE | SUSPENDED | ENDED | SUPERSEDED), title, version_number, effective_date, renewal_review_date, cancellation_window_days, service_scopes, service_notes</dd></div>
               </dl>
             </div>
             <div class="class-card">
-              <h4>RateCard / SlaPolicy</h4>
+              <h4>ReferenceRateCard / SlaPolicy</h4>
               <dl>
-                <div><dt>rate keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>reference_rate_cards.id</span><span class="field"><span class="tag fk">FK</span>agreement_id</span><span class="field"><span class="tag uk">UK</span>agreement_id</span></span></dd></div>
-                <div><dt>SLA keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>sla_policies.id</span><span class="field"><span class="tag fk">FK</span>agreement_id</span><span class="field"><span class="tag uk">UK</span>agreement_id</span></span></dd></div>
+                <div><dt>rate card</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag uk">UK</span>agreement_id</span></span></span> 12 fee fields (receiving, storage, pick, pack, packaging, shipment handling, return restock, exception handling, coordination, fixed coordination), carrier pass-through note</dd></div>
+                <div><dt>SLA policy</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag uk">UK</span>agreement_id</span></span></span> receiving_sla_hours, pick_pack_sla_hours, shipment_handoff_sla_hours, exception_response_sla_hours, pause_rule_notes</dd></div>
               </dl>
             </div>
             <div class="class-card">
-              <h4>Statement / Dispute / Claim / Review</h4>
+              <h4>ServiceStatement / ServiceStatementLine</h4>
               <dl>
-                <div><dt>statement keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>service_statements.id</span><span class="field"><span class="tag fk">FK</span>agreement_id</span><span class="field"><span class="tag fk">FK</span>merchant_id</span><span class="field"><span class="tag fk">FK</span>warehouse_provider_id</span><span class="field"><span class="tag uk">UK</span>idempotency_key</span></span></dd></div>
-                <div><dt>issue keys</dt><dd><span class="field-list"><span class="field"><span class="tag fk">FK</span>agreement_id</span><span class="field"><span class="tag fk">FK</span>statement_id disputes</span><span class="field"><span class="tag fk">FK</span>statement_line_id disputes</span></span></dd></div>
+                <div><dt>statement</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>agreement_id</span><span class="field"><span class="tag uk">UK</span>idempotency_key (partial)</span></span></span> status (DRAFT | FINALIZED | MARKED_SETTLED | DISPUTED | CANCELLED), period_start/end, due_date, subtotal, coordination_fee, adjustment, total amounts</dd></div>
+                <div><dt>statement line</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>statement_id</span></span></span> line_type (11 types), source_type (6 types), source_id, description, quantity, unit_amount, line_amount</dd></div>
+              </dl>
+            </div>
+            <div class="class-card">
+              <h4>ServiceDispute / ServiceClaim / ServiceReviewRequest</h4>
+              <dl>
+                <div><dt>dispute</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>agreement_id</span><span class="field"><span class="tag fk">FK</span>statement_id</span><span class="field"><span class="tag fk">FK</span>statement_line_id</span></span></span> status (OPEN | RESOLVED | REJECTED), reason, evidence_note, outcome_note</dd></div>
+                <div><dt>claim</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>agreement_id</span></span></span> source_type (6 types), source_id, claim_type, status (OPEN | RESOLVED | REJECTED)</dd></div>
+                <div><dt>review</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>agreement_id</span></span></span> review_type (7 types), status (PENDING | APPROVED | REJECTED), requested_by</dd></div>
               </dl>
             </div>
             <div class="relations">
-              <div class="relation">Relationship 1..* ServiceAgreement</div>
-              <div class="relation">ServiceAgreement 0..1 RateCard and 0..1 SlaPolicy</div>
-              <div class="relation">ServiceAgreement 0..* Statement, Claim, Dispute, Review</div>
+              <div class="relation">MerchantWarehouseRelationship 1..* ServiceAgreement</div>
+              <div class="relation">ServiceAgreement 0..1 ReferenceRateCard and 0..1 SlaPolicy (1:1 each)</div>
+              <div class="relation">ServiceAgreement 0..* ServiceStatement 1..* ServiceStatementLine</div>
+              <div class="relation">ServiceAgreement 0..* ServiceDispute, ServiceClaim, ServiceReviewRequest</div>
+              <div class="relation">Only ACTIVE relationships allow inbound stock and allocation work</div>
             </div>
           </div>
         </article>
 
+        <!-- Package: Reliability, Delivery, And Assistance -->
         <article class="package" style="--accent: var(--ops)">
-          <h3>Reliability, Delivery, And Assistance</h3>
+          <h3>Reliability, Delivery, And Assistance (4 tables)</h3>
           <div class="package-body">
             <div class="class-card">
               <h4>OutboxEvent / CarrierDispatch</h4>
               <dl>
-                <div><dt>outbox keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>outbox_events.id</span></span></dd></div>
-                <div><dt>dispatch keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>carrier_dispatches.id</span><span class="field"><span class="tag fk">FK</span>outbox_event_id</span><span class="field"><span class="tag uk">UK</span>outbox_event_id</span><span class="field"><span class="tag fk">FK</span>shipment_id</span></span></dd></div>
+                <div><dt>outbox</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>outbox_events.id</span></span></span> event_type, aggregate_type, aggregate_id, payload (JSONB), status (PENDING | PROCESSED | FAILED | DEAD_LETTER), attempts, next_attempt_at, last_error</dd></div>
+                <div><dt>dispatch</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>carrier_dispatches.id</span><span class="field"><span class="tag uk">UK</span>outbox_event_id</span><span class="field"><span class="tag fk">FK</span>shipment_id</span></span></span> event_type, carrier, tracking_number, status (DISPATCHED | FAILED), attempts, external_reference</dd></div>
               </dl>
             </div>
             <div class="class-card">
-              <h4>NotificationPreference / Delivery</h4>
+              <h4>NotificationPreference</h4>
               <dl>
-                <div><dt>preference keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>notification_preferences.id</span><span class="field"><span class="tag fk">FK</span>user_id</span><span class="field"><span class="tag uk">UK</span>user_id + topic + channel</span></span></dd></div>
-                <div><dt>delivery keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>notification_deliveries.id</span><span class="field"><span class="tag fk">FK</span>recipient_user_id</span><span class="field"><span class="tag fk">FK</span>tenant_id</span></span></dd></div>
+                <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>user_id</span><span class="field"><span class="tag uk">UK</span>user_id + topic + channel</span></span></dd></div>
+                <div><dt>scope</dt><dd>topic (ACCOUNT_LIFECYCLE | OPERATIONS | SERVICE_ACCOUNTABILITY | OUTBOX_HEALTH), channel (IN_APP | EMAIL_PROTOTYPE), enabled</dd></div>
               </dl>
             </div>
             <div class="class-card">
-              <h4>PasswordResetToken / IdempotencyRecord</h4>
+              <h4>NotificationDelivery</h4>
               <dl>
-                <div><dt>reset keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>password_reset_tokens.id</span><span class="field"><span class="tag fk">FK</span>user_id</span><span class="field"><span class="tag uk">UK</span>token_hash</span></span></dd></div>
-                <div><dt>idempotency keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>idempotency_records.id</span><span class="field"><span class="tag uk">UK</span>idempotency_key</span></span></dd></div>
+                <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>recipient_user_id</span><span class="field"><span class="tag fk">FK</span>tenant_id</span></span></dd></div>
+                <div><dt>delivery</dt><dd>topic, channel, status (RECORDED | READ | PROVIDER_RECORDED | SKIPPED_BY_PREFERENCE), delivery_stage, provider_status, title, body, source_type, source_id, prototype_local, read_at</dd></div>
+                <div><dt>provider</dt><dd>provider_message_id, provider_error, provider_attempted_at, provider_sent_at, provider_failed_at, provider_retry_count</dd></div>
               </dl>
             </div>
             <div class="class-card">
               <h4>AssistantInteraction</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>actor_user_id</span><span class="field"><span class="tag fk">FK</span>actor_tenant_id</span><span class="field"><span class="tag fk">FK</span>decided_by_user_id</span></span></dd></div>
-                <div><dt>behavior</dt><dd>scope, prompt, response, action_status, metadata, created_at</dd></div>
+                <div><dt>behavior</dt><dd>scope (PLATFORM_OVERVIEW | MERCHANT_OPERATIONS | WAREHOUSE_OPERATIONS), response_type (SUMMARY | SUGGESTION | REFUSAL), action_status (NOT_APPLICABLE | PENDING | ACCEPTED | REJECTED), request_text, response_text, prototype_local, decision_note, metadata (JSONB)</dd></div>
               </dl>
             </div>
             <div class="relations">
-              <div class="relation">AppUser 1..* NotificationPreference and 0..* NotificationDelivery</div>
-              <div class="relation">OutboxEvent 0..1 CarrierDispatch, usually tied to Shipment handoff</div>
-              <div class="relation">AssistantInteraction is auditable review support, not operational mutation</div>
+              <div class="relation">AppUser 1..* NotificationPreference and 0..* NotificationDelivery (recipient-scoped)</div>
+              <div class="relation">OutboxEvent 0..1 CarrierDispatch for shipment handoff events</div>
+              <div class="relation">OutboxEvent types: OrderCreated, OrderAllocated, OrderCancelled, FulfillmentAllocationAdvanced, ShipmentCreated/Delivered/Failed/Returned, BackorderFulfilled/Cancelled</div>
+              <div class="relation">AssistantInteraction is auditable read-plus-draft support, not operational mutation</div>
             </div>
           </div>
         </article>
       </div>
     </section>
 
+    <!-- ============================== -->
+    <!-- STATE MACHINES                 -->
+    <!-- ============================== -->
     <section>
       <h2>State Machines</h2>
       <p class="lede">
-        These are the states operators actually see and reason about. They omit code names that do not change the user workflow.
+        These are the states operators actually see and reason about, matching the database CHECK constraints and service-layer transitions across all 19 migrations.
       </p>
       <div class="state-grid">
+        <article class="state" style="--accent: var(--platform)">
+          <h3>Access Request</h3>
+          <div class="state-path">
+            <span>Pending</span>
+            <span>Approved or Rejected</span>
+            <span>Converted (from Approved)</span>
+          </div>
+          <p class="state-note">Approve-and-activate combines approval and conversion in one step. Separate approve then convert preserves the reviewer trail. Throttled by requester email.</p>
+        </article>
         <article class="state" style="--accent: var(--service)">
           <h3>Relationship</h3>
           <div class="state-path">
@@ -640,7 +706,7 @@
             <span>Suspended</span>
             <span>Ended</span>
           </div>
-          <p class="state-note">Warehouse can activate requested work for its provider tenant. Platform governance owns suspend, reactivate, and end actions.</p>
+          <p class="state-note">Warehouse can activate requested work. Platform governance owns suspend, reactivate, and end. Only active relationships allow inbound and allocation.</p>
         </article>
         <article class="state" style="--accent: var(--merchant)">
           <h3>Inbound Stock</h3>
@@ -651,40 +717,108 @@
             <span>Receiving</span>
             <span>Received or Rejected</span>
           </div>
-          <p class="state-note">Cancelled can branch from merchant-owned work before completion; damaged and short quantities remain evidence.</p>
+          <p class="state-note">Cancelled can branch before completion. Damaged and short quantities remain evidence. Only received quantity becomes available warehouse inventory.</p>
         </article>
         <article class="state" style="--accent: var(--warehouse)">
-          <h3>Fulfillment</h3>
+          <h3>Fulfillment Allocation</h3>
           <div class="state-path">
-            <span>Demand Created</span>
-            <span>Allocated or Backordered</span>
+            <span>Pending</span>
             <span>Picking</span>
             <span>Packed</span>
             <span>Shipped</span>
-            <span>Delivered, Failed, Returned, or Exceptional</span>
           </div>
-          <p class="state-note">Backorder evidence does not pretend an allocation exists. Exceptions stay reviewable beside shipment evidence.</p>
+          <p class="state-note">Cancelled can branch from Pending or Picking. Shipment creation moves allocation from Packed to Shipped and order to Shipped.</p>
+        </article>
+        <article class="state" style="--accent: var(--warehouse)">
+          <h3>Customer Order</h3>
+          <div class="state-path">
+            <span>Created</span>
+            <span>Allocated or Partially Allocated or Backordered</span>
+            <span>Shipped</span>
+            <span>Delivered</span>
+          </div>
+          <p class="state-note">Cancelled can branch from Created, Allocated, Partially Allocated, or Backordered. Cancellation releases reserved stock and cancels open backorders.</p>
+        </article>
+        <article class="state" style="--accent: var(--warehouse)">
+          <h3>Shipment</h3>
+          <div class="state-path">
+            <span>In Transit</span>
+            <span>Delivered, Failed, or Returned</span>
+          </div>
+          <p class="state-note">Delivered moves the order to Delivered. Failed and Returned keep the order in Shipped for later operational handling.</p>
+        </article>
+        <article class="state" style="--accent: var(--warehouse)">
+          <h3>Shipment Package</h3>
+          <div class="state-path">
+            <span>Packed</span>
+            <span>Handed Off</span>
+            <span>Delivered, Failed, or Returned</span>
+          </div>
+          <p class="state-note">Package events record handoff, delivery, and exception evidence against individual packages within a shipment.</p>
         </article>
         <article class="state" style="--accent: var(--service)">
           <h3>Service Agreement</h3>
           <div class="state-path">
-            <span>Draft Terms</span>
+            <span>Draft</span>
             <span>Proposed</span>
             <span>Active</span>
-            <span>Superseded</span>
+            <span>Suspended, Ended, or Superseded</span>
           </div>
-          <p class="state-note">Review requests stay locked until an agreement is active; statements remain service-unit evidence, not invoices.</p>
+          <p class="state-note">Review requests stay locked until agreement is active. Versioned with supersedes link. Statements remain service-unit evidence, not invoices.</p>
+        </article>
+        <article class="state" style="--accent: var(--service)">
+          <h3>Service Statement</h3>
+          <div class="state-path">
+            <span>Draft</span>
+            <span>Finalized</span>
+            <span>Marked Settled or Disputed or Cancelled</span>
+          </div>
+          <p class="state-note">Finalized statements can be marked settled (coordination marker, not payment proof) or disputed. Lines reference source operational records.</p>
+        </article>
+        <article class="state" style="--accent: var(--service)">
+          <h3>Dispute / Claim / Review</h3>
+          <div class="state-path">
+            <span>Open / Pending</span>
+            <span>Resolved / Approved or Rejected</span>
+          </div>
+          <p class="state-note">Disputes and claims use OPEN/RESOLVED/REJECTED. Review requests use PENDING/APPROVED/REJECTED. Note-and-record evidence only, no attachment storage.</p>
+        </article>
+        <article class="state" style="--accent: var(--ops)">
+          <h3>Outbox Event</h3>
+          <div class="state-path">
+            <span>Pending</span>
+            <span>Processed</span>
+            <span>Failed (retryable)</span>
+            <span>Dead Letter</span>
+          </div>
+          <p class="state-note">Scheduled processor drains pending rows. Failed rows increment attempts and receive next_attempt_at. Retryable failures retry until max attempts, then dead-letter.</p>
         </article>
         <article class="state" style="--accent: var(--ops)">
           <h3>Notification Delivery</h3>
           <div class="state-path">
             <span>Prepared</span>
-            <span>Local Recorded or Skipped</span>
+            <span>Local Recorded or Skipped By Preference</span>
             <span>Unread Action or History</span>
             <span>Read</span>
-            <span>Provider Recorded When Enabled</span>
+            <span>Provider Recorded (when SMTP enabled)</span>
           </div>
-          <p class="state-note">The action inbox is recipient-scoped. Provider delivery is evidence only after V17 SMTP proof.</p>
+          <p class="state-note">Action inbox is recipient-scoped. Provider delivery is evidence only after V17 SMTP proof. Provider statuses: NOT_CONFIGURED, READY_FOR_PROVIDER, SENT, FAILED.</p>
+        </article>
+        <article class="state" style="--accent: var(--warehouse)">
+          <h3>Backorder Item</h3>
+          <div class="state-path">
+            <span>Open</span>
+            <span>Fulfilled or Cancelled</span>
+          </div>
+          <p class="state-note">Fulfilled closes the shortage evidence but does not create reserved stock or an ALLOCATED order status. Cancelling an order cancels its open backorders.</p>
+        </article>
+        <article class="state" style="--accent: var(--warehouse)">
+          <h3>Fulfillment Exception</h3>
+          <div class="state-path">
+            <span>Open</span>
+            <span>Resolved</span>
+          </div>
+          <p class="state-note">Linked to allocation and/or shipment. Merchant can resolve; warehouse and platform can also resolve. Resolution note preserved as evidence.</p>
         </article>
         <article class="state" style="--accent: var(--proof)">
           <h3>V17 Release Proof</h3>
@@ -695,11 +829,53 @@
             <span>Visible Installed App Review</span>
             <span>Sanitized Evidence Attached</span>
           </div>
-          <p class="state-note">Script reports support the claim; they do not replace watching the deployed web app and installed Android app behave.</p>
+          <p class="state-note">Script reports support the claim; they do not replace watching the deployed web app and installed Android app behave on the live stack.</p>
         </article>
       </div>
     </section>
 
+    <!-- ============================== -->
+    <!-- FRONTEND ROUTING AND ROLES     -->
+    <!-- ============================== -->
+    <section>
+      <h2>Frontend Routing And Role Boundaries</h2>
+      <p class="lede">
+        The React console uses role-gated routing. Public routes require no authentication. Authenticated routes enforce role-based access through <code>RequireAuth</code> guards. The same shell serves web, narrow web, and Android via Capacitor.
+      </p>
+      <table class="route-table">
+        <thead>
+          <tr><th>Route</th><th>Access</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>/login</code></td><td><span class="badge public">Public</span></td><td>Email/password authentication</td></tr>
+          <tr><td><code>/request-access</code></td><td><span class="badge public">Public</span></td><td>Public access request form for onboarding</td></tr>
+          <tr><td><code>/forgot-password</code></td><td><span class="badge public">Public</span></td><td>Password reset request (token-link and OTP flows)</td></tr>
+          <tr><td><code>/verify-otp</code></td><td><span class="badge public">Public</span></td><td>OTP code entry for password recovery</td></tr>
+          <tr><td><code>/reset-password</code></td><td><span class="badge public">Public</span></td><td>New password entry after token or OTP validation</td></tr>
+          <tr><td><code>/how-to-use</code></td><td><span class="badge public">Public</span></td><td>V17 portfolio: product guidance page</td></tr>
+          <tr><td><code>/admin</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span></td><td>Platform overview with attention signals</td></tr>
+          <tr><td><code>/admin/relationships</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span></td><td>Relationship governance and lifecycle evidence</td></tr>
+          <tr><td><code>/admin/outbox</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span></td><td>Outbox diagnostics, retry, dead-letter actions</td></tr>
+          <tr><td><code>/admin/audit</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span></td><td>Admin audit events including assistant activity</td></tr>
+          <tr><td><code>/admin/tenants</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span></td><td>Tenant creation and management</td></tr>
+          <tr><td><code>/admin/users</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span></td><td>User creation, role changes, enable/disable</td></tr>
+          <tr><td><code>/admin/access-requests</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span></td><td>Access request review, approve, reject, convert</td></tr>
+          <tr><td><code>/merchant</code></td><td><span class="badge merchant">Merchant</span></td><td>Merchant dashboard with attention signals</td></tr>
+          <tr><td><code>/merchant/inventory</code></td><td><span class="badge merchant">Merchant</span></td><td>Product management and authorized stock view</td></tr>
+          <tr><td><code>/merchant/orders</code></td><td><span class="badge merchant">Merchant</span></td><td>Order creation, import batches, backorder review</td></tr>
+          <tr><td><code>/warehouse</code></td><td><span class="badge warehouse">Warehouse</span></td><td>Receiving, fulfillment, shipments, exceptions, inventory adjustment</td></tr>
+          <tr><td><code>/service-accountability</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span><span class="badge merchant">Merchant</span><span class="badge warehouse">Warehouse</span></td><td>Agreements, rate cards, SLA, statements, disputes, claims, reviews</td></tr>
+          <tr><td><code>/assistant</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span><span class="badge merchant">Merchant</span><span class="badge warehouse">Warehouse</span></td><td>Deterministic read-plus-draft assistant with scoped summaries</td></tr>
+          <tr><td><code>/notifications</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span><span class="badge merchant">Merchant</span><span class="badge warehouse">Warehouse</span></td><td>Action inbox, delivery history, preferences</td></tr>
+          <tr><td><code>/account</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span><span class="badge merchant">Merchant</span><span class="badge warehouse">Warehouse</span></td><td>Account context and current-password-verified password change</td></tr>
+          <tr><td><code>/orders/:id</code>, <code>/shipments/:id</code>, etc.</td><td>All authenticated roles</td><td>Operational detail pages with timeline events</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============================== -->
+    <!-- RUNTIME AND RELEASE SHAPE      -->
+    <!-- ============================== -->
     <section>
       <h2>Runtime And Release Shape</h2>
       <div class="grid">
@@ -711,17 +887,42 @@
             <li>browser tours and installed Android tours verify the same stakeholder workflows</li>
             <li>proof reports support live review but do not replace it</li>
             <li>shared mobile shell proof rejects duplicate product behavior inside the Android wrapper</li>
+            <li>Capacitor wraps the same React build output (<code>frontend/dist</code>) for Android</li>
           </ul>
         </article>
-        <article class="card" style="--accent: var(--ops)">
-          <h3>Selected V17 Managed Lane</h3>
-          <p>The current no-card deployed lane keeps the first release simple and stable without requiring a real domain.</p>
+        <article class="card" style="--accent: var(--deploy)">
+          <h3>V17 Managed Deployment Lane</h3>
+          <p>The current deployed lane keeps the first release simple and stable.</p>
           <ul>
             <li>Neon PostgreSQL for managed data</li>
             <li>Hugging Face Docker Space for the Spring backend</li>
             <li>Vercel for the React frontend</li>
+            <li>GitHub Actions for CI/CD quality gates (<code>merhouse-quality-gate.yml</code>) and Android release (<code>merhouse-android-release.yml</code>)</li>
             <li>GitHub Releases for signed internal APK distribution</li>
-            <li>SMTP proof only after provider credentials are externalized and verified</li>
+            <li>SMTP email delivery when <code>MERHOUSE_EMAIL_ENABLED=true</code> with provider credentials externalized</li>
+          </ul>
+        </article>
+        <article class="card" style="--accent: var(--platform)">
+          <h3>Backend Configuration Boundary</h3>
+          <p>Production safety validates deployment configuration at startup.</p>
+          <ul>
+            <li><code>MERHOUSE_AGENT_MODE=deterministic</code> only; non-deterministic modes fail startup</li>
+            <li><code>MERHOUSE_DEPLOYMENT_PUBLIC=true</code> triggers public safety checks</li>
+            <li>recovery throttling via <code>MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT</code> and window</li>
+            <li>access request throttling via <code>MERHOUSE_ACCESS_REQUEST_LIMIT</code> and window</li>
+            <li>email provider credentials must be externalized; no checked-in SMTP secrets</li>
+            <li>reset token echo disabled in public environments</li>
+          </ul>
+        </article>
+        <article class="card" style="--accent: var(--ops)">
+          <h3>Notification And Email Direction</h3>
+          <p>In-app alerts are the action inbox. SMTP email is opt-in provider evidence.</p>
+          <ul>
+            <li>4 topics: ACCOUNT_LIFECYCLE, OPERATIONS, SERVICE_ACCOUNTABILITY, OUTBOX_HEALTH</li>
+            <li>2 channels: IN_APP (always) and EMAIL_PROTOTYPE (when enabled)</li>
+            <li>local deliveries are recipient-scoped with source navigation to operational detail pages</li>
+            <li>enabled SMTP records provider status, timestamps, error, and retry count</li>
+            <li>SMS, phone OS push, lock-screen, and notification-tray are out of scope</li>
           </ul>
         </article>
       </div>

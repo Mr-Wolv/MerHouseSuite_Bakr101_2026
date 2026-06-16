@@ -24,9 +24,9 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
 | `C-02` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Requires signing material and deployed proof inputs outside Git. |
 | `C-03` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
 | `C-04` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Requires deployed provider/operator proof inputs outside Git. |
-| `D-02` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
-| `D-03` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
-| `E-01` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
+| `D-02` | Closed | 2026-06-16T12:00:00+03:00 | Removed non-existent `verify-otp` endpoint reference from `account-lifecycle.md`; OTP recovery section now describes the actual two-step flow: `request-otp` generates and stores OTP, `reset-with-otp` accepts email + OTP code + new password. |
+| `D-03` | Closed | 2026-06-16T12:00:00+03:00 | Replaced Feature D enhancement descriptions in `agentic-operations-assistance.md` with a deferral statement; conversation threading, chat UI, contextual awareness, and workflow guidance are deferred to Vinfinite per `V17-RE-EVALUATION.md`. |
+| `E-01` | Closed | 2026-06-16T12:00:00+03:00 | Updated `system-diagrams.html` migration count from 18 to 19; added OTP recovery and approve-and-activate references to the identity lifecycle, AccessRequest UML card, and PasswordResetToken card. |
 | `E-02` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
 | `F-01` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
 | `F-02` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Depends on deployed proof artifacts. |
@@ -46,12 +46,30 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
   **Resolution implemented**: Replaced the contradictory re-evaluation content with a concise closure-status document that separates implemented scope, deferred scope, open proof work, and closure rules, and points ordered execution back to `Closure_Plan.md`.  
   **Verification**: Re-read the rewritten file and searched it for stale contradiction markers such as "features A-C are missing", "current state", and "remaining code work is"; no contradiction matches remain.
 
+- **Task:** `D-02`
+  **Completed:** `2026-06-16T12:00:00+03:00`
+  **Key findings:** `docs/architecture/account-lifecycle.md` described a `verify-otp` endpoint that does not exist in `AuthController.java`; the actual OTP recovery flow is a two-step process: `request-otp` then `reset-with-otp`.
+  **Resolution implemented:** Removed the `verify-otp` reference and rewrote the OTP recovery bullet list to describe the actual implemented endpoints and flow.
+  **Verification:** Grep confirmed `verify-otp` no longer appears in any tracked doc or source file; the updated text matches `AuthController.java` and `OtpResetRequest.java`.
+
+- **Task:** `D-03`
+  **Completed:** `2026-06-16T12:00:00+03:00`
+  **Key findings:** `docs/architecture/agentic-operations-assistance.md` described Feature D enhancements (conversation threading, contextual awareness, chat-like UI, workflow guidance) as V17 work, but these are deferred to Vinfinite.
+  **Resolution implemented:** Replaced the Feature D enhancement list with a deferral statement pointing to `V17-RE-EVALUATION.md`; kept the current deterministic behavior description intact.
+  **Verification:** Searched the file for `parentInteractionId` implementation claims and chat-like UI descriptions as current V17 work; none remain.
+
+- **Task:** `E-01`
+  **Completed:** `2026-06-16T12:00:00+03:00`
+  **Key findings:** `docs/architecture/system-diagrams.html` reported 18 Flyway migrations; the repository contains 19. The diagram also did not reference OTP recovery, approve-and-activate, or the `otp_code` column on `password_reset_tokens`.
+  **Resolution implemented:** Updated the migration count pill to 19; added OTP and approve-and-activate references to the Access And Account Lifecycle card, AccessRequest UML card, and PasswordResetToken card.
+  **Verification:** Counted migrations via filesystem listing (19 `.sql` files); confirmed 37 tables remain correct.
+
 ## Open Blocking Issues
 
 | Issue | Status | Last Updated | Evidence |
 | --- | --- | --- | --- |
 | Port conflict on localhost:8080 | Closed - live on 8081 | 2026-06-14T17:02:00+03:00 | Host port 8080 remains occupied by AgentService; MerHouse local stack binds backend to host 8081 instead. |
-| Local full‑stack deployment setup | Closed | 2026-06-14T17:02:00+03:00 | Created .env from .env.example, aligned docker-compose.yml ports to 8081 and 3001, and confirmed containers are running and healthy. |
+| Local fullÃ¢â‚¬â€˜stack deployment setup | Closed | 2026-06-14T17:02:00+03:00 | Created .env from .env.example, aligned docker-compose.yml ports to 8081 and 3001, and confirmed containers are running and healthy. |
 | Unresponsive health check at http://localhost:8080/api/v1/health | Closed - live on http://localhost:8081/api/v1/health | 2026-06-14T17:02:00+03:00 | Backend is reachable at http://localhost:8081/api/v1/health; `docker compose ps` shows merhouse-backend healthy. |
 
 ## Resolved Blocking Issues Details
@@ -62,7 +80,7 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
   **Resolution implemented**: Documented local host port convention: MerHouse Docker stack is reachable on 8081 (backend) and 3001 (frontend) while AgentService retains 8080.  
   **Verification**: Ran `docker compose ps`; backend is healthy on `0.0.0.0:8081->8080/tcp`, frontend on `0.0.0.0:3001->80/tcp`.
 
-- **Issue**: Local full‑stack deployment setup  
+- **Issue**: Local full-stack deployment setup
   **Resolved**: `2026-06-14T17:02:00+03:00`  
   **Key findings**: `.env` was missing and docker-compose port mapping was out of sync with local script expectations.  
   **Resolution implemented**: Created `.env` from `.env.example`, updated `docker-compose.yml` to publish backend on 8081 and frontend on 3001, updated `scripts/local/wait-backend.ps1`, `scripts/local/seed-demo.ps1`, and `frontend/vite.config.ts` to use the same ports, then rebuilt and started the stack with `docker compose up -d`.  

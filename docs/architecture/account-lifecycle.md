@@ -50,13 +50,12 @@ V17 may replace the local proof path with email-delivered **OTP** or reset-link 
 V17 introduces an OTP-based password recovery flow as a portfolio feature:
 
 - `POST /api/v1/auth/recovery/request-otp` generates a 6-digit numeric OTP via `SecureRandom`, hashes it with SHA-256, stores it with a 15-minute TTL, and calls `EmailDeliveryService`.
-- `POST /api/v1/auth/recovery/verify-otp` accepts email + OTP, returns a session token on success.
-- `POST /api/v1/auth/recovery/reset-with-otp` accepts the session token + new password, resets the password hash.
+- `POST /api/v1/auth/recovery/reset-with-otp` accepts email + OTP code + new password in a single request, validates the OTP against the stored hash, and resets the password hash on success.
 - Throttling reuses existing `MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT` (5 per window).
 - Replay protection: used OTPs are marked and rejected.
 - Generic response for unknown emails is preserved.
 - When `MERHOUSE_EMAIL_PROVIDER=log`, the OTP appears in the backend console for local demo.
-- Audit trail: `adminAuditService.record()` for request, verification, and completion.
+- Audit trail: `adminAuditService.record()` for request and completion.
 
 ## Access Requests
 

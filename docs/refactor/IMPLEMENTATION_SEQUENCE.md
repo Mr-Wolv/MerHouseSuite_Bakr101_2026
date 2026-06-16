@@ -41,7 +41,7 @@ Each task is scored on a 3-point scale (High / Medium / Low) for:
 | **Operational impact** | Will the operator be unable to detect, diagnose, or recover from problems? |
 | **Implementation risk** | How likely is the change itself to break something that currently works? |
 | **Refactor risk** | How much of the codebase must change, and how hard is it to roll back? |
-| **Evidence the problem exists** | Is there a failing test, a deployed failure, or a concrete scenario proving this is real — or is it theoretical? |
+| **Evidence the problem exists** | Is there a failing test, a deployed failure, or a concrete scenario proving this is real â€” or is it theoretical? |
 
 ### Disposition Categories
 
@@ -58,14 +58,14 @@ Each task is scored on a 3-point scale (High / Medium / Low) for:
 
 ### Executive Summary
 
-MerHouse is a B2B fulfillment coordination platform connecting merchants, warehouse providers, and platform operators through a tenant-aware workflow. The codebase comprises 276 backend Java files, 65 frontend TypeScript files, 18 Flyway migrations, 62 PowerShell scripts, and 2 GitHub Actions workflows. V16.2 local certification is complete; V17 production activation is the active private deployment lane.
+MerHouse is a B2B fulfillment coordination platform connecting merchants, warehouse providers, and platform operators through a tenant-aware workflow. The codebase comprises 276 backend Java files, 65 frontend TypeScript files, 19 Flyway migrations, 62 PowerShell scripts, and 2 GitHub Actions workflows. V16.2 local certification is complete; V17 production activation is the active private deployment lane.
 
-**Overall assessment:** The system is functionally complete for its current scope but carries structural debt that will make production ownership expensive if not addressed strategically. The most critical issues are not bugs — they are maintenance surface area and operational blind spots that will compound under real production load.
+**Overall assessment:** The system is functionally complete for its current scope but carries structural debt that will make production ownership expensive if not addressed strategically. The most critical issues are not bugs â€” they are maintenance surface area and operational blind spots that will compound under real production load.
 
 **Top 3 critical risks:**
-1. **Authorization logic scattered across services** — `CurrentUserService` checks are interleaved with business logic in every service method.
-2. **No pagination on core list endpoints** — every `findAll()` loads full result sets into memory.
-3. **Monolithic frontend pages** — single 1300+ line components hold all state, data fetching, and UI for entire role workspaces.
+1. **Authorization logic scattered across services** â€” `CurrentUserService` checks are interleaved with business logic in every service method.
+2. **No pagination on core list endpoints** â€” every `findAll()` loads full result sets into memory.
+3. **Monolithic frontend pages** â€” single 1300+ line components hold all state, data fetching, and UI for entire role workspaces.
 
 ---
 
@@ -114,7 +114,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 - **Description:** All endpoints use `/api/v1/` prefix. No strategy for introducing v2 endpoints.
 - **Risk if left unresolved:** Forced breaking changes or duplicated endpoint maintenance.
 - **Estimated effort:** 2-3 days
-- **Disposition (revised):** Do after V17 — when a second consumer or breaking change requires it.
+- **Disposition (revised):** Do after V17 â€” when a second consumer or breaking change requires it.
 
 ---
 
@@ -122,7 +122,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### BE-1: No Pagination on Data-Loading Endpoints
 
-- **Severity:** Tier 0 → **Must do (narrowed scope)**
+- **Severity:** Tier 0 â†’ **Must do (narrowed scope)**
 - **Description:** Every list endpoint returns unbounded collections. Under production data volumes, memory bomb.
 - **Risk if left unresolved:** OOM errors, slow API responses, database connection exhaustion.
 - **Affected files:** All repositories returning `List<>` (CustomerOrderRepository, InventoryService, MerchantWarehouseService, etc.)
@@ -132,7 +132,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 #### BE-2: DTO Proliferation with No Behavior
 
 - **Severity:** Tier 2
-- **Description:** 107 DTO files for 69 entities — many are 1:1 mappings.
+- **Description:** 107 DTO files for 69 entities â€” many are 1:1 mappings.
 - **Risk if left unresolved:** Growing maintenance burden.
 - **Estimated effort:** 5-7 days (post-V17, if adopting MapStruct)
 - **Disposition:** Do after V17.
@@ -155,7 +155,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### BE-5: No Optimistic Locking on Hot Entities
 
-- **Severity:** Tier 1 → **Do only if real problem appears**
+- **Severity:** Tier 1 â†’ **Do only if real problem appears**
 - **Description:** No `@Version` field on `WarehouseInventory`, `CustomerOrder`, `FulfillmentAllocation`.
 - **Risk if left unresolved:** Concurrent modifications silently overwrite each other.
 - **Affected files:** Hot entity classes
@@ -251,7 +251,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### DB-1: No Automatic Multi-Tenant Data Isolation
 
-- **Severity:** Tier 0 → **Do only if real problem appears**
+- **Severity:** Tier 0 â†’ **Do only if real problem appears**
 - **Description:** Application-level tenant filtering; no Hibernate `@Filter` or RLS.
 - **Risk if left unresolved:** Cross-tenant data leak.
 - **Affected files:** All 30 repositories
@@ -261,7 +261,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### DB-2: N+1 Query Risk from @OneToMany Without @BatchSize
 
-- **Severity:** Tier 1 → **Do after V17**
+- **Severity:** Tier 1 â†’ **Do after V17**
 - **Description:** Collections with `FetchType.LAZY` have no `@BatchSize`.
 - **Risk if left unresolved:** N+1 performance degradation.
 - **Affected files:** `CustomerOrder.java`, `FulfillmentAllocation.java`, `Shipment.java`
@@ -271,10 +271,10 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### DB-3: No Flyway Migration Rollback Testing
 
-- **Severity:** Tier 1 → **Must do before V17**
+- **Severity:** Tier 1 â†’ **Must do before V17**
 - **Description:** Migrations validated forward but no rollback testing.
 - **Risk if left unresolved:** Extended downtime from failed migration with no rollback.
-- **Affected files:** 18 Flyway migrations
+- **Affected files:** 19 Flyway migrations
 - **Solution:** Document manual rollback strategy for each migration.
 - **Estimated effort:** 2-3 days
 - **Disposition:** Production deployment runs migrations against live data for first time.
@@ -302,7 +302,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### SEC-1: Custom JWT Implementation Instead of Standard Library
 
-- **Severity:** Tier 0 → **Do only if real problem appears**
+- **Severity:** Tier 0 â†’ **Do only if real problem appears**
 - **Description:** `JwtService.java` implements JWT manually using `Mac`/`SecretKeySpec`.
 - **Risk if left unresolved:** Security audit failure; potential vulnerability.
 - **Affected files:** `JwtService.java` (131 lines)
@@ -312,7 +312,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### SEC-2: No Rate Limiting on Login Endpoint
 
-- **Severity:** Tier 0 → **Must do before V17** ~~✓ COMPLETED~~
+- **Severity:** Tier 0 â†’ **Must do before V17** ~~âœ“ COMPLETED~~
 - **Description:** Login endpoint has no rate limiting. Recovery and access-request endpoints have throttling.
 - **Risk if left unresolved:** Brute-force password attacks.
 - **Affected files:** `AuthController.java`, `SecurityConfig.java`
@@ -321,7 +321,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### SEC-3: No Token Refresh or Rotation Mechanism
 
-- **Severity:** Tier 1 → **Do after V17**
+- **Severity:** Tier 1 â†’ **Do after V17**
 - **Description:** JWTs expire after 1 hour. After expiry, user must re-authenticate.
 - **Risk if left unresolved:** User frustration; increased login load.
 - **Affected files:** `JwtService.java`, `AuthContext.tsx`
@@ -352,8 +352,8 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### PERF-1: OrderService.findAll() Triggers N+1 at Service Level
 
-- **Severity:** Tier 1 → **Merged into T0-1 (pagination)**
-- **Description:** `OrderService.findAll()` calls `get(order.getId())` in stream — N+1 at service level.
+- **Severity:** Tier 1 â†’ **Merged into T0-1 (pagination)**
+- **Description:** `OrderService.findAll()` calls `get(order.getId())` in stream â€” N+1 at service level.
 - **Risk if left unresolved:** Severe latency on order list endpoint.
 - **Affected files:** `OrderService.java` (lines 136-154)
 - **Solution:** Create `findAllWithMerchant()` query; reserve deep graph for detail page.
@@ -362,7 +362,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### PERF-2: No Application Metrics
 
-- **Severity:** Tier 0 → **Do after V17**
+- **Severity:** Tier 0 â†’ **Do after V17**
 - **Description:** No Micrometer, no Prometheus, no alerting.
 - **Risk if left unresolved:** Blind production operation; incidents discovered through user complaints.
 - **Affected files:** `pom.xml`, `HealthController.java`
@@ -393,7 +393,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### TEST-1: No Authorization Boundary Tests
 
-- **Severity:** Tier 1 → **Must do before V17** (reframed as T1-10)
+- **Severity:** Tier 1 â†’ **Must do before V17** (reframed as T1-10)
 - **Description:** No test verifies tenant A cannot access tenant B's data.
 - **Risk if left unresolved:** Silent authorization regressions.
 - **Affected files:** All 36 backend test files
@@ -403,7 +403,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### TEST-2: No Concurrency Tests for Inventory Allocation
 
-- **Severity:** Tier 1 → **Do only if real problem appears**
+- **Severity:** Tier 1 â†’ **Do only if real problem appears**
 - **Description:** Pessimistic write locks exist but no test verifies correct behavior under concurrent access.
 - **Risk if left unresolved:** Data corruption under concurrent allocation.
 - **Estimated effort:** 2-3 days
@@ -435,7 +435,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### TEST-6: No Load/Performance Test Suite
 
-- **Severity:** Tier 1 → **Do after V17**
+- **Severity:** Tier 1 â†’ **Do after V17**
 - **Description:** Only `load-smoke.ps1` PowerShell script; no automated load tests in CI.
 - **Risk if left unresolved:** Performance regressions undetected.
 - **Estimated effort:** 3-5 days
@@ -455,7 +455,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### DOC-2: No Operational Runbook
 
-- **Severity:** Tier 1 → **Must do before V17** (T1-14)
+- **Severity:** Tier 1 â†’ **Must do before V17** (T1-14)
 - **Description:** No incident response or operational runbook.
 - **Risk if left unresolved:** Ad-hoc incident response; extended downtime.
 - **Affected files:** `docs/operations/`
@@ -482,7 +482,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 #### DOC-5: Database Schema Not Documented Beyond Migrations
 
 - **Severity:** Tier 2
-- **Description:** Schema defined only in 18 Flyway files.
+- **Description:** Schema defined only in 19 Flyway files.
 - **Risk if left unresolved:** Slow onboarding.
 - **Estimated effort:** 1-2 days
 - **Disposition:** Do after V17.
@@ -493,7 +493,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### INFRA-1: No Database Backup/Restore Automation
 
-- **Severity:** Tier 0 → **Must do before V17** (T0-3)
+- **Severity:** Tier 0 â†’ **Must do before V17** (T0-3)
 - **Description:** No automated backup. Manual `pg_dump` scripts only.
 - **Risk if left unresolved:** Permanent data loss.
 - **Solution:** Verify Neon PITR enabled; write restore verification script; document procedure.
@@ -502,8 +502,8 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 #### INFRA-2: No Meaningful Health/Readiness Endpoints
 
-- **Severity:** Tier 0 → **Must do before V17** ~~✓ COMPLETED~~ (T0-4)
-- **Description:** `/api/v1/health` returns unconditional UP — even if DB is down.
+- **Severity:** Tier 0 â†’ **Must do before V17** ~~âœ“ COMPLETED~~ (T0-4)
+- **Description:** `/api/v1/health` returns unconditional UP â€” even if DB is down.
 - **Risk if left unresolved:** Traffic routed to unhealthy instances.
 - **Affected files:** `HealthController.java`
 - **Solution:** Add Spring Boot Actuator with database connectivity check.
@@ -563,7 +563,7 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 | BD-4 | Service | Tier 1 | `MerchantWarehouseService` 689 lines, 2 domains |
 | BD-5 | Auth | Tier 0 | Authorization in service methods (current pattern works) |
 | BD-6 | Data | Tier 0 | Pagination needed on high-volume endpoints (orders, allocations) |
-| BD-7 | Data | Tier 1 | No `@BatchSize` on `@OneToMany` — N+1 risk |
+| BD-7 | Data | Tier 1 | No `@BatchSize` on `@OneToMany` â€” N+1 risk |
 | BD-8 | Security | Tier 0 | Custom JWT (works correctly, no known vulnerability) |
 | BD-9 | Security | Tier 1 | No token refresh/rotation |
 | BD-10 | Data | Tier 0 | No Hibernate `@Filter` for tenant isolation (manual filtering works) |
@@ -621,15 +621,15 @@ MerHouse is a B2B fulfillment coordination platform connecting merchants, wareho
 
 Before task-by-task evaluation, here are places where script refactoring enthusiasm must be checked:
 
-1. **HTTP client consolidation (4 implementations) → Do only if a real problem appears.** The four helpers serve different contexts (api/lib, seed-demo closure, native-android ADB handling, deployed-v17-proof custom auth). Consolidating is 3-5 days of high-risk refactoring with zero user benefit.
+1. **HTTP client consolidation (4 implementations) â†’ Do only if a real problem appears.** The four helpers serve different contexts (api/lib, seed-demo closure, native-android ADB handling, deployed-v17-proof custom auth). Consolidating is 3-5 days of high-risk refactoring with zero user benefit.
 
-2. **Credential parameter boilerplate → Never do.** Repeated `-AdminEmail`, `-AdminPassword` parameters are boilerplate but they're the public interface of independent proof scripts. Extracting would break CI workflows and operator muscle memory.
+2. **Credential parameter boilerplate â†’ Never do.** Repeated `-AdminEmail`, `-AdminPassword` parameters are boilerplate but they're the public interface of independent proof scripts. Extracting would break CI workflows and operator muscle memory.
 
-3. **Proof fixture generator breakup → Do after V17.** Large, but test fixture generators. Extracting to separate files is good hygiene but has no deployment impact.
+3. **Proof fixture generator breakup â†’ Do after V17.** Large, but test fixture generators. Extracting to separate files is good hygiene but has no deployment impact.
 
-4. **Monolithic native-android-tour.ps1 (863 lines) → Do after V17.** Large but self-contained. Splitting would improve maintainability but has zero deployment impact.
+4. **Monolithic native-android-tour.ps1 (863 lines) â†’ Do after V17.** Large but self-contained. Splitting would improve maintainability but has zero deployment impact.
 
-5. **Package-by-purpose reorganization → Never do.** Moving scripts between subdirectories is folder organization, not deployment work.
+5. **Package-by-purpose reorganization â†’ Never do.** Moving scripts between subdirectories is folder organization, not deployment work.
 
 ---
 
@@ -649,13 +649,13 @@ Before task-by-task evaluation, here are places where script refactoring enthusi
 **Disposition: Must do before V17**
 
 **Scope:** Fix three corrupted function names:
-- Line 13: `ooin-Path` → `Join-Path`
-- Line 28: `ooin-Path` → `Join-Path`
-- Line 59: `ConvertFrom-oson` → `ConvertFrom-Json`
+- Line 13: `ooin-Path` â†’ `Join-Path`
+- Line 28: `ooin-Path` â†’ `Join-Path`
+- Line 59: `ConvertFrom-oson` â†’ `ConvertFrom-Json`
 
 **Estimated effort:** 5 minutes
 
-**Status:** ~~✓ COMPLETED~~
+**Status:** ~~âœ“ COMPLETED~~
 
 ---
 
@@ -674,14 +674,14 @@ Before task-by-task evaluation, here are places where script refactoring enthusi
 
 **Scope:**
 1. Create `scripts/lib/common.ps1` with:
-   - `Get-MerHouseProjectRoot` — resolves project root from any script depth
-   - `Resolve-MerHousePath` — replaces `IsPathRooted` ternary pattern
+   - `Get-MerHouseProjectRoot` â€” resolves project root from any script depth
+   - `Resolve-MerHousePath` â€” replaces `IsPathRooted` ternary pattern
 2. Dot-source in every script that resolves paths
 3. Replace inline computations with shared functions
 
 **Estimated effort:** 2-3 hours
 
-**Status:** ~~✓ COMPLETED~~
+**Status:** ~~âœ“ COMPLETED~~
 
 ---
 
@@ -717,7 +717,7 @@ Before task-by-task evaluation, here are places where script refactoring enthusi
 | Production risk reduction | **Medium** | Security boundary; divergence could miss leak pattern |
 | Operational impact | **Medium** | Missed leak pattern means evidence artifacts could contain secrets |
 
-**Disposition: Do after V17** — but prioritize first wave (security boundary)
+**Disposition: Do after V17** â€” but prioritize first wave (security boundary)
 
 **Rationale:** 80+ lines of recursive JSON traversal in 2 scripts. Adding new sensitive field pattern requires updating both. Consolidate post-V17.
 
@@ -763,7 +763,7 @@ Consolidating risks breaking subtle differences (especially ADB error context, s
 
 ---
 
-### S0-10: Consolidate Library Layer (api/lib + proof/lib → scripts/lib)
+### S0-10: Consolidate Library Layer (api/lib + proof/lib â†’ scripts/lib)
 
 **Disposition: Do after V17**
 
@@ -783,13 +783,13 @@ Consolidating risks breaking subtle differences (especially ADB error context, s
 
 **Disposition: Do only if a real problem appears**
 
-**Rationale:** `Invoke-Api` uses closure variables (`$apiBaseUrl`, `$adminToken`). Replacing with shared `Invoke-Json` requires restructuring script to use context hashtable—significant change for a seed data script.
+**Rationale:** `Invoke-Api` uses closure variables (`$apiBaseUrl`, `$adminToken`). Replacing with shared `Invoke-Json` requires restructuring script to use context hashtableâ€”significant change for a seed data script.
 
 ---
 
 ### S0-13: Extract Read-EnvFile from huggingface-space-sync.ps1
 
-**Disposition: Do after V17** — when a second consumer appears
+**Disposition: Do after V17** â€” when a second consumer appears
 
 **Rationale:** Only one consumer today.
 
@@ -831,19 +831,19 @@ Consolidating risks breaking subtle differences (especially ADB error context, s
 
 Before the task-by-task code evaluation, here are key places where the original audit recommendations were wrong or overstated:
 
-1. **Custom JWT (originally Tier 0) → Do only if a real problem appears.** Implementation includes constant-time comparison, minimum 32-byte secrets, correct HMAC-SHA256 using `javax.crypto.Mac`. No known vulnerability. Replacing touches every authenticated request with high regression risk and zero measurable security benefit for a private pilot. An external audit would flag it — but no audit is scheduled.
+1. **Custom JWT (originally Tier 0) â†’ Do only if a real problem appears.** Implementation includes constant-time comparison, minimum 32-byte secrets, correct HMAC-SHA256 using `javax.crypto.Mac`. No known vulnerability. Replacing touches every authenticated request with high regression risk and zero measurable security benefit for a private pilot. An external audit would flag it â€” but no audit is scheduled.
 
-2. **Pagination (originally Tier 0) → Must do before V17, but narrowed scope.** Unbounded queries are a real risk, but V17 pilot has small number of tenants/records. Full pagination on every endpoint is overkill. Only high-volume endpoints (orders, allocations, inventory) need pagination; rest can be capped.
+2. **Pagination (originally Tier 0) â†’ Must do before V17, but narrowed scope.** Unbounded queries are a real risk, but V17 pilot has small number of tenants/records. Full pagination on every endpoint is overkill. Only high-volume endpoints (orders, allocations, inventory) need pagination; rest can be capped.
 
-3. **Tenant isolation via Hibernate filter (originally Tier 0) → Do only if a real problem appears.** Application-level filtering works — every query includes `CurrentUserService.requireAdminOrTenant()`. Hibernate `@Filter` adds defense-in-depth but has high implementation risk (misconfigured filter could break admin cross-tenant queries). Existing manual filtering tested through V16.2. Add post-V17 or if leak found.
+3. **Tenant isolation via Hibernate filter (originally Tier 0) â†’ Do only if a real problem appears.** Application-level filtering works â€” every query includes `CurrentUserService.requireAdminOrTenant()`. Hibernate `@Filter` adds defense-in-depth but has high implementation risk (misconfigured filter could break admin cross-tenant queries). Existing manual filtering tested through V16.2. Add post-V17 or if leak found.
 
-4. **Authorization aspect extraction (originally Tier 1) → Never do unless architecture changes significantly.** Moving checks to AOP annotations is architectural preference. Current pattern works, is readable, has been tested. Would touch every service method and test with high regression risk. A missed annotation gives unauthorized access just as easily as a missed method call.
+4. **Authorization aspect extraction (originally Tier 1) â†’ Never do unless architecture changes significantly.** Moving checks to AOP annotations is architectural preference. Current pattern works, is readable, has been tested. Would touch every service method and test with high regression risk. A missed annotation gives unauthorized access just as easily as a missed method call.
 
-5. **Domain extraction from large services (originally Tier 1) → Never do unless architecture changes significantly.** Splitting `MerchantWarehouseService` and `ServiceAccountabilityService` is file organization, not deployment blocker. No user affected by which class a method lives in. High refactor risk, explicitly prohibited by V17 rule.
+5. **Domain extraction from large services (originally Tier 1) â†’ Never do unless architecture changes significantly.** Splitting `MerchantWarehouseService` and `ServiceAccountabilityService` is file organization, not deployment blocker. No user affected by which class a method lives in. High refactor risk, explicitly prohibited by V17 rule.
 
-6. **Metrics / Prometheus (originally Tier 0) → Do after V17.** Hugging Face Spaces provides built-in logs and basic health monitoring. Deployed monitoring proof script (`deployed-monitoring-proof.ps1`) samples endpoint health with latency budgets. Full Prometheus/Micrometer integration is valuable but not required — existing script provides minimum viable observability.
+6. **Metrics / Prometheus (originally Tier 0) â†’ Do after V17.** Hugging Face Spaces provides built-in logs and basic health monitoring. Deployed monitoring proof script (`deployed-monitoring-proof.ps1`) samples endpoint health with latency budgets. Full Prometheus/Micrometer integration is valuable but not required â€” existing script provides minimum viable observability.
 
-7. **Frontend monolithic pages (originally Tier 1) → Do after V17.** No user-visible defect, no deployment blocker. Pages work. Splitting is 8-12 days of high-risk refactoring with zero effect on whether V17 deploys.
+7. **Frontend monolithic pages (originally Tier 1) â†’ Do after V17.** No user-visible defect, no deployment blocker. Pages work. Splitting is 8-12 days of high-risk refactoring with zero effect on whether V17 deploys.
 
 ---
 
@@ -853,7 +853,7 @@ Before the task-by-task code evaluation, here are key places where the original 
 
 #### T0-1: Pagination on List Endpoints
 
-**Disposition: Must do before V17** — narrowed scope
+**Disposition: Must do before V17** â€” narrowed scope
 
 **Revised scope:** Add hard LIMIT caps (500 rows) to all unbounded queries. Full pagination (page/size/sort) only for orders, allocations, inventory.
 
@@ -873,7 +873,7 @@ Before the task-by-task code evaluation, here are key places where the original 
 
 #### T0-4: Health/Readiness Endpoints
 
-**Disposition: Must do before V17** ~~✓ COMPLETED~~
+**Disposition: Must do before V17** ~~âœ“ COMPLETED~~
 
 **Scope:**
 1. Add `spring-boot-starter-actuator` dependency
@@ -885,7 +885,7 @@ Before the task-by-task code evaluation, here are key places where the original 
 
 #### T0-6: Login Rate Limiting
 
-**Disposition: Must do before V17** ~~✓ COMPLETED~~
+**Disposition: Must do before V17** ~~âœ“ COMPLETED~~
 
 **Scope:** In-memory rate limiter, 5 failed attempts per email per 15 minutes, returns 429 with `Retry-After`
 
@@ -927,10 +927,10 @@ Before the task-by-task code evaluation, here are key places where the original 
 ### Tier 1 Tasks: High Priority (post-V17 or do-if-problem)
 
 All Tier 1 tasks from the original plan are reclassified as either:
-- **Do after V17** — valuable but not deployment blockers (T1-3, T1-4, T1-5, T1-7, T1-9, T1-12)
-- **Do only if problem appears** — theoretical risk, no evidence (T0-2, T1-6, T1-11)
-- **Never do** — architectural preference (T1-1, T1-2)
-- **Merged into T0** — part of other tasks (T1-8 merged into T0-1)
+- **Do after V17** â€” valuable but not deployment blockers (T1-3, T1-4, T1-5, T1-7, T1-9, T1-12)
+- **Do only if problem appears** â€” theoretical risk, no evidence (T0-2, T1-6, T1-11)
+- **Never do** â€” architectural preference (T1-1, T1-2)
+- **Merged into T0** â€” part of other tasks (T1-8 merged into T0-1)
 
 **Estimated effort (post-V17 wave 1):** 3-5 days each for T1-9, T1-12; 2-3 days each for others.
 
@@ -1035,8 +1035,8 @@ Cosmetic improvements and documentation. No deployment impact.
 
 | Task | Effort | Status |
 |------|--------|--------|
-| S0-1 | 5 min | ~~✓ COMPLETED~~ |
-| S0-2 | 2-3 hrs | ~~✓ COMPLETED~~ |
+| S0-1 | 5 min | ~~âœ“ COMPLETED~~ |
+| S0-2 | 2-3 hrs | ~~âœ“ COMPLETED~~ |
 
 ### PowerShell Scripts: After V17 (8 tasks)
 
@@ -1085,17 +1085,17 @@ Second wave: S0-3, S0-4, S0-8, S0-9, S0-10, S0-13, S0-15, S0-16, S0-17
 
 The following original audit recommendations represent architectural preference, not measurable deployment value:
 
-1. **"Authorization not separated from business logic" (ARCH-1)** — `CurrentUserService.requireAdminOrTenant()` calls in service methods are explicit, readable, debuggable. Moving to AOP annotations does not reduce the number of places where auth must be correct — it just makes them less visible.
+1. **"Authorization not separated from business logic" (ARCH-1)** â€” `CurrentUserService.requireAdminOrTenant()` calls in service methods are explicit, readable, debuggable. Moving to AOP annotations does not reduce the number of places where auth must be correct â€” it just makes them less visible.
 
-2. **"No package-by-domain organization" (ARCH-2)** — Package-by-layer is a valid organizational strategy. Cognitive cost is a developer preference, not deployment risk.
+2. **"No package-by-domain organization" (ARCH-2)** â€” Package-by-layer is a valid organizational strategy. Cognitive cost is a developer preference, not deployment risk.
 
-3. **"Service layer violates domain boundaries" (ARCH-3)** — Cross-domain mutations exist but work correctly. Introducing domain events adds complexity (event routing, eventual consistency, error handling) for no user-visible benefit.
+3. **"Service layer violates domain boundaries" (ARCH-3)** â€” Cross-domain mutations exist but work correctly. Introducing domain events adds complexity (event routing, eventual consistency, error handling) for no user-visible benefit.
 
-4. **"Custom JWT implementation" (SEC-1)** — Uses Java's standard `javax.crypto.Mac` with HMAC-SHA256, constant-time comparison, minimum 32-byte secrets. This is not "custom crypto" — it's using the standard crypto API directly instead of through a wrapper.
+4. **"Custom JWT implementation" (SEC-1)** â€” Uses Java's standard `javax.crypto.Mac` with HMAC-SHA256, constant-time comparison, minimum 32-byte secrets. This is not "custom crypto" â€” it's using the standard crypto API directly instead of through a wrapper.
 
-5. **"Monolithic API client" (FE-1) / "Monolithic pages" (FE-2)** — File size is a developer convenience metric, not a user-facing or deployment metric. Pages work. Splitting is 8-12 days of risk for zero user benefit.
+5. **"Monolithic API client" (FE-1) / "Monolithic pages" (FE-2)** â€” File size is a developer convenience metric, not a user-facing or deployment metric. Pages work. Splitting is 8-12 days of risk for zero user benefit.
 
-6. **"String statuses instead of enums" (BE-4, BE-6)** — Type safety is a developer preference. String values are correct, consistent, and have caused no bugs. Adding enums requires Flyway migrations for CHECK constraints — operational risk for cosmetic gain.
+6. **"String statuses instead of enums" (BE-4, BE-6)** â€” Type safety is a developer preference. String values are correct, consistent, and have caused no bugs. Adding enums requires Flyway migrations for CHECK constraints â€” operational risk for cosmetic gain.
 
 ---
 
@@ -1103,18 +1103,18 @@ The following original audit recommendations represent architectural preference,
 
 ### Risks of Doing Too Much Before V17
 
-1. **Regression risk** — Every code change risks breaking something that works. V16.2 convergence was hard-won.
-2. **Schedule risk** — Original plan had 95-141 days. Even revised "Must do" is 10-14 days. Every refactor day delays V17.
-3. **Scope creep risk** — "While we're fixing pagination, let's refactor the API client" — 7 tasks become 46 tasks.
-4. **Testing risk** — Refactoring invalidates tests, requiring updates that may introduce false positives/negatives.
+1. **Regression risk** â€” Every code change risks breaking something that works. V16.2 convergence was hard-won.
+2. **Schedule risk** â€” Original plan had 95-141 days. Even revised "Must do" is 10-14 days. Every refactor day delays V17.
+3. **Scope creep risk** â€” "While we're fixing pagination, let's refactor the API client" â€” 7 tasks become 46 tasks.
+4. **Testing risk** â€” Refactoring invalidates tests, requiring updates that may introduce false positives/negatives.
 
 ### Risks of Doing Too Little Before V17
 
-1. **OOM from unbounded queries** — Mitigated by T0-1 (pagination with hard caps)
-2. **Brute-force attacks on login** — Mitigated by T0-6 (rate limiting)
-3. **Undetected tenant isolation bugs** — Mitigated by T1-10 (authorization boundary tests), not T0-2 (Hibernate filter)
-4. **No operational recovery path** — Mitigated by T0-3 (backup/restore), T1-13 (migration rollback), T1-14 (runbook)
-5. **No health monitoring** — Mitigated by T0-4 (actuator health endpoint)
+1. **OOM from unbounded queries** â€” Mitigated by T0-1 (pagination with hard caps)
+2. **Brute-force attacks on login** â€” Mitigated by T0-6 (rate limiting)
+3. **Undetected tenant isolation bugs** â€” Mitigated by T1-10 (authorization boundary tests), not T0-2 (Hibernate filter)
+4. **No operational recovery path** â€” Mitigated by T0-3 (backup/restore), T1-13 (migration rollback), T1-14 (runbook)
+5. **No health monitoring** â€” Mitigated by T0-4 (actuator health endpoint)
 
 ### The Safest Path
 
@@ -1131,15 +1131,15 @@ Do the 9 "Must do" tasks (7 code/infra + 2 script). Deploy V17. Let production e
 | Controller | Scenarios | Status |
 |---|---|---|
 | AuthController | 00, 02, 14, 17 | Covered; rate limiting (scenario 17) added |
-| HealthController | 18 | **Added** — scenarios 18 validate health endpoints |
+| HealthController | 18 | **Added** â€” scenarios 18 validate health endpoints |
 | All others | Per findings | Good coverage |
 
 **Gaps closed:**
-- **Login rate limiting (T0-6)** — scenario 17 sends 6 failed logins, verifies 429 with `Retry-After`
-- **Health endpoint (T0-4)** — scenario 18 validates `/api/v1/health` and `/actuator/health`
+- **Login rate limiting (T0-6)** â€” scenario 17 sends 6 failed logins, verifies 429 with `Retry-After`
+- **Health endpoint (T0-4)** â€” scenario 18 validates `/api/v1/health` and `/actuator/health`
 
 **Remaining gap:**
-- **Authorization boundaries (T1-10)** — scenarios 02 and 11 include some 403 checks but lack systematic cross-tenant tests. Addressed by separate backend unit/integration tests.
+- **Authorization boundaries (T1-10)** â€” scenarios 02 and 11 include some 403 checks but lack systematic cross-tenant tests. Addressed by separate backend unit/integration tests.
 
 ### Frontend: Route Coverage
 
@@ -1154,7 +1154,7 @@ Do the 9 "Must do" tasks (7 code/infra + 2 script). Deploy V17. Let production e
 Quality gate runs: backend tests, frontend tests, API smoke (includes rate limiting + health), seed-demo, frontend-full-tour, v17-production-readiness, public-readiness, HF/Vercel check, performance-readiness, mobile-shell-check, markdown-check.
 
 **Gaps closed:**
-- `public-readiness.ps1` no longer depends on `rg` (ripgrep) — uses PowerShell-native `Select-String`
+- `public-readiness.ps1` no longer depends on `rg` (ripgrep) â€” uses PowerShell-native `Select-String`
 - API smoke validates T0-4 (health) and T0-6 (rate limiting) at integration level
 
 ---
@@ -1168,15 +1168,15 @@ Quality gate runs: backend tests, frontend tests, API smoke (includes rate limit
 #### S0-1: Fix Corrupted Functions
 
 Fixed 3 corrupted function names in `scripts/proof/lib/tour-report-lib.ps1`:
-- Line 13: `ooin-Path` → `Join-Path`
-- Line 28: `ooin-Path` → `Join-Path`
-- Line 59: `ConvertFrom-oson` → `ConvertFrom-Json`
+- Line 13: `ooin-Path` â†’ `Join-Path`
+- Line 28: `ooin-Path` â†’ `Join-Path`
+- Line 59: `ConvertFrom-oson` â†’ `ConvertFrom-Json`
 
 #### S0-2: Shared Common Library
 
 Created `scripts/lib/common.ps1` with:
-- `Get-MerHouseProjectRoot` — resolves project root from any script depth using `$PSScriptRoot` traversal
-- `Resolve-MerHousePath` — replaces the `IsPathRooted` ternary pattern
+- `Get-MerHouseProjectRoot` â€” resolves project root from any script depth using `$PSScriptRoot` traversal
+- `Resolve-MerHousePath` â€” replaces the `IsPathRooted` ternary pattern
 
 Updated 30+ scripts across all categories to:
 - Dot-source the common library
@@ -1186,44 +1186,44 @@ Updated 30+ scripts across all categories to:
 **Parse validation:** 63 scripts, 0 failures
 
 **Runtime fixes:**
-- `deployed-v17-proof-attachment-check.ps1`: `$projectRoot.Path.Replace(...)` → `$projectRoot.Replace(...)`
-- `performance-readiness.ps1`: `$projectRoot.Path.Length` → `$projectRoot.Length`
+- `deployed-v17-proof-attachment-check.ps1`: `$projectRoot.Path.Replace(...)` â†’ `$projectRoot.Replace(...)`
+- `performance-readiness.ps1`: `$projectRoot.Path.Length` â†’ `$projectRoot.Length`
 
 **Runtime validation:** `v17-production-readiness.ps1` executed successfully through 15/16 checks.
 
 ---
 
-### Backend: T0-4 Health Endpoints — COMPLETED
+### Backend: T0-4 Health Endpoints â€” COMPLETED
 
 **Date:** 2026-06-13
 
 **Changes:**
 
-1. **`backend/pom.xml`** — Added `spring-boot-starter-actuator` dependency
-2. **`backend/src/main/resources/application.properties`** — Actuator configuration:
+1. **`backend/pom.xml`** â€” Added `spring-boot-starter-actuator` dependency
+2. **`backend/src/main/resources/application.properties`** â€” Actuator configuration:
    - `management.endpoints.web.exposure.include=health`
    - `management.endpoint.health.show-details=when-authorized`
    - `management.health.livenessstate.enabled=true`
    - `management.health.readinessstate.enabled=true`
-3. **`backend/src/main/java/com/merhouse/web/HealthController.java`** — Real DB connectivity check via `Connection.isValid(2)`. Returns UP when DB reachable, DOWN when not.
-4. **`backend/src/main/java/com/merhouse/config/SecurityConfig.java`** — `/actuator/health/**` added to permit-all
-5. **`backend/src/test/java/com/merhouse/web/ApiControllerTest.java`** — Updated tests for health endpoint
-6. **`docker-compose.yml`** — Backend service health check + frontend `depends_on: condition: service_healthy`
+3. **`backend/src/main/java/com/merhouse/web/HealthController.java`** â€” Real DB connectivity check via `Connection.isValid(2)`. Returns UP when DB reachable, DOWN when not.
+4. **`backend/src/main/java/com/merhouse/config/SecurityConfig.java`** â€” `/actuator/health/**` added to permit-all
+5. **`backend/src/test/java/com/merhouse/web/ApiControllerTest.java`** â€” Updated tests for health endpoint
+6. **`docker-compose.yml`** â€” Backend service health check + frontend `depends_on: condition: service_healthy`
 
 **Test proof:** 204 tests pass
 
 ---
 
-### Backend: T0-6 Login Rate Limiting — COMPLETED
+### Backend: T0-6 Login Rate Limiting â€” COMPLETED
 
 **Date:** 2026-06-13
 
 **Changes:**
 
-1. **`backend/src/main/java/com/merhouse/security/LoginRateLimiter.java`** — New in-memory rate limiter: 5 failures per email per 15 minutes
-2. **`backend/src/main/java/com/merhouse/security/LoginRateLimitExceededException.java`** — New exception mapped to 429
-3. **`backend/src/main/java/com/merhouse/service/AuthService.java`** — Integrated rate limiter
-4. **`backend/src/main/java/com/merhouse/web/ApiExceptionHandler.java`** — Added 429 handler with `Retry-After` header
+1. **`backend/src/main/java/com/merhouse/security/LoginRateLimiter.java`** â€” New in-memory rate limiter: 5 failures per email per 15 minutes
+2. **`backend/src/main/java/com/merhouse/security/LoginRateLimitExceededException.java`** â€” New exception mapped to 429
+3. **`backend/src/main/java/com/merhouse/service/AuthService.java`** â€” Integrated rate limiter
+4. **`backend/src/main/java/com/merhouse/web/ApiExceptionHandler.java`** â€” Added 429 handler with `Retry-After` header
 5. **Tests:** 7 LoginRateLimiterTest tests + updated AuthServiceTest + AuthControllerTest
 
 **Test proof:** 213 tests pass
@@ -1236,9 +1236,9 @@ Updated 30+ scripts across all categories to:
 
 **Changes:**
 
-1. **`scripts/api/scenarios/17-login-rate-limit.ps1`** — New scenario: 5 failed logins → 401, 6th → 429 with `Retry-After`, different email works
-2. **`scripts/api/scenarios/18-health-endpoint.ps1`** — New scenario: `/api/v1/health` returns UP, `/actuator/health` includes DB health
-3. **`scripts/api/run-all.ps1`** — Added scenarios 17 and 18 to smoke suite
+1. **`scripts/api/scenarios/17-login-rate-limit.ps1`** â€” New scenario: 5 failed logins â†’ 401, 6th â†’ 429 with `Retry-After`, different email works
+2. **`scripts/api/scenarios/18-health-endpoint.ps1`** â€” New scenario: `/api/v1/health` returns UP, `/actuator/health` includes DB health
+3. **`scripts/api/run-all.ps1`** â€” Added scenarios 17 and 18 to smoke suite
 
 ---
 
@@ -1248,8 +1248,8 @@ Updated 30+ scripts across all categories to:
 
 **Changes:**
 
-1. **`scripts/quality/public-readiness.ps1`** — Replaced `rg` dependency with PowerShell-native `Get-ChildItem` + `Select-String`
-2. **`scripts/deploy/huggingface-space-sync.ps1`** — Four fixes:
+1. **`scripts/quality/public-readiness.ps1`** â€” Replaced `rg` dependency with PowerShell-native `Get-ChildItem` + `Select-String`
+2. **`scripts/deploy/huggingface-space-sync.ps1`** â€” Four fixes:
    - Removed `/NFL /NDL` from robocopy for visibility
    - Added post-robocopy verification
    - Replaced unreliable Python stdin with temp file execution
