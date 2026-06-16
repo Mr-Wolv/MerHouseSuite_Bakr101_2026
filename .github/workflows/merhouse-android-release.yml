@@ -1,5 +1,5 @@
 name: MerHouse Android Release
-run-name: MerHouse Android Release - ${{ inputs.version_name || 'auto' }} on ${{ github.ref_name }}
+run-name: MerHouse Android Release - ${{ github.event_name == 'workflow_dispatch' && inputs.version_name || 'auto' }} on ${{ github.ref_name }}
 
 on:
   push:
@@ -40,9 +40,6 @@ jobs:
     name: ${{ github.event_name == 'workflow_dispatch' && 'Signed APK + Release' || 'Android Build' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    env:
-      MERHOUSE_ANDROID_VERSION_CODE: ${{ github.event_name == 'workflow_dispatch' && inputs.version_code || '17' }}
-      MERHOUSE_ANDROID_VERSION_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.version_name || '0.17.0-internal' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -82,36 +79,24 @@ jobs:
           MERHOUSE_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.MERHOUSE_ANDROID_KEYSTORE_PASSWORD }}
           MERHOUSE_ANDROID_KEY_ALIAS: ${{ secrets.MERHOUSE_ANDROID_KEY_ALIAS }}
           MERHOUSE_ANDROID_KEY_PASSWORD: ${{ secrets.MERHOUSE_ANDROID_KEY_PASSWORD }}
+          MERHOUSE_ANDROID_API_BASE_URL: ${{ secrets.MERHOUSE_ANDROID_API_BASE_URL }}
+          MERHOUSE_ANDROID_FRONTEND_URL: ${{ secrets.MERHOUSE_ANDROID_FRONTEND_URL }}
+          MERHOUSE_ANDROID_VERSION_CODE: ${{ github.event_name == 'workflow_dispatch' && inputs.version_code || '17' }}
+          MERHOUSE_ANDROID_VERSION_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.version_name || '0.17.0-internal' }}
         run: |
           $hasSigning = -not [string]::IsNullOrWhiteSpace($env:MERHOUSE_ANDROID_KEYSTORE_PATH)
-          $apiUrl = if (-not [string]::IsNullOrWhiteSpace('${{ secrets.MERHOUSE_ANDROID_API_BASE_URL }}')) {
-            '${{ secrets.MERHOUSE_ANDROID_API_BASE_URL }}'
-          } else {
-            'http://10.0.2.2:8080'
-          }
-          $frontendUrl = if (-not [string]::IsNullOrWhiteSpace('${{ secrets.MERHOUSE_ANDROID_FRONTEND_URL }}')) {
-            '${{ secrets.MERHOUSE_ANDROID_FRONTEND_URL }}'
-          } else {
-            ''
-          }
-          if ($hasSigning -and $frontendUrl) {
+          $hasFrontendUrl = -not [string]::IsNullOrWhiteSpace($env:MERHOUSE_ANDROID_FRONTEND_URL)
+          if ($hasSigning -and $hasFrontendUrl) {
             Write-Host "Building signed APK with deployed URLs."
             ./scripts/proof/android/native-android-release-check.ps1 `
-              -ApiBaseUrl $apiUrl `
-              -FrontendUrl $frontendUrl `
+              -ApiBaseUrl "$env:MERHOUSE_ANDROID_API_BASE_URL" `
+              -FrontendUrl "$env:MERHOUSE_ANDROID_FRONTEND_URL" `
               -OutputPath "reports/v17-android-release-$env:MERHOUSE_ANDROID_VERSION_NAME.json"
           } else {
             Write-Host "Building unsigned debug APK (signing secrets not configured)."
-            ./scripts/proof/android/native-mobile-check.ps1 -Assemble -ApiBaseUrl $apiUrl
+            $fallbackApiUrl = if ($env:MERHOUSE_ANDROID_API_BASE_URL) { $env:MERHOUSE_ANDROID_API_BASE_URL } else { "http://10.0.2.2:8080" }
+            ./scripts/proof/android/native-mobile-check.ps1 -Assemble -ApiBaseUrl $fallbackApiUrl
           }
-
-      - name: Upload APK artifact
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.event_name == 'workflow_dispatch' && 'signed-apk' || 'debug-apk' }}
-          path: frontend/android/app/build/outputs/apk/**/*.apk
-          retention-days: 14
 
       - name: Publish GitHub Release
         if: github.event_name == 'workflow_dispatch'
