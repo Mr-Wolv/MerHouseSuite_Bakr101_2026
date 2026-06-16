@@ -1,5 +1,5 @@
 name: MerHouse Android Release
-run-name: MerHouse Android Release - ${{ github.event_name == 'workflow_dispatch' && inputs.version_name || 'auto' }} on ${{ github.ref_name }}
+run-name: MerHouse Android Release - ${{ inputs.version_name || github.event_name }} on ${{ github.ref_name }}
 
 on:
   push:
@@ -29,7 +29,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: merhouse-android-${{ github.ref }}
+  group: merhouse-android-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -37,7 +37,7 @@ jobs:
   # Runs on every push to main (like Vercel auto-builds the frontend).
   # Produces a signed APK + GitHub Release on workflow_dispatch.
   build:
-    name: ${{ github.event_name == 'workflow_dispatch' && 'Signed APK + Release' || 'Android Build' }}
+    name: Android Build
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -63,7 +63,7 @@ jobs:
 
       - name: Decode signing keystore
         id: keystore
-        if: secrets.MERHOUSE_ANDROID_KEYSTORE_BASE64 != ''
+        if: env.MERHOUSE_ANDROID_KEYSTORE_BASE64 != ''
         shell: bash
         env:
           MERHOUSE_ANDROID_KEYSTORE_BASE64: ${{ secrets.MERHOUSE_ANDROID_KEYSTORE_BASE64 }}
