@@ -11,6 +11,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/local/seed-demo.ps1` | Create deterministic local demo data for review workflows against a validated local API base URL. |
 | `scripts/local/frontend-dev.ps1` | Start the Vite development server with a chosen host and port. |
 | `scripts/local/wait-backend.ps1` | Wait until the validated local backend readiness endpoint answers before browser/API proof starts. |
+| `scripts/local/rebuild.ps1` | Rebuild and restart Docker Compose services with health check; supports `-BackendOnly`, `-FrontendOnly`, `-Full`, `-NoCache`, and `-PullImages` switches. |
 | `scripts/quality/check.ps1` | Run backend, frontend, shared mobile shell, native sync, public-readiness, and Compose checks; use `-SkipMobile` only when a parent gate already ran mobile/native proof. Direct broad-gate runs accept `-NativeApiBaseUrl` for Android-bound sync. |
 | `scripts/quality/backend-check.ps1` | Run backend Maven tests. |
 | `scripts/quality/frontend-check.ps1` | Run frontend lint, build, deterministic unit tests, and optional Playwright checks. |
@@ -46,6 +47,7 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/deploy/huggingface-vercel-check.ps1` | Validate the selected no-card V17 Hugging Face Docker Space backend and Vercel frontend deployment configuration shape. |
 | `scripts/deploy/huggingface-space-sync.ps1` | Prepare or upload the self-contained Hugging Face Docker Space source from the tracked backend and an ignored private env file. |
 | `scripts/maintenance/clean-reports.ps1` | Trim old local reports, logs, and screenshots. |
+| `scripts/maintenance/syntax-check.ps1` | Parse all repository PowerShell scripts for syntax errors and report any failures with file, line, and message. |
 
 ## Typical Local Flow
 
