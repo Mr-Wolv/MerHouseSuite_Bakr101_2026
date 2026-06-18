@@ -179,7 +179,7 @@ jobs:
       - name: Run V17 deployment preflight
         shell: pwsh
         run: |
-          ./scripts/deploy/huggingface-vercel-check.ps1
+          # huggingface-vercel-check.ps1 was removed — Vercel deprecated in favor of Firebase Hosting
           ./scripts/quality/v17-production-readiness.ps1
 
   integration-proof:
