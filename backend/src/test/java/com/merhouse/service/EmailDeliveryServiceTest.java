@@ -22,18 +22,16 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.web.client.RestClient;
 
 class EmailDeliveryServiceTest {
     private final JavaMailSender mailSender = mock(JavaMailSender.class);
-    private final RestClient resendClient = mock(RestClient.class);
     private final NotificationDeliveryRepository deliveryRepository = mock(NotificationDeliveryRepository.class);
     private final TransactionTemplate transactionTemplate = mock(TransactionTemplate.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-10T12:00:00Z"), ZoneOffset.UTC);
 
     @Test
     void disabledProviderFailsWithoutSending() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, false, "smtp", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, false, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Body");
 
@@ -44,7 +42,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void enabledProviderRequiresSenderAddress() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "smtp", " ", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "smtp", " ", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Body");
 
@@ -57,7 +55,6 @@ class EmailDeliveryServiceTest {
     void configuredProviderBuildsSmtpMessage() {
         EmailDeliveryService service = new EmailDeliveryService(
             mailSender,
-            resendClient,
             clock,
             deliveryRepository,
             transactionTemplate,
@@ -86,7 +83,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void enabledProviderRequiresRecipientEmail() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(" ", "Account ready"), "Body");
 
@@ -97,7 +94,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void enabledProviderRequiresSubject() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery("user@merhouse.example", " "), "Body");
 
@@ -108,7 +105,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void enabledProviderRequiresBody() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), " ");
 
@@ -120,7 +117,7 @@ class EmailDeliveryServiceTest {
     @Test
     void providerFailureReturnsSanitizedFailureResult() {
         doThrow(new MailSendException("smtp unavailable")).when(mailSender).send(any(SimpleMailMessage.class));
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Body");
 
@@ -132,7 +129,7 @@ class EmailDeliveryServiceTest {
     @Test
     void nonMailExceptionIsCaughtAndReturnsFailure() {
         doThrow(new RuntimeException("connection refused")).when(mailSender).send(any(SimpleMailMessage.class));
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Body");
 
@@ -144,7 +141,7 @@ class EmailDeliveryServiceTest {
     @Test
     void exceptionWithNullMessageReturnsClassName() {
         doThrow(new RuntimeException()).when(mailSender).send(any(SimpleMailMessage.class));
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "smtp", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Body");
 
@@ -155,7 +152,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void logProviderCapturesEmailInConsole() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "log", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "log", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Test body content");
 
@@ -167,7 +164,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void logProviderValidatesFromAddress() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "log", " ", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "log", " ", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Body");
 
@@ -177,7 +174,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void logProviderValidatesRecipient() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "log", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "log", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(" ", "Subject"), "Body");
 
@@ -187,7 +184,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void logProviderValidatesSubject() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "log", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "log", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery("user@merhouse.example", " "), "Body");
 
@@ -197,7 +194,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void logProviderValidatesBody() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "log", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "log", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), " ");
 
@@ -207,7 +204,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void defaultProviderIsSmtpWhenNull() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, null, "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, null, "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Body");
 
@@ -217,7 +214,7 @@ class EmailDeliveryServiceTest {
 
     @Test
     void providerIsCaseInsensitive() {
-        EmailDeliveryService service = new EmailDeliveryService(mailSender, resendClient, clock, deliveryRepository, transactionTemplate, true, "LOG", "ops@merhouse.example", "");
+        EmailDeliveryService service = new EmailDeliveryService(mailSender, clock, deliveryRepository, transactionTemplate, true, "LOG", "ops@merhouse.example", "");
 
         EmailDeliveryResult result = service.send(delivery(), "Body");
 

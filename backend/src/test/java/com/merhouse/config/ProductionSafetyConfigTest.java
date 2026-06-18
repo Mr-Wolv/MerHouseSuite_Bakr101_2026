@@ -253,7 +253,7 @@ class ProductionSafetyConfigTest {
     }
 
     @Test
-    void allowsPublicEmailDeliveryWithResendProviderWithoutSmtpCredentials() {
+    void allowsPublicEmailDeliveryWithLogProviderWithoutSmtpCredentials() {
         assertDoesNotThrow(() -> ProductionSafetyConfig.validate(
             true,
             "production-jwt-secret-with-at-least-strong-private-entropy",
@@ -268,9 +268,9 @@ class ProductionSafetyConfigTest {
             false,
             false,
             true,
-            "resend",
-            "onboarding@resend.dev",
-            "support@merhouse.com",
+            "log",
+            "ops@merhouse.com",
+            "",
             "",
             "",
             "",

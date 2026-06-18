@@ -6,20 +6,15 @@ import com.merhouse.entity.NotificationProviderStatus;
 import com.merhouse.repository.NotificationDeliveryRepository;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.client.RestClient;
 
 @Service
 public class EmailDeliveryService {
@@ -27,7 +22,6 @@ public class EmailDeliveryService {
     private static final int MAX_RETRY_ATTEMPTS = 3;
 
     private final JavaMailSender mailSender;
-    private final RestClient resendClient;
     private final Clock clock;
     private final NotificationDeliveryRepository deliveryRepository;
     private final TransactionTemplate transactionTemplate;
@@ -38,7 +32,6 @@ public class EmailDeliveryService {
 
     public EmailDeliveryService(
         JavaMailSender mailSender,
-        @Qualifier("resendRestClient") RestClient resendClient,
         Clock clock,
         NotificationDeliveryRepository deliveryRepository,
         TransactionTemplate transactionTemplate,
@@ -48,7 +41,6 @@ public class EmailDeliveryService {
         @Value("${merhouse.email.reply-to:}") String replyTo
     ) {
         this.mailSender = mailSender;
-        this.resendClient = resendClient;
         this.clock = clock;
         this.deliveryRepository = deliveryRepository;
         this.transactionTemplate = transactionTemplate;
@@ -148,7 +140,7 @@ public class EmailDeliveryService {
 
         return switch (provider) {
             case "log" -> sendToConsole(fromAddress, safeRecipient, subject, body);
-            case "resend" -> sendViaResend(fromAddress, safeRecipient, subject, body);
+            // Resend provider was removed — falls through to SMTP (or console capture via config)
             default -> sendViaSmtp(fromAddress, safeRecipient, subject, body);
         };
     }
@@ -191,29 +183,7 @@ public class EmailDeliveryService {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private EmailDeliveryResult sendViaResend(String fromAddress, String recipientEmail, String subject, String body) {
-        try {
-            Map<String, Object> payload = Map.of(
-                "from", fromAddress,
-                "to", List.of(recipientEmail),
-                "subject", subject,
-                "html", body
-            );
-            Map<String, Object> response = resendClient.post()
-                .uri("/emails")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(payload)
-                .retrieve()
-                .body(Map.class);
-            String messageId = response != null ? (String) response.get("id") : null;
-            return EmailDeliveryResult.sent(messageId != null ? messageId : "resend-accepted");
-        } catch (RuntimeException exception) {
-            String detail = exception.getMessage();
-            log.warn("Resend delivery failed: {}", detail != null ? detail : exception.getClass().getSimpleName(), exception);
-            return EmailDeliveryResult.failed(detail != null ? detail : exception.getClass().getSimpleName());
-        }
-    }
+    // sendViaResend has been removed — Resend email provider is deprecated.
 
     private String trimToNull(String value) {
         if (value == null) {

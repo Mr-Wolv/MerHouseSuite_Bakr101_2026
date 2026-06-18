@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.web.client.RestClient;
+
 
 @Configuration
 public class MailConfig {
@@ -57,14 +57,5 @@ public class MailConfig {
         return sender;
     }
 
-    @Bean
-    RestClient resendRestClient(
-        @Value("${merhouse.email.resend.api-key:}") String apiKey
-    ) {
-        return RestClient.builder()
-            .baseUrl("https://api.resend.com")
-            .defaultHeader("Authorization", "Bearer " + apiKey)
-            .defaultHeader("Content-Type", "application/json")
-            .build();
-    }
+    // Resend RestClient bean has been removed — email provider is now console-capture (log) mode.
 }

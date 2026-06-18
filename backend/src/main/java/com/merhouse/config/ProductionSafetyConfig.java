@@ -331,21 +331,13 @@ public class ProductionSafetyConfig {
         @Value("${merhouse.deployment.public:false}") boolean publicDeployment,
         @Value("${merhouse.email.provider:smtp}") String emailProvider,
         @Value("${spring.mail.host:}") String smtpHost,
-        @Value("${spring.mail.username:}") String smtpUsername,
-        @Value("${merhouse.email.resend.api-key:}") String resendApiKey
+        @Value("${spring.mail.username:}") String smtpUsername
     ) {
         return arguments -> {
             if (!emailEnabled || !publicDeployment) {
                 return;
             }
-            if ("resend".equals(emailProvider)) {
-                if (isBlank(resendApiKey)) {
-                    log.warn("Email provider is 'resend' but MERHOUSE_RESEND_API_KEY is not set."
-                        + " Email delivery will be attempted but may fail at runtime.");
-                } else {
-                    log.info("Email provider configured: Resend (API key present).");
-                }
-            } else if ("smtp".equals(emailProvider)) {
+            if ("smtp".equals(emailProvider)) {
                 if (isBlank(smtpHost) || isBlank(smtpUsername)) {
                     log.warn("Email provider is 'smtp' but SMTP host/username not fully configured."
                         + " Email delivery will be attempted but may fail at runtime.");

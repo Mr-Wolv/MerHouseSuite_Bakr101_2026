@@ -1,5 +1,5 @@
 param(
-    [string]$EnvFile = ".secrets/deploy/managed/huggingface-vercel.env",
+    [string]$EnvFile = ".secrets/deploy/managed/huggingface.env",
     [string]$CheckoutPath = "",
     [string]$PythonPath = "python",
     [switch]$ConfirmUpload,
@@ -219,8 +219,7 @@ $hfLocalOnlyKeys = @("HF_TOKEN", "HF_SPACE_REPO_ID")
 $secretKeys = @(
     "SPRING_DATASOURCE_PASSWORD",
     "MERHOUSE_AUTH_JWT_SECRET",
-    "MERHOUSE_SMTP_PASSWORD",
-    "MERHOUSE_RESEND_API_KEY"
+    "MERHOUSE_SMTP_PASSWORD"
 )
 
 if ($PushEnv) {

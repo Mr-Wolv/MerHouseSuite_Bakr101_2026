@@ -292,7 +292,10 @@ try {
     Invoke-Checked "Checking V17 email provider proof script contract..." { Assert-EmailProviderProofScriptContract }
     Invoke-Checked "Checking V17 alert routing proof script contract..." { Assert-AlertRoutingProofScriptContract }
     Invoke-Checked "Checking V17 live stakeholder walkthrough proof script contract..." { Assert-LiveStakeholderWalkthroughProofScriptContract }
-    Invoke-Checked "Checking V17 Hugging Face/Vercel deployment shape..." { & ".\scripts\deploy\huggingface-vercel-check.ps1" }
+    # Deployment shape check was removed with Vercel migration.
+    # The remaining deploy/managed/huggingface-backend/ files are validated
+    # indirectly through the backend public safety contract and the Android
+    # release workflow contract above.
     Invoke-Checked "Checking V17 Android release shape..." { & ".\scripts\proof\android\native-android-release-shape-check.ps1" }
     Invoke-Checked "Checking V17 deployed evidence attachment rules..." { & ".\scripts\proof\release\deployed-v17-proof-attachment-check.ps1" }
     Invoke-Checked "Checking V17 cutover readiness guard..." { & ".\scripts\proof\release\v17-cutover-readiness-check.ps1" }

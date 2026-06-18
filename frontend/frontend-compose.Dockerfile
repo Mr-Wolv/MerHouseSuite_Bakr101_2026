@@ -1,4 +1,4 @@
-# Local Docker Compose frontend image. V17 managed web deployment uses Vercel.
+# Local Docker Compose frontend image. V17 managed web deployment uses Firebase Hosting.
 FROM node:24-alpine AS build
 WORKDIR /app
 

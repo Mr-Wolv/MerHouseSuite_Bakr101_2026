@@ -21,7 +21,7 @@ param(
     [string]$EmailProviderProofManifestPath = "",
     [string]$AlertRoutingManifestPath = "",
     [string]$LiveStakeholderWalkthroughManifestPath = "",
-    [string]$EnvFile = ".secrets/deploy/managed/huggingface-vercel.env",
+    [string]$EnvFile = ".secrets/deploy/managed/huggingface.env",
     [string]$PostgresContainer = "merhouse-production-postgres-1",
     [switch]$IncludeBrowserTour,
     [switch]$IncludeLoadSmoke,
