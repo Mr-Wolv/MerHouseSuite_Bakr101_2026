@@ -26,7 +26,10 @@ try {
         if ($statusCode -ne 429) {
             throw "Expected HTTP 429 after 6 failed logins, got HTTP $statusCode."
         }
-        $retryAfter = $_.Exception.Response.Headers["Retry-After"]
+        $headers = $_.Exception.Response.Headers
+        # PowerShell 7: HttpHeaders has a typed .RetryAfter property.
+        # Windows PowerShell 5.1: WebHeaderCollection uses a string indexer.
+        $retryAfter = if ($null -ne $headers.RetryAfter) { $headers.RetryAfter.Delta.TotalSeconds } else { $headers['Retry-After'] }
         if (-not $retryAfter) {
             throw "HTTP 429 response is missing Retry-After header."
         }
