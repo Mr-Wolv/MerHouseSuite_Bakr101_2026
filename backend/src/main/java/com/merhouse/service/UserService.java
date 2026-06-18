@@ -8,9 +8,15 @@ import com.merhouse.entity.UserRole;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.exception.ResourceNotFoundException;
 import com.merhouse.repository.AppUserRepository;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
@@ -18,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
     private static final Set<UserRole> PLATFORM_ADMIN_ROLES = Set.of(
         UserRole.OWNER,
         UserRole.ADMIN,
@@ -28,11 +35,18 @@ public class UserService {
     private final AppUserRepository userRepository;
     private final TenantService tenantService;
     private final PasswordEncoder passwordEncoder;
+    private final ObjectProvider<FirebaseAuth> firebaseAuthProvider;
 
-    public UserService(AppUserRepository userRepository, TenantService tenantService, PasswordEncoder passwordEncoder) {
+    public UserService(
+        AppUserRepository userRepository,
+        TenantService tenantService,
+        PasswordEncoder passwordEncoder,
+        ObjectProvider<FirebaseAuth> firebaseAuthProvider
+    ) {
         this.userRepository = userRepository;
         this.tenantService = tenantService;
         this.passwordEncoder = passwordEncoder;
+        this.firebaseAuthProvider = firebaseAuthProvider;
     }
 
     @Transactional
@@ -51,7 +65,34 @@ public class UserService {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRole(request.role());
         user.setEnabled(true);
-        return userRepository.save(user);
+        AppUser saved = userRepository.save(user);
+
+        // Create Firebase Auth user when Firebase is enabled.
+        // Wrapped in try-catch so a Firebase failure never prevents the DB user
+        // from being created (matches DevAdminSeeder pattern).
+        createFirebaseUserIfAvailable(email, request.password());
+
+        return saved;
+    }
+
+    private void createFirebaseUserIfAvailable(String email, String password) {
+        FirebaseAuth firebaseAuth = firebaseAuthProvider.getIfAvailable();
+        if (firebaseAuth == null) return;
+        try {
+            try {
+                firebaseAuth.getUserByEmail(email);
+                log.debug("Firebase Auth user already exists for {} — skipping creation.", email);
+            } catch (FirebaseAuthException e) {
+                UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
+                    .setEmail(email)
+                    .setPassword(password)
+                    .setEmailVerified(true);
+                firebaseAuth.createUser(createRequest);
+                log.info("Created Firebase Auth user for: {}", email);
+            }
+        } catch (Exception ex) {
+            log.warn("Firebase Auth user creation failed for {}: {} — DB user was still created.", email, ex.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)

@@ -22,6 +22,7 @@ import com.merhouse.entity.PasswordResetToken;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.repository.AppUserRepository;
 import com.merhouse.repository.PasswordResetTokenRepository;
+import com.google.firebase.auth.FirebaseAuth;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -29,6 +30,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -39,6 +41,8 @@ class AuthRecoveryServiceTest {
     private final NotificationService notificationService = mock(NotificationService.class);
     private final EmailDeliveryService emailDeliveryService = mock(EmailDeliveryService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-18T00:00:00Z"), ZoneOffset.UTC);
+    @SuppressWarnings("unchecked")
+    private final ObjectProvider<FirebaseAuth> emptyFirebaseProvider = mock(ObjectProvider.class);
     private final AuthRecoveryService service = new AuthRecoveryService(
         userRepository,
         tokenRepository,
@@ -46,6 +50,7 @@ class AuthRecoveryServiceTest {
         notificationService,
         emailDeliveryService,
         clock,
+        emptyFirebaseProvider,
         false,
         "https://staging.merhouse.example",
         5,
@@ -112,6 +117,7 @@ class AuthRecoveryServiceTest {
             notificationService,
             emailDeliveryService,
             clock,
+            emptyFirebaseProvider,
             true,
             "http://localhost:3001",
             5,
@@ -136,6 +142,7 @@ class AuthRecoveryServiceTest {
             notificationService,
             emailDeliveryService,
             clock,
+            emptyFirebaseProvider,
             false,
             "https://staging.merhouse.example",
             2,

@@ -1,11 +1,19 @@
 package com.merhouse.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord;
+import com.merhouse.dto.CreateUserRequest;
 import com.merhouse.entity.AppUser;
 import com.merhouse.entity.Tenant;
 import com.merhouse.entity.TenantType;
@@ -15,6 +23,7 @@ import com.merhouse.repository.AppUserRepository;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -22,7 +31,9 @@ class UserServiceTest {
     private final AppUserRepository userRepository = mock(AppUserRepository.class);
     private final TenantService tenantService = mock(TenantService.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
-    private final UserService userService = new UserService(userRepository, tenantService, passwordEncoder);
+    @SuppressWarnings("unchecked")
+    private final ObjectProvider<FirebaseAuth> emptyFirebaseProvider = mock(ObjectProvider.class);
+    private final UserService userService = new UserService(userRepository, tenantService, passwordEncoder, emptyFirebaseProvider);
 
     @Test
     void adminCannotDisableOwnAccount() {
@@ -138,5 +149,62 @@ class UserServiceTest {
         tenant.setType(role == UserRole.WAREHOUSE_OPERATOR ? TenantType.WAREHOUSE_PROVIDER : TenantType.MERCHANT);
         user.setTenant(tenant);
         return user;
+    }
+
+    @Test
+    void createMakesFirebaseAuthUserWhenProviderAvailable() throws Exception {
+        UUID tenantId = UUID.randomUUID();
+        Tenant tenant = new Tenant();
+        tenant.setType(TenantType.MERCHANT);
+        when(tenantService.getRequired(tenantId)).thenReturn(tenant);
+        when(userRepository.existsByEmailIgnoreCase("user@merhouse.local")).thenReturn(false);
+        when(passwordEncoder.encode("plain-password")).thenReturn("encoded-hash");
+        AppUser savedUser = new AppUser();
+        savedUser.setEmail("user@merhouse.local");
+        when(userRepository.save(any(AppUser.class))).thenReturn(savedUser);
+
+        FirebaseAuth firebaseAuth = mock(FirebaseAuth.class);
+        @SuppressWarnings("unchecked")
+        ObjectProvider<FirebaseAuth> firebaseProvider = mock(ObjectProvider.class);
+        when(firebaseProvider.getIfAvailable()).thenReturn(firebaseAuth);
+        // getUserByEmail throws — user doesn't exist yet
+        when(firebaseAuth.getUserByEmail("user@merhouse.local")).thenThrow(mock(FirebaseAuthException.class));
+        UserRecord mockRecord = mock(UserRecord.class);
+        when(firebaseAuth.createUser(any(UserRecord.CreateRequest.class))).thenReturn(mockRecord);
+
+        UserService serviceWithFirebase = new UserService(userRepository, tenantService, passwordEncoder, firebaseProvider);
+        AppUser result = serviceWithFirebase.create(new CreateUserRequest(tenantId, "user@merhouse.local", "plain-password", UserRole.MERCHANT));
+
+        assertNotNull(result);
+        verify(firebaseAuth).createUser(any(UserRecord.CreateRequest.class));
+        verify(userRepository).save(any(AppUser.class));
+    }
+
+    @Test
+    void createSucceedsWhenFirebaseAuthCreationFails() throws Exception {
+        UUID tenantId = UUID.randomUUID();
+        Tenant tenant = new Tenant();
+        tenant.setType(TenantType.MERCHANT);
+        when(tenantService.getRequired(tenantId)).thenReturn(tenant);
+        when(userRepository.existsByEmailIgnoreCase("fail@merhouse.local")).thenReturn(false);
+        when(passwordEncoder.encode("plain-password")).thenReturn("encoded-hash");
+        AppUser savedUser = new AppUser();
+        savedUser.setEmail("fail@merhouse.local");
+        when(userRepository.save(any(AppUser.class))).thenReturn(savedUser);
+
+        FirebaseAuth firebaseAuth = mock(FirebaseAuth.class);
+        @SuppressWarnings("unchecked")
+        ObjectProvider<FirebaseAuth> firebaseProvider = mock(ObjectProvider.class);
+        when(firebaseProvider.getIfAvailable()).thenReturn(firebaseAuth);
+        // Both getUserByEmail and createUser throw
+        when(firebaseAuth.getUserByEmail("fail@merhouse.local")).thenThrow(mock(FirebaseAuthException.class));
+        when(firebaseAuth.createUser(any(UserRecord.CreateRequest.class))).thenThrow(mock(FirebaseAuthException.class));
+
+        UserService serviceWithFirebase = new UserService(userRepository, tenantService, passwordEncoder, firebaseProvider);
+        // Should NOT throw — Firebase failure must not block DB user creation
+        AppUser result = serviceWithFirebase.create(new CreateUserRequest(tenantId, "fail@merhouse.local", "plain-password", UserRole.MERCHANT));
+
+        assertNotNull(result);
+        verify(userRepository).save(any(AppUser.class));
     }
 }

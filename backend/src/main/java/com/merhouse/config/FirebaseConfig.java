@@ -4,6 +4,7 @@ import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.firebase.auth.FirebaseAuth;
 import jakarta.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -13,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -93,5 +95,15 @@ public class FirebaseConfig {
                 }
             }
         }
+    }
+
+    /**
+     * Expose a {@link FirebaseAuth} bean so services like {@code UserService}
+     * can inject it via {@code ObjectProvider<FirebaseAuth>} and create
+     * Firebase Auth users alongside database users.
+     */
+    @Bean
+    FirebaseAuth firebaseAuth() {
+        return FirebaseAuth.getInstance();
     }
 }

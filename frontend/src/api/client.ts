@@ -262,6 +262,18 @@ export const api = {
       body: { token, newPassword },
     })
   },
+  requestOtp(email: string) {
+    return request<PasswordResetRequestResponse>('/api/v1/auth/recovery/request-otp', {
+      method: 'POST',
+      body: { email },
+    })
+  },
+  resetWithOtp(email: string, otpCode: string, newPassword: string) {
+    return request<{ message: string }>('/api/v1/auth/recovery/reset-with-otp', {
+      method: 'POST',
+      body: { email, otpCode, newPassword },
+    })
+  },
   submitAccessRequest(body: AccessRequestCreatePayload) {
     return request<AccessRequest>('/api/v1/access-requests', {
       method: 'POST',

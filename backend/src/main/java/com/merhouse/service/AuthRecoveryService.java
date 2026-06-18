@@ -11,6 +11,9 @@ import com.merhouse.entity.PasswordResetToken;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.repository.AppUserRepository;
 import com.merhouse.repository.PasswordResetTokenRepository;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -19,6 +22,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthRecoveryService {
+    private static final Logger log = LoggerFactory.getLogger(AuthRecoveryService.class);
     private static final Duration RESET_TOKEN_TTL = Duration.ofMinutes(30);
     private static final Duration OTP_TTL = Duration.ofMinutes(15);
     private static final String GENERIC_RESET_MESSAGE =
@@ -44,6 +51,7 @@ public class AuthRecoveryService {
     private final int resetRequestLimit;
     private final Duration resetRequestWindow;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final ObjectProvider<FirebaseAuth> firebaseAuthProvider;
 
     public AuthRecoveryService(
         AppUserRepository userRepository,
@@ -52,6 +60,7 @@ public class AuthRecoveryService {
         NotificationService notificationService,
         EmailDeliveryService emailDeliveryService,
         Clock clock,
+        ObjectProvider<FirebaseAuth> firebaseAuthProvider,
         @Value("${merhouse.auth.recovery.expose-reset-token:false}") boolean exposeResetToken,
         @Value("${merhouse.public.frontend-url:http://localhost:3001}") String publicFrontendUrl,
         @Value("${merhouse.auth.recovery.request-limit:5}") int resetRequestLimit,
@@ -63,6 +72,7 @@ public class AuthRecoveryService {
         this.notificationService = notificationService;
         this.emailDeliveryService = emailDeliveryService;
         this.clock = clock;
+        this.firebaseAuthProvider = firebaseAuthProvider;
         this.exposeResetToken = exposeResetToken;
         this.publicFrontendUrl = trimTrailingSlash(publicFrontendUrl);
         this.resetRequestLimit = Math.max(1, resetRequestLimit);
@@ -92,6 +102,7 @@ public class AuthRecoveryService {
         token.setUsedAt(now);
         tokenRepository.save(token);
         userRepository.save(token.getUser());
+        updateFirebaseAuthPasswordIfAvailable(token.getUser().getEmail(), request.newPassword());
         return new MessageResponse("Password has been reset.");
     }
 
@@ -123,6 +134,7 @@ public class AuthRecoveryService {
         token.setUsedAt(now);
         tokenRepository.save(token);
         userRepository.save(token.getUser());
+        updateFirebaseAuthPasswordIfAvailable(token.getUser().getEmail(), request.newPassword());
 
         notificationService.recordForUser(
             token.getUser(),
@@ -240,6 +252,25 @@ public class AuthRecoveryService {
 
     private String normalizeToken(String token) {
         return token.trim();
+    }
+
+    /**
+     * Updates the Firebase Auth user's password when the Firebase Auth provider
+     * is available. This keeps the Firebase Auth credential in sync with the
+     * database password so that login works on both auth paths.
+     */
+    private void updateFirebaseAuthPasswordIfAvailable(String email, String newPassword) {
+        FirebaseAuth firebaseAuth = firebaseAuthProvider.getIfAvailable();
+        if (firebaseAuth == null) return;
+        try {
+            UserRecord userRecord = firebaseAuth.getUserByEmail(email);
+            UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(userRecord.getUid())
+                .setPassword(newPassword);
+            firebaseAuth.updateUser(updateRequest);
+            log.info("Updated Firebase Auth password for: {}", email);
+        } catch (FirebaseAuthException e) {
+            log.warn("Failed to update Firebase Auth password for {}: {} — DB password was still reset.", email, e.getMessage());
+        }
     }
 
     private String trimTrailingSlash(String value) {

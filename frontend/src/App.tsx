@@ -12,7 +12,7 @@ import {
   AdminTenantsPage,
   AdminUsersPage,
 } from './pages/AdminPages'
-import { ForgotPasswordPage, RequestAccessPage, ResetPasswordPage } from './pages/AuthRecoveryPages'
+import { ForgotPasswordPage, OtpResetPage, RequestAccessPage, ResetPasswordPage } from './pages/AuthRecoveryPages'
 import { AssistantPage } from './pages/AssistantPage'
 import { AccountPage } from './pages/AccountPage'
 import { HomeRedirect } from './pages/HomeRedirect'
@@ -36,6 +36,7 @@ const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
+  { path: '/reset-with-otp', element: <OtpResetPage /> },
   { path: '/request-access', element: <RequestAccessPage /> },
   { path: '/how-to-use', element: <HowToUsePage /> },
   {
