@@ -1,5 +1,9 @@
 # MerHouse
 
+> **Live:** [merhouse-354e7.web.app](https://merhouse-354e7.web.app) [![Firebase Hosting](https://img.shields.io/badge/Firebase-Hosting-FFCA28?logo=firebase&logoColor=black)](https://merhouse-354e7.web.app)
+> **Backend:** [m7mdhbkr-merhouse-backend.hf.space](https://m7mdhbkr-merhouse-backend.hf.space) [![Hugging Face Spaces](https://img.shields.io/badge/Hugging_Face-Spaces-FFD21E?logo=huggingface&logoColor=black)](https://m7mdhbkr-merhouse-backend.hf.space)
+> **CI:** [![Quality Gate](https://github.com/Mr-Wolv/MerHouseSuite_Bakr101_2026/actions/workflows/merhouse-quality-gate.yml/badge.svg)](https://github.com/Mr-Wolv/MerHouseSuite_Bakr101_2026/actions/workflows/merhouse-quality-gate.yml)
+
 MerHouse is a B2B fulfillment coordination system for merchants and warehouse providers.
 
 This repository is prepared as a public-readable project with both local development and private V17 deployment paths. It includes application source, documentation, scripts, CI configuration, Docker Compose setup, managed deployment templates, GitHub Actions workflows, and agent guidance needed to understand and run MerHouse. Local-only and deployment-private working files stay outside Git.
@@ -10,7 +14,7 @@ It models the operating relationship between a brand or merchant and a warehouse
 
 MerHouse is public-readable as source code, local product proof, and sanitized deployment automation. The current repository proves a local Docker Compose runtime, backend and frontend tests, browser route proof, native Android debug-APK proof, cross-surface parity checks, performance-readiness checks, and a recorded local live browser/installed-APK walkthrough.
 
-V17 activation now uses a **confirmed live** private deployed footprint: Neon PostgreSQL, a Hugging Face Docker Space backend, a Vercel React/Vite frontend, GitHub Actions quality/release workflows, GitHub Release APK distribution, opt-in SMTP email delivery, signed Android release proof, and deployment preflight checks. The deployment infrastructure is complete and verified by CI. The three V17 portfolio features are also implemented in the current codebase: Access Request & Approve-and-Activate, OTP Password Recovery, and the How To Use Page. AI Assistant Completion with conversation threading is deferred to Vinfinite. The remaining V17 work is closure convergence: proof execution, documentation/diagram synchronization, script inventory validation, and deployed evidence collection. See [`V17-RE-EVALUATION.md`](docs/refactor/V17-RE-EVALUATION.md) and [`Closure_Plan.md`](docs/refactor/Closure_Plan.md) for the current closure scope.
+V17 activation now uses a **confirmed live** private deployed footprint: Neon PostgreSQL, a Hugging Face Docker Space backend, a Firebase Hosting React/Vite frontend, GitHub Actions quality/release workflows, GitHub Release APK distribution, opt-in console-capture email delivery, signed Android release proof, and deployment preflight checks. The deployment infrastructure is complete and verified by CI. The three V17 portfolio features are also implemented in the current codebase: Access Request & Approve-and-Activate, OTP Password Recovery, and the How To Use Page. AI Assistant Completion with conversation threading is deferred to Vinfinite. The remaining V17 work is closure convergence: proof execution, documentation/diagram synchronization, script inventory validation, and deployed evidence collection. See [`V17-RE-EVALUATION.md`](docs/refactor/V17-RE-EVALUATION.md) and [`Closure_Plan.md`](docs/refactor/Closure_Plan.md) for the current closure scope.
 
 Routine CI is pass/fail only and intentionally publishes no GitHub Actions artifacts. The only intended public binary distribution lane is a deliberate GitHub Release APK asset.
 
@@ -60,7 +64,7 @@ backend/backend-compose.Dockerfile
 frontend/frontend-compose.Dockerfile
                 Local Docker Compose images only
 deploy/managed/
-                Sanitized Hugging Face backend and Vercel frontend deployment templates
+                Sanitized Hugging Face backend and Firebase Hosting frontend deployment templates
 ```
 
 ## Local Development
@@ -87,7 +91,7 @@ Local URLs:
 - Frontend: `http://localhost:3001`
 - Backend: `http://localhost:8080`
 
-The compose stack builds and runs PostgreSQL, the Spring Boot API, and the nginx-served frontend. Compose uses `backend/backend-compose.Dockerfile` and `frontend/frontend-compose.Dockerfile`; managed deployment templates live under `deploy/managed/`. Local development does not require Neon, Hugging Face, Vercel, SMTP, or Android signing secrets.
+The compose stack builds and runs PostgreSQL, the Spring Boot API, and the nginx-served frontend. Compose uses `backend/backend-compose.Dockerfile` and `frontend/frontend-compose.Dockerfile`; managed deployment templates live under `deploy/managed/`. Local development does not require Neon, Hugging Face, Firebase, SMTP, or Android signing secrets.
 
 ## Development Commands
 
@@ -202,7 +206,7 @@ V17 deployment preflight before staging or production rollout:
 .\scripts\quality\v17-production-readiness.ps1
 ```
 
-The default preflight parses scripts, validates the managed Hugging Face/Vercel deployment shape, checks Android release configuration, proves deployed-evidence attachment rules, exercises the cutover-readiness guard with fixtures, runs markdown/public-readiness checks, and rebuilds the frontend for performance budgets. It does not contact real providers, publish CI artifacts, or build a signed APK unless explicit target URLs and signing values are supplied.
+The default preflight parses scripts, validates the managed Hugging Face deployment shape, checks Android release configuration, proves deployed-evidence attachment rules, exercises the cutover-readiness guard with fixtures, runs markdown/public-readiness checks, and rebuilds the frontend for performance budgets. It does not contact real providers, publish CI artifacts, or build a signed APK unless explicit target URLs and signing values are supplied.
 
 When a staging target plus Android signing and version inputs are available, add deployed smoke and signed internal release proof:
 
@@ -213,9 +217,9 @@ When a staging target plus Android signing and version inputs are available, add
 Managed rollout and deployed proof stay separate so deployment and verification remain auditable:
 
 ```powershell
-.\scripts\deploy\huggingface-space-sync.ps1 -EnvFile ".secrets/deploy/managed/huggingface-vercel.env"
-.\scripts\deploy\huggingface-space-sync.ps1 -EnvFile ".secrets/deploy/managed/huggingface-vercel.env" -ConfirmUpload
-.\scripts\deploy\huggingface-space-sync.ps1 -EnvFile ".secrets/deploy/managed/huggingface-vercel.env" -ConfirmUpload -PushEnv
+.\scripts\deploy\huggingface-space-sync.ps1 -EnvFile ".secrets/deploy/managed/huggingface.env"
+.\scripts\deploy\huggingface-space-sync.ps1 -EnvFile ".secrets/deploy/managed/huggingface.env" -ConfirmUpload
+.\scripts\deploy\huggingface-space-sync.ps1 -EnvFile ".secrets/deploy/managed/huggingface.env" -ConfirmUpload -PushEnv
 .\scripts\proof\release\deployed-v17-proof.ps1 `
   -FrontendBaseUrl "https://app.example.com" `
   -ApiBaseUrl "https://api.example.com" `
@@ -287,15 +291,15 @@ V16.2 proved deployment readiness locally. V17 now carries the private deployed 
 - Failed and returned shipments are delivery-state evidence, not a full customer RMA, refund, inspection, disposition, or accounting workflow.
 - Native Android support means a Capacitor wrapper around the same frontend build. Local proof uses a debug APK. V17 distribution uses a signed APK published as a deliberate GitHub Release asset.
 - App-store packaging, native OS notification delivery, native push provider rollout, camera/barcode APIs, and offline sync are later work.
-- Runtime-only values belong in `.env`, your shell environment, or ignored repo-local private workspaces such as `private/`, `.secrets/`, or `deploy/private/`. Keep generated proof reports, local data, deployment env files, provider credentials, provider CLI binding state such as Vercel link metadata, Android keystores, and signed APK/AAB build outputs out of Git.
+- Runtime-only values belong in `.env`, your shell environment, or ignored repo-local private workspaces such as `private/`, `.secrets/`, or `deploy/private/`. Keep generated proof reports, local data, deployment env files, provider credentials, provider CLI binding state such as Firebase link metadata, Android keystores, and signed APK/AAB build outputs out of Git.
 
 Production activation is now the private V17 deployment lane and must finish replacing local-only assumptions with real provider contracts, deployment configuration, monitoring, backup/restore operations, load/performance proof, cross-platform release proof, provider-exchange reliability, and deployment-specific operations proof.
 The tracked activation checklist lives in [Production deployment activation](docs/operations/production-deployment-activation.md).
 Service-specific activation notes for email recovery, account invitations, email notifications, and real agentic work live in [V17 external service activation](docs/operations/v17-service-activation.md).
 
-V17 private deployment work uses the selected Neon + Hugging Face Spaces + Vercel + GitHub Release lane. It includes deployment scripts under `scripts/deploy/`, deployed proof wrappers, SMTP-backed email delivery hooks, alert-routing and manual live-walkthrough proof helpers, a read-plus-draft deterministic agent boundary, load-smoke proof, Android release-shape proof, and signed Android release checks with private release manifests. Keep detailed deployment values, provider credentials, Android keystores, proof logs, and non-APK proof artifacts private until the deployment is proven and intentionally published.
+V17 private deployment work uses the selected Neon + Hugging Face Spaces + Firebase Hosting + GitHub Release lane. It includes deployment scripts under `scripts/deploy/`, deployed proof wrappers, console-capture email delivery, alert-routing and manual live-walkthrough proof helpers, a read-plus-draft deterministic agent boundary, load-smoke proof, Android release-shape proof, and signed Android release checks with private release manifests. Keep detailed deployment values, provider credentials, Android keystores, proof logs, and non-APK proof artifacts private until the deployment is proven and intentionally published.
 
-Deployment lanes are tracked in the activation doc: current V17 uses Neon PostgreSQL plus Hugging Face Docker Space backend plus Vercel frontend plus GitHub Release APK distribution. VPS/Compose hosting and machine-hosted tunnel deployment are not current progress lanes.
+Deployment lanes are tracked in the activation doc: current V17 uses Neon PostgreSQL plus Hugging Face Docker Space backend plus Firebase Hosting frontend plus GitHub Release APK distribution. VPS/Compose hosting and machine-hosted tunnel deployment are not current progress lanes.
 
 ## Latest Scripted Local QC Snapshot
 

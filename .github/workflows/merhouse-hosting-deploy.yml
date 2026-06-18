@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  deployments: write
 
 concurrency:
   group: merhouse-hosting-${{ github.ref }}
@@ -19,6 +20,9 @@ jobs:
     name: Deploy Frontend to Firebase Hosting
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment:
+      name: production-frontend
+      url: https://merhouse-354e7.web.app
     steps:
       - name: Checkout
         uses: actions/checkout@v5
