@@ -1,6 +1,6 @@
 {
   "projects": {
     "default": "merhouse-local",
-    "production": "merhouse-prod"
+    "production": "merhouse-354e7"
   }
 }
