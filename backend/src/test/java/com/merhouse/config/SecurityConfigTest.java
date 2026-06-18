@@ -14,7 +14,7 @@ class SecurityConfigTest {
     @Test
     void corsConfigurationAllowsLocalWebAndNativeOrigins() {
         CorsConfigurationSource source = securityConfig.corsConfigurationSource(
-            "http://localhost:3001,http://localhost:5173,http://127.0.0.1:5173,http://localhost,https://localhost,capacitor://localhost,ionic://localhost"
+            "http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173,http://localhost,https://localhost,capacitor://localhost,ionic://localhost"
         );
 
         assertThat(source).isInstanceOf(UrlBasedCorsConfigurationSource.class);
@@ -25,6 +25,7 @@ class SecurityConfigTest {
         assertThat(configuration).isNotNull();
         assertThat(configuration.getAllowedOrigins()).containsExactly(
             "http://localhost:3001",
+            "http://127.0.0.1:3001",
             "http://localhost:5173",
             "http://127.0.0.1:5173",
             "http://localhost",

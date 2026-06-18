@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { Link } from 'react-router-dom'
-import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
+import { AUTH_ERROR_MESSAGES } from '../lib/firebase-auth'
 import { appIcons } from '../components/AppIcons'
 import { PublicAuthPanel } from '../components/PublicAuthPanel'
 
@@ -13,11 +13,13 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const navigate = useNavigate()
   const location = useLocation()
 
+  // Once the auth cycle completes (onAuthStateChanged → api.me → setUser),
+  // this Navigate handles the redirect — no race condition.
   if (user) {
-    return <Navigate to="/" replace />
+    const from = (location.state as { from?: Location } | null)?.from?.pathname ?? '/'
+    return <Navigate to={from} replace />
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -26,13 +28,18 @@ export function LoginPage() {
     setSubmitting(true)
     try {
       await login(email.trim(), password)
-      const from = (location.state as { from?: Location } | null)?.from?.pathname ?? '/'
-      navigate(from, { replace: true })
+      // After login resolves, onAuthStateChanged fires → setUser()
+      // → component re-renders → the if(user) Navigate above handles redirect.
     } catch (caught) {
-      if (caught instanceof ApiError) {
-        setError(caught.details[0] ?? caught.message)
+      const firebaseCode = (caught as { code?: string })?.code
+      if (firebaseCode && firebaseCode in AUTH_ERROR_MESSAGES) {
+        setError(AUTH_ERROR_MESSAGES[firebaseCode])
       } else {
-        setError('Unable to sign in.')
+        // Legacy API login returns a message on the error object.
+        const apiMessage = (caught as { message?: string })?.message
+        setError(apiMessage && apiMessage !== 'Firebase Auth is not configured'
+          ? apiMessage
+          : 'Unable to sign in.')
       }
     } finally {
       setSubmitting(false)

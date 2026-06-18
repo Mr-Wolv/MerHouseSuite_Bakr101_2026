@@ -26,11 +26,11 @@ try {
         if ($statusCode -ne 429) {
             throw "Expected HTTP 429 after 6 failed logins, got HTTP $statusCode."
         }
-        $retryAfter = $_.Exception.Response.Headers.RetryAfter
-        if ($null -eq $retryAfter) {
+        $retryAfter = $_.Exception.Response.Headers["Retry-After"]
+        if (-not $retryAfter) {
             throw "HTTP 429 response is missing Retry-After header."
         }
-        Write-Host "  Rate limit enforced: HTTP 429, Retry-After: $($retryAfter.Delta.TotalSeconds)s"
+        Write-Host "  Rate limit enforced: HTTP 429, Retry-After: $retryAfter s"
         $rateLimited = $true
     } else {
         throw

@@ -40,7 +40,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                     });
             } catch (IllegalArgumentException ignored) {
-                SecurityContextHolder.clearContext();
+                // Do not clear the security context here. When Firebase Auth is
+                // enabled, FirebaseTokenFilter may have already set authentication
+                // from a valid Firebase ID token. Clearing here would destroy that.
+                // Simply skip — the next filter in the chain will handle
+                // unauthenticated requests.
             }
         }
 

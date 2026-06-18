@@ -50,12 +50,14 @@ function Get-MerHouseEnvValue {
         return $null
     }
 
-    Get-Content $envFile | ForEach-Object {
-        $line = $_.Trim()
-        if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith('#')) {
-            return
+    # Use a regular foreach loop (not ForEach-Object) so that return exits the
+    # function immediately instead of only exiting the current pipeline iteration.
+    foreach ($line in Get-Content $envFile) {
+        $trimmed = $line.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith('#')) {
+            continue
         }
-        $parts = $line.Split('=', 2)
+        $parts = $trimmed.Split('=', 2)
         if ($parts.Length -eq 2 -and $parts[0].Trim() -eq $Name) {
             return $parts[1].Trim()
         }

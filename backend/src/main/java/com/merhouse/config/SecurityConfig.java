@@ -1,8 +1,10 @@
 package com.merhouse.config;
 
 import com.merhouse.security.JwtAuthenticationFilter;
+import com.merhouse.security.FirebaseTokenFilter;
 import java.util.Arrays;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,13 +23,22 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    /**
+     * When {@code firebase.auth.enabled=true}, the FirebaseTokenFilter bean
+     * exists and is wired here. When disabled (the default), it is {@code null}
+     * and skipped.
+     */
+    @Autowired(required = false)
+    private FirebaseTokenFilter firebaseTokenFilter;
+
     @Bean
     SecurityFilterChain securityFilterChain(
         HttpSecurity http,
         JwtAuthenticationFilter jwtAuthenticationFilter,
         CorsConfigurationSource corsConfigurationSource)
         throws Exception {
-        return http
+        var builder = http
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -41,8 +52,20 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/access-requests").permitAll()
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .build();
+            // JwtAuthenticationFilter stays registered for backward compatibility
+            // during the migration period. It only sets context when it successfully
+            // parses a custom JWT; it no longer clears context on parse failure, so
+            // FirebaseTokenFilter can also authenticate requests using Firebase ID
+            // tokens without conflict.
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        // When Firebase Auth is enabled, add the FirebaseTokenFilter before the
+        // JWT filter so Firebase ID tokens are verified first.
+        if (firebaseTokenFilter != null) {
+            builder.addFilterBefore(firebaseTokenFilter, JwtAuthenticationFilter.class);
+        }
+
+        return builder.build();
     }
 
     @Bean

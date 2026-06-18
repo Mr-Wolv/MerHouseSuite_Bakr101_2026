@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { AuthProvider } from './AuthContext'
 import { useAuth } from './useAuth'
 
@@ -11,7 +11,19 @@ vi.mock('../api/client', () => ({
   api: apiMock,
 }))
 
-const TOKEN_KEY = 'warehouse-console-token'
+// Mock Firebase Auth
+const mockGetIdToken = vi.fn()
+const mockOnAuthStateChanged = vi.fn()
+const mockSignInWithEmailAndPassword = vi.fn()
+
+vi.mock('../lib/firebase', () => ({
+  auth: { currentUser: null },
+}))
+
+vi.mock('firebase/auth', () => ({
+  signInWithEmailAndPassword: (...args: unknown[]) => mockSignInWithEmailAndPassword(...args),
+  onAuthStateChanged: (...args: unknown[]) => mockOnAuthStateChanged(...args),
+}))
 
 const mockUser = {
   id: 'user-1',
@@ -47,28 +59,47 @@ function AuthProbe() {
   )
 }
 
+function setupFirebaseUser(email: string) {
+  return {
+    email,
+    getIdToken: mockGetIdToken.mockResolvedValue(`firebase-token-${email}`),
+    getIdTokenResult: vi.fn().mockResolvedValue({ claims: {} }),
+  }
+}
+
 describe('AuthProvider comprehensive session management', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.clear()
+    // Default: no Firebase user
+    mockOnAuthStateChanged.mockImplementation((_auth: unknown, callback: (user: null) => void) => {
+      callback(null)
+      return vi.fn()
+    })
   })
 
-  it('starts with no token and no user when localStorage is empty', () => {
+  it('starts with no token and no user when no Firebase user', async () => {
     render(
       <AuthProvider>
         <AuthProbe />
       </AuthProvider>,
     )
 
+    await waitFor(() => {
+      expect(screen.getByText('Session').nextElementSibling).toHaveTextContent('idle')
+    })
     expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('none')
     expect(screen.getByText('User').nextElementSibling).toHaveTextContent('none')
-    expect(screen.getByText('Session').nextElementSibling).toHaveTextContent('idle')
     expect(apiMock.me).not.toHaveBeenCalled()
   })
 
-  it('restores a valid session from localStorage on mount', async () => {
-    localStorage.setItem(TOKEN_KEY, 'stored-valid-token')
+  it('restores a valid session when Firebase user is present on mount', async () => {
+    const firebaseUser = setupFirebaseUser('session@merhouse.local')
     apiMock.me.mockResolvedValue({ user: mockUser })
+
+    mockOnAuthStateChanged.mockImplementation((_auth: unknown, callback: (user: typeof firebaseUser | null) => void) => {
+      callback(firebaseUser)
+      return vi.fn()
+    })
 
     render(
       <AuthProvider>
@@ -77,17 +108,28 @@ describe('AuthProvider comprehensive session management', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('stored-valid-token')
+      expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('firebase-token-session@merhouse.local')
       expect(screen.getByText('User').nextElementSibling).toHaveTextContent('session@merhouse.local')
       expect(screen.getByText('Session').nextElementSibling).toHaveTextContent('idle')
     })
 
-    expect(apiMock.me).toHaveBeenCalledWith('stored-valid-token')
+    expect(apiMock.me).toHaveBeenCalledWith('firebase-token-session@merhouse.local')
   })
 
-  it('clears localStorage and state when session restore fails', async () => {
-    localStorage.setItem(TOKEN_KEY, 'stale-token')
-    apiMock.me.mockRejectedValue(new Error('Unauthorized'))
+  it('sets token and user on successful Firebase login', async () => {
+    const firebaseUser = setupFirebaseUser('proof@merhouse.local')
+    apiMock.me.mockResolvedValue({ user: { ...mockUser, email: 'proof@merhouse.local' } })
+
+    // First call: no user (initial state)
+    // Second call: user signs in (after login button click)
+    let authCallback: (user: typeof firebaseUser | null) => void
+    mockOnAuthStateChanged.mockImplementation((_auth: unknown, callback: (user: typeof firebaseUser | null) => void) => {
+      authCallback = callback
+      callback(null)
+      return vi.fn()
+    })
+
+    mockSignInWithEmailAndPassword.mockResolvedValue(undefined)
 
     render(
       <AuthProvider>
@@ -95,38 +137,27 @@ describe('AuthProvider comprehensive session management', () => {
       </AuthProvider>,
     )
 
-    await waitFor(() => {
-      expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
-      expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('none')
-      expect(screen.getByText('User').nextElementSibling).toHaveTextContent('none')
-      expect(screen.getByText('Session').nextElementSibling).toHaveTextContent('idle')
-    })
-  })
-
-  it('sets token, user, and localStorage on successful login', async () => {
-    apiMock.login.mockResolvedValue({
-      accessToken: 'fresh-token',
-      user: { ...mockUser, email: 'proof@merhouse.local' },
+    // Simulate Firebase auth state change after login
+    act(() => {
+      authCallback!(firebaseUser)
     })
 
-    render(
-      <AuthProvider>
-        <AuthProbe />
-      </AuthProvider>,
-    )
-
-    fireEvent.click(screen.getByRole('button', { name: 'Login' }))
-
     await waitFor(() => {
-      expect(localStorage.getItem(TOKEN_KEY)).toBe('fresh-token')
-      expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('fresh-token')
+      expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('firebase-token-proof@merhouse.local')
       expect(screen.getByText('User').nextElementSibling).toHaveTextContent('proof@merhouse.local')
     })
   })
 
   it('clears everything on logout', async () => {
-    localStorage.setItem(TOKEN_KEY, 'active-token')
+    const firebaseUser = setupFirebaseUser('session@merhouse.local')
     apiMock.me.mockResolvedValue({ user: mockUser })
+
+    let authCallback: (user: typeof firebaseUser | null) => void
+    mockOnAuthStateChanged.mockImplementation((_auth: unknown, callback: (user: typeof firebaseUser | null) => void) => {
+      authCallback = callback
+      callback(firebaseUser)
+      return vi.fn()
+    })
 
     render(
       <AuthProvider>
@@ -138,15 +169,26 @@ describe('AuthProvider comprehensive session management', () => {
       expect(screen.getByText('User').nextElementSibling).toHaveTextContent('session@merhouse.local')
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Logout' }))
+    // Simulate Firebase sign out
+    act(() => {
+      authCallback!(null)
+    })
 
-    expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
-    expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('none')
-    expect(screen.getByText('User').nextElementSibling).toHaveTextContent('none')
+    await waitFor(() => {
+      expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('none')
+      expect(screen.getByText('User').nextElementSibling).toHaveTextContent('none')
+    })
   })
 
-  it('does not change state on failed login', async () => {
-    apiMock.login.mockRejectedValue(new Error('Invalid credentials'))
+  it('shows loading state while session restore is in progress', async () => {
+    // Firebase user exists but api.me never resolves
+    const firebaseUser = setupFirebaseUser('loading@merhouse.local')
+    apiMock.me.mockReturnValue(new Promise(() => {})) // Never resolves
+
+    mockOnAuthStateChanged.mockImplementation((_auth: unknown, callback: (user: typeof firebaseUser | null) => void) => {
+      callback(firebaseUser)
+      return vi.fn()
+    })
 
     render(
       <AuthProvider>
@@ -154,26 +196,22 @@ describe('AuthProvider comprehensive session management', () => {
       </AuthProvider>,
     )
 
-    // Login button click should reject — the error is swallowed by void,
-    // but the state should remain unchanged
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Login' }))
-      // Wait for microtask queue to flush
-      await new Promise((resolve) => setTimeout(resolve, 50))
+    await waitFor(() => {
+      expect(screen.getByText('Session').nextElementSibling).toHaveTextContent('restoring')
     })
-
-    // State should not change on failed login
-    expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('none')
-    expect(screen.getByText('User').nextElementSibling).toHaveTextContent('none')
-    expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
   })
 
-  it('does not update state after unmount during session restore', async () => {
-    localStorage.setItem(TOKEN_KEY, 'unmount-token')
-    let resolveRestore!: (value: { user: typeof mockUser }) => void
+  it('does not update state after unmount during profile fetch', async () => {
+    const firebaseUser = setupFirebaseUser('unmount@merhouse.local')
+    let resolveProfile!: (value: { user: typeof mockUser }) => void
     apiMock.me.mockReturnValue(new Promise((resolve) => {
-      resolveRestore = resolve
+      resolveProfile = resolve
     }))
+
+    mockOnAuthStateChanged.mockImplementation((_auth: unknown, callback: (user: typeof firebaseUser | null) => void) => {
+      callback(firebaseUser)
+      return vi.fn()
+    })
 
     const { unmount } = render(
       <AuthProvider>
@@ -184,59 +222,7 @@ describe('AuthProvider comprehensive session management', () => {
     unmount()
 
     // Resolving after unmount should not cause state updates
-    resolveRestore({ user: mockUser })
-
-    // No assertion needed — React will warn about state updates after unmount
+    resolveProfile({ user: mockUser })
     expect(true).toBe(true)
-  })
-
-  it('shows loading state while session restore is in progress', async () => {
-    localStorage.setItem(TOKEN_KEY, 'loading-token')
-    apiMock.me.mockReturnValue(new Promise(() => {})) // Never resolves
-
-    render(
-      <AuthProvider>
-        <AuthProbe />
-      </AuthProvider>,
-    )
-
-    // Should be in loading state initially
-    await waitFor(() => {
-      expect(screen.getByText('Session').nextElementSibling).toHaveTextContent('restoring')
-    })
-  })
-
-  it('replaces a stale token with a fresh login even before restore completes', async () => {
-    localStorage.setItem(TOKEN_KEY, 'stale-token')
-    let rejectRestore!: (error: Error) => void
-    apiMock.me.mockReturnValue(new Promise((_, reject) => {
-      rejectRestore = reject
-    }))
-    apiMock.login.mockResolvedValue({
-      accessToken: 'fresh-token',
-      user: { ...mockUser, email: 'proof@merhouse.local' },
-    })
-
-    render(
-      <AuthProvider>
-        <AuthProbe />
-      </AuthProvider>,
-    )
-
-    // Login before restore finishes
-    fireEvent.click(screen.getByRole('button', { name: 'Login' }))
-
-    await waitFor(() => {
-      expect(localStorage.getItem(TOKEN_KEY)).toBe('fresh-token')
-      expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('fresh-token')
-    })
-
-    // Old restore fails — should not affect fresh session
-    rejectRestore(new Error('Unauthorized'))
-
-    await waitFor(() => {
-      expect(localStorage.getItem(TOKEN_KEY)).toBe('fresh-token')
-      expect(screen.getByText('Token').nextElementSibling).toHaveTextContent('fresh-token')
-    })
   })
 })

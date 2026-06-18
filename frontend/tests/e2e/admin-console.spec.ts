@@ -2,8 +2,25 @@ import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Locator, Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 
-const API_URL = process.env.E2E_API_URL ?? 'http://localhost:8081'
+const API_URL = process.env.E2E_API_URL ?? 'http://127.0.0.1:8081'
+const FIREBASE_EMULATOR = (process.env.E2E_FIREBASE_EMULATOR ?? 'http://127.0.0.1:9099').replace(/\/+$/, '')
+const FIREBASE_API_KEY = process.env.E2E_FIREBASE_API_KEY ?? 'emulator-api-key'
 const screenshotDir = '../reports/v7.5'
+
+/** Create a user in the Firebase Auth emulator so Firebase password reset works. */
+async function createFirebaseUser(request: APIRequestContext, email: string, password: string) {
+  const response = await request.post(
+    `${FIREBASE_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`,
+    { data: { email, password, returnSecureToken: true } },
+  )
+  // Accept both 200 (created) and 400 (already exists) — idempotent.
+  if (!response.ok()) {
+    const body = await response.json().catch(() => ({})) as { error?: { message?: string } }
+    if (body.error?.message !== 'EMAIL_EXISTS') {
+      throw new Error(`Firebase user creation failed for ${email}: ${response.status()} ${JSON.stringify(body)}`)
+    }
+  }
+}
 
 async function api<T>(request: APIRequestContext, method: 'get' | 'post' | 'patch', path: string, token?: string, body?: unknown) {
   const response = await request[method](`${API_URL}${path}`, {
@@ -54,6 +71,49 @@ async function clickUntilVisibleState(button: () => Locator, visibleState: () =>
   throw lastError
 }
 
+/** Clear persisted Firebase Auth state (IndexedDB + localStorage) before a UI login. */
+async function clearAuthState(page: Page) {
+  await page.evaluate(() => {
+    try { window.localStorage.clear() } catch { /* about:blank before navigation */ }
+    return Promise.race([
+      new Promise<void>((resolve) => {
+        try {
+          const req = indexedDB.deleteDatabase('firebaseLocalStorageDb')
+          req.onsuccess = () => resolve()
+          req.onerror = () => resolve()
+        } catch { resolve() }
+      }),
+      new Promise<void>((resolve) => setTimeout(resolve, 2000)),
+    ])
+  })
+}
+
+/**
+ * Update a Firebase Auth user's password by signing in with the old password
+ * to get an ID token, then calling the accounts:update endpoint.
+ */
+async function updateFirebasePassword(request: APIRequestContext, email: string, oldPassword: string, newPassword: string) {
+  // Step 1: sign in with old password to get an ID token
+  const signIn = await request.post(
+    `${FIREBASE_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
+    { data: { email, password: oldPassword, returnSecureToken: true } },
+  )
+  if (!signIn.ok()) {
+    throw new Error(`Firebase sign-in failed for ${email} during password update`)
+  }
+  const body = await signIn.json() as { idToken: string }
+  const idToken = body.idToken
+
+  // Step 2: update the password with the ID token
+  const update = await request.post(
+    `${FIREBASE_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:update?key=${FIREBASE_API_KEY}`,
+    { data: { idToken, password: newPassword, returnSecureToken: true } },
+  )
+  if (!update.ok()) {
+    throw new Error(`Firebase password update failed for ${email}`)
+  }
+}
+
 async function expectNotificationTitle(page: Page, title: string) {
   await expect(page.locator('article').filter({ hasText: title }).first()).toBeVisible()
 }
@@ -61,6 +121,7 @@ async function expectNotificationTitle(page: Page, title: string) {
 test.describe('admin console', () => {
   test('supports keyboard skip navigation and narrow admin layout', async ({ page }) => {
     mkdirSync(screenshotDir, { recursive: true })
+    await clearAuthState(page)
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/')
     await page.getByLabel('Email').fill('admin@merhouse.local')
@@ -88,6 +149,7 @@ test.describe('admin console', () => {
     const userEmail = `e2e-user-${suffix}@merhouse.local`
     const invalidEmail = `e2e-invalid-${suffix}@merhouse.local`
 
+    await clearAuthState(page)
     await page.goto('/')
     await page.getByLabel('Email').fill('admin@merhouse.local')
     await page.getByLabel('Password').fill('local-owner-password')
@@ -148,14 +210,17 @@ test.describe('admin console', () => {
       password: 'merchant-password',
       role: 'MERCHANT',
     })
+    // Also register the user in the Firebase Auth emulator so Firebase password
+    // reset (sendPasswordResetEmail) recognises the address.
+    await createFirebaseUser(request, merchantEmail, 'merchant-password')
 
+    await clearAuthState(page)
     await page.goto('/login')
     await page.getByRole('link', { name: 'Forgot password?' }).click()
     await expect(page.getByRole('heading', { name: 'Password Recovery' })).toBeVisible()
     await page.getByLabel('Email').fill(merchantEmail)
-    await page.getByRole('button', { name: 'Send reset code' }).click()
-    await expect(page).toHaveURL(/\/verify-otp(\?|$)/)
-    await expect(page.getByLabel('One-time password')).toBeVisible()
+    await page.getByRole('button', { name: 'Send reset link' }).click()
+    await expect(page.getByRole('status')).toContainText(/if an enabled account exists/i)
 
     await page.goto('/request-access')
     const accessOrganization = `<img src=x onerror=alert(1)> E2E Access ${suffix}`
@@ -166,7 +231,7 @@ test.describe('admin console', () => {
     await page.getByRole('button', { name: 'Submit request' }).click()
     await expect(page.getByText(/access request pending/i)).toBeVisible()
 
-    await page.evaluate(() => window.localStorage.clear())
+    await clearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill('admin@merhouse.local')
     await page.getByLabel('Password').fill('local-owner-password')
@@ -179,12 +244,13 @@ test.describe('admin console', () => {
     await expect(requestRow.locator('img')).toHaveCount(0)
     await expect(requestRow).toContainText('PENDING')
     await page.getByLabel('Note applied to the next review action').fill('Approved in Playwright')
-    await requestRow.getByRole('button', { name: 'Approve' }).click()
+    await requestRow.getByRole('button', { name: 'Approve only' }).click()
     await expect(requestRow).toContainText('APPROVED')
     expect(dialogSeen).toBeFalsy()
   })
 
   test('can inspect and refresh outbox health', async ({ page }) => {
+    await clearAuthState(page)
     await page.goto('/')
     await page.getByLabel('Email').fill('admin@merhouse.local')
     await page.getByLabel('Password').fill('local-owner-password')
@@ -219,6 +285,8 @@ test.describe('admin console', () => {
       password: merchantPassword,
       role: 'MERCHANT',
     })
+    await createFirebaseUser(request, merchantEmail, merchantPassword)
+    await clearAuthState(page)
 
     await page.goto('/')
     await page.getByLabel('Email').fill(merchantEmail)
@@ -294,12 +362,15 @@ test.describe('admin console', () => {
       password: merchantPassword,
       role: 'MERCHANT',
     })
+    await createFirebaseUser(request, merchantEmail, merchantPassword)
     await api(request, 'post', '/api/v1/admin/users', adminToken, {
       tenantId: warehouseTenant.id,
       email: operatorEmail,
       password: operatorPassword,
       role: 'WAREHOUSE_OPERATOR',
     })
+    await createFirebaseUser(request, operatorEmail, operatorPassword)
+    await clearAuthState(page)
     const order = await api<{ id: string }>(request, 'post', '/api/v1/orders', adminToken, {
       merchantId: merchant.id,
       customerAddress: 'Operator E2E Customer, Cairo',
@@ -340,7 +411,7 @@ test.describe('admin console', () => {
       () => expect(allocationCard()).toContainText('DELIVERED', { timeout: 20_000 })
     )
 
-    await page.evaluate(() => window.localStorage.clear())
+    await clearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(merchantEmail)
     await page.getByLabel('Password').fill(merchantPassword)
@@ -374,6 +445,8 @@ test.describe('admin console', () => {
       password: oldPassword,
       role: 'MERCHANT',
     })
+    await createFirebaseUser(request, userEmail, oldPassword)
+    await clearAuthState(page)
 
     await page.goto('/login')
     await page.getByLabel('Email').fill(userEmail)
@@ -390,7 +463,11 @@ test.describe('admin console', () => {
     await page.getByRole('button', { name: 'Change password' }).click()
     await expect(page.getByRole('status')).toContainText('Password changed.')
 
+    // Also update the Firebase Auth user's password so the next UI login
+    // (which goes through Firebase) succeeds with the new password.
+    await updateFirebasePassword(request, userEmail, oldPassword, newPassword)
     await page.getByRole('button', { name: 'Logout' }).click()
+    await page.goto('/login')
     await page.getByLabel('Email').fill(userEmail)
     await page.getByLabel('Password').fill(newPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
@@ -440,6 +517,8 @@ test.describe('admin console', () => {
       password: operatorPassword,
       role: 'WAREHOUSE_OPERATOR',
     })
+    await createFirebaseUser(request, operatorEmail, operatorPassword)
+    await clearAuthState(page)
 
     async function createInTransitOrder(label: string) {
       const order = await api<{ id: string; allocations: { id: string }[] }>(request, 'post', '/api/v1/orders', adminToken, {
@@ -486,6 +565,7 @@ test.describe('admin console', () => {
   })
 
   test('merchant and warehouse complete the V8 operating loop through the UI', async ({ page, request }) => {
+    test.setTimeout(120_000)
     const suffix = Date.now().toString(36)
     const adminLogin = await api<{ accessToken: string }>(request, 'post', '/api/v1/auth/login', undefined, {
       email: 'admin@merhouse.local',
@@ -518,13 +598,16 @@ test.describe('admin console', () => {
       password: merchantPassword,
       role: 'MERCHANT',
     })
+    await createFirebaseUser(request, merchantEmail, merchantPassword)
     await api(request, 'post', '/api/v1/admin/users', adminToken, {
       tenantId: warehouseTenant.id,
       email: operatorEmail,
       password: operatorPassword,
       role: 'WAREHOUSE_OPERATOR',
     })
+    await createFirebaseUser(request, operatorEmail, operatorPassword)
 
+    await clearAuthState(page)
     const sku = `V8-E2E-${suffix}`
     await page.goto('/login')
     await page.getByLabel('Email').fill(merchantEmail)
@@ -544,6 +627,7 @@ test.describe('admin console', () => {
     await expect(page.getByRole('row', { name: /Daily V8 receiving/ })).toContainText('REQUESTED')
 
     await page.getByRole('button', { name: 'Logout' }).click()
+    await page.goto('/login')
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
@@ -553,6 +637,7 @@ test.describe('admin console', () => {
     await expect(relationshipRow).toContainText('ACTIVE')
 
     await page.getByRole('button', { name: 'Logout' }).click()
+    await page.goto('/login')
     await page.getByLabel('Email').fill(merchantEmail)
     await page.getByLabel('Password').fill(merchantPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
@@ -567,6 +652,7 @@ test.describe('admin console', () => {
     await expect(page.getByRole('row', { name: new RegExp(`ASN-${suffix}`) })).toContainText('SUBMITTED')
 
     await page.getByRole('button', { name: 'Logout' }).click()
+    await page.goto('/login')
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
@@ -584,6 +670,7 @@ test.describe('admin console', () => {
     await expect(inboundRow()).toContainText('RECEIVED', { timeout: 20_000 })
 
     await page.getByRole('button', { name: 'Logout' }).click()
+    await page.goto('/login')
     await page.getByLabel('Email').fill(merchantEmail)
     await page.getByLabel('Password').fill(merchantPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
@@ -601,6 +688,7 @@ test.describe('admin console', () => {
     await expect(page.getByRole('heading', { name: 'Timeline' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Logout' }).click()
+    await page.goto('/login')
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
@@ -635,12 +723,15 @@ test.describe('admin console', () => {
       password: 'merchant-password',
       role: 'MERCHANT',
     })
+    await createFirebaseUser(request, merchantEmail, 'merchant-password')
     await api(request, 'post', '/api/v1/admin/users', adminToken, {
       tenantId: warehouseTenant.id,
       email: warehouseEmail,
       password: 'operator-password',
       role: 'WAREHOUSE_OPERATOR',
     })
+    await createFirebaseUser(request, warehouseEmail, 'operator-password')
+    await clearAuthState(page)
     const warehouse = await api<{ id: string }>(request, 'post', '/api/v1/warehouses', adminToken, {
       tenantId: warehouseTenant.id,
       name: `V11 Hub ${suffix}`,
@@ -756,6 +847,7 @@ test.describe('admin console', () => {
     await expectNotificationTitle(page, 'Service review requested')
     await expect(page.locator('.data-chip', { hasText: 'ServiceClaim' }).first()).toBeVisible()
     await page.getByRole('button', { name: 'Logout' }).click()
+    await page.goto('/login')
     await page.getByLabel('Email').fill(warehouseEmail)
     await page.getByLabel('Password').fill('operator-password')
     await page.getByRole('button', { name: 'Sign in' }).click()

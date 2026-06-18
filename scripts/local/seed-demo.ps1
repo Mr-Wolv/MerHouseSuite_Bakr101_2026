@@ -207,6 +207,58 @@ function Ensure-ReviewUser {
     return $created
 }
 
+function Get-FirebaseEmulatorSignUpUri {
+    <#
+    .SYNOPSIS
+        Returns the Firebase Auth emulator signUp REST endpoint URI, or $null
+        when VITE_FIREBASE_EMULATOR_HOST is not set (Firebase disabled).
+    #>
+    $emulatorHost = (Get-MerHouseEnvValue -Name 'VITE_FIREBASE_EMULATOR_HOST')
+    if ([string]::IsNullOrWhiteSpace($emulatorHost)) {
+        return $null
+    }
+    $emulatorHost = $emulatorHost.TrimEnd('/')
+    $firebaseApiKey = Get-MerHouseEnvValue -Name 'VITE_FIREBASE_API_KEY'
+    if ([string]::IsNullOrWhiteSpace($firebaseApiKey)) {
+        return $null
+    }
+    return "${emulatorHost}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseApiKey}"
+}
+
+function Create-FirebaseAuthUser {
+    <#
+    .SYNOPSIS
+        Creates a user in the Firebase Auth emulator. This is required so that
+        the frontend's signInWithEmailAndPassword can authenticate the user.
+        Silently succeeds if the user already exists (EMAIL_EXISTS).
+    .PARAMETER Email
+        The user's email address.
+    .PARAMETER Password
+        The user's password.
+    #>
+    param(
+        [Parameter(Mandatory = $true)] [string] $Email,
+        [Parameter(Mandatory = $true)] [string] $Password
+    )
+
+    $signUpUri = Get-FirebaseEmulatorSignUpUri
+    if ($null -eq $signUpUri) {
+        return
+    }
+
+    try {
+        $body = @{
+            email = $Email
+            password = $Password
+            returnSecureToken = $true
+        } | ConvertTo-Json
+        Invoke-RestMethod -Method Post -Uri $signUpUri -ContentType "application/json" -Body $body | Out-Null
+    } catch {
+        # EMAIL_EXISTS is expected when the user was already created (e.g. by DevAdminSeeder).
+        # Any other error is silently ignored — the DB user is the primary concern.
+    }
+}
+
 function First-AllocationId {
     param([Parameter(Mandatory = $true)] $Order)
 
@@ -505,18 +557,21 @@ $merchantUser = Invoke-Api -Method Post -Path "/api/v1/admin/users" -Token $admi
     password = "demo-password"
     role = "MERCHANT"
 }
+Create-FirebaseAuthUser -Email $merchantUser.email -Password "demo-password"
 $operatorUser = Invoke-Api -Method Post -Path "/api/v1/admin/users" -Token $adminToken -Body @{
     tenantId = $warehouseProvider.id
     email = "demo.operator.$suffix@merhouse.local"
     password = "demo-password"
     role = "WAREHOUSE_OPERATOR"
 }
+Create-FirebaseAuthUser -Email $operatorUser.email -Password "demo-password"
 $disabledUser = Invoke-Api -Method Post -Path "/api/v1/admin/users" -Token $adminToken -Body @{
     tenantId = $merchant.id
     email = "demo.disabled.$suffix@merhouse.local"
     password = "demo-password"
     role = "MERCHANT"
 }
+Create-FirebaseAuthUser -Email $disabledUser.email -Password "demo-password"
 Invoke-Api -Method Patch -Path "/api/v1/admin/users/$($disabledUser.id)/disable" -Token $adminToken -Body @{
     reason = "Demo disabled account for admin recovery review."
 } | Out-Null
@@ -527,9 +582,13 @@ $reviewSupportAdminUser = $null
 $reviewAuditorUser = $null
 if ($CreateReviewAccounts) {
     $reviewMerchantUser = Ensure-ReviewUser -TenantId $merchant.id -Email $ReviewMerchantEmail -Role "MERCHANT"
+    Create-FirebaseAuthUser -Email $ReviewMerchantEmail -Password $ReviewPassword
     $reviewWarehouseUser = Ensure-ReviewUser -TenantId $warehouseProvider.id -Email $ReviewWarehouseEmail -Role "WAREHOUSE_OPERATOR"
+    Create-FirebaseAuthUser -Email $ReviewWarehouseEmail -Password $ReviewPassword
     $reviewSupportAdminUser = Ensure-ReviewUser -TenantId $merchant.id -Email $ReviewSupportAdminEmail -Role "SUPPORT_ADMIN"
+    Create-FirebaseAuthUser -Email $ReviewSupportAdminEmail -Password $ReviewPassword
     $reviewAuditorUser = Ensure-ReviewUser -TenantId $merchant.id -Email $ReviewAuditorEmail -Role "AUDITOR"
+    Create-FirebaseAuthUser -Email $ReviewAuditorEmail -Password $ReviewPassword
 }
 
 $primaryContact = Invoke-Api -Method Post -Path "/api/v1/orders/customer-contacts" -Token $adminToken -Body @{

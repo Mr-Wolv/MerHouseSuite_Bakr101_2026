@@ -49,6 +49,24 @@ function Add-Result {
     }
 }
 
+function Invoke-WithTimeout {
+    param([string]$ScriptPath, [object[]]$ArgumentList, [int]$TimeoutSeconds, [string]$CheckName)
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $job = Start-Job -ScriptBlock { param($p, $a) & $p @a } -ArgumentList @($ScriptPath, $ArgumentList)
+    if ($null -ne (Wait-Job $job -Timeout $TimeoutSeconds)) {
+        $sw.Stop()
+        Receive-Job $job -ErrorAction SilentlyContinue | Out-String | Write-Host
+        $jobErrors = @($job.Error)
+        Remove-Job $job -Force
+        if ($jobErrors.Count -gt 0) { throw $jobErrors[0] }
+        return
+    }
+    $sw.Stop()
+    Stop-Job $job -ErrorAction SilentlyContinue
+    Remove-Job $job -Force
+    throw "$CheckName timed out after ${TimeoutSeconds}s"
+}
+
 Write-Host "============================================"
 Write-Host " MerHouse Full QC Check"
 Write-Host " Started: $(Get-Date -Format 'HH:mm:ss')"
@@ -60,7 +78,7 @@ if (-not $SkipBackend) {
     Write-Host "--- Backend ---"
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     try {
-        & (Join-Path $PSScriptRoot "backend-check.ps1")
+        Invoke-WithTimeout -ScriptPath (Join-Path $PSScriptRoot "backend-check.ps1") -ArgumentList @() -TimeoutSeconds 300 -CheckName "Backend"
         $sw.Stop()
         Add-Result "Backend" "PASS" "Tests passed in $([math]::Round($sw.Elapsed.TotalSeconds, 1))s"
     } catch {
@@ -76,7 +94,7 @@ if (-not $SkipFrontend) {
     Write-Host "--- Frontend ---"
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     try {
-        & (Join-Path $PSScriptRoot "frontend-check.ps1") -SkipInstall
+        Invoke-WithTimeout -ScriptPath (Join-Path $PSScriptRoot "frontend-check.ps1") -TimeoutSeconds 240 -CheckName "Frontend" -ArgumentList @("-SkipInstall")
         $sw.Stop()
         Add-Result "Frontend" "PASS" "Lint, build, and tests passed in $([math]::Round($sw.Elapsed.TotalSeconds, 1))s"
     } catch {
@@ -92,7 +110,7 @@ if (-not $SkipAPISmoke) {
     Write-Host "--- API Smoke ---"
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     try {
-        & (Join-Path $PSScriptRoot "api-smoke.ps1")
+        Invoke-WithTimeout -ScriptPath (Join-Path $PSScriptRoot "api-smoke.ps1") -ArgumentList @() -TimeoutSeconds 300 -CheckName "API Smoke"
         $sw.Stop()
         Add-Result "API Smoke" "PASS" "All scenarios passed in $([math]::Round($sw.Elapsed.TotalSeconds, 1))s"
     } catch {
@@ -108,7 +126,7 @@ if (-not $SkipE2E) {
     Write-Host "--- E2E Tests ---"
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     try {
-        & (Join-Path $PSScriptRoot "e2e-report.ps1") -SkipInstall
+        Invoke-WithTimeout -ScriptPath (Join-Path $PSScriptRoot "e2e-report.ps1") -TimeoutSeconds 300 -CheckName "E2E Tests" -ArgumentList @("-SkipInstall")
         $sw.Stop()
         Add-Result "E2E Tests" "PASS" "All E2E tests passed in $([math]::Round($sw.Elapsed.TotalSeconds, 1))s"
     } catch {

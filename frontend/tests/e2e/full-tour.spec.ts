@@ -3,8 +3,10 @@ import type { APIRequestContext, Browser, BrowserContext, Page } from '@playwrig
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
-const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://localhost:3001'
-const API_URL = process.env.E2E_API_URL ?? APP_URL
+const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://127.0.0.1:3001'
+const API_URL = process.env.E2E_API_URL ?? (process.env.FRONTEND_TOUR_BASE_URL ? APP_URL : 'http://127.0.0.1:8081')
+const FIREBASE_EMULATOR = (process.env.E2E_FIREBASE_EMULATOR ?? 'http://127.0.0.1:9099').replace(/\/+$/, '')
+const FIREBASE_API_KEY = process.env.E2E_FIREBASE_API_KEY ?? 'emulator-api-key'
 const REPORT_PATH = process.env.FRONTEND_TOUR_REPORT ?? '../reports/latest-frontend-full-tour.json'
 const TOKEN_KEY = 'warehouse-console-token'
 const DETAIL_DISCOVERY_HEADING_TIMEOUT_MS = 45_000
@@ -139,7 +141,7 @@ const baseAccounts: Record<'owner' | 'supportAdmin' | 'auditor' | 'merchant' | '
   },
 }
 
-const publicPaths = ['/login', '/forgot-password', '/verify-otp', '/reset-password', '/request-access', '/how-to-use']
+const publicPaths = ['/login', '/forgot-password', '/reset-password', '/request-access', '/how-to-use']
 const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
   owner: [
     '/admin',
@@ -561,7 +563,9 @@ async function waitForAppSettled(page: Page, label: string, timeout = ROUTE_HEAD
   await page.waitForFunction(
     () => {
       const text = document.body?.innerText ?? ''
-      return !/(^|\n)\s*Loading(?:\s+[A-Za-z ]+)?\s*(\n|$)/.test(text) && !/(^|\n)\s*Restoring session\s*(\n|$)/.test(text)
+      const loadingRe = new RegExp('(?:^|\\n)\\s*Loading(?:\\s+[A-Za-z ]+)?\\s*(?:\\n|$)')
+      const restoringRe = new RegExp('(?:^|\\n)\\s*Restoring session\\s*(?:\\n|$)')
+      return !loadingRe.test(text) && !restoringRe.test(text)
     },
     undefined,
     { timeout },
@@ -720,21 +724,27 @@ test('public auth UI input tour accepts typed happy and unhappy paths', async ({
   await page.getByRole('button', { name: 'Logout' }).click()
   await expect(page.getByRole('heading', { name: 'Operations Console' })).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
 
+  // Ensure the owner exists in the Firebase Auth emulator so password reset works.
+  await fetch(
+    `${FIREBASE_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: baseAccounts.owner.email, password: baseAccounts.owner.password, returnSecureToken: true }),
+    },
+  ).catch(() => { /* ignore — user may already exist */ })
+
   await page.goto(`${APP_URL}/forgot-password`, { waitUntil: 'domcontentloaded' })
   await waitForAppSettled(page, 'forgot password input')
   await page.getByLabel('Email').fill(baseAccounts.owner.email)
-  await page.getByRole('button', { name: 'Send reset code' }).click()
-  await expect(page).toHaveURL(/\/verify-otp(\?|$)/)
-  await expect(page.getByLabel('One-time password')).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
-  records.push({ route: '/forgot-password', action: 'typed owner email and navigated to OTP verification' })
+  await page.getByRole('button', { name: 'Send reset link' }).click()
+  await expect(page.getByRole('status')).toContainText(/if an enabled account exists/i)
+  records.push({ route: '/forgot-password', action: 'typed owner email and saw generic reset-link-sent message' })
 
   await page.goto(`${APP_URL}/reset-password`, { waitUntil: 'domcontentloaded' })
   await waitForAppSettled(page, 'reset password input')
-  await page.getByLabel('Reset token').fill(`invalid-token-${Date.now()}`)
-  await page.locator('#reset-password-new-password').fill('new-password')
-  await page.getByRole('button', { name: 'Reset password' }).click()
   await expect(page.getByRole('alert')).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
-  records.push({ route: '/reset-password', action: 'typed invalid reset token and saw unhappy-path alert' })
+  records.push({ route: '/reset-password', action: 'visited without oobCode and saw invalid-link alert' })
 
   const accessEmail = `ui-input.${Date.now()}@merhouse.local`
   await page.goto(`${APP_URL}/request-access`, { waitUntil: 'domcontentloaded' })

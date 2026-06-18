@@ -99,27 +99,32 @@ jobs:
           }
 
       - name: Publish GitHub Release
-        if: github.event_name == 'workflow_dispatch'
+        if: steps.keystore.outputs.path != ''
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          prerelease_flag="--prerelease=${{ inputs.prerelease }}"
-          notes="Signed MerHouse Android APK for the current deployed web/backend lane. Install only after deployed web/backend proof passes."
-          if gh release view "${{ inputs.tag }}" >/dev/null 2>&1; then
-            gh release edit "${{ inputs.tag }}" \
-              --target "${{ github.sha }}" \
-              --title "MerHouse Android ${{ inputs.version_name }}" \
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('android-v{0}', github.run_number) }}"
+          VERSION_NAME="${{ github.event_name == 'workflow_dispatch' && inputs.version_name || format('0.17.0-build.{0}', github.run_number) }}"
+          PRERELEASE="${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || 'true' }}"
+          COMMIT_SHA="${{ github.sha }}"
+          notes="Signed MerHouse Android APK built from commit ${COMMIT_SHA}. Install only after deployed web/backend proof passes."
+
+          prerelease_flag="--prerelease=$PRERELEASE"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --target "$COMMIT_SHA" \
+              --title "MerHouse Android $VERSION_NAME" \
               --notes "$notes" \
               $prerelease_flag
-            gh release upload "${{ inputs.tag }}" \
+            gh release upload "$TAG" \
               frontend/android/app/build/outputs/apk/release/app-release.apk \
               --clobber
           else
-            gh release create "${{ inputs.tag }}" \
+            gh release create "$TAG" \
               frontend/android/app/build/outputs/apk/release/app-release.apk \
-              --target "${{ github.sha }}" \
-              --title "MerHouse Android ${{ inputs.version_name }}" \
+              --target "$COMMIT_SHA" \
+              --title "MerHouse Android $VERSION_NAME" \
               --notes "$notes" \
               $prerelease_flag
           fi

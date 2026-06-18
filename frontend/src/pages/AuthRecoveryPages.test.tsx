@@ -1,15 +1,24 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { ApiError } from '../api/client'
-import { ForgotPasswordPage, RequestAccessPage, ResetPasswordPage, VerifyOtpPage } from './AuthRecoveryPages'
+import { ForgotPasswordPage, RequestAccessPage, ResetPasswordPage } from './AuthRecoveryPages'
 
 const apiMock = vi.hoisted(() => ({
   requestPasswordReset: vi.fn(),
-  requestOtp: vi.fn(),
   confirmPasswordReset: vi.fn(),
-  resetWithOtp: vi.fn(),
   submitAccessRequest: vi.fn(),
+}))
+
+const firebaseAuthMock = vi.hoisted(() => ({
+  sendFirebasePasswordReset: vi.fn(),
+  verifyResetCode: vi.fn(),
+  confirmFirebasePasswordReset: vi.fn(),
+  friendlyAuthError: vi.fn((caught: unknown) => {
+    const code = (caught as { code?: string })?.code
+    if (code === 'auth/invalid-oob-code') return 'This reset link is invalid or has expired.'
+    if (code === 'auth/user-not-found') return 'Invalid email or password.'
+    return (caught as { message?: string })?.message ?? 'An unexpected error occurred.'
+  }),
 }))
 
 vi.mock('../api/client', () => ({
@@ -26,62 +35,107 @@ vi.mock('../api/client', () => ({
   api: apiMock,
 }))
 
+vi.mock('../lib/firebase-auth', () => firebaseAuthMock)
+
 describe('auth recovery pages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('requests a password reset without exposing a reset link by default', async () => {
+  it('sends a Firebase password reset link without exposing email existence', async () => {
     const user = userEvent.setup()
-    apiMock.requestOtp.mockResolvedValue({
-      message: 'If an enabled account exists for that email, a one-time password has been sent.',
-      resetToken: null,
-      resetPath: null,
-    })
+    firebaseAuthMock.sendFirebasePasswordReset.mockResolvedValue(undefined)
 
     render(<ForgotPasswordPage />, { wrapper: MemoryRouter })
 
     expect(screen.getByText('Request a reset for an enabled MerHouse account.')).toBeInTheDocument()
-    expect(screen.queryByText(/local MerHouse account/i)).not.toBeInTheDocument()
     await user.type(screen.getByLabelText('Email'), ' owner@example.test ')
-    await user.click(screen.getByRole('button', { name: 'Send reset code' }))
+    await user.click(screen.getByRole('button', { name: 'Send reset link' }))
 
-    expect(apiMock.requestOtp).toHaveBeenCalledWith('owner@example.test')
+    expect(firebaseAuthMock.sendFirebasePasswordReset).toHaveBeenCalledWith('owner@example.test')
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      /if an enabled account exists for that email, a password reset link has been sent/i,
+    )
     expect(screen.getByText(/does not reveal whether an email exists/i)).toBeInTheDocument()
   })
 
-  it('confirms a password reset with the route token', async () => {
+  it('shows a friendly error when Firebase reset fails', async () => {
     const user = userEvent.setup()
-    apiMock.confirmPasswordReset.mockResolvedValue({ message: 'Password has been reset.' })
+    const firebaseError = Object.assign(new Error('not found'), { code: 'auth/user-not-found' })
+    firebaseAuthMock.sendFirebasePasswordReset.mockRejectedValue(firebaseError)
+
+    render(<ForgotPasswordPage />, { wrapper: MemoryRouter })
+
+    await user.type(screen.getByLabelText('Email'), 'unknown@example.test')
+    await user.click(screen.getByRole('button', { name: 'Send reset link' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid email or password.')
+  })
+
+  it('verifies oobCode on mount and resets password with Firebase', async () => {
+    const user = userEvent.setup()
+    firebaseAuthMock.verifyResetCode.mockResolvedValue('user@example.test')
+    firebaseAuthMock.confirmFirebasePasswordReset.mockResolvedValue(undefined)
 
     render(
-      <MemoryRouter initialEntries={['/reset-password?token=route-token']}>
+      <MemoryRouter initialEntries={['/reset-password?oobCode=valid-oob-code']}>
         <Routes>
           <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Routes>
       </MemoryRouter>,
     )
 
-    expect(screen.getByLabelText('Reset token')).toHaveValue('route-token')
+    // Wait for verification to complete
+    expect(await screen.findByLabelText('Email')).toHaveValue('user@example.test')
+
     await user.type(screen.getByLabelText('New password'), 'new-password')
     await user.click(screen.getByRole('button', { name: 'Reset password' }))
 
-    expect(apiMock.confirmPasswordReset).toHaveBeenCalledWith('route-token', 'new-password')
-    expect(screen.getByText(/single-use local credentials/i)).toBeInTheDocument()
+    expect(firebaseAuthMock.confirmFirebasePasswordReset).toHaveBeenCalledWith('valid-oob-code', 'new-password')
     expect(await screen.findByRole('status')).toHaveTextContent(/password has been reset/i)
   })
 
-  it('trims copied reset-token whitespace without changing the new password', async () => {
-    const user = userEvent.setup()
-    apiMock.confirmPasswordReset.mockResolvedValue({ message: 'Password has been reset.' })
+  it('shows error when oobCode is invalid or expired', async () => {
+    const firebaseError = Object.assign(new Error('invalid'), { code: 'auth/invalid-oob-code' })
+    firebaseAuthMock.verifyResetCode.mockRejectedValue(firebaseError)
 
+    render(
+      <MemoryRouter initialEntries={['/reset-password?oobCode=bad-code']}>
+        <Routes>
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('This reset link is invalid or has expired.')
+  })
+
+  it('shows error when no oobCode is present', async () => {
     render(<ResetPasswordPage />, { wrapper: MemoryRouter })
 
-    await user.type(screen.getByLabelText('Reset token'), '  copied-token  ')
-    await user.type(screen.getByLabelText('New password'), ' new-password ')
+    expect(await screen.findByRole('alert')).toHaveTextContent('No reset code provided.')
+  })
+
+  it('shows error when Firebase password confirmation fails', async () => {
+    const user = userEvent.setup()
+    firebaseAuthMock.verifyResetCode.mockResolvedValue('user@example.test')
+    const firebaseError = Object.assign(new Error('expired'), { code: 'auth/invalid-oob-code' })
+    firebaseAuthMock.confirmFirebasePasswordReset.mockRejectedValue(firebaseError)
+
+    render(
+      <MemoryRouter initialEntries={['/reset-password?oobCode=expired-code']}>
+        <Routes>
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByLabelText('Email')).toHaveValue('user@example.test')
+
+    await user.type(screen.getByLabelText('New password'), 'new-password')
     await user.click(screen.getByRole('button', { name: 'Reset password' }))
 
-    expect(apiMock.confirmPasswordReset).toHaveBeenCalledWith('copied-token', ' new-password ')
+    expect(await screen.findByRole('alert')).toHaveTextContent('This reset link is invalid or has expired.')
   })
 
   it('trims copied public access request fields before submitting', async () => {
@@ -114,58 +168,6 @@ describe('auth recovery pages', () => {
     })
     expect(screen.getByText(/avoid secrets, keys, or production credentials/i)).toBeInTheDocument()
     expect(await screen.findByRole('status')).toHaveTextContent('Access request pending for owner@acme.test.')
-  })
-
-  it('shows backend validation errors', async () => {
-    const user = userEvent.setup()
-    apiMock.requestOtp.mockRejectedValue(new ApiError(400, 'Validation failed', ['email must be valid']))
-
-    render(<ForgotPasswordPage />, { wrapper: MemoryRouter })
-
-    await user.type(screen.getByLabelText('Email'), 'blocked@example.test')
-    await user.click(screen.getByRole('button', { name: 'Send reset code' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('email must be valid')
-  })
-
-  it('verifies OTP and resets password', async () => {
-    const user = userEvent.setup()
-    apiMock.resetWithOtp.mockResolvedValue({ message: 'Password has been reset.' })
-
-    render(
-      <MemoryRouter initialEntries={['/verify-otp?email=user@example.test']}>
-        <Routes>
-          <Route path="/verify-otp" element={<VerifyOtpPage />} />
-        </Routes>
-      </MemoryRouter>,
-    )
-
-    expect(screen.getByLabelText('Email')).toHaveValue('user@example.test')
-    await user.type(screen.getByLabelText('One-time password'), '123456')
-    await user.type(screen.getByLabelText('New password'), 'new-password')
-    await user.click(screen.getByRole('button', { name: 'Reset password' }))
-
-    expect(apiMock.resetWithOtp).toHaveBeenCalledWith('user@example.test', '123456', 'new-password')
-    expect(await screen.findByRole('status')).toHaveTextContent(/password has been reset/i)
-  })
-
-  it('shows error when OTP is invalid or expired', async () => {
-    const user = userEvent.setup()
-    apiMock.resetWithOtp.mockRejectedValue(new ApiError(409, 'Conflict', ['OTP code is invalid or expired.']))
-
-    render(
-      <MemoryRouter initialEntries={['/verify-otp?email=user@example.test']}>
-        <Routes>
-          <Route path="/verify-otp" element={<VerifyOtpPage />} />
-        </Routes>
-      </MemoryRouter>,
-    )
-
-    await user.type(screen.getByLabelText('One-time password'), '000000')
-    await user.type(screen.getByLabelText('New password'), 'new-password')
-    await user.click(screen.getByRole('button', { name: 'Reset password' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('OTP code is invalid or expired.')
   })
 })
 

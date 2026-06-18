@@ -16,7 +16,7 @@
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Browser, Page } from '@playwright/test'
 
-const API_URL = process.env.E2E_API_URL ?? 'http://localhost:8081'
+const API_URL = process.env.E2E_API_URL ?? 'http://127.0.0.1:8081'
 const TOKEN_KEY = 'warehouse-console-token'
 const TEST_PASSWORD = 'e2e-test-password-long'
 
@@ -82,7 +82,9 @@ async function waitForAppSettled(page: Page, label: string, timeout = 20_000) {
   await page.waitForFunction(
     () => {
       const text = document.body?.innerText ?? ''
-      return !/(^|\n)\s*Loading(?:\s+[A-Za-z ]+)?\s*(\n|$)/.test(text) && !/(^|\n)\s*Restoring session\s*(\n|$)/.test(text)
+      const loadingRe = new RegExp('(?:^|\\n)\\s*Loading(?:\\s+[A-Za-z ]+)?\\s*(?:\\n|$)')
+      const restoringRe = new RegExp('(?:^|\\n)\\s*Restoring session\\s*(?:\\n|$)')
+      return !loadingRe.test(text) && !restoringRe.test(text)
     },
     undefined,
     { timeout },
@@ -345,11 +347,9 @@ test.describe('2. Unhappy path scenarios', () => {
     await expect(page).toHaveURL(/\/login/)
   })
 
-  test('password reset with invalid OTP shows error without revealing account existence', async ({ page }) => {
-    await page.goto('/verify-otp')
-    await page.getByLabel('One-time password').fill('000000')
-    await page.getByRole('button', { name: /verify|confirm|submit/i }).first().click()
-    await expect(page.getByRole('alert').or(page.getByText(/invalid|expired|error|too many/i))).toBeVisible({ timeout: 15_000 })
+  test('password reset without oobCode shows invalid-link alert', async ({ page }) => {
+    await page.goto('/reset-password')
+    await expect(page.getByRole('alert').or(page.getByText(/no reset code|invalid|expired/i))).toBeVisible({ timeout: 15_000 })
   })
 
   test('admin cannot disable their own account', async ({ browser }) => {

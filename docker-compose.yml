@@ -27,6 +27,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      firebase-emulators:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${MERHOUSE_POSTGRES_DB:-merhouse}
       SPRING_DATASOURCE_USERNAME: ${MERHOUSE_POSTGRES_USER:-merhouse_local}
@@ -38,7 +40,7 @@ services:
       MERHOUSE_AUTH_SEED_ADMIN_PASSWORD: ${MERHOUSE_AUTH_SEED_ADMIN_PASSWORD:-}
       MERHOUSE_DEPLOYMENT_PUBLIC: ${MERHOUSE_DEPLOYMENT_PUBLIC:-false}
       MERHOUSE_SWAGGER_ENABLED: ${MERHOUSE_SWAGGER_ENABLED:-true}
-      MERHOUSE_CORS_ALLOWED_ORIGINS: ${MERHOUSE_CORS_ALLOWED_ORIGINS:-http://localhost:3001,http://localhost:5173,http://127.0.0.1:5173,http://localhost,https://localhost,capacitor://localhost,ionic://localhost}
+      MERHOUSE_CORS_ALLOWED_ORIGINS: ${MERHOUSE_CORS_ALLOWED_ORIGINS:-http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173,http://localhost,https://localhost,capacitor://localhost,ionic://localhost}
       MERHOUSE_PUBLIC_FRONTEND_URL: ${MERHOUSE_PUBLIC_FRONTEND_URL:-http://localhost:3001}
       MERHOUSE_EMAIL_ENABLED: ${MERHOUSE_EMAIL_ENABLED:-false}
       MERHOUSE_EMAIL_FROM: ${MERHOUSE_EMAIL_FROM:-}
@@ -53,6 +55,11 @@ services:
       MERHOUSE_AGENT_MODEL_ENDPOINT: ${MERHOUSE_AGENT_MODEL_ENDPOINT:-}
       MERHOUSE_AGENT_MODEL_NAME: ${MERHOUSE_AGENT_MODEL_NAME:-}
       MERHOUSE_AGENT_TIMEOUT_SECONDS: ${MERHOUSE_AGENT_TIMEOUT_SECONDS:-15}
+      FIREBASE_AUTH_ENABLED: ${FIREBASE_AUTH_ENABLED:-false}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-merhouse-local}
+      FIREBASE_EMULATOR_HOST: ${FIREBASE_EMULATOR_HOST:-}
+      FIREBASE_AUTH_EMULATOR_HOST: ${FIREBASE_AUTH_EMULATOR_HOST:-}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
     ports:
       - "${MERHOUSE_BACKEND_PORT:-8081}:8080"
     healthcheck:
@@ -62,11 +69,43 @@ services:
       retries: 5
       start_period: 30s
 
+  firebase-emulators:
+    build:
+      context: .
+      dockerfile: firebase-emulators.Dockerfile
+    container_name: merhouse-firebase-emulators
+    working_dir: /workspace
+    command: >
+      sh -c "firebase emulators:start --project merhouse-local --only auth"
+    environment:
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-merhouse-local}
+    ports:
+      - "9099:9099"
+      - "4000:4000"
+    volumes:
+      - ./firebase.json:/workspace/firebase.json
+      - firebase-emulator-data:/workspace/.firebase
+      - firebase-emulator-cache:/root/.cache/firebase
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:9099/', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
   frontend:
     image: merhouse-frontend
     build:
       context: ./frontend
       dockerfile: frontend-compose.Dockerfile
+      args:
+        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-}
+        VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN:-}
+        VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID:-merhouse-local}
+        VITE_FIREBASE_STORAGE_BUCKET: ${VITE_FIREBASE_STORAGE_BUCKET:-}
+        VITE_FIREBASE_MESSAGING_SENDER_ID: ${VITE_FIREBASE_MESSAGING_SENDER_ID:-}
+        VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID:-}
+        VITE_FIREBASE_EMULATOR_HOST: ${VITE_FIREBASE_EMULATOR_HOST:-}
     container_name: merhouse-frontend
     depends_on:
       backend:
@@ -76,3 +115,5 @@ services:
 
 volumes:
   postgres-data:
+  firebase-emulator-data:
+  firebase-emulator-cache:

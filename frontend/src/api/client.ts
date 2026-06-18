@@ -84,6 +84,7 @@ import type {
   FulfillmentAllocationDetail,
 } from './types'
 
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 const NGROK_SKIP_BROWSER_WARNING_HEADER = 'ngrok-skip-browser-warning'
 
@@ -117,6 +118,25 @@ function shouldSkipNgrokBrowserWarning(apiBaseUrl: string): boolean {
   }
 }
 
+async function resolveToken(explicitToken?: string | null): Promise<string | null> {
+  if (explicitToken) {
+    return explicitToken
+  }
+  // Auto-fetch a Firebase ID token when no explicit token is provided.
+  // Uses dynamic import to avoid triggering Firebase initialization in test
+  // environments where the Firebase config is not available.
+  try {
+    const { auth: firebaseAuth } = await import('../lib/firebase')
+    const user = firebaseAuth?.currentUser
+    if (user) {
+      return user.getIdToken()
+    }
+  } catch {
+    // Firebase not configured — fall through.
+  }
+  return null
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers()
   headers.set('Accept', 'application/json')
@@ -129,8 +149,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     headers.set('Content-Type', 'application/json')
   }
 
-  if (options.token) {
-    headers.set('Authorization', `Bearer ${options.token}`)
+  const resolvedToken = await resolveToken(options.token)
+  if (resolvedToken) {
+    headers.set('Authorization', `Bearer ${resolvedToken}`)
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -239,18 +260,6 @@ export const api = {
     return request<{ message: string }>('/api/v1/auth/password-reset/confirm', {
       method: 'POST',
       body: { token, newPassword },
-    })
-  },
-  requestOtp(email: string) {
-    return request<PasswordResetRequestResponse>('/api/v1/auth/recovery/request-otp', {
-      method: 'POST',
-      body: { email },
-    })
-  },
-  resetWithOtp(email: string, otpCode: string, newPassword: string) {
-    return request<{ message: string }>('/api/v1/auth/recovery/reset-with-otp', {
-      method: 'POST',
-      body: { email, otpCode, newPassword },
     })
   },
   submitAccessRequest(body: AccessRequestCreatePayload) {
