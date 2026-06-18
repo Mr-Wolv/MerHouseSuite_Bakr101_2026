@@ -99,13 +99,13 @@ function Assert-AndroidReleaseWorkflowContract {
             throw ".github\workflows\merhouse-android-release.yml must require $requiredSecret from GitHub Actions secrets."
         }
     }
-    if ($workflowText -notmatch 'gh release view "\$\{\{ inputs\.tag \}\}"') {
+    if ($workflowText -notmatch 'gh release view "(\$\{\{ inputs\.tag \}\}|\$TAG)"') {
         throw ".github\workflows\merhouse-android-release.yml must check whether the target GitHub Release already exists."
     }
-    if ($workflowText -notmatch 'gh release edit "\$\{\{ inputs\.tag \}\}"') {
+    if ($workflowText -notmatch 'gh release edit "(\$\{\{ inputs\.tag \}\}|\$TAG)"') {
         throw ".github\workflows\merhouse-android-release.yml must update an existing GitHub Release instead of failing reruns."
     }
-    if ($workflowText -notmatch 'gh release upload "\$\{\{ inputs\.tag \}\}"[\s\S]*--clobber') {
+    if ($workflowText -notmatch 'gh release upload "(\$\{\{ inputs\.tag \}\}|\$TAG)"[\s\S]*--clobber') {
         throw ".github\workflows\merhouse-android-release.yml must upload Android release assets with --clobber on reruns."
     }
     if ($workflowText -match 'actions/upload-artifact') {
@@ -117,10 +117,10 @@ function Assert-AndroidReleaseWorkflowContract {
     if ($workflowText -match 'notes=.*api_base_url|notes=.*frontend_base_url') {
         throw ".github\workflows\merhouse-android-release.yml release notes must not print deployed target URLs."
     }
-    if ($workflowText -notmatch 'gh release create "\$\{\{ inputs\.tag \}\}"') {
+    if ($workflowText -notmatch '(?s)gh release create "(\$\{\{ inputs\.tag \}\}|\$TAG)"') {
         throw ".github\workflows\merhouse-android-release.yml must create the GitHub Release when it does not already exist."
     }
-    if ($workflowText -notmatch '--prerelease=\$\{\{ inputs\.prerelease \}\}') {
+    if ($workflowText -notmatch '(?s)--prerelease=(\$\{\{ inputs\.prerelease \}\}|\$PRERELEASE)') {
         throw ".github\workflows\merhouse-android-release.yml must apply the prerelease input to created and updated releases."
     }
     Write-Host "Android release workflow contract check passed."
