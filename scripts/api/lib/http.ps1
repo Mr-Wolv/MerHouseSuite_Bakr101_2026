@@ -55,12 +55,22 @@ function Invoke-ExpectedHttpFailure {
     $expectedStatusText = $acceptedStatuses -join " or "
 
     $uri = "$($Context.BaseUrl)$Path"
+    $effectiveHeaders = @{}
+    if ($Context.DefaultHeaders) {
+        foreach ($key in $Context.DefaultHeaders.Keys) {
+            $effectiveHeaders[$key] = $Context.DefaultHeaders[$key]
+        }
+    }
+    foreach ($key in $Headers.Keys) {
+        $effectiveHeaders[$key] = $Headers[$key]
+    }
+
     $parameters = @{
         Method = $Method
         Uri = $uri
     }
-    if ($Headers.Count -gt 0) {
-        $parameters.Headers = $Headers
+    if ($effectiveHeaders.Count -gt 0) {
+        $parameters.Headers = $effectiveHeaders
     }
     if ($null -ne $Body) {
         $parameters.ContentType = "application/json"

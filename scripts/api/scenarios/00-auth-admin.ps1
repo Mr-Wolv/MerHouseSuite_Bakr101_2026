@@ -30,4 +30,5 @@ $Context.AdminHeaders = @{ Authorization = "Bearer $idToken" }
 $Context.DefaultHeaders = $Context.AdminHeaders
 
 $Context.AdminMe = Invoke-Json -Context $Context -Method Get -Path "/api/v1/auth/me"
+$Context.AdminUserId = $Context.AdminMe.user.id
 Assert-Equal -Actual $Context.AdminMe.user.email -Expected $adminEmail -Message "Current admin email mismatch."
