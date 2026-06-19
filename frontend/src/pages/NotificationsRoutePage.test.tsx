@@ -94,7 +94,7 @@ describe('NotificationCenterPage', () => {
       {
         id: 'pref-2',
         topic: 'OUTBOX_HEALTH',
-        channel: 'EMAIL_PROTOTYPE',
+        channel: 'IN_APP',
         enabled: false,
         updatedAt: '2026-05-29T00:00:00Z',
       },
@@ -127,7 +127,7 @@ describe('NotificationCenterPage', () => {
     const sections = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
     expect(sections.indexOf('Action inbox')).toBeLessThan(sections.indexOf('Preferences'))
     expect(screen.getAllByText('Account lifecycle')).toHaveLength(2)
-    expect(screen.getByText('Email')).toBeInTheDocument()
+    expect(screen.getAllByText('In app').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('Account ready')).toBeInTheDocument()
     expect(screen.getAllByText('Unread').some((node) => node.classList.contains('warning-chip'))).toBe(true)
     expect(screen.getByText('Account ready').closest('article')).toHaveClass('notification-action')
@@ -327,7 +327,7 @@ describe('NotificationCenterPage', () => {
       deliveryFixture({
         id: 'delivery-provider-ready',
         topic: 'OPERATIONS',
-        channel: 'EMAIL_PROTOTYPE',
+        channel: 'IN_APP',
         deliveryStage: 'PREPARED',
         providerStatus: 'READY_FOR_PROVIDER',
         title: 'Provider-ready alert',
@@ -351,11 +351,11 @@ describe('NotificationCenterPage', () => {
     expect(screen.queryByText('delivery-current-user')).not.toBeInTheDocument()
   })
 
-  it('shows failed provider email attempts as critical history', async () => {
+  it('shows failed provider delivery attempts as critical history', async () => {
     apiMock.notificationDeliveries.mockResolvedValue([
       deliveryFixture({
         id: 'delivery-provider-failed',
-        channel: 'EMAIL_PROTOTYPE',
+        channel: 'IN_APP',
         status: 'READ',
         deliveryStage: 'PROVIDER_FAILED',
         providerStatus: 'FAILED',
@@ -368,8 +368,9 @@ describe('NotificationCenterPage', () => {
 
     renderPage()
 
-    expect(await screen.findByText('Provider failed')).toHaveClass('data-chip', 'warning-chip')
-    expect(screen.getByText('Email failed')).toBeInTheDocument()
+    const providerFailedChips = await screen.findAllByText('Provider failed')
+    expect(providerFailedChips.length).toBeGreaterThanOrEqual(1)
+    expect(providerFailedChips.some((chip) => chip.classList.contains('warning-chip'))).toBe(true)
     expect(screen.getByText('smtp unavailable')).toHaveClass('data-chip', 'warning-chip')
     expect(screen.getAllByText('Critical').some((node) => node.classList.contains('severity-critical'))).toBe(true)
   })

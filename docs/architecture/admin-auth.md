@@ -1,6 +1,6 @@
 # Admin And Authentication Model
 
-MerHouse uses stateless API authentication with signed access tokens, BCrypt password hashes, role-based authorization, and tenant-aware service checks.
+MerHouse uses Firebase Auth for authentication, BCrypt password hashes for local credential storage, role-based authorization, and tenant-aware service checks.
 
 ## Roles
 
@@ -13,13 +13,17 @@ MerHouse uses stateless API authentication with signed access tokens, BCrypt pas
 
 ## Authentication Flow
 
-1. `POST /api/v1/auth/login` validates email and password.
-2. The API returns a signed bearer token and the current user summary.
-3. Clients send `Authorization: Bearer <token>` for authenticated API calls.
+Firebase Auth is the only authentication path. All users authenticate through Firebase:
+
+1. **Frontend:** `signInWithEmailAndPassword` (Firebase SDK) authenticates against Firebase Auth.
+2. **Backend:** `FirebaseTokenFilter` verifies the Firebase ID token from the `Authorization: Bearer` header using the Firebase Admin SDK.
+3. The backend looks up the user by email to get tenant and role information.
 4. `GET /api/v1/auth/me` returns the current active user.
 5. `PATCH /api/v1/auth/me/password` lets the signed-in user change their own password after current-password verification.
 
-Access tokens include user id, tenant id, email, role, issue time, and expiration.
+> Custom JWT authentication has been removed. Firebase is the sole authentication path.
+
+The Firebase Admin SDK is always initialized on startup. In local development the Firebase Auth emulator (port 9099) is used automatically when `FIREBASE_EMULATOR_HOST` is set. In production, the SDK uses either a service-account JSON (`FIREBASE_SERVICE_ACCOUNT_JSON`) or Application Default Credentials.
 
 Self-service account settings do not change email, role, tenant, enabled state, or token lifetime. Platform account governance remains under `/api/v1/admin/users`.
 
@@ -33,8 +37,10 @@ The backend reads authentication settings from environment variables:
 
 | Variable | Purpose |
 | --- | --- |
-| `MERHOUSE_AUTH_JWT_SECRET` | HMAC signing secret |
-| `MERHOUSE_AUTH_JWT_EXPIRES_SECONDS` | Access-token lifetime |
+| `FIREBASE_AUTH_ENABLED` | Must be `true` (default). Firebase Auth is the only authentication path. |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Production service-account JSON for Firebase Admin SDK. |
+| `FIREBASE_PROJECT_ID` | Firebase project ID. |
+| `FIREBASE_EMULATOR_HOST` | Firebase Auth emulator host for local development. |
 | `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN` | Local recovery-token echo switch |
 | `MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT` | Per-account reset-request throttle limit |
 | `MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES` | Reset-request throttle window |

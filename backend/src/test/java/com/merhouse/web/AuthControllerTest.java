@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.merhouse.config.JacksonConfig;
-import com.merhouse.dto.AuthResponse;
 import com.merhouse.dto.LoginRequest;
 import com.merhouse.dto.PasswordResetRequest;
 import com.merhouse.dto.PasswordResetRequestResponse;
@@ -17,7 +16,6 @@ import com.merhouse.dto.SelfPasswordChangeRequest;
 import com.merhouse.dto.UserResponse;
 import com.merhouse.entity.UserRole;
 import com.merhouse.repository.AppUserRepository;
-import com.merhouse.security.JwtService;
 import com.merhouse.security.LoginRateLimitExceededException;
 import com.merhouse.security.UserPrincipal;
 import com.merhouse.service.AdminAuditService;
@@ -63,9 +61,6 @@ class AuthControllerTest {
     private AdminAuditService adminAuditService;
 
     @MockitoBean
-    private JwtService jwtService;
-
-    @MockitoBean
     private AppUserDetailsService appUserDetailsService;
 
     @MockitoBean
@@ -76,12 +71,7 @@ class AuthControllerTest {
         UUID userId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
         when(authService.login(new LoginRequest("owner@merhouse.local", " exact password ")))
-            .thenReturn(new AuthResponse(
-                "token",
-                "Bearer",
-                3600,
-                new UserResponse(userId, tenantId, "owner@merhouse.local", UserRole.OWNER, true, Instant.parse("2026-06-10T00:00:00Z"))
-            ));
+            .thenReturn(new UserResponse(userId, tenantId, "owner@merhouse.local", UserRole.OWNER, true, Instant.parse("2026-06-10T00:00:00Z")));
 
         mockMvc.perform(post("/api/v1/auth/login")
                 .contentType("application/json")
@@ -92,7 +82,7 @@ class AuthControllerTest {
                     }
                     """))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.user.email").value("owner@merhouse.local"));
+            .andExpect(jsonPath("$.email").value("owner@merhouse.local"));
 
         verify(authService).login(new LoginRequest("owner@merhouse.local", " exact password "));
     }

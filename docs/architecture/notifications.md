@@ -2,7 +2,7 @@
 
 MerHouse provides an in-app notification foundation. It records account-lifecycle and operational alert history, exposes per-user notification preferences, and treats unread routed records as an action inbox without requiring an external provider or native OS notification channel.
 
-This is in-app behavior by default. The backend stores delivery records for visibility and proof. V17 adds opt-in SMTP-backed email delivery attempts for the email channel while keeping in-app alerts as the action inbox. SMS, phone OS push, lock-screen alerts, notification-tray delivery, webhooks, and push-provider rollout are out of scope unless a later roadmap change deliberately reopens them.
+This is in-app behavior by default. The backend stores delivery records for visibility and proof. SMS, phone OS push, lock-screen alerts, notification-tray delivery, webhooks, and push-provider rollout are out of scope unless a later roadmap change deliberately reopens them.
 
 ## Model
 
@@ -18,7 +18,6 @@ Topics:
 Channels:
 
 - `IN_APP`
-- `EMAIL_PROTOTYPE`, rendered in the web and native shared frontend as `Email`
 
 Delivery records are scoped to the recipient user and tenant. They include topic, channel, status, title, body, optional source type and source id, creation time, read time, and a `prototypeLocal` flag.
 
@@ -39,12 +38,12 @@ Provider statuses:
 
 - `NOT_CONFIGURED`: V16.2 has no external delivery provider configured. This is the expected status for local delivery records.
 - `READY_FOR_PROVIDER`: reserved for a later provider-backed delivery handoff during V17 real activation or later.
-- `SENT`: the SMTP provider accepted an enabled email delivery attempt.
-- `FAILED`: the SMTP provider attempt failed and the error was recorded for operations review.
+- `SENT`: reserved for a future provider-backed delivery handoff.
+- `FAILED`: reserved for a future provider delivery attempt failure.
 
 Provider-attempt metadata includes provider message id, provider error, attempted time, sent time, failed time, and retry count.
 
-Enabled SMTP attempts validate the sender, recipient email, subject, and body before contacting the provider. Missing envelope data is recorded as a provider failure instead of escaping the notification workflow without delivery metadata.
+
 
 ## Account Lifecycle Hooks
 
@@ -52,9 +51,9 @@ Password-reset requests for enabled users create an in-app `ACCOUNT_LIFECYCLE` d
 
 Approved access requests converted into tenant and user records create an in-app `ACCOUNT_LIFECYCLE` delivery record titled `Account ready`.
 
-Both hooks provide recipient-scoped delivery history and UI proof by default. When `MERHOUSE_EMAIL_ENABLED=true` and SMTP is configured, V17 also records an `EMAIL_PROTOTYPE` delivery attempt with provider status, timestamps, retry count, and provider error metadata.
+Both hooks provide recipient-scoped delivery history and UI proof by default.
 
-Default local records store `deliveryStage=LOCAL_RECORDED`, `providerStatus=NOT_CONFIGURED`, and `prototypeLocal=true`. Enabled SMTP attempts store `status=PROVIDER_RECORDED` so they remain delivery history instead of unread in-app work, plus `deliveryStage=PROVIDER_SENT` and `providerStatus=SENT` when accepted, or `deliveryStage=PROVIDER_FAILED` and `providerStatus=FAILED` when the provider attempt fails.
+Default local records store `deliveryStage=LOCAL_RECORDED`, `providerStatus=NOT_CONFIGURED`, and `prototypeLocal=true`.
 
 ## Connected Alert Direction
 
@@ -104,7 +103,7 @@ Connected local alerts include source navigation. When a delivery has a routed s
 
 Sources without a safe routed surface stay visible as source chips only; they should not render dead links.
 
-Provider-backed email delivery is private V17 activation work through SMTP-backed attempts. SMS, phone OS push, lock-screen notifications, notification-tray delivery, webhooks, and realtime delivery are outside the current activation direction. V16.2 certifies local in-app delivery records, routed source semantics, and unread app-shell badges only; V17 email proof must be claimed separately with SMTP configuration and provider-attempt evidence.
+V16.2 certifies local in-app delivery records, routed source semantics, and unread app-shell badges only. SMS, phone OS push, lock-screen notifications, notification-tray delivery, webhooks, and realtime delivery remain outside the current scope.
 
 ## API
 

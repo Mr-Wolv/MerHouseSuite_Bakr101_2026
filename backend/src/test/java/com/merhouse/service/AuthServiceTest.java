@@ -10,16 +10,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.merhouse.dto.AuthResponse;
 import com.merhouse.dto.LoginRequest;
+import com.merhouse.dto.UserResponse;
 import com.merhouse.entity.AppUser;
 import com.merhouse.entity.Tenant;
 import com.merhouse.entity.UserRole;
 import com.merhouse.repository.AppUserRepository;
-import com.merhouse.security.JwtService;
 import com.merhouse.security.LoginRateLimiter;
 import com.merhouse.security.LoginRateLimitExceededException;
-import com.merhouse.security.UserPrincipal;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,44 +29,27 @@ import org.springframework.test.util.ReflectionTestUtils;
 class AuthServiceTest {
     private final AppUserRepository userRepository = mock(AppUserRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
-    private final JwtService jwtService = mock(JwtService.class);
     private final LoginRateLimiter loginRateLimiter = mock(LoginRateLimiter.class);
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtService, loginRateLimiter);
+        authService = new AuthService(userRepository, passwordEncoder, loginRateLimiter);
         when(loginRateLimiter.isBlocked(anyString())).thenReturn(false);
-        when(jwtService.createToken(any(UserPrincipal.class))).thenReturn("mock-jwt-token");
-        when(jwtService.expiresInSeconds()).thenReturn(3600L);
     }
 
     @Test
-    void successfulLoginReturnsTokenAndUser() {
+    void successfulLoginReturnsUser() {
         AppUser user = enabledUser("admin@merhouse.local", "hashed-password");
         when(userRepository.findByEmailIgnoreCase("admin@merhouse.local")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("correct-password", "hashed-password")).thenReturn(true);
 
         LoginRequest request = new LoginRequest("admin@merhouse.local", "correct-password");
-        AuthResponse response = authService.login(request);
+        UserResponse response = authService.login(request);
 
         assertNotNull(response);
-        assertEquals("mock-jwt-token", response.accessToken());
-        assertEquals("Bearer", response.tokenType());
-        assertEquals(3600L, response.expiresInSeconds());
-        assertEquals(user.getEmail(), response.user().email());
+        assertEquals(user.getEmail(), response.email());
         verify(loginRateLimiter).recordSuccess("admin@merhouse.local");
-    }
-
-    @Test
-    void successfulLoginCreatesJwtWithCorrectPrincipal() {
-        AppUser user = enabledUser("admin@merhouse.local", "hashed-password");
-        when(userRepository.findByEmailIgnoreCase("admin@merhouse.local")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("correct-password", "hashed-password")).thenReturn(true);
-
-        authService.login(new LoginRequest("admin@merhouse.local", "correct-password"));
-
-        verify(jwtService).createToken(any(UserPrincipal.class));
     }
 
     @Test
@@ -77,7 +58,7 @@ class AuthServiceTest {
         when(userRepository.findByEmailIgnoreCase("user@merhouse.local")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("pass", "hash")).thenReturn(true);
 
-        AuthResponse response = authService.login(new LoginRequest("  user@merhouse.local  ", "pass"));
+        UserResponse response = authService.login(new LoginRequest("  user@merhouse.local  ", "pass"));
         assertNotNull(response);
         verify(loginRateLimiter).recordSuccess("user@merhouse.local");
     }

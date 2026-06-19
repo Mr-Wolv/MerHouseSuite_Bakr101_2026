@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test'
-import type { APIRequestContext, Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+import { firebaseLogin } from './firebase-auth-helper'
 
 const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://localhost:3001'
 const API_URL = process.env.E2E_API_URL ?? APP_URL
@@ -38,19 +39,6 @@ const expectedEvidence = [
   '../reports/v15-relationship-detail-polish/relationship-detail-live-check.json',
   '../reports/v15-public-auth-polish/public-auth-live-check.json',
 ]
-
-async function loginToken(request: APIRequestContext, account: Account) {
-  const response = await request.post(`${API_URL}/api/v1/auth/login`, {
-    data: {
-      email: account.email,
-      password: account.password,
-    },
-  })
-  expect(response.ok(), `login should work for ${account.email}`).toBeTruthy()
-  const body = (await response.json()) as { accessToken?: string }
-  expect(body.accessToken, `login token should be present for ${account.email}`).toBeTruthy()
-  return body.accessToken as string
-}
 
 function contrastRatio(foreground: string, background: string) {
   function parseColor(value: string) {
@@ -185,7 +173,7 @@ test('V15 accessibility closeout covers focus, live regions, contrast, theme, re
     details: { liveRegionRole: 'status' },
   })
 
-  const ownerToken = await loginToken(request, ownerAccount)
+  const ownerToken = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
   const reducedMotionContext = await browser.newContext({
     reducedMotion: 'reduce',
     viewport: { width: 390, height: 844 },

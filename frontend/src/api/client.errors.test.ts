@@ -17,7 +17,7 @@ describe('api client error handling', () => {
     }))
 
     try {
-      await api.login('', 'pw')
+      await api.me('some-token')
       expect.fail('should have thrown')
     } catch (error) {
       expect(error).toBeInstanceOf(ApiError)
@@ -36,7 +36,7 @@ describe('api client error handling', () => {
       json: vi.fn().mockResolvedValue({ message: 'not the error field' }),
     }))
 
-    await expect(api.login('a@b.c', 'pw')).rejects.toMatchObject({
+    await expect(api.me('token')).rejects.toMatchObject({
       status: 500,
       message: 'Internal Server Error',
       details: [],
@@ -51,7 +51,7 @@ describe('api client error handling', () => {
       json: vi.fn().mockRejectedValue(new SyntaxError('Unexpected token < in JSON')),
     }))
 
-    await expect(api.login('a@b.c', 'pw')).rejects.toMatchObject({
+    await expect(api.me('token')).rejects.toMatchObject({
       status: 502,
       message: 'Bad Gateway',
       details: [],
@@ -61,7 +61,7 @@ describe('api client error handling', () => {
   it('propagates network errors without wrapping', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
 
-    await expect(api.login('a@b.c', 'pw')).rejects.toThrow('Failed to fetch')
+    await expect(api.me('token')).rejects.toThrow('Failed to fetch')
   })
 
   it('returns undefined for 204 No Content responses', async () => {
@@ -86,7 +86,7 @@ describe('api client error handling', () => {
       }),
     }))
 
-    await expect(api.login('a@b.c', 'pw')).rejects.toMatchObject({
+    await expect(api.me('token')).rejects.toMatchObject({
       status: 409,
       message: 'Conflict',
       details: [],
@@ -107,8 +107,6 @@ describe('api client authentication headers', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    // notificationDeliveries needs a token param but we pass empty string
-    // The api.me endpoint sends the token
     await api.notificationPreferences('')
 
     const headers = fetchMock.mock.calls[0][1].headers as Headers
@@ -155,25 +153,6 @@ describe('api client authentication headers', () => {
 
     const headers = fetchMock.mock.calls[0][1].headers as Headers
     expect(headers.get('Accept')).toBe('application/json')
-  })
-})
-
-describe('api client ngrok handling', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  it('skips ngrok warning header for non-ngrok URLs', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: vi.fn().mockResolvedValue({ accessToken: 't' }),
-    }))
-
-    await api.login('a@b.c', 'pw')
-
-    const headers = (vi.mocked(fetch).mock.calls[0][1] as RequestInit).headers as Headers
-    expect(headers.get('ngrok-skip-browser-warning')).toBeNull()
   })
 })
 
@@ -271,14 +250,11 @@ describe('api client query parameter handling', () => {
     await api.notificationDeliveries('token')
     expect(fetchMock.mock.calls[0][0]).toContain('limit=50')
 
-    await api.assistantInteractions('token')
+    await api.outboxEvents('token')
     expect(fetchMock.mock.calls[1][0]).toContain('limit=25')
 
-    await api.outboxEvents('token')
-    expect(fetchMock.mock.calls[2][0]).toContain('limit=25')
-
     await api.adminAuditEvents('token')
-    expect(fetchMock.mock.calls[3][0]).toContain('limit=50')
+    expect(fetchMock.mock.calls[2][0]).toContain('limit=50')
   })
 })
 

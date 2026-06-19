@@ -33,14 +33,12 @@ class AccessRequestServiceTest {
     private final UserService userService = mock(UserService.class);
     private final TenantService tenantService = mock(TenantService.class);
     private final NotificationService notificationService = mock(NotificationService.class);
-    private final EmailDeliveryService emailDeliveryService = mock(EmailDeliveryService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-18T00:00:00Z"), ZoneOffset.UTC);
     private final AccessRequestService service = new AccessRequestService(
         requestRepository,
         userService,
         tenantService,
         notificationService,
-        emailDeliveryService,
         clock,
         3,
         24
@@ -204,8 +202,7 @@ class AccessRequestServiceTest {
             eq(user),
             eq(NotificationTopic.ACCOUNT_LIFECYCLE),
             eq("Account ready"),
-            eq("Your MerHouse account was created from an approved access request. This is a local delivery history record."),
-            eq("Your MerHouse account was created from an approved access request. Sign in with the setup password shared by your platform contact, then change it from Account settings."),
+            eq("Your MerHouse account was created from an approved access request."),
             eq("AccessRequest"),
             eq(requestId)
         );
@@ -263,11 +260,9 @@ class AccessRequestServiceTest {
             eq(NotificationTopic.ACCOUNT_LIFECYCLE),
             eq("Account activated"),
             org.mockito.ArgumentMatchers.anyString(),
-            org.mockito.ArgumentMatchers.anyString(),
             eq("AccessRequest"),
             eq(requestId)
         );
-        verify(emailDeliveryService).sendAndForget(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq("newmerchant@merhouse.local"), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
         verify(requestRepository).save(accessRequest);
     }
 

@@ -172,7 +172,7 @@
     <header>
       <h1>MerHouse System Architecture, Workflows, And UML Diagrams</h1>
       <p class="lede">
-        A comprehensive architecture view of the MerHouse fulfillment coordination system. Covers domain model, state machines, operating workflows, identity governance, notification delivery, assistant interactions, frontend routing, and deployment infrastructure. Aligned with the current codebase, 19 Flyway migrations, and documented architecture.
+        A comprehensive architecture view of the MerHouse fulfillment coordination system. Covers domain model, state machines, operating workflows, identity governance, notification delivery, frontend routing, and deployment infrastructure. Aligned with the current codebase, 19 Flyway migrations, and documented architecture.
       </p>
       <div class="meta" aria-label="system scope">
         <span class="pill">19 Flyway migrations</span>
@@ -201,25 +201,25 @@
             <li>44+ service classes for domain logic, allocation, outbox, notifications</li>
             <li>Flyway-managed PostgreSQL schema with 19 incremental migrations</li>
             <li>Transactional outbox with scheduled drain processor and carrier dispatch</li>
-            <li>Deterministic assistant runtime with read-plus-draft boundary</li>
+            
           </ul>
         </article>
         <article class="card" style="--accent: var(--merchant)">
           <h3>Frontend Console</h3>
           <ul>
             <li>React + Vite operations console with role-gated routing</li>
-            <li>Public pages: login, request access, forgot password, OTP reset, how-to-use</li>
+            <li>Public pages: login, request access, forgot password, how-to-use</li>
             <li>Platform pages: admin overview, tenants, users, access requests, relationships, outbox, audit</li>
             <li>Merchant pages: overview, inventory, orders with import</li>
             <li>Warehouse page: receiving, fulfillment, shipments, exceptions, inventory</li>
-            <li>Shared pages: service accountability, notifications, assistant, account, detail pages</li>
+            <li>Shared pages: service accountability, notifications, account, detail pages</li>
           </ul>
         </article>
         <article class="card" style="--accent: var(--warehouse)">
           <h3>Database</h3>
           <ul>
             <li>PostgreSQL with pgcrypto extension for UUID generation</li>
-            <li>37 tables across identity, inventory, fulfillment, service, reliability, notification, and assistant domains</li>
+            <li>37 tables across identity, inventory, fulfillment, service, reliability, and notification domains</li>
             <li>Optimistic locking on warehouse inventory via version column</li>
             <li>Composite unique constraints for authorization invariants</li>
             <li>Operational read indexes for bounded dense queries</li>
@@ -288,8 +288,8 @@
           <h3>Story: Something Needs Attention</h3>
           <div class="story-row"><b>Actor</b><span>Any role may receive local alerts, but each delivery is scoped to the recipient and tenant that actually owns the next action.</span></div>
           <div class="story-row"><b>Tension</b><span>Unread work can be buried under history, provider email might be disabled, and background handoff failures still need a review surface.</span></div>
-          <div class="story-row"><b>Work</b><span>Unread local deliveries become the action inbox; outbox records preserve retry/dead-letter evidence; assistant drafts stay non-mutating with deterministic fallback.</span></div>
-          <div class="story-row"><b>Done</b><span>The right person sees the next action, read history remains available, and SMTP email attempts are recorded as provider evidence when enabled.</span></div>
+          <div class="story-row"><b>Work</b><span>Unread local deliveries become the action inbox; outbox records preserve retry/dead-letter evidence; system records stay auditable with deterministic behavior.</span></div>
+          <div class="story-row"><b>Done</b><span>The right person sees the next action, read history remains available, and provider delivery attempts are recorded as provider evidence when enabled.</span></div>
         </article>
         <article class="story" style="--accent: var(--proof)">
           <h3>Story: The Same Product Ships To Web And Android</h3>
@@ -315,7 +315,6 @@
             <li>empty accounts see guided first-run states</li>
             <li>owner/admin controls role, tenant, enabled state, and conversion</li>
             <li>each signed-in user can inspect account context and change their password with current-password verification</li>
-            <li>OTP password recovery uses <code>request-otp</code> and <code>reset-with-otp</code> endpoints with SHA-256 hashed 6-digit codes</li>
             <li>reset-link recovery uses token-hash flow with throttling and generic responses</li>
           </ul>
         </article>
@@ -352,14 +351,14 @@
           </ul>
         </article>
         <article class="card" style="--accent: var(--ops)">
-          <h3>Notifications, Outbox, Assistant</h3>
+          <h3>Notifications, Outbox</h3>
           <p>Operational handoffs create recipient-scoped local alerts. Reliability records make asynchronous work and review assistance visible.</p>
           <ul>
             <li>4 topics: ACCOUNT_LIFECYCLE, OPERATIONS, SERVICE_ACCOUNTABILITY, OUTBOX_HEALTH</li>
-            <li>2 channels: IN_APP and EMAIL_PROTOTYPE</li>
+            <li>1 channel: IN_APP (local delivery only)</li>
             <li>unread local deliveries are an action inbox; mixed delivery records remain history</li>
             <li>outbox events with retry/dead-letter and carrier dispatch records</li>
-            <li>assistant interactions remain read-plus-draft and non-mutating with deterministic fallback</li>
+            
           </ul>
         </article>
         <article class="card" style="--accent: var(--proof)">
@@ -422,7 +421,7 @@
               <h4>PasswordResetToken</h4>
               <dl>
                 <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>user_id</span><span class="field"><span class="tag uk">UK</span>token_hash</span></span></dd></div>
-                <div><dt>recovery</dt><dd>token_hash, expires_at, used_at, otp_code (V17 6-digit OTP column), created_at</dd></div>
+                <div><dt>recovery</dt><dd>token_hash, expires_at, used_at, created_at</dd></div>
               </dl>
             </div>
             <div class="class-card">
@@ -663,17 +662,13 @@
               </dl>
             </div>
             <div class="class-card">
-              <h4>AssistantInteraction</h4>
-              <dl>
-                <div><dt>keys</dt><dd><span class="field-list"><span class="field"><span class="tag pk">PK</span>id</span><span class="field"><span class="tag fk">FK</span>actor_user_id</span><span class="field"><span class="tag fk">FK</span>actor_tenant_id</span><span class="field"><span class="tag fk">FK</span>decided_by_user_id</span></span></dd></div>
-                <div><dt>behavior</dt><dd>scope (PLATFORM_OVERVIEW | MERCHANT_OPERATIONS | WAREHOUSE_OPERATIONS), response_type (SUMMARY | SUGGESTION | REFUSAL), action_status (NOT_APPLICABLE | PENDING | ACCEPTED | REJECTED), request_text, response_text, prototype_local, decision_note, metadata (JSONB)</dd></div>
-              </dl>
+              
             </div>
             <div class="relations">
               <div class="relation">AppUser 1..* NotificationPreference and 0..* NotificationDelivery (recipient-scoped)</div>
               <div class="relation">OutboxEvent 0..1 CarrierDispatch for shipment handoff events</div>
               <div class="relation">OutboxEvent types: OrderCreated, OrderAllocated, OrderCancelled, FulfillmentAllocationAdvanced, ShipmentCreated/Delivered/Failed/Returned, BackorderFulfilled/Cancelled</div>
-              <div class="relation">AssistantInteraction is auditable read-plus-draft support, not operational mutation</div>
+              
             </div>
           </div>
         </article>
@@ -849,14 +844,13 @@
         <tbody>
           <tr><td><code>/login</code></td><td><span class="badge public">Public</span></td><td>Email/password authentication</td></tr>
           <tr><td><code>/request-access</code></td><td><span class="badge public">Public</span></td><td>Public access request form for onboarding</td></tr>
-          <tr><td><code>/forgot-password</code></td><td><span class="badge public">Public</span></td><td>Password reset request (token-link and OTP flows)</td></tr>
-          <tr><td><code>/verify-otp</code></td><td><span class="badge public">Public</span></td><td>OTP code entry for password recovery</td></tr>
-          <tr><td><code>/reset-password</code></td><td><span class="badge public">Public</span></td><td>New password entry after token or OTP validation</td></tr>
+          <tr><td><code>/forgot-password</code></td><td><span class="badge public">Public</span></td><td>Password reset request (token-link flow)</td></tr>
+          <tr><td><code>/reset-password</code></td><td><span class="badge public">Public</span></td><td>New password entry after token validation</td></tr>
           <tr><td><code>/how-to-use</code></td><td><span class="badge public">Public</span></td><td>V17 portfolio: product guidance page</td></tr>
           <tr><td><code>/admin</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span></td><td>Platform overview with attention signals</td></tr>
           <tr><td><code>/admin/relationships</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span></td><td>Relationship governance and lifecycle evidence</td></tr>
           <tr><td><code>/admin/outbox</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span></td><td>Outbox diagnostics, retry, dead-letter actions</td></tr>
-          <tr><td><code>/admin/audit</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span></td><td>Admin audit events including assistant activity</td></tr>
+          <tr><td><code>/admin/audit</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span></td><td>Admin audit events</td></tr>
           <tr><td><code>/admin/tenants</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span></td><td>Tenant creation and management</td></tr>
           <tr><td><code>/admin/users</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span></td><td>User creation, role changes, enable/disable</td></tr>
           <tr><td><code>/admin/access-requests</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span></td><td>Access request review, approve, reject, convert</td></tr>
@@ -865,7 +859,7 @@
           <tr><td><code>/merchant/orders</code></td><td><span class="badge merchant">Merchant</span></td><td>Order creation, import batches, backorder review</td></tr>
           <tr><td><code>/warehouse</code></td><td><span class="badge warehouse">Warehouse</span></td><td>Receiving, fulfillment, shipments, exceptions, inventory adjustment</td></tr>
           <tr><td><code>/service-accountability</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span><span class="badge merchant">Merchant</span><span class="badge warehouse">Warehouse</span></td><td>Agreements, rate cards, SLA, statements, disputes, claims, reviews</td></tr>
-          <tr><td><code>/assistant</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span><span class="badge merchant">Merchant</span><span class="badge warehouse">Warehouse</span></td><td>Deterministic read-plus-draft assistant with scoped summaries</td></tr>
+          
           <tr><td><code>/notifications</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span><span class="badge merchant">Merchant</span><span class="badge warehouse">Warehouse</span></td><td>Action inbox, delivery history, preferences</td></tr>
           <tr><td><code>/account</code></td><td><span class="badge owner">Owner</span><span class="badge admin">Admin</span><span class="badge support">Support</span><span class="badge auditor">Auditor</span><span class="badge merchant">Merchant</span><span class="badge warehouse">Warehouse</span></td><td>Account context and current-password-verified password change</td></tr>
           <tr><td><code>/orders/:id</code>, <code>/shipments/:id</code>, etc.</td><td>All authenticated roles</td><td>Operational detail pages with timeline events</td></tr>
@@ -906,7 +900,7 @@
           <h3>Backend Configuration Boundary</h3>
           <p>Production safety validates deployment configuration at startup.</p>
           <ul>
-            <li><code>MERHOUSE_AGENT_MODE=deterministic</code> only; non-deterministic modes fail startup</li>
+            
             <li><code>MERHOUSE_DEPLOYMENT_PUBLIC=true</code> triggers public safety checks</li>
             <li>recovery throttling via <code>MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT</code> and window</li>
             <li>access request throttling via <code>MERHOUSE_ACCESS_REQUEST_LIMIT</code> and window</li>
@@ -919,9 +913,9 @@
           <p>In-app alerts are the action inbox. SMTP email is opt-in provider evidence.</p>
           <ul>
             <li>4 topics: ACCOUNT_LIFECYCLE, OPERATIONS, SERVICE_ACCOUNTABILITY, OUTBOX_HEALTH</li>
-            <li>2 channels: IN_APP (always) and EMAIL_PROTOTYPE (when enabled)</li>
+            <li>1 channel: IN_APP (local delivery only)</li>
             <li>local deliveries are recipient-scoped with source navigation to operational detail pages</li>
-            <li>enabled SMTP records provider status, timestamps, error, and retry count</li>
+            <li>provider delivery attempts record status, timestamps, error, and retry count</li>
             <li>SMS, phone OS push, lock-screen, and notification-tray are out of scope</li>
           </ul>
         </article>

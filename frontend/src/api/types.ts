@@ -3,7 +3,7 @@ export type UserRole = 'OWNER' | 'ADMIN' | 'SUPPORT_ADMIN' | 'AUDITOR' | 'MERCHA
 export type TenantType = 'MERCHANT' | 'WAREHOUSE_PROVIDER'
 
 export type NotificationTopic = 'ACCOUNT_LIFECYCLE' | 'OPERATIONS' | 'SERVICE_ACCOUNTABILITY' | 'OUTBOX_HEALTH'
-export type NotificationChannel = 'IN_APP' | 'EMAIL_PROTOTYPE'
+export type NotificationChannel = 'IN_APP'
 export type NotificationDeliveryStatus = 'RECORDED' | 'READ' | 'PROVIDER_RECORDED' | 'SKIPPED_BY_PREFERENCE'
 export type NotificationDeliveryStage = 'PREPARED' | 'LOCAL_RECORDED' | 'SKIPPED_BY_PREFERENCE' | 'PROVIDER_SENT' | 'PROVIDER_FAILED'
 export type NotificationProviderStatus = 'NOT_CONFIGURED' | 'READY_FOR_PROVIDER' | 'SENT' | 'FAILED'
@@ -40,13 +40,6 @@ export type Tenant = {
   suspensionReason: string | null
   suspendedAt: string | null
   createdAt: string
-}
-
-export type AuthResponse = {
-  accessToken: string
-  tokenType: string
-  expiresInSeconds: number
-  user: User
 }
 
 export type CurrentUserResponse = {
@@ -100,38 +93,6 @@ export type NotificationSummary = {
   unreadCount: number
   latestDeliveryAt: string | null
   attentionSignals: AttentionSignal[]
-}
-
-export type AssistantScope = 'PLATFORM_OVERVIEW' | 'MERCHANT_OPERATIONS' | 'WAREHOUSE_OPERATIONS'
-export type AssistantInteractionType = 'SUMMARY' | 'SUGGESTION' | 'REFUSAL'
-export type AssistantActionStatus = 'NOT_APPLICABLE' | 'PENDING' | 'ACCEPTED' | 'REJECTED'
-
-export type AssistantInteraction = {
-  id: string
-  actorUserId: string
-  actorTenantId: string
-  scope: AssistantScope
-  targetTenantId: string | null
-  responseType: AssistantInteractionType
-  actionStatus: AssistantActionStatus
-  requestText: string
-  responseText: string
-  prototypeLocal: boolean
-  decidedByUserId: string | null
-  decisionNote: string | null
-  decidedAt: string | null
-  metadata: Record<string, unknown>
-  createdAt: string
-}
-
-export type AssistantInteractionPayload = {
-  scope?: AssistantScope | null
-  targetTenantId?: string | null
-  prompt: string
-}
-
-export type AssistantDecisionPayload = {
-  reason: string
 }
 
 export type InventoryItem = {

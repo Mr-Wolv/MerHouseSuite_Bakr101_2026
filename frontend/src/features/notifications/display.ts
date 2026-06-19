@@ -15,15 +15,14 @@ export const topicLabels: Record<NotificationTopic, string> = {
 
 export const channelLabels: Record<NotificationChannel, string> = {
   IN_APP: 'In app',
-  EMAIL_PROTOTYPE: 'Email',
 }
 
 export const deliveryStageLabels: Record<NotificationDeliveryStage, string> = {
   PREPARED: 'Prepared',
   LOCAL_RECORDED: 'Local recorded',
   SKIPPED_BY_PREFERENCE: 'Skipped by preference',
-  PROVIDER_SENT: 'Email sent',
-  PROVIDER_FAILED: 'Email failed',
+  PROVIDER_SENT: 'Provider sent',
+  PROVIDER_FAILED: 'Provider failed',
 }
 
 export const providerStatusLabels: Record<NotificationProviderStatus, string> = {

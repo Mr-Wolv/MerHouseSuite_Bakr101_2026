@@ -31,8 +31,7 @@ public class DevAdminSeeder {
         UserService userService,
         @Value("${merhouse.auth.seed-admin.enabled:false}") boolean enabled,
         @Value("${merhouse.auth.seed-admin.email:}") String email,
-        @Value("${merhouse.auth.seed-admin.password:}") String password,
-        @Value("${firebase.auth.enabled:false}") boolean firebaseEnabled
+        @Value("${merhouse.auth.seed-admin.password:}") String password
     ) {
         return arguments -> {
             if (!enabled) {
@@ -53,29 +52,26 @@ public class DevAdminSeeder {
                 userService.create(new CreateUserRequest(tenant.getId(), email, password, UserRole.OWNER));
             });
 
-            // --- 2. When Firebase Auth is enabled, also create the user in the
-            //     Firebase Auth emulator (or production). The Admin SDK
-            //     automatically targets the emulator when FIREBASE_EMULATOR_HOST
+            // --- 2. Also create the user in the Firebase Auth emulator (or production).
+            //     The Admin SDK automatically targets the emulator when FIREBASE_EMULATOR_HOST
             //     is set. If the user already exists this is a no-op.
             //     Wrapped in try-catch so a Firebase failure never prevents the
             //     DB user from being seeded. ---
-            if (firebaseEnabled) {
+            try {
                 try {
-                    try {
-                        FirebaseAuth.getInstance().getUserByEmail(email);
-                        log.debug("Firebase Auth user already exists for {} — skipping creation.", email);
-                    } catch (FirebaseAuthException e) {
-                        // User not found — create it.
-                        UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
-                            .setEmail(email)
-                            .setPassword(password)
-                            .setEmailVerified(true);
-                        FirebaseAuth.getInstance().createUser(createRequest);
-                        log.info("Created Firebase Auth user for seed admin: {}", email);
-                    }
-                } catch (Exception ex) {
-                    log.warn("Firebase Auth user seeding failed for {}: {} — DB user was still created.", email, ex.getMessage());
+                    FirebaseAuth.getInstance().getUserByEmail(email);
+                    log.debug("Firebase Auth user already exists for {} — skipping creation.", email);
+                } catch (FirebaseAuthException e) {
+                    // User not found — create it.
+                    UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
+                        .setEmail(email)
+                        .setPassword(password)
+                        .setEmailVerified(true);
+                    FirebaseAuth.getInstance().createUser(createRequest);
+                    log.info("Created Firebase Auth user for seed admin: {}", email);
                 }
+            } catch (Exception ex) {
+                log.warn("Firebase Auth user seeding failed for {}: {} — DB user was still created.", email, ex.getMessage());
             }
         };
     }

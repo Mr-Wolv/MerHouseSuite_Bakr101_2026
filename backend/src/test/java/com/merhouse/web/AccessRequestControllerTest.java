@@ -17,7 +17,6 @@ import com.merhouse.entity.AccessRequest;
 import com.merhouse.entity.AccessRequestStatus;
 import com.merhouse.entity.UserRole;
 import com.merhouse.repository.AppUserRepository;
-import com.merhouse.security.JwtService;
 import com.merhouse.security.UserPrincipal;
 import com.merhouse.service.AccessRequestService;
 import com.merhouse.service.AdminAuditService;
@@ -52,9 +51,6 @@ class AccessRequestControllerTest {
 
     @MockitoBean
     private AdminAuditService adminAuditService;
-
-    @MockitoBean
-    private JwtService jwtService;
 
     @MockitoBean
     private AppUserDetailsService appUserDetailsService;

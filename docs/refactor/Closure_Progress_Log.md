@@ -24,8 +24,8 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
 | `C-02` | Blocked | 2026-06-16T18:00:00+03:00 | Externally blocked: requires Android signing keystore and deployed HTTPS URLs outside Git. |
 | `C-03` | Blocked | 2026-06-16T18:00:00+03:00 | Externally blocked: requires deployment boundary access for backup/restore and rollback proof. Doc/script alignment portion can proceed. |
 | `C-04` | Blocked | 2026-06-16T18:00:00+03:00 | Externally blocked: requires SMTP provider (Brevo) credentials and operator for live walkthrough. |
-| `D-02` | Closed | 2026-06-16T12:00:00+03:00 | Removed non-existent `verify-otp` endpoint reference from `account-lifecycle.md`; OTP recovery section now describes the actual two-step flow: `request-otp` generates and stores OTP, `reset-with-otp` accepts email + OTP code + new password. |
-| `D-03` | Closed | 2026-06-16T12:00:00+03:00 | Replaced Feature D enhancement descriptions in `agentic-operations-assistance.md` with a deferral statement; conversation threading, chat UI, contextual awareness, and workflow guidance are deferred to Vinfinite per `V17-RE-EVALUATION.md`. |
+| `D-02` | Updated | 2026-06-19T00:00:00+03:00 | OTP password recovery feature was removed from the codebase. `docs/architecture/account-lifecycle.md` updated to remove all OTP references, EmailDeliveryService references, and SMTP email delivery references. Firebase Auth handles password reset via built-in email templates. |
+| `D-03` | Updated | 2026-06-19T00:00:00+03:00 | Assistant feature (deterministic read-plus-draft) was removed from the codebase. `docs/architecture/agentic-operations-assistance.md` replaced with a removal stub. All references to assistant across docs, README, and roadmap have been scrubbed. |
 | `E-01` | Closed | 2026-06-16T12:00:00+03:00 | Updated `system-diagrams.html` migration count from 18 to 19; added OTP recovery and approve-and-activate references to the identity lifecycle, AccessRequest UML card, and PasswordResetToken card. |
 | `E-02` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
 | `F-01` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
@@ -59,9 +59,9 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
   **Verification:** Searched the file for `parentInteractionId` implementation claims and chat-like UI descriptions as current V17 work; none remain.
 
 - **Task:** `E-01`
-  **Completed:** `2026-06-16T12:00:00+03:00`
-  **Key findings:** `docs/architecture/system-diagrams.html` reported 18 Flyway migrations; the repository contains 19. The diagram also did not reference OTP recovery, approve-and-activate, or the `otp_code` column on `password_reset_tokens`.
-  **Resolution implemented:** Updated the migration count pill to 19; added OTP and approve-and-activate references to the Access And Account Lifecycle card, AccessRequest UML card, and PasswordResetToken card.
+  **Completed:** `2026-06-19T00:00:00+03:00`
+  **Key findings:** `docs/architecture/system-diagrams.html` reported 18 Flyway migrations; the repository contains 19. OTP password recovery was subsequently removed from the codebase.
+  **Resolution implemented:** Updated the migration count pill to 19. OTP and `otp_code` references are no longer relevant as the OTP feature was removed.
   **Verification:** Counted migrations via filesystem listing (19 `.sql` files); confirmed 37 tables remain correct.
 
 ## Open Blocking Issues

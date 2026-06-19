@@ -42,7 +42,6 @@ import com.merhouse.entity.TenantType;
 import com.merhouse.entity.Warehouse;
 import com.merhouse.entity.WarehouseInventory;
 import com.merhouse.repository.AppUserRepository;
-import com.merhouse.security.JwtService;
 import com.merhouse.service.AppUserDetailsService;
 import com.merhouse.service.AdminAuditService;
 import com.merhouse.service.CurrentUserService;
@@ -65,7 +64,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import com.merhouse.service.SmtpHealthMonitor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -110,9 +108,6 @@ class ApiControllerTest {
     private IdempotencyService idempotencyService;
 
     @MockitoBean
-    private JwtService jwtService;
-
-    @MockitoBean
     private AppUserDetailsService appUserDetailsService;
 
     @MockitoBean
@@ -126,9 +121,6 @@ class ApiControllerTest {
 
     @MockitoBean
     private DataSource dataSource;
-
-    @MockitoBean
-    private SmtpHealthMonitor smtpHealthMonitor;
 
     @Test
     void healthEndpointReportsReadinessWithoutDomainData() throws Exception {

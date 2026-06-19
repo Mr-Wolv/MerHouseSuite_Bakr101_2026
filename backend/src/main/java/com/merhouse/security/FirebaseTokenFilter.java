@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -21,18 +20,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Verifies Firebase ID tokens sent in the {@code Authorization: Bearer} header
  * and sets the Spring Security authentication context.
  *
- * <p>This replaces the legacy {@link JwtAuthenticationFilter} which validated
- * custom JWT tokens. Firebase Auth now owns credential verification; this filter
- * only verifies the ID token signature and extracts custom claims.
- *
- * <p>Disabled by default. Enable by setting {@code firebase.auth.enabled=true}.
- * During the migration period both filters can coexist: this filter only acts
- * when the token is a valid Firebase ID token (3-part vs 3-part but different
- * signing), and the legacy filter handles the old custom JWTs. Once all users
- * have migrated to Firebase Auth, remove the legacy filter and this property gate.
+ * <p>Firebase Auth owns credential verification; this filter verifies the ID
+ * token signature and extracts custom claims. Custom JWT authentication has
+ * been removed — Firebase is the only authentication path.
  */
 @Component
-@ConditionalOnProperty(name = "firebase.auth.enabled", havingValue = "true")
 public class FirebaseTokenFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(FirebaseTokenFilter.class);

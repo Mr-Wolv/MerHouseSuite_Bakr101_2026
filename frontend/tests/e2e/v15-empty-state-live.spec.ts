@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Browser, Page } from '@playwright/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+import { firebaseLogin } from './firebase-auth-helper'
 
 const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://localhost:3001'
 const API_URL = process.env.E2E_API_URL ?? APP_URL
@@ -32,19 +33,6 @@ const ownerAccount: Account = {
   password: process.env.FRONTEND_TOUR_ADMIN_PASSWORD ?? 'local-owner-password',
 }
 
-async function loginToken(request: APIRequestContext, account: Account) {
-  const response = await request.post(`${API_URL}/api/v1/auth/login`, {
-    data: {
-      email: account.email,
-      password: account.password,
-    },
-  })
-  expect(response.ok(), `login should work for ${account.email}`).toBeTruthy()
-  const body = (await response.json()) as { accessToken?: string }
-  expect(body.accessToken, `login token should be present for ${account.email}`).toBeTruthy()
-  return body.accessToken as string
-}
-
 async function apiJson<T>(
   request: APIRequestContext,
   method: 'get' | 'post' | 'patch',
@@ -61,7 +49,7 @@ async function apiJson<T>(
 }
 
 async function createEmptyFixture(request: APIRequestContext) {
-  const ownerToken = await loginToken(request, ownerAccount)
+  const ownerToken = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
   const suffix = `empty-${Date.now().toString(36)}`
   const password = 'empty-tour-password'
 
@@ -109,7 +97,7 @@ async function createEmptyFixture(request: APIRequestContext) {
 
 async function newAuthedPage(browser: Browser, account: Account) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
-  const token = await loginToken(context.request, account)
+  const token = await firebaseLogin(context.request, account.email, account.password)
   await context.addInitScript(
     ({ key, value }) => {
       try {

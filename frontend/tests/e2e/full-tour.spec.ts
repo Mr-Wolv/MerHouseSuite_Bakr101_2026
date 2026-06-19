@@ -2,11 +2,10 @@ import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Browser, BrowserContext, Page } from '@playwright/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+import { firebaseLogin, createFirebaseUser } from './firebase-auth-helper'
 
 const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://127.0.0.1:3001'
 const API_URL = process.env.E2E_API_URL ?? (process.env.FRONTEND_TOUR_BASE_URL ? APP_URL : 'http://127.0.0.1:8081')
-const FIREBASE_EMULATOR = (process.env.E2E_FIREBASE_EMULATOR ?? 'http://127.0.0.1:9099').replace(/\/+$/, '')
-const FIREBASE_API_KEY = process.env.E2E_FIREBASE_API_KEY ?? 'emulator-api-key'
 const REPORT_PATH = process.env.FRONTEND_TOUR_REPORT ?? '../reports/latest-frontend-full-tour.json'
 const TOKEN_KEY = 'warehouse-console-token'
 const DETAIL_DISCOVERY_HEADING_TIMEOUT_MS = 45_000
@@ -239,19 +238,6 @@ function addUniquePath(paths: Map<string, string>, path: string) {
   }
 }
 
-async function loginToken(request: APIRequestContext, account: Account) {
-  const response = await request.post(`${API_URL}/api/v1/auth/login`, {
-    data: {
-      email: account.email,
-      password: account.password,
-    },
-  })
-  expect(response.ok(), `login should work for ${account.email}`).toBeTruthy()
-  const body = (await response.json()) as { accessToken?: string }
-  expect(body.accessToken, `login token should be present for ${account.email}`).toBeTruthy()
-  return body.accessToken as string
-}
-
 async function apiJson<T>(
   request: APIRequestContext,
   method: 'get' | 'post' | 'patch',
@@ -286,7 +272,7 @@ async function expectOkMutation(responsePromise: Promise<{ ok(): boolean; status
 }
 
 async function createHarmonicFixture(request: APIRequestContext) {
-  const adminToken = await loginToken(request, baseAccounts.owner)
+  const adminToken = await firebaseLogin(request, baseAccounts.owner.email, baseAccounts.owner.password)
   const suffix = `tour-${Date.now().toString(36)}`
   const password = 'tour-password'
 
@@ -344,11 +330,14 @@ async function createHarmonicFixture(request: APIRequestContext) {
     role: 'WAREHOUSE_OPERATOR',
   })
 
+  await createFirebaseUser(request, merchantAccount.email, merchantAccount.password)
+  await createFirebaseUser(request, warehouseAccount.email, warehouseAccount.password)
+
   return { suffix, merchant, provider, warehouse, item, relationship, merchantAccount, warehouseAccount }
 }
 
 async function createPlatformHierarchyFixture(request: APIRequestContext) {
-  const ownerToken = await loginToken(request, baseAccounts.owner)
+  const ownerToken = await firebaseLogin(request, baseAccounts.owner.email, baseAccounts.owner.password)
   const suffix = `roles-${Date.now().toString(36)}`
   const password = 'tour-password'
 
@@ -381,6 +370,8 @@ async function createPlatformHierarchyFixture(request: APIRequestContext) {
     role: 'MERCHANT',
   })
 
+  await createFirebaseUser(request, ordinaryMerchant.email, ordinaryMerchant.password)
+
   return {
     suffix,
     tenant,
@@ -401,14 +392,14 @@ async function createPlatformHierarchyFixture(request: APIRequestContext) {
 }
 
 async function getPlatformRelationshipDetailPath(request: APIRequestContext) {
-  const ownerToken = await loginToken(request, baseAccounts.owner)
+  const ownerToken = await firebaseLogin(request, baseAccounts.owner.email, baseAccounts.owner.password)
   const relationships = await apiJson<ApiEntity[]>(request, 'get', '/api/v1/merchant-warehouse/relationships', ownerToken)
   const relationship = relationships.find((candidate) => candidate.id)
   return relationship ? `/merchant-warehouse/relationships/${relationship.id}` : undefined
 }
 
 async function createEmptyStakeholderFixture(request: APIRequestContext) {
-  const ownerToken = await loginToken(request, baseAccounts.owner)
+  const ownerToken = await firebaseLogin(request, baseAccounts.owner.email, baseAccounts.owner.password)
   const suffix = `empty-${Date.now().toString(36)}`
   const password = 'tour-password'
 
@@ -443,12 +434,15 @@ async function createEmptyStakeholderFixture(request: APIRequestContext) {
     role: 'WAREHOUSE_OPERATOR',
   })
 
+  await createFirebaseUser(request, emptyMerchant.email, emptyMerchant.password)
+  await createFirebaseUser(request, emptyWarehouse.email, emptyWarehouse.password)
+
   return { emptyMerchant, emptyWarehouse }
 }
 
 async function newAuthedPageForAccount(browser: Browser, account: Account, viewport: keyof typeof viewports) {
   const context = await browser.newContext({ viewport: viewports[viewport] })
-  const token = await loginToken(context.request, account)
+  const token = await firebaseLogin(context.request, account.email, account.password)
   await context.addInitScript(
     ({ key, value }) => {
       try {
@@ -465,7 +459,7 @@ async function newAuthedPageForAccount(browser: Browser, account: Account, viewp
 
 async function newAuthedContextForAccount(browser: Browser, account: Account, viewport: keyof typeof viewports) {
   const context = await browser.newContext({ viewport: viewports[viewport] })
-  const token = await loginToken(context.request, account)
+  const token = await firebaseLogin(context.request, account.email, account.password)
   await context.addInitScript(
     ({ key, value }) => {
       try {
@@ -725,14 +719,7 @@ test('public auth UI input tour accepts typed happy and unhappy paths', async ({
   await expect(page.getByRole('heading', { name: 'Operations Console' })).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
 
   // Ensure the owner exists in the Firebase Auth emulator so password reset works.
-  await fetch(
-    `${FIREBASE_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: baseAccounts.owner.email, password: baseAccounts.owner.password, returnSecureToken: true }),
-    },
-  ).catch(() => { /* ignore — user may already exist */ })
+  await createFirebaseUser(context.request, baseAccounts.owner.email, baseAccounts.owner.password)
 
   await page.goto(`${APP_URL}/forgot-password`, { waitUntil: 'domcontentloaded' })
   await waitForAppSettled(page, 'forgot password input')

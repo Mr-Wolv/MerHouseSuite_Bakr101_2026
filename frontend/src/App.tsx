@@ -12,8 +12,7 @@ import {
   AdminTenantsPage,
   AdminUsersPage,
 } from './pages/AdminPages'
-import { ForgotPasswordPage, OtpResetPage, RequestAccessPage, ResetPasswordPage } from './pages/AuthRecoveryPages'
-import { AssistantPage } from './pages/AssistantPage'
+import { ForgotPasswordPage, RequestAccessPage, ResetPasswordPage } from './pages/AuthRecoveryPages'
 import { AccountPage } from './pages/AccountPage'
 import { HomeRedirect } from './pages/HomeRedirect'
 import { HowToUsePage } from './pages/HowToUsePage'
@@ -36,7 +35,6 @@ const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
-  { path: '/reset-with-otp', element: <OtpResetPage /> },
   { path: '/request-access', element: <RequestAccessPage /> },
   { path: '/how-to-use', element: <HowToUsePage /> },
   {
@@ -87,7 +85,6 @@ const router = createBrowserRouter([
             element: <RequireAuth roles={['OWNER', 'ADMIN', 'SUPPORT_ADMIN', 'AUDITOR', 'MERCHANT', 'WAREHOUSE_OPERATOR']} />,
             children: [
               { path: '/service-accountability', element: <ServiceAccountabilityPage /> },
-              { path: '/assistant', element: <AssistantPage /> },
               { path: '/notifications', element: <NotificationCenterPage /> },
               { path: '/account', element: <AccountPage /> },
               { path: '/orders/:orderId', element: <OrderDetailPage /> },

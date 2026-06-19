@@ -76,25 +76,36 @@ Write-Host "OpenAPI YAML:     $yamlUrl"
 Write-Host "V1 grouped JSON:  $groupedJsonUrl"
 Write-Host ""
 if ($Login) {
-    $loginUrl = Join-Url -Root $normalizedBaseUrl -Path "/api/v1/auth/login"
-    Write-Host "Logging in as $AdminEmail..."
+    $firebaseEmulatorHost = $env:E2E_FIREBASE_EMULATOR
+    if ([string]::IsNullOrWhiteSpace($firebaseEmulatorHost)) {
+        $firebaseEmulatorHost = "http://localhost:9099"
+    }
+    $firebaseEmulatorHost = $firebaseEmulatorHost.TrimEnd('/')
+    $firebaseApiKey = $env:E2E_FIREBASE_API_KEY
+    if ([string]::IsNullOrWhiteSpace($firebaseApiKey)) {
+        $firebaseApiKey = "emulator-api-key"
+    }
+
+    $firebaseUrl = "$firebaseEmulatorHost/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$firebaseApiKey"
+    Write-Host "Logging in as $AdminEmail via Firebase Auth..."
 
     $loginResponse = Invoke-RestMethod `
-        -Uri $loginUrl `
+        -Uri $firebaseUrl `
         -Method Post `
         -ContentType "application/json" `
         -Body (@{
             email = $AdminEmail
             password = $AdminPassword
+            returnSecureToken = $true
         } | ConvertTo-Json)
 
-    if ([string]::IsNullOrWhiteSpace($loginResponse.accessToken)) {
-        throw "Login succeeded but did not return an accessToken."
+    if ([string]::IsNullOrWhiteSpace($loginResponse.idToken)) {
+        throw "Firebase login did not return an idToken."
     }
 
     Write-Host ""
     Write-Host "Swagger bearer token:"
-    Write-Host $loginResponse.accessToken
+    Write-Host $loginResponse.idToken
     Write-Host ""
     Write-Host "In Swagger UI, click Authorize and paste this token into bearerAuth."
     Write-Host "This helper prints the token only; it does not copy or write it."

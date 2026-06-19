@@ -217,9 +217,7 @@ $env:HF_COMMIT_MESSAGE = "Sync MerHouse backend Space"
 # Keys that are local-only tooling values (HF_TOKEN, HF_SPACE_REPO_ID) are excluded.
 $hfLocalOnlyKeys = @("HF_TOKEN", "HF_SPACE_REPO_ID")
 $secretKeys = @(
-    "SPRING_DATASOURCE_PASSWORD",
-    "MERHOUSE_AUTH_JWT_SECRET",
-    "MERHOUSE_SMTP_PASSWORD"
+    "SPRING_DATASOURCE_PASSWORD"
 )
 
 if ($PushEnv) {

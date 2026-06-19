@@ -22,8 +22,8 @@ The repository is intended to be public-readable. Keep source, docs, scripts, CI
 - Account settings with account context and current-password-verified password change.
 - Native Android wrapper that packages the same frontend build through Capacitor without duplicating product code.
 - Shared mobile shell metadata with manifest, app icon, and online-first service worker used by the web runtime and native package input.
-- In-app notification records, preferences, action inbox, delivery history, and optional SMTP-backed email attempts when enabled in V17 deployment configuration.
-- Deterministic local operations assistant with scoped summaries, review-only suggestions, refusals, decision audit, and no operational mutation.
+- In-app notification records, preferences, action inbox, delivery history, and per-account delivery preferences.
+- Password recovery via Firebase Auth built-in email templates with backend token sync.
 - Local and deployed readiness harnesses for checks, smoke flows, browser proof, bundle/performance budgets, publication readiness, provider boundaries, and sanitized V17 evidence attachment.
 
 ## Recent Certification
@@ -73,9 +73,9 @@ Acceptance bar:
 
 ## Runtime Boundaries
 
-- Notification and password recovery delivery are in-app records by default. V17 deployment configuration can make opt-in SMTP email attempts when enabled and proven; SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
+- Notification and password recovery delivery are in-app records by default. Firebase Auth handles password-reset email delivery. SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
 - Carrier/provider handoff is represented by outbox and carrier-dispatch records unless a later provider adapter is deliberately implemented and proven.
-- Assistant behavior is deterministic local review assistance, not provider-backed AI.
+
 - Service statements are local service-unit records, not invoices or payment collection.
 - Dispute evidence is stored as notes and linked local records, not uploaded legal attachment packets.
 - Failed and returned shipments are delivery-state evidence, not full customer RMA/refund/inspection/disposition workflows.
@@ -94,10 +94,9 @@ V17 first-release rule: keep product scope frozen now that the portfolio feature
 
 Implemented V17 portfolio scope:
 
-- Feature A: Access Request & Approval Workflow with auto-activation and email delivery
-- Feature B: Password Recovery with OTP (6-digit code, 15-minute TTL, replay protection)
+- Feature A: Access Request & Approval Workflow with auto-activation
+- Feature B: Password Recovery via Firebase Auth (built-in email templates + backend token sync)
 - Feature C: How To Use Page (roles, onboarding, order workflow, warehouse workflow, navigation)
-- Email console capture mode (`MERHOUSE_EMAIL_PROVIDER=log`) for local demo without SMTP
 
 Remaining V17 closure work:
 

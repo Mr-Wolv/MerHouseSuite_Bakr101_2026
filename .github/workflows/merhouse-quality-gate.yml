@@ -216,13 +216,11 @@ jobs:
         shell: bash
         run: |
           ci_postgres_password="$(openssl rand -hex 32)"
-          ci_jwt_secret="$(openssl rand -hex 48)"
           ci_admin_email="admin@merhouse.local"
           ci_admin_password="$(openssl rand -hex 32)"
           ci_review_password="$(openssl rand -hex 32)"
 
           echo "::add-mask::$ci_postgres_password"
-          echo "::add-mask::$ci_jwt_secret"
           echo "::add-mask::$ci_admin_password"
           echo "::add-mask::$ci_review_password"
 
@@ -236,7 +234,6 @@ jobs:
           MERHOUSE_POSTGRES_DB=merhouse
           MERHOUSE_POSTGRES_USER=merhouse_local
           MERHOUSE_POSTGRES_PASSWORD=$ci_postgres_password
-          MERHOUSE_AUTH_JWT_SECRET=$ci_jwt_secret
           MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN=false
           MERHOUSE_AUTH_SEED_ADMIN_ENABLED=true
           MERHOUSE_AUTH_SEED_ADMIN_EMAIL=$ci_admin_email
@@ -246,7 +243,6 @@ jobs:
           MERHOUSE_BACKEND_PORT=8080
           MERHOUSE_FRONTEND_PORT=3001
           MERHOUSE_CORS_ALLOWED_ORIGINS=http://localhost:3001,http://localhost,capacitor://localhost,ionic://localhost
-          FIREBASE_AUTH_ENABLED=true
           FIREBASE_PROJECT_ID=merhouse-local
           FIREBASE_EMULATOR_HOST=firebase-emulators:9099
           FIREBASE_AUTH_EMULATOR_HOST=firebase-emulators:9099
@@ -276,28 +272,30 @@ jobs:
             sleep 3
           done
 
-      - name: Wait for backend login
+      - name: Wait for backend login via Firebase Auth
         shell: pwsh
         run: |
+          $firebaseUrl = "http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=emulator-api-key"
           $body = @{
             email = $env:CI_ADMIN_EMAIL
             password = $env:CI_ADMIN_PASSWORD
+            returnSecureToken = $true
           } | ConvertTo-Json
 
           for ($attempt = 1; $attempt -le 60; $attempt++) {
             try {
-              $response = Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/v1/auth/login" -ContentType "application/json" -Body $body
-              if ($response.accessToken) {
-                Write-Host "Backend accepted seeded owner login."
+              $response = Invoke-RestMethod -Method Post -Uri $firebaseUrl -ContentType "application/json" -Body $body
+              if ($response.idToken) {
+                Write-Host "Firebase Auth accepted seeded owner login."
                 exit 0
               }
             } catch {
-              Write-Host "Waiting for backend login readiness ($attempt/60)..."
+              Write-Host "Waiting for Firebase Auth login readiness ($attempt/60)..."
               Start-Sleep -Seconds 5
             }
           }
 
-          throw "Backend did not accept seeded owner login before timeout."
+          throw "Firebase Auth did not accept seeded owner login before timeout."
 
       - name: Run API smoke
         shell: pwsh

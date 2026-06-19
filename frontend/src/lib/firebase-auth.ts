@@ -42,13 +42,10 @@ function buildActionCodeSettings() {
  * Send a Firebase password-reset email. Firebase generates the out-of-band
  * (oob) code and emails a link that lands on `/reset-password?oobCode=...`.
  *
- * Throws when Firebase is not configured or when the SDK returns an error
- * (e.g. `auth/user-not-found`, `auth/invalid-email`).
+ * Throws when the SDK returns an error (e.g. `auth/user-not-found`,
+ * `auth/invalid-email`).
  */
 export async function sendFirebasePasswordReset(email: string): Promise<void> {
-  if (!auth) {
-    throw new Error('Firebase Auth is not configured.')
-  }
   await sendPasswordResetEmail(auth, email, buildActionCodeSettings())
 }
 
@@ -58,9 +55,6 @@ export async function sendFirebasePasswordReset(email: string): Promise<void> {
  * already used, or malformed.
  */
 export async function verifyResetCode(oobCode: string): Promise<string> {
-  if (!auth) {
-    throw new Error('Firebase Auth is not configured.')
-  }
   return verifyPasswordResetCode(auth, oobCode)
 }
 
@@ -69,9 +63,6 @@ export async function verifyResetCode(oobCode: string): Promise<string> {
  * the user's new password.
  */
 export async function confirmFirebasePasswordReset(oobCode: string, newPassword: string): Promise<void> {
-  if (!auth) {
-    throw new Error('Firebase Auth is not configured.')
-  }
   await firebaseConfirmPasswordReset(auth, oobCode, newPassword)
 }
 

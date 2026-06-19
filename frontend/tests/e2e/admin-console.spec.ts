@@ -5,6 +5,19 @@ import { mkdirSync } from 'node:fs'
 const API_URL = process.env.E2E_API_URL ?? 'http://127.0.0.1:8081'
 const FIREBASE_EMULATOR = (process.env.E2E_FIREBASE_EMULATOR ?? 'http://127.0.0.1:9099').replace(/\/+$/, '')
 const FIREBASE_API_KEY = process.env.E2E_FIREBASE_API_KEY ?? 'emulator-api-key'
+
+/** Authenticate via Firebase Auth REST API and return an ID token for backend APIs. */
+async function firebaseLogin(request: APIRequestContext, email: string, password: string): Promise<string> {
+  const response = await request.post(
+    `${FIREBASE_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
+    { data: { email, password, returnSecureToken: true } },
+  )
+  const body = await response.json() as { idToken?: string }
+  if (!body.idToken) {
+    throw new Error(`Firebase login failed for ${email}: ${response.status()} ${JSON.stringify(body)}`)
+  }
+  return body.idToken
+}
 const screenshotDir = '../reports/v7.5'
 
 /** Create a user in the Firebase Auth emulator so Firebase password reset works. */
@@ -195,16 +208,13 @@ test.describe('admin console', () => {
       dialogSeen = true
       await dialog.dismiss()
     })
-    const adminLogin = await api<{ accessToken: string }>(request, 'post', '/api/v1/auth/login', undefined, {
-      email: 'admin@merhouse.local',
-      password: 'local-owner-password',
-    })
-    const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminLogin.accessToken, {
+    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
+    const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E Recovery Merchant ${suffix}`,
       type: 'MERCHANT',
     })
     const merchantEmail = `e2e-recovery-${suffix}@merhouse.local`
-    await api(request, 'post', '/api/v1/admin/users', adminLogin.accessToken, {
+    await api(request, 'post', '/api/v1/admin/users', adminToken, {
       tenantId: merchant.id,
       email: merchantEmail,
       password: 'merchant-password',
@@ -271,15 +281,12 @@ test.describe('admin console', () => {
     const merchantEmail = `e2e-merchant-${suffix}@merhouse.local`
     const merchantPassword = 'merchant-password'
     const sku = `E2E-SKU-${suffix}`
-    const adminLogin = await api<{ accessToken: string }>(request, 'post', '/api/v1/auth/login', undefined, {
-      email: 'admin@merhouse.local',
-      password: 'local-owner-password',
-    })
-    const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminLogin.accessToken, {
+    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
+    const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: tenantName,
       type: 'MERCHANT',
     })
-    await api(request, 'post', '/api/v1/admin/users', adminLogin.accessToken, {
+    await api(request, 'post', '/api/v1/admin/users', adminToken, {
       tenantId: merchant.id,
       email: merchantEmail,
       password: merchantPassword,
@@ -319,11 +326,7 @@ test.describe('admin console', () => {
   test('warehouse operator can fulfill and deliver an allocation', async ({ page, request }) => {
     test.setTimeout(120_000)
     const suffix = Date.now().toString(36)
-    const adminLogin = await api<{ accessToken: string }>(request, 'post', '/api/v1/auth/login', undefined, {
-      email: 'admin@merhouse.local',
-      password: 'local-owner-password',
-    })
-    const adminToken = adminLogin.accessToken
+    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
     const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E Operator Merchant ${suffix}`,
       type: 'MERCHANT',
@@ -430,16 +433,13 @@ test.describe('admin console', () => {
     const suffix = Date.now().toString(36)
     const oldPassword = 'account-old-password'
     const newPassword = 'account-new-password'
-    const adminLogin = await api<{ accessToken: string }>(request, 'post', '/api/v1/auth/login', undefined, {
-      email: 'admin@merhouse.local',
-      password: 'local-owner-password',
-    })
-    const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminLogin.accessToken, {
+    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
+    const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E Account Merchant ${suffix}`,
       type: 'MERCHANT',
     })
     const userEmail = `e2e-account-${suffix}@merhouse.local`
-    await api(request, 'post', '/api/v1/admin/users', adminLogin.accessToken, {
+    await api(request, 'post', '/api/v1/admin/users', adminToken, {
       tenantId: merchant.id,
       email: userEmail,
       password: oldPassword,
@@ -476,11 +476,7 @@ test.describe('admin console', () => {
 
   test('warehouse operator can fail and return in-transit shipments', async ({ page, request }) => {
     const suffix = Date.now().toString(36)
-    const adminLogin = await api<{ accessToken: string }>(request, 'post', '/api/v1/auth/login', undefined, {
-      email: 'admin@merhouse.local',
-      password: 'local-owner-password',
-    })
-    const adminToken = adminLogin.accessToken
+    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
     const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E Shipment Merchant ${suffix}`,
       type: 'MERCHANT',
@@ -567,11 +563,7 @@ test.describe('admin console', () => {
   test('merchant and warehouse complete the V8 operating loop through the UI', async ({ page, request }) => {
     test.setTimeout(120_000)
     const suffix = Date.now().toString(36)
-    const adminLogin = await api<{ accessToken: string }>(request, 'post', '/api/v1/auth/login', undefined, {
-      email: 'admin@merhouse.local',
-      password: 'local-owner-password',
-    })
-    const adminToken = adminLogin.accessToken
+    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
     const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E V8 Merchant ${suffix}`,
       type: 'MERCHANT',
@@ -702,11 +694,7 @@ test.describe('admin console', () => {
   test('shows V11 service accountability records and import validation', async ({ page, request }) => {
     mkdirSync('../reports/v11', { recursive: true })
     const suffix = Date.now().toString(36)
-    const adminLogin = await api<{ accessToken: string }>(request, 'post', '/api/v1/auth/login', undefined, {
-      email: 'admin@merhouse.local',
-      password: 'local-owner-password',
-    })
-    const adminToken = adminLogin.accessToken
+    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
     const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E V11 Merchant ${suffix}`,
       type: 'MERCHANT',

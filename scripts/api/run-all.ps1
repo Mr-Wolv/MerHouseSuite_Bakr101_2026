@@ -4,7 +4,9 @@ param(
     [string]$AdminEmail = "admin@merhouse.local",
     [string]$AdminPassword = "local-owner-password",
     [switch]$ExpectRecoveryToken,
-    [switch]$ExpectOpenApiDocs = $true
+    [switch]$ExpectOpenApiDocs = $true,
+    [string]$FirebaseEmulatorHost = "",
+    [string]$FirebaseApiKey = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,6 +37,16 @@ New-Item -ItemType Directory -Force -Path (Split-Path -Parent $OutputPath) | Out
 . (Join-Path $apiRoot "lib\postgres.ps1")
 . (Join-Path $apiRoot "lib\report.ps1")
 
+if ([string]::IsNullOrWhiteSpace($FirebaseEmulatorHost)) {
+    $FirebaseEmulatorHost = Get-MerHouseEnvValue -Name 'VITE_FIREBASE_EMULATOR_HOST'
+}
+if ([string]::IsNullOrWhiteSpace($FirebaseApiKey)) {
+    $FirebaseApiKey = Get-MerHouseEnvValue -Name 'VITE_FIREBASE_API_KEY'
+}
+if ([string]::IsNullOrWhiteSpace($FirebaseApiKey)) {
+    $FirebaseApiKey = "emulator-api-key"
+}
+
 $context = @{
     BaseUrl = $normalizedBaseUrl
     OutputPath = $OutputPath
@@ -43,9 +55,16 @@ $context = @{
     AdminPassword = $AdminPassword
     ExpectRecoveryToken = [bool]$ExpectRecoveryToken
     ExpectOpenApiDocs = [bool]$ExpectOpenApiDocs
+    FirebaseEmulatorHost = $FirebaseEmulatorHost
+    FirebaseApiKey = $FirebaseApiKey
 }
 
 Write-Host "Running MerHouse API smoke test against $normalizedBaseUrl"
+if ($FirebaseEmulatorHost) {
+    Write-Host "Firebase Auth emulator: $FirebaseEmulatorHost"
+} else {
+    Write-Host "Firebase Auth: production (identitytoolkit.googleapis.com)"
+}
 
 . (Join-Path $apiRoot "scenarios\00-auth-admin.ps1") -Context $context
 . (Join-Path $apiRoot "scenarios\01-inventory.ps1") -Context $context

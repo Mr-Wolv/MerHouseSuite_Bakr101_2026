@@ -14,7 +14,7 @@ It models the operating relationship between a brand or merchant and a warehouse
 
 MerHouse is public-readable as source code, local product proof, and sanitized deployment automation. The current repository proves a local Docker Compose runtime, backend and frontend tests, browser route proof, native Android debug-APK proof, cross-surface parity checks, performance-readiness checks, and a recorded local live browser/installed-APK walkthrough.
 
-V17 activation now uses a **confirmed live** private deployed footprint: Neon PostgreSQL, a Hugging Face Docker Space backend, a Firebase Hosting React/Vite frontend, GitHub Actions quality/release workflows, GitHub Release APK distribution, opt-in console-capture email delivery, signed Android release proof, and deployment preflight checks. The deployment infrastructure is complete and verified by CI. The three V17 portfolio features are also implemented in the current codebase: Access Request & Approve-and-Activate, OTP Password Recovery, and the How To Use Page. AI Assistant Completion with conversation threading is deferred to Vinfinite. The remaining V17 work is closure convergence: proof execution, documentation/diagram synchronization, script inventory validation, and deployed evidence collection. See [`V17-RE-EVALUATION.md`](docs/refactor/V17-RE-EVALUATION.md) and [`Closure_Plan.md`](docs/refactor/Closure_Plan.md) for the current closure scope.
+V17 activation now uses a **confirmed live** private deployed footprint: Neon PostgreSQL, a Hugging Face Docker Space backend, a Firebase Hosting React/Vite frontend, GitHub Actions quality/release workflows, GitHub Release APK distribution, signed Android release proof, and deployment preflight checks. The deployment infrastructure is complete and verified by CI. The three V17 portfolio features are Access Request & Approve-and-Activate and the How To Use Page. The remaining V17 work is closure convergence: proof execution, documentation/diagram synchronization, script inventory validation, and deployed evidence collection. See [`V17-RE-EVALUATION.md`](docs/refactor/V17-RE-EVALUATION.md) and [`Closure_Plan.md`](docs/refactor/Closure_Plan.md) for the current closure scope.
 
 Routine CI is pass/fail only and intentionally publishes no GitHub Actions artifacts. The only intended public binary distribution lane is a deliberate GitHub Release APK asset.
 
@@ -26,8 +26,7 @@ Routine CI is pass/fail only and intentionally publishes no GitHub Actions artif
 - Platform workflows for tenant management, user management, onboarding requests, role changes, account status, relationship governance, audit evidence, outbox diagnostics, and attention-first operational review.
 - Service accountability for agreement setup, agreement proposal and acceptance, at-risk SLA work, service statements, disputes, claims, review requests, and import evidence.
 - Account settings after sign-in for account context and current-password-verified self-service password changes.
-- Deterministic operations assistant for scoped summaries, review-only suggestions, refusals, pending-decision review, and auditable interaction history.
-- Notification action inbox for account lifecycle events, connected operational handoffs, service accountability updates, outbox health, per-user preferences, delivery history, app-shell alert counts, and optional SMTP-backed email attempts when V17 email delivery is enabled.
+- Notification action inbox for account lifecycle events, connected operational handoffs, service accountability updates, outbox health, per-user preferences, delivery history, and app-shell alert counts.
 - REST API with validation, authorization, tenant-aware data access, Flyway migrations, PostgreSQL persistence, and OpenAPI metadata.
 - Native Android packages the same frontend build through Capacitor, with the same MerHouse app icon identity and without a second product implementation.
 
@@ -37,7 +36,7 @@ The app has been verified as a local, role-aware fulfillment coordination system
 
 - Platform owner/admin users review onboarding, govern tenants and relationships, manage accounts, inspect audit evidence, and monitor outbox reliability.
 - Support admins can review and recover supported platform work without owner-only governance powers.
-- Auditors can inspect governance, service, outbox, assistant, and audit evidence without mutation controls.
+- Auditors can inspect governance, service, outbox, and audit evidence without mutation controls.
 - Merchants can move from first-run setup into active work by creating stock, connecting a warehouse provider, sending inbound stock, creating orders, reading attention signals, and reviewing service accountability.
 - Warehouse operators can move from first-run setup into active work by receiving inbound stock, picking/packing/shipping allocated orders, reporting exceptions, and reviewing service evidence.
 - Every signed-in role can use `/account` for account context and current-password-verified password changes.
@@ -257,7 +256,6 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_POSTGRES_DB` | PostgreSQL database name |
 | `MERHOUSE_POSTGRES_USER` | PostgreSQL user |
 | `MERHOUSE_POSTGRES_PASSWORD` | PostgreSQL password |
-| `MERHOUSE_AUTH_JWT_SECRET` | HMAC secret for API access tokens |
 | `MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN` | Development switch for returning recovery tokens in API responses |
 | `MERHOUSE_AUTH_RECOVERY_REQUEST_LIMIT` | Per-account reset-token preparation limit inside the recovery window |
 | `MERHOUSE_AUTH_RECOVERY_REQUEST_WINDOW_MINUTES` | Rolling window for password-recovery throttling |
@@ -271,21 +269,13 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_PUBLIC_FRONTEND_URL` | Public HTTPS frontend origin used for provider-backed account/recovery email links; public startup validation rejects HTTP or placeholder origins |
 | `MERHOUSE_CORS_ALLOWED_ORIGINS` | Browser/native origins accepted by the backend; public startup validation rejects wildcard CORS and requires the public frontend origin |
 | `MERHOUSE_FRONTEND_PUBLIC_API_URL` | Optional frontend container build-time API URL; leave blank for same-origin reverse-proxy deployments |
-| `MERHOUSE_EMAIL_ENABLED` | Enables SMTP-backed email delivery attempts for configured email channels |
-| `MERHOUSE_EMAIL_FROM` | Sender address for provider-backed email delivery |
-| `MERHOUSE_EMAIL_REPLY_TO` | Optional reply-to address; deployment checks reject placeholders or malformed values when email is enabled |
-| `MERHOUSE_SMTP_HOST` / `MERHOUSE_SMTP_PORT` | SMTP provider target, such as Gmail/Google Workspace SMTP for staging proof |
-| `MERHOUSE_SMTP_USERNAME` / `MERHOUSE_SMTP_PASSWORD` | SMTP provider account and private credential; required when email delivery is enabled |
-| `MERHOUSE_AGENT_MODE` | Agent runtime mode; V17 public/deployment checks currently accept only `deterministic` read-plus-draft behavior |
-| `MERHOUSE_AGENT_TIMEOUT_SECONDS` | Agent runtime timeout guard; deployment checks require 1-60 seconds |
 
 ## Local Development And Runtime Boundaries
 
 V16.2 proved deployment readiness locally. V17 now carries the private deployed lane, while local Docker Compose remains the reproducible development and regression-proof path.
 
-- Notification delivery and password recovery delivery are in-app records by default, with per-account recovery throttling. V17 can make opt-in SMTP email attempts when email configuration is enabled and proven; SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
+- Notification delivery and password recovery delivery are in-app records by default, with per-account recovery throttling. Firebase Auth handles password-reset email delivery. SMS, phone OS push, lock-screen, notification-tray, webhook, and push-provider delivery remain outside the current scope.
 - Carrier/provider handoff is represented by outbox and carrier-dispatch records unless a later provider adapter is deliberately implemented and proven.
-- Assistant behavior is deterministic read-plus-draft review assistance. Public/deployment checks reject non-deterministic agent modes until a provider-backed runtime is implemented, authorized, audited, and proven.
 - Health, dependency, and public-readiness proof have local checks; V17 backup/restore, rollback, monitoring, load, deployed browser, and installed-Android proof must be recorded with sanitized private evidence before release claims.
 - Service statements are local service-unit records, not invoices or payment collection; dispute evidence is stored as notes and linked local records, not uploaded legal attachment packets.
 - Failed and returned shipments are delivery-state evidence, not a full customer RMA, refund, inspection, disposition, or accounting workflow.
@@ -297,7 +287,7 @@ Production activation is now the private V17 deployment lane and must finish rep
 The tracked activation checklist lives in [Production deployment activation](docs/operations/production-deployment-activation.md).
 Service-specific activation notes for email recovery, account invitations, email notifications, and real agentic work live in [V17 external service activation](docs/operations/v17-service-activation.md).
 
-V17 private deployment work uses the selected Neon + Hugging Face Spaces + Firebase Hosting + GitHub Release lane. It includes deployment scripts under `scripts/deploy/`, deployed proof wrappers, console-capture email delivery, alert-routing and manual live-walkthrough proof helpers, a read-plus-draft deterministic agent boundary, load-smoke proof, Android release-shape proof, and signed Android release checks with private release manifests. Keep detailed deployment values, provider credentials, Android keystores, proof logs, and non-APK proof artifacts private until the deployment is proven and intentionally published.
+V17 private deployment work uses the selected Neon + Hugging Face Spaces + Firebase Hosting + GitHub Release lane. It includes deployment scripts under `scripts/deploy/`, deployed proof wrappers, alert-routing and manual live-walkthrough proof helpers, load-smoke proof, Android release-shape proof, and signed Android release checks with private release manifests. Keep detailed deployment values, provider credentials, Android keystores, proof logs, and non-APK proof artifacts private until the deployment is proven and intentionally published.
 
 Deployment lanes are tracked in the activation doc: current V17 uses Neon PostgreSQL plus Hugging Face Docker Space backend plus Firebase Hosting frontend plus GitHub Release APK distribution. VPS/Compose hosting and machine-hosted tunnel deployment are not current progress lanes.
 
@@ -305,7 +295,7 @@ Deployment lanes are tracked in the activation doc: current V17 uses Neon Postgr
 
 The latest scripted V16.2 QC pass on 2026-06-10 verified:
 
-- Live browser tour across 188 routed records for public auth/recovery/access/reset, owner/admin, support-admin, auditor, active and empty merchant, active and empty warehouse, account settings, notifications, assistant, service accountability, outbox, audit, and operational detail routes.
+- Live browser tour across 188 routed records for public auth/recovery/access/reset, owner/admin, support-admin, auditor, active and empty merchant, active and empty warehouse, account settings, notifications, service accountability, outbox, audit, and operational detail routes.
 - Desktop and narrow viewport sweeps with no visible horizontal page overflow, clipped visible controls, missing accessible names, framework error residue, or confusing route fallback.
 - Fresh merchant and warehouse accounts from empty state into active relationship, inbound receiving, stock, order allocation, notifications, and detail-page workflows.
 - Account settings password change for a disposable user, including form clearing and login with the new password.

@@ -4,7 +4,7 @@ This note records the external-service layer MerHouse activates during the priva
 
 V17 should finish as a simple deployed release before adding more product surface. Email is the real external service target for the first deployment. Android OS notifications, push providers, and autonomous agent mutations are out of scope. The agent is the only deliberate v1 prototype: it can draft and explain next steps from authorized context, but it cannot perform operational work until a later tool-authorization release is designed, tested, audited, and proven.
 
-> **Deployment status update (2026-06-14):** The private V17 deployment is **confirmed live** on Neon PostgreSQL, Hugging Face Docker Space, Vercel, and GitHub Actions CI/CD. The three portfolio features that demonstrate the public identity lifecycle are implemented in the current codebase: Access Request & Approve-and-Activate, OTP Password Recovery, and the How To Use Page. AI Assistant Completion with conversation threading is deferred to Vinfinite. The remaining V17 work is closure convergence and deployed proof execution. See [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) and [`Closure_Plan.md`](../refactor/Closure_Plan.md) for the active closure scope.
+> **Deployment status update:** The private V17 deployment is **confirmed live** on Neon PostgreSQL, Hugging Face Docker Space, and GitHub Actions CI/CD. The current portfolio features are Access Request & Approve-and-Activate and the How To Use Page. OTP Password Recovery was removed (Firebase Auth handles password reset). AI Assistant Completion is deferred to Vinfinite.
 
 V16.2 kept account recovery, access-request conversion, notifications, and assistant behavior local and auditable. V17 extends those boundaries with real external services only after staging proof, provider credentials, secrets handling, monitoring, and rollback are ready.
 
@@ -12,10 +12,10 @@ V16.2 kept account recovery, access-request conversion, notifications, and assis
 
 | Service | Current V16.2 behavior | V17 target |
 | --- | --- | --- |
-| Forgot password OTP | Local one-time reset-token proof with generic public responses and optional development token echo. | SMTP-delivered reset link through a configured mail provider, with token hashing, expiry, replay protection, rate limits, audit records, and no token echo in public environments. |
-| Request access | Public request form plus platform review, approval, rejection, and local account-ready delivery history. | SMTP account-ready email after approval or conversion, with explicit reviewer/converter audit and no checked-in setup credentials. |
-| Notifications | Recipient-scoped in-app records, delivery history, preferences, and app-shell alert counts. | Opt-in SMTP email notification attempts for configured topics, with provider status evidence. Android OS push, lock-screen, and notification-tray delivery are not part of this target unless a later roadmap change deliberately reopens them. |
-| Agent | Deterministic local summaries, review-only suggestions, refusals, accept/reject decisions, and audit. | V17 v1 keeps deterministic read-plus-draft behavior behind a bounded runtime interface with scoped metadata and no operational mutations. Provider-backed reasoning or backend-approved tool execution is a later activation slice after authorization, approval, unavailable-state, audit, and live proof exist. |
+| Password recovery | Local one-time reset-token proof with generic public responses and optional development token echo. Firebase Auth handles password-reset email delivery via built-in email templates. | Firebase Auth built-in email templates for password reset; token hashing, expiry, replay protection, rate limits, audit records in place. |
+| Request access | Public request form plus platform review, approval, rejection, and local account-ready delivery history. | Local in-app notification on approval/conversion. Users can use Firebase forgot-password to set their own password. |
+| Notifications | Recipient-scoped in-app records, delivery history, preferences, and app-shell alert counts. | In-app records only (no SMTP provider connected). Android OS push, lock-screen, and notification-tray delivery are not part of the current target. |
+| Agent | Removed from codebase. | Deferred to Vinfinite. |
 
 ## Gmail And Email Direction
 

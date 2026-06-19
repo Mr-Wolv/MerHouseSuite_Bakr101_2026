@@ -1,6 +1,6 @@
 # Deployment-Ready Local Certification
 
-V16.2 prepared MerHouse for future deployment without deploying it during that phase. The phase proves that the codebase, configuration, docs, scripts, and local runtime were shaped for deployment later while every external dependency remained local, mocked, or explicitly deferred. **Current V17 status:** deployment is confirmed live on Neon, Hugging Face Docker Space, Vercel, and GitHub Actions. The three V17 portfolio features are implemented in the current codebase (Access Request & Approve-and-Activate, OTP Password Recovery, How To Use Page). AI Assistant Completion is deferred to Vinfinite. The remaining V17 work is closure convergence and deployed proof execution. See the [roadmap](../architecture/roadmap.md), [production deployment activation](../operations/production-deployment-activation.md), [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md), and [`Closure_Plan.md`](../refactor/Closure_Plan.md) for current scope.
+V16.2 prepared MerHouse for future deployment without deploying it during that phase. The phase proves that the codebase, configuration, docs, scripts, and local runtime were shaped for deployment later while every external dependency remained local, mocked, or explicitly deferred. **Current V17 status:** deployment is confirmed live on Neon, Hugging Face Docker Space, Vercel, and GitHub Actions. The three V17 portfolio features are implemented in the current codebase (Access Request & Approve-and-Activate, Password Recovery, How To Use Page). AI Assistant Completion is deferred to Vinfinite. The remaining V17 work is closure convergence and deployed proof execution. See the [roadmap](../architecture/roadmap.md), [production deployment activation](../operations/production-deployment-activation.md), [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md), and [`Closure_Plan.md`](../refactor/Closure_Plan.md) for current scope.
 
 ## Boundary
 
@@ -13,7 +13,6 @@ V16.2 is not a SaaS launch. It does not provision cloud infrastructure, send ema
 | Notification delivery | Recipient-scoped in-app delivery records, preferences, provider status, and action inbox proof. | Email, SMS, phone OS push, lock-screen, notification-tray, or webhook delivery with callbacks, bounce handling, and deliverability monitoring. |
 | Password recovery delivery | Local reset records with token echo disabled by default; API smoke can enable token echo only for local proof. | Provider-backed reset delivery and recovery runbook. |
 | Carrier/provider handoff | Local outbox events and carrier-dispatch records. | Real carrier or delivery-provider adapter with idempotent callbacks and retry policy. |
-| Assistant/model behavior | Deterministic local review assistance and audit records. | Optional local or provider-backed model runtime with prompt/data boundary proof. |
 | Monitoring-style health | Health endpoint, readiness checks, quality scripts, and local proof reports. | Production monitoring, alerting, log retention, and incident response. |
 | Backup/restore | Local dry-run script path and schema/data proof against the Docker database when requested. | Production backup schedule, restore drill, rollback procedure, and retention policy. |
 
@@ -82,6 +81,5 @@ The latest scripted V16.2 local certification proof uses the rebuilt local Docke
 - Open a deliberate production activation track before making a staging or production launch claim.
 - Replace local notification and recovery delivery with configured providers.
 - Replace local carrier/provider records with real provider adapters.
-- Keep assistant behavior deterministic unless an explicit V17 or VInfinite activation chooses local-model-backed or provider-backed behavior with prompt/data boundary proof.
 - Add production monitoring, alerting, logs, backup/restore, rollback, and incident-response runbooks.
 - Re-run public-readiness certification before publishing the repository.

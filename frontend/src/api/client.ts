@@ -1,11 +1,7 @@
 import type {
-  AuthResponse,
   AdminActionPayload,
   AdminAuditEvent,
   AdminPlatformSummary,
-  AssistantInteraction,
-  AssistantDecisionPayload,
-  AssistantInteractionPayload,
   AdminResetPasswordPayload,
   AdminTenantHealth,
   AccessRequest,
@@ -78,7 +74,6 @@ import type {
   Warehouse,
   WarehouseInventory,
   WarehouseProviderOption,
-  PasswordResetRequestResponse,
   ReceiveInboundStockPayload,
   RejectInboundStockPayload,
   FulfillmentAllocationDetail,
@@ -86,7 +81,6 @@ import type {
 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
-const NGROK_SKIP_BROWSER_WARNING_HEADER = 'ngrok-skip-browser-warning'
 
 export class ApiError extends Error {
   status: number
@@ -105,34 +99,15 @@ type RequestOptions = {
   body?: unknown
 }
 
-function shouldSkipNgrokBrowserWarning(apiBaseUrl: string): boolean {
-  if (!apiBaseUrl) {
-    return false
-  }
-
-  try {
-    const host = new URL(apiBaseUrl).hostname
-    return host.endsWith('.ngrok-free.dev') || host.endsWith('.ngrok.app')
-  } catch {
-    return false
-  }
-}
-
 async function resolveToken(explicitToken?: string | null): Promise<string | null> {
   if (explicitToken) {
     return explicitToken
   }
   // Auto-fetch a Firebase ID token when no explicit token is provided.
-  // Uses dynamic import to avoid triggering Firebase initialization in test
-  // environments where the Firebase config is not available.
-  try {
-    const { auth: firebaseAuth } = await import('../lib/firebase')
-    const user = firebaseAuth?.currentUser
-    if (user) {
-      return user.getIdToken()
-    }
-  } catch {
-    // Firebase not configured — fall through.
+  const { auth: firebaseAuth } = await import('../lib/firebase')
+  const user = firebaseAuth?.currentUser
+  if (user) {
+    return user.getIdToken()
   }
   return null
 }
@@ -140,10 +115,6 @@ async function resolveToken(explicitToken?: string | null): Promise<string | nul
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers()
   headers.set('Accept', 'application/json')
-
-  if (shouldSkipNgrokBrowserWarning(API_BASE_URL)) {
-    headers.set(NGROK_SKIP_BROWSER_WARNING_HEADER, 'true')
-  }
 
   if (options.body !== undefined) {
     headers.set('Content-Type', 'application/json')
@@ -181,12 +152,6 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const api = {
-  login(email: string, password: string) {
-    return request<AuthResponse>('/api/v1/auth/login', {
-      method: 'POST',
-      body: { email, password },
-    })
-  },
   me(token: string) {
     return request<CurrentUserResponse>('/api/v1/auth/me', { token })
   },
@@ -202,30 +167,6 @@ export const api = {
   },
   notificationSummary(token: string) {
     return request<NotificationSummary>('/api/v1/notifications/summary', { token })
-  },
-  assistantInteractions(token: string, limit = 25) {
-    return request<AssistantInteraction[]>(`/api/v1/assistant/interactions?limit=${limit}`, { token })
-  },
-  createAssistantInteraction(token: string, body: AssistantInteractionPayload) {
-    return request<AssistantInteraction>('/api/v1/assistant/interactions', {
-      method: 'POST',
-      token,
-      body,
-    })
-  },
-  acceptAssistantSuggestion(token: string, interactionId: string, body: AssistantDecisionPayload) {
-    return request<AssistantInteraction>(`/api/v1/assistant/interactions/${interactionId}/accept`, {
-      method: 'POST',
-      token,
-      body,
-    })
-  },
-  rejectAssistantSuggestion(token: string, interactionId: string, body: AssistantDecisionPayload) {
-    return request<AssistantInteraction>(`/api/v1/assistant/interactions/${interactionId}/reject`, {
-      method: 'POST',
-      token,
-      body,
-    })
   },
   updateNotificationPreference(token: string, body: NotificationPreferencePayload) {
     return request<NotificationPreference>('/api/v1/notifications/preferences', {
@@ -250,30 +191,7 @@ export const api = {
       token,
     })
   },
-  requestPasswordReset(email: string) {
-    return request<PasswordResetRequestResponse>('/api/v1/auth/password-reset/request', {
-      method: 'POST',
-      body: { email },
-    })
-  },
-  confirmPasswordReset(token: string, newPassword: string) {
-    return request<{ message: string }>('/api/v1/auth/password-reset/confirm', {
-      method: 'POST',
-      body: { token, newPassword },
-    })
-  },
-  requestOtp(email: string) {
-    return request<PasswordResetRequestResponse>('/api/v1/auth/recovery/request-otp', {
-      method: 'POST',
-      body: { email },
-    })
-  },
-  resetWithOtp(email: string, otpCode: string, newPassword: string) {
-    return request<{ message: string }>('/api/v1/auth/recovery/reset-with-otp', {
-      method: 'POST',
-      body: { email, otpCode, newPassword },
-    })
-  },
+
   submitAccessRequest(body: AccessRequestCreatePayload) {
     return request<AccessRequest>('/api/v1/access-requests', {
       method: 'POST',

@@ -15,6 +15,7 @@
  */
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Browser, Page } from '@playwright/test'
+import { firebaseLogin } from './firebase-auth-helper'
 
 const API_URL = process.env.E2E_API_URL ?? 'http://127.0.0.1:8081'
 const TOKEN_KEY = 'warehouse-console-token'
@@ -26,16 +27,6 @@ type ApiEntity = { id: string; [key: string]: unknown }
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
-
-async function loginToken(request: APIRequestContext, account: Account): Promise<string> {
-  const response = await request.post(`${API_URL}/api/v1/auth/login`, {
-    data: { email: account.email, password: account.password },
-  })
-  expect(response.ok(), `login should work for ${account.email}`).toBeTruthy()
-  const body = (await response.json()) as { accessToken?: string }
-  expect(body.accessToken, `login token should be present for ${account.email}`).toBeTruthy()
-  return body.accessToken as string
-}
 
 async function apiJson<T>(
   request: APIRequestContext,
@@ -57,7 +48,7 @@ async function apiJson<T>(
 
 async function newAuthedPage(browser: Browser, account: Account, viewport = { width: 1366, height: 900 }) {
   const context = await browser.newContext({ viewport })
-  const token = await loginToken(context.request, account)
+  const token = await firebaseLogin(context.request, account.email, account.password)
   await context.addInitScript(
     ({ key, value }: { key: string; value: string }) => {
       try { window.localStorage.setItem(key, value) } catch { /* noop */ }
@@ -100,7 +91,7 @@ test.describe('1. Happy path scenarios', () => {
     test.setTimeout(90_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `HP Merchant ${s}`, type: 'MERCHANT' })
     const email = `hp-merchant-${s}@merhouse.local`
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/admin/users', adminToken, { tenantId: merchant.id, email, password: TEST_PASSWORD, role: 'MERCHANT' })
@@ -143,7 +134,7 @@ test.describe('1. Happy path scenarios', () => {
     test.setTimeout(90_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `HP Wh Merchant ${s}`, type: 'MERCHANT' })
     const wp = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `HP Wh Provider ${s}`, type: 'WAREHOUSE_PROVIDER' })
     const warehouse = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/warehouses', adminToken, { tenantId: wp.id, name: `HP Hub ${s}`, address: 'HP Cairo', latitude: null, longitude: null, capacity: 100 })
@@ -171,7 +162,7 @@ test.describe('1. Happy path scenarios', () => {
     test.setTimeout(60_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const tenant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `HP Tenant ${s}`, type: 'MERCHANT' })
     const email = `hp-admin-${s}@merhouse.local`
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/admin/users', adminToken, { tenantId: tenant.id, email, password: TEST_PASSWORD, role: 'MERCHANT' })
@@ -223,7 +214,7 @@ test.describe('1. Happy path scenarios', () => {
     test.setTimeout(60_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Imp Merchant ${s}`, type: 'MERCHANT' })
     const email = `imp-merchant-${s}@merhouse.local`
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/admin/users', adminToken, { tenantId: merchant.id, email, password: TEST_PASSWORD, role: 'MERCHANT' })
@@ -255,7 +246,7 @@ test.describe('1. Happy path scenarios', () => {
     test.setTimeout(60_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Dash Merchant ${s}`, type: 'MERCHANT' })
     const email = `dash-merchant-${s}@merhouse.local`
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/admin/users', adminToken, { tenantId: merchant.id, email, password: TEST_PASSWORD, role: 'MERCHANT' })
@@ -280,7 +271,7 @@ test.describe('1. Happy path scenarios', () => {
     test.setTimeout(90_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Notif Merchant ${s}`, type: 'MERCHANT' })
     const email = `notif-merchant-${s}@merhouse.local`
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/admin/users', adminToken, { tenantId: merchant.id, email, password: TEST_PASSWORD, role: 'MERCHANT' })
@@ -366,7 +357,7 @@ test.describe('2. Unhappy path scenarios', () => {
     test.setTimeout(60_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Unhappy Merchant ${s}`, type: 'MERCHANT' })
     await ctx0.close()
 
@@ -424,7 +415,7 @@ test.describe('2. Unhappy path scenarios', () => {
 
 test.describe('3. Stress testing', () => {
   test('rapid sequential API calls complete without errors', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const results: Array<{ ok: boolean; status: number }> = []
 
     for (let i = 0; i < 20; i++) {
@@ -444,7 +435,7 @@ test.describe('3. Stress testing', () => {
     const accounts: Account[] = []
 
     const ctx0 = await browser.newContext()
-    const token = await loginToken(ctx0.request, ownerAccount)
+    const token = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     for (let i = 0; i < 3; i++) {
       const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', token, { name: `Stress Tenant ${s}-${i}`, type: 'MERCHANT' })
       const email = `stress-${s}-${i}@merhouse.local`
@@ -490,7 +481,7 @@ test.describe('3. Stress testing', () => {
     test.setTimeout(120_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Perf Merchant ${s}`, type: 'MERCHANT' })
     const email = `perf-merchant-${s}@merhouse.local`
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/admin/users', adminToken, { tenantId: merchant.id, email, password: TEST_PASSWORD, role: 'MERCHANT' })
@@ -535,11 +526,11 @@ test.describe('4. Security testing', () => {
 
   test('admin-only endpoints reject non-admin tokens', async ({ request }) => {
     const s = suffix()
-    const adminToken = await loginToken(request, ownerAccount)
+    const adminToken = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', adminToken, { name: `Sec Merchant ${s}`, type: 'MERCHANT' })
     const merchantEmail = `sec-merchant-${s}@merhouse.local`
     await apiJson<ApiEntity>(request, 'post', '/api/v1/admin/users', adminToken, { tenantId: merchant.id, email: merchantEmail, password: TEST_PASSWORD, role: 'MERCHANT' })
-    const merchantToken = await loginToken(request, { email: merchantEmail, password: TEST_PASSWORD })
+    const merchantToken = await firebaseLogin(request, merchantEmail, TEST_PASSWORD)
 
     const adminOnlyEndpoints = [
       { method: 'get' as const, path: '/api/v1/admin/users' },
@@ -555,7 +546,7 @@ test.describe('4. Security testing', () => {
   })
 
   test('tampered JWT token is rejected', async ({ request }) => {
-    const validToken = await loginToken(request, ownerAccount)
+    const validToken = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const parts = validToken.split('.')
     if (parts.length === 3) {
       const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString())
@@ -616,7 +607,7 @@ test.describe('4. Security testing', () => {
     test.setTimeout(60_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Pwd Merchant ${s}`, type: 'MERCHANT' })
     const email = `pwd-merchant-${s}@merhouse.local`
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/admin/users', adminToken, { tenantId: merchant.id, email, password: TEST_PASSWORD, role: 'MERCHANT' })
@@ -646,7 +637,7 @@ test.describe('5. Integration testing', () => {
     test.setTimeout(120_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Int Merchant ${s}`, type: 'MERCHANT' })
     const wp = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Int Provider ${s}`, type: 'WAREHOUSE_PROVIDER' })
     const warehouse = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/warehouses', adminToken, { tenantId: wp.id, name: `Int Hub ${s}`, address: 'Int Cairo', latitude: null, longitude: null, capacity: 100 })
@@ -701,7 +692,7 @@ test.describe('5. Integration testing', () => {
     test.setTimeout(120_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Inb Merchant ${s}`, type: 'MERCHANT' })
     const wp = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Inb Provider ${s}`, type: 'WAREHOUSE_PROVIDER' })
     const wh = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/warehouses', adminToken, { tenantId: wp.id, name: `Inb Hub ${s}`, address: 'Inb Cairo', latitude: null, longitude: null, capacity: 100 })
@@ -739,7 +730,7 @@ test.describe('5. Integration testing', () => {
     test.setTimeout(90_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Svc Merchant ${s}`, type: 'MERCHANT' })
     const wp = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Svc Provider ${s}`, type: 'WAREHOUSE_PROVIDER' })
     const rel = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/merchant-warehouse/relationships', adminToken, { merchantId: merchant.id, warehouseProviderId: wp.id, serviceNotes: 'Svc test' })
@@ -776,7 +767,7 @@ test.describe('5. Integration testing', () => {
 
 test.describe('6. Boundary testing', () => {
   test('order quantity of 0 is rejected by the backend', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const s = suffix()
     const merchant = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', token, { name: `Bnd Merchant ${s}`, type: 'MERCHANT' })
     const item = await apiJson<ApiEntity>(request, 'post', '/api/v1/inventory/items', token, { merchantId: merchant.id, sku: `BND-${s}`, name: 'Bnd Item', attributes: {} })
@@ -788,7 +779,7 @@ test.describe('6. Boundary testing', () => {
   })
 
   test('negative inventory quantity is rejected', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const s = suffix()
     const wp = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', token, { name: `Bnd WP ${s}`, type: 'WAREHOUSE_PROVIDER' })
     const wh = await apiJson<ApiEntity>(request, 'post', '/api/v1/warehouses', token, { tenantId: wp.id, name: `Bnd Hub ${s}`, address: 'Bnd', latitude: null, longitude: null, capacity: 100 })
@@ -827,7 +818,7 @@ test.describe('6. Boundary testing', () => {
   })
 
   test('tenant name with special characters is handled correctly', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const s = suffix()
     const specialName = `Tenant!@#$%^&*()_+-=[]{}|;:',./<>? ${s}`
     const response = await request.post(`${API_URL}/api/v1/tenants`, {
@@ -849,7 +840,7 @@ test.describe('6. Boundary testing', () => {
   })
 
   test('zero capacity warehouse is handled', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const s = suffix()
     const wp = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', token, { name: `Cap WP ${s}`, type: 'WAREHOUSE_PROVIDER' })
     const response = await request.post(`${API_URL}/api/v1/warehouses`, {
@@ -866,7 +857,7 @@ test.describe('6. Boundary testing', () => {
 
 test.describe('7. Race condition testing', () => {
   test('concurrent allocation attempts on the same order', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const s = suffix()
     const merchant = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', token, { name: `Race Merchant ${s}`, type: 'MERCHANT' })
     const wp = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', token, { name: `Race Provider ${s}`, type: 'WAREHOUSE_PROVIDER' })
@@ -890,7 +881,7 @@ test.describe('7. Race condition testing', () => {
   })
 
   test('conflicting status transitions on the same allocation are handled safely', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const s = suffix()
     const merchant = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', token, { name: `Race2 M ${s}`, type: 'MERCHANT' })
     const wp = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', token, { name: `Race2 P ${s}`, type: 'WAREHOUSE_PROVIDER' })
@@ -919,7 +910,7 @@ test.describe('7. Race condition testing', () => {
     test.setTimeout(60_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Dbl Merchant ${s}`, type: 'MERCHANT' })
     const email = `dbl-merchant-${s}@merhouse.local`
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/admin/users', adminToken, { tenantId: merchant.id, email, password: TEST_PASSWORD, role: 'MERCHANT' })
@@ -955,7 +946,7 @@ test.describe('8. Data integrity testing', () => {
     test.setTimeout(60_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `DI Merchant ${s}`, type: 'MERCHANT' })
     const email = `di-merchant-${s}@merhouse.local`
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/admin/users', adminToken, { tenantId: merchant.id, email, password: TEST_PASSWORD, role: 'MERCHANT' })
@@ -979,7 +970,7 @@ test.describe('8. Data integrity testing', () => {
   })
 
   test('state machine transitions maintain consistency (order lifecycle)', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const s = suffix()
     const merchant = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', token, { name: `SM Merchant ${s}`, type: 'MERCHANT' })
     const item = await apiJson<ApiEntity>(request, 'post', '/api/v1/inventory/items', token, { merchantId: merchant.id, sku: `SM-${s}`, name: 'SM Item', attributes: {} })
@@ -992,7 +983,7 @@ test.describe('8. Data integrity testing', () => {
   })
 
   test('allocation status transitions follow valid state machine path', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const s = suffix()
     const merchant = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', token, { name: `ASM M ${s}`, type: 'MERCHANT' })
     const wp = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', token, { name: `ASM P ${s}`, type: 'WAREHOUSE_PROVIDER' })
@@ -1020,7 +1011,7 @@ test.describe('8. Data integrity testing', () => {
   })
 
   test('user disabled state prevents login and re-enable restores access', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const s = suffix()
     const merchant = await apiJson<ApiEntity>(request, 'post', '/api/v1/tenants', token, { name: `DI2 M ${s}`, type: 'MERCHANT' })
     const email = `di2-${s}@merhouse.local`
@@ -1042,7 +1033,7 @@ test.describe('8. Data integrity testing', () => {
     test.setTimeout(60_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     const merchant = await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `FV M ${s}`, type: 'MERCHANT' })
     const email = `fv-merchant-${s}@merhouse.local`
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/admin/users', adminToken, { tenantId: merchant.id, email, password: TEST_PASSWORD, role: 'MERCHANT' })
@@ -1098,7 +1089,7 @@ test.describe('9. Performance testing', () => {
   })
 
   test('API response times for common endpoints are under 3 seconds', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const endpoints = [
       '/api/v1/tenants', '/api/v1/admin/users', '/api/v1/orders',
       '/api/v1/inventory/items', '/api/v1/notifications/summary',
@@ -1203,7 +1194,7 @@ test.describe('10. Exception handling', () => {
     test.setTimeout(60_000)
     const s = suffix()
     const ctx0 = await browser.newContext()
-    const adminToken = await loginToken(ctx0.request, ownerAccount)
+    const adminToken = await firebaseLogin(ctx0.request, ownerAccount.email, ownerAccount.password)
     await apiJson<ApiEntity>(ctx0.request, 'post', '/api/v1/tenants', adminToken, { name: `Exc Merchant ${s}`, type: 'MERCHANT' })
     await ctx0.close()
 
@@ -1250,7 +1241,7 @@ test.describe('10. Exception handling', () => {
   })
 
   test('backend returns proper error format with status, message, and details', async ({ request }) => {
-    const token = await loginToken(request, ownerAccount)
+    const token = await firebaseLogin(request, ownerAccount.email, ownerAccount.password)
     const response = await request.post(`${API_URL}/api/v1/orders`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { merchantId: 'nonexistent', customerAddress: '', items: [] },

@@ -77,8 +77,8 @@ Use this queue to avoid wandering. Each pass chooses one row, audits the named f
 
 | Priority | What to hunt |
 | --- | --- |
-| Cross-surface correctness | Shared React routes, API client behavior, role permissions, labels, empty states, active-state summaries, notification badges, account actions, assistant refusals, service accountability handoffs, and local-boundary copy must mean the same thing on web and native Android. |
-| Stakeholder workflows | Public auth/recovery/access request, owner/admin governance, support/auditor review, merchant inventory/orders/inbound/service review, warehouse receiving/pick/pack/ship/evidence, account settings, notifications, assistant, and operational details. |
+| Cross-surface correctness | Shared React routes, API client behavior, role permissions, labels, empty states, active-state summaries, notification badges, account actions, service accountability handoffs, and local-boundary copy must mean the same thing on web and native Android. |
+| Stakeholder workflows | Public auth/recovery/access request, owner/admin governance, support/auditor review, merchant inventory/orders/inbound/service review, warehouse receiving/pick/pack/ship/evidence, account settings, notifications, and operational details. |
 | Dense and edge states | Empty users, accumulated local proof data, pagination, capped lists, validation errors, denied actions, stale sessions, slow routes, local proof database drift, and bounded result sets. |
 | Frontend/backend sync | Visible UI state must reflect backend counts, permissions, transitions, and source-route ownership. Native differences must stay shell-only unless documented. |
 | Performance readiness | Route responsiveness, backend/API smoke timing, obvious transactional or N+1 risks, Android WebView readiness, screenshot-complete timing, and clear local-only limits. |
@@ -122,12 +122,12 @@ Use this checklist only after the current scripted full gate is green. The goal 
 
 1. Confirm local stack and installed APK readiness: API health is up, browser app opens, debug APK is installed, and the Android app points at the local backend through the validated native API base used for APK assembly.
 2. Start in the real installed Android app. Visit public login, password recovery, reset, and access-request routes; confirm local-only recovery and notification wording, including that no phone OS push, lock-screen, notification-tray, email, SMS, webhook, or provider delivery is claimed.
-3. In Android, sign in as owner, generated admin, support-admin, auditor, active merchant, empty merchant, active warehouse, and empty warehouse. For each role, confirm navigation, denied boundaries, account settings, alerts, service review, assistant scope, empty-state guidance, and active-state summaries.
+3. In Android, sign in as owner, generated admin, support-admin, auditor, active merchant, empty merchant, active warehouse, and empty warehouse. For each role, confirm navigation, denied boundaries, account settings, alerts, service review, empty-state guidance, and active-state summaries.
 4. In Android, walk at least one merchant-to-warehouse handoff end to end: relationship or inbound request, warehouse approval/receiving, merchant review, notification source route, and relevant operational detail route.
 5. In Android, walk order allocation and warehouse fulfillment states: create or inspect allocation, pick/pack/ship/deliver or failure/return evidence, shipment package evidence, exception handling, and timeline visibility.
-6. In Android, confirm performance feel while moving between high-traffic routes, including dashboard, inventory/orders, warehouse queue, notifications, service accountability, assistant, and operational details.
+6. In Android, confirm performance feel while moving between high-traffic routes, including dashboard, inventory/orders, warehouse queue, notifications, service accountability, and operational details.
 7. Repeat the same meaningful paths in the real browser, including desktop and narrow viewport checks where layout or control density matters.
-8. Compare web and Android together: labels, empty states, permissions, local-provider boundary copy, attention counts, notification badges, account actions, assistant refusals, and service accountability state should mean the same thing on both surfaces.
+8. Compare web and Android together: labels, empty states, permissions, local-provider boundary copy, attention counts, notification badges, account actions, and service accountability state should mean the same thing on both surfaces.
 9. Record every mismatch as a bug-hunt entry before closing the session. Fix high-impact gaps before expanding scope.
 10. Close V16.2 only when the reviewer and product owner agree that the real browser and real installed Android app behave coherently for the supported local workflows, and any remaining limitation is documented as a local boundary, V17 activation, or VInfinite backlog.
 
@@ -165,7 +165,7 @@ Android walkthrough evidence:
 - Empty warehouse state:
 - Merchant-to-warehouse handoff:
 - Allocation/fulfillment/shipment evidence:
-- Notifications, account, assistant, and service review:
+- Notifications, account, and service review:
 - Performance feel:
 - Local-provider boundary wording:
 

@@ -65,7 +65,6 @@ describe('AppLayout role navigation', () => {
     expect(screen.getByRole('link', { name: 'Service review' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Outbox' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Audit trail' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Assistant' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Alerts' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizations' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Accounts' })).not.toBeInTheDocument()
@@ -120,7 +119,7 @@ describe('AppLayout role navigation', () => {
     'AUDITOR',
     'MERCHANT',
     'WAREHOUSE_OPERATOR',
-  ] as const)('shows assistant and alerts navigation to %s users', async (role) => {
+  ] as const)('shows alerts navigation to %s users', async (role) => {
     renderLayout({
       ...baseAuthState,
       user: {
@@ -129,7 +128,6 @@ describe('AppLayout role navigation', () => {
       },
     })
 
-    expect(screen.getByRole('link', { name: 'Assistant' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Alerts/ })).toBeInTheDocument()
     expect(await screen.findByLabelText('2 unread alerts')).toBeInTheDocument()
   })

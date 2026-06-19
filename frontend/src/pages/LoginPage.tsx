@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
-import { Link } from 'react-router-dom'
+import { Navigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { AUTH_ERROR_MESSAGES } from '../lib/firebase-auth'
 import { appIcons } from '../components/AppIcons'
@@ -32,15 +31,11 @@ export function LoginPage() {
       // → component re-renders → the if(user) Navigate above handles redirect.
     } catch (caught) {
       const firebaseCode = (caught as { code?: string })?.code
-      if (firebaseCode && firebaseCode in AUTH_ERROR_MESSAGES) {
-        setError(AUTH_ERROR_MESSAGES[firebaseCode])
-      } else {
-        // Legacy API login returns a message on the error object.
-        const apiMessage = (caught as { message?: string })?.message
-        setError(apiMessage && apiMessage !== 'Firebase Auth is not configured'
-          ? apiMessage
-          : 'Unable to sign in.')
-      }
+      setError(
+        firebaseCode && firebaseCode in AUTH_ERROR_MESSAGES
+          ? AUTH_ERROR_MESSAGES[firebaseCode]
+          : 'Unable to sign in.',
+      )
     } finally {
       setSubmitting(false)
     }

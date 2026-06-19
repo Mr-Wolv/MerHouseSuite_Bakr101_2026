@@ -23,7 +23,6 @@ import com.merhouse.entity.Tenant;
 import com.merhouse.entity.TenantType;
 import com.merhouse.entity.UserRole;
 import com.merhouse.repository.AppUserRepository;
-import com.merhouse.security.JwtService;
 import com.merhouse.security.UserPrincipal;
 import com.merhouse.service.AppUserDetailsService;
 import com.merhouse.service.CurrentUserService;
@@ -55,9 +54,6 @@ class NotificationControllerTest {
 
     @MockitoBean
     private CurrentUserService currentUserService;
-
-    @MockitoBean
-    private JwtService jwtService;
 
     @MockitoBean
     private AppUserDetailsService appUserDetailsService;
@@ -111,13 +107,13 @@ class NotificationControllerTest {
         NotificationPreference preference = new NotificationPreference();
         preference.setUser(user(userId, tenantId));
         preference.setTopic(NotificationTopic.OUTBOX_HEALTH);
-        preference.setChannel(NotificationChannel.EMAIL_PROTOTYPE);
+        preference.setChannel(NotificationChannel.IN_APP);
         preference.setEnabled(false);
         ReflectionTestUtils.setField(preference, "id", UUID.randomUUID());
         ReflectionTestUtils.setField(preference, "updatedAt", Instant.parse("2026-05-29T12:00:00Z"));
         var request = new NotificationPreferenceUpdateRequest(
             NotificationTopic.OUTBOX_HEALTH,
-            NotificationChannel.EMAIL_PROTOTYPE,
+            NotificationChannel.IN_APP,
             false
         );
         when(currentUserService.required()).thenReturn(principal(userId, tenantId, UserRole.SUPPORT_ADMIN));
@@ -128,7 +124,7 @@ class NotificationControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.topic").value("OUTBOX_HEALTH"))
-            .andExpect(jsonPath("$.channel").value("EMAIL_PROTOTYPE"))
+            .andExpect(jsonPath("$.channel").value("IN_APP"))
             .andExpect(jsonPath("$.enabled").value(false));
 
         verify(notificationService).updatePreference(userId, request);

@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.merhouse.service.SmtpHealthMonitor;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
@@ -13,8 +13,7 @@ import org.junit.jupiter.api.Test;
 
 class HealthControllerTest {
     private static HealthController createController(DataSource dataSource) {
-        SmtpHealthMonitor monitor = mock(SmtpHealthMonitor.class);
-        return new HealthController(dataSource, monitor);
+        return new HealthController(dataSource);
     }
 
     @Test

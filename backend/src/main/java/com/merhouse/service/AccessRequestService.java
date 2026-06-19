@@ -30,7 +30,6 @@ public class AccessRequestService {
     private final UserService userService;
     private final TenantService tenantService;
     private final NotificationService notificationService;
-    private final EmailDeliveryService emailDeliveryService;
     private final Clock clock;
     private final int requestLimit;
     private final Duration requestWindow;
@@ -41,7 +40,6 @@ public class AccessRequestService {
         UserService userService,
         TenantService tenantService,
         NotificationService notificationService,
-        EmailDeliveryService emailDeliveryService,
         Clock clock,
         @Value("${merhouse.access-requests.request-limit:3}") int requestLimit,
         @Value("${merhouse.access-requests.request-window-hours:24}") long requestWindowHours
@@ -50,7 +48,6 @@ public class AccessRequestService {
         this.userService = userService;
         this.tenantService = tenantService;
         this.notificationService = notificationService;
-        this.emailDeliveryService = emailDeliveryService;
         this.clock = clock;
         this.requestLimit = Math.max(1, requestLimit);
         this.requestWindow = Duration.ofHours(Math.max(1, requestWindowHours));
@@ -140,18 +137,8 @@ public class AccessRequestService {
             NotificationTopic.ACCOUNT_LIFECYCLE,
             "Account activated",
             "Your MerHouse account was activated through an approved access request. This is a local delivery history record.",
-            "Your MerHouse account is active. Sign in with your email and the temporary password provided by your platform contact, then change it from Account settings.",
             "AccessRequest",
             accessRequest.getId()
-        );
-
-        // Send activation email (async — must not block or roll back the transaction)
-        String emailBody = buildActivationEmailBody(accessRequest, temporaryPassword);
-        emailDeliveryService.sendAndForget(
-            null,
-            accessRequest.getRequesterEmail(),
-            "Your MerHouse account is ready",
-            emailBody
         );
 
         // Mark as converted
@@ -165,22 +152,6 @@ public class AccessRequestService {
         byte[] bytes = new byte[16];
         secureRandom.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes).substring(0, 16);
-    }
-
-    private String buildActivationEmailBody(AccessRequest accessRequest, String temporaryPassword) {
-        return String.format(
-            "Welcome to MerHouse!\n\n"
-                + "Your account has been activated for %s.\n\n"
-                + "Sign in with:\n"
-                + "  Email: %s\n"
-                + "  Temporary password: %s\n\n"
-                + "Change your password from Account settings after signing in.\n\n"
-                + "Role: %s\n",
-            accessRequest.getOrganizationName(),
-            accessRequest.getRequesterEmail(),
-            temporaryPassword,
-            accessRequest.getRequestedRole().name().replace('_', ' ')
-        );
     }
 
     @Transactional
@@ -208,8 +179,7 @@ public class AccessRequestService {
             user,
             NotificationTopic.ACCOUNT_LIFECYCLE,
             "Account ready",
-            "Your MerHouse account was created from an approved access request. This is a local delivery history record.",
-            "Your MerHouse account was created from an approved access request. Sign in with the setup password shared by your platform contact, then change it from Account settings.",
+            "Your MerHouse account was created from an approved access request.",
             "AccessRequest",
             accessRequest.getId()
         );

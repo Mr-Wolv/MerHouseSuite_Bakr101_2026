@@ -1,7 +1,10 @@
 package com.merhouse.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
+import com.merhouse.repository.AppUserRepository;
+import com.merhouse.security.FirebaseTokenFilter;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.cors.CorsConfiguration;
@@ -9,7 +12,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 class SecurityConfigTest {
-    private final SecurityConfig securityConfig = new SecurityConfig();
+    private final FirebaseTokenFilter firebaseTokenFilter = new FirebaseTokenFilter(mock(AppUserRepository.class));
+    private final SecurityConfig securityConfig = new SecurityConfig(firebaseTokenFilter);
 
     @Test
     void corsConfigurationAllowsLocalWebAndNativeOrigins() {

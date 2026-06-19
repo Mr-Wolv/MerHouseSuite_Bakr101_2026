@@ -278,13 +278,29 @@ $suffix = if ([string]::IsNullOrWhiteSpace($Suffix)) {
 Write-Host "Creating demo seed data against $apiBaseUrl"
 Write-Host "Demo suffix: $suffix"
 
-$login = Invoke-Api -Method Post -Path "/api/v1/auth/login" -Body @{
-    email = $AdminEmail
-    password = $AdminPassword
+# Authenticate via Firebase Auth REST API (Firebase is the only auth path)
+function Get-FirebaseAuthToken {
+    $emulatorHost = (Get-MerHouseEnvValue -Name 'VITE_FIREBASE_EMULATOR_HOST')
+    $firebaseApiKey = Get-MerHouseEnvValue -Name 'VITE_FIREBASE_API_KEY'
+    if ([string]::IsNullOrWhiteSpace($firebaseApiKey)) {
+        $firebaseApiKey = "emulator-api-key"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($emulatorHost)) {
+        $emulatorHost = $emulatorHost.TrimEnd('/')
+        $signInUri = "${emulatorHost}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}"
+    } else {
+        $signInUri = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}"
+    }
+    $response = Invoke-RestMethod -Method Post -Uri $signInUri -ContentType "application/json" -Body (@{
+        email = $AdminEmail
+        password = $AdminPassword
+        returnSecureToken = $true
+    } | ConvertTo-Json)
+    return $response.idToken
 }
-$adminToken = $login.accessToken
+$adminToken = Get-FirebaseAuthToken
 if ([string]::IsNullOrWhiteSpace($adminToken)) {
-    throw "Admin login did not return an access token."
+    throw "Firebase Auth did not return an idToken for admin."
 }
 
 $merchant = Invoke-Api -Method Post -Path "/api/v1/tenants" -Token $adminToken -Body @{

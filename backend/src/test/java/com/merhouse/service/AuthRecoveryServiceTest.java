@@ -13,7 +13,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.merhouse.dto.OtpResetRequest;
 import com.merhouse.dto.PasswordResetConfirmRequest;
 import com.merhouse.dto.PasswordResetRequest;
 import com.merhouse.entity.AppUser;
@@ -39,7 +38,6 @@ class AuthRecoveryServiceTest {
     private final PasswordResetTokenRepository tokenRepository = mock(PasswordResetTokenRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final NotificationService notificationService = mock(NotificationService.class);
-    private final EmailDeliveryService emailDeliveryService = mock(EmailDeliveryService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-18T00:00:00Z"), ZoneOffset.UTC);
     @SuppressWarnings("unchecked")
     private final ObjectProvider<FirebaseAuth> emptyFirebaseProvider = mock(ObjectProvider.class);
@@ -48,7 +46,6 @@ class AuthRecoveryServiceTest {
         tokenRepository,
         passwordEncoder,
         notificationService,
-        emailDeliveryService,
         clock,
         emptyFirebaseProvider,
         false,
@@ -101,8 +98,7 @@ class AuthRecoveryServiceTest {
             eq(user),
             eq(NotificationTopic.ACCOUNT_LIFECYCLE),
             eq("Password reset prepared"),
-            eq("A password reset was prepared for your account. This is a local delivery history record."),
-            org.mockito.ArgumentMatchers.contains("https://staging.merhouse.example/reset-password?token="),
+            eq("A password reset was prepared for your account."),
             eq("PasswordResetToken"),
             isNull()
         );
@@ -115,7 +111,6 @@ class AuthRecoveryServiceTest {
             tokenRepository,
             passwordEncoder,
             notificationService,
-            emailDeliveryService,
             clock,
             emptyFirebaseProvider,
             true,
@@ -140,7 +135,6 @@ class AuthRecoveryServiceTest {
             tokenRepository,
             passwordEncoder,
             notificationService,
-            emailDeliveryService,
             clock,
             emptyFirebaseProvider,
             false,
@@ -216,63 +210,4 @@ class AuthRecoveryServiceTest {
         verify(userRepository).save(user);
     }
 
-    @Test
-    void otpRequestDoesNotRevealMissingEmail() {
-        when(userRepository.findByEmailIgnoreCase("missing@merhouse.local")).thenReturn(Optional.empty());
-
-        var response = service.requestOtp(new PasswordResetRequest("missing@merhouse.local"));
-
-        assertEquals("If an enabled account exists for that email, a one-time password has been sent.", response.message());
-        verify(tokenRepository, never()).save(any());
-        verify(emailDeliveryService, never()).sendAndForget(any(), any(), any(), any());
-    }
-
-    @Test
-    void otpRequestGeneratesCodeAndSendsEmailForEnabledUser() {
-        AppUser user = new AppUser();
-        user.setEmail("user@merhouse.local");
-        user.setEnabled(true);
-        when(userRepository.findByEmailIgnoreCase("user@merhouse.local")).thenReturn(Optional.of(user));
-
-        var response = service.requestOtp(new PasswordResetRequest("user@merhouse.local"));
-
-        assertEquals("If an enabled account exists for that email, a one-time password has been sent.", response.message());
-        ArgumentCaptor<PasswordResetToken> captor = ArgumentCaptor.forClass(PasswordResetToken.class);
-        verify(tokenRepository).save(captor.capture());
-        assertNotNull(captor.getValue().getOtpCode());
-        assertEquals(6, captor.getValue().getOtpCode().length());
-        assertEquals(Instant.parse("2026-05-18T00:15:00Z"), captor.getValue().getExpiresAt());
-        verify(emailDeliveryService).sendAndForget(isNull(), eq("user@merhouse.local"), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.contains("one-time password"));
-    }
-
-    @Test
-    void resetWithOtpRejectsInvalidCode() {
-        when(tokenRepository.findByOtpCodeAndUserEmailIgnoreCase(any(), any())).thenReturn(Optional.empty());
-
-        assertThrows(
-            DomainConflictException.class,
-            () -> service.resetWithOtp(new OtpResetRequest("user@merhouse.local", "000000", "new-password"))
-        );
-        verify(userRepository, never()).save(any());
-    }
-
-    @Test
-    void resetWithOtpUpdatesPasswordAndMarksTokenUsed() {
-        AppUser user = new AppUser();
-        user.setEmail("user@merhouse.local");
-        user.setEnabled(true);
-        PasswordResetToken token = new PasswordResetToken();
-        token.setUser(user);
-        token.setOtpCode("123456");
-        token.setExpiresAt(Instant.parse("2026-05-18T00:15:00Z"));
-        when(tokenRepository.findByOtpCodeAndUserEmailIgnoreCase("123456", "user@merhouse.local")).thenReturn(Optional.of(token));
-        when(passwordEncoder.encode("new-password")).thenReturn("encoded-password");
-
-        service.resetWithOtp(new OtpResetRequest("user@merhouse.local", "123456", "new-password"));
-
-        assertEquals("encoded-password", user.getPasswordHash());
-        assertEquals(Instant.parse("2026-05-18T00:00:00Z"), token.getUsedAt());
-        verify(tokenRepository).save(token);
-        verify(userRepository).save(user);
-    }
 }

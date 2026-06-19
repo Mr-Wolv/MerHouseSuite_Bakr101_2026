@@ -23,10 +23,10 @@ For the ordered closure checklist, use [`Closure_Plan.md`](./Closure_Plan.md). F
 | --- | --- | --- |
 | Deployment lane | Confirmed live | Managed deployment docs, CI workflows, and deployed-proof scripts are present for Neon PostgreSQL, Hugging Face Docker Space, Vercel, GitHub Actions, and GitHub Release APK distribution. |
 | Feature A: Access Request & Approve-and-Activate | Implemented | `AccessRequestService.java`, `AccessRequestController.java`, `AdminPages.tsx`, related backend/frontend tests. |
-| Feature B: OTP Password Recovery | Implemented | `AuthRecoveryService.java`, `AuthController.java`, `AuthRecoveryPages.tsx`, related backend/frontend tests, OTP migration. |
+| Feature B: OTP Password Recovery | Removed | OTP flow was removed — Firebase Auth handles password reset via built-in email templates. `AuthRecoveryService` now uses only the token-based flow synced with Firebase. |
 | Feature C: How To Use Page | Implemented | `HowToUsePage.tsx`, `App.tsx`, `AppLayout.tsx`, `LoginPage.tsx`, related frontend tests. |
-| Email console capture mode | Implemented | `EmailDeliveryService.java`, `application.properties`. |
-| AI Assistant Completion with threading/chat UI | Deferred to Vinfinite | Not implemented; current deterministic assistant remains read-plus-draft, flat-history, non-threaded behavior. |
+| Email console capture mode | Removed | `EmailDeliveryService.java` was deleted — no SMTP or email delivery service is connected. Firebase Auth handles password-reset email delivery directly. |
+| AI Assistant (deterministic) | Removed | The deterministic assistant was removed from the codebase — all backend services, controller, entity, repository, DTOs, frontend page, and API client were cleaned up. Deferred indefinitely. |
 | Local quality baseline | Proven | V16.2 local certification and cross-surface evidence are tracked in `docs/quality/`. |
 | Deployed closure evidence package | Blocked | Scripts exist, but closure still requires fresh proof artifacts. Externally blocked by SMTP credentials, signing material, and deployed-infrastructure access. See `Closure_Progress_Log.md` for unblocking conditions. |
 
@@ -65,17 +65,17 @@ The repository already contains:
 - backend coverage in `backend/src/test/java/com/merhouse/service/AccessRequestServiceTest.java`
 - frontend coverage in `frontend/src/pages/AdminManagement.test.tsx`
 
-### Feature B: OTP Password Recovery
+### Feature B: OTP Password Recovery — Removed
 
-The repository already contains:
+The OTP password recovery feature was removed from the codebase. Password recovery now uses Firebase Auth's built-in email templates (`sendPasswordResetEmail` on the frontend, synced via Firebase Admin SDK on the backend). The backend `AuthRecoveryService` continues to support token-based password reset with Firebase password sync.
 
-- `POST /api/v1/auth/recovery/request-otp`
-- `POST /api/v1/auth/recovery/reset-with-otp`
-- OTP generation and verification in `AuthRecoveryService.java`
-- OTP browser flow in `frontend/src/pages/AuthRecoveryPages.tsx`
-- backend coverage in `backend/src/test/java/com/merhouse/service/AuthRecoveryServiceTest.java`
-- frontend coverage in `frontend/src/pages/AuthRecoveryPages.test.tsx`
-- OTP storage migration in `backend/src/main/resources/db/migration/19__otp_password_recovery.sql`
+Removed:
+- `POST /api/v1/auth/recovery/request-otp` endpoint
+- `POST /api/v1/auth/recovery/reset-with-otp` endpoint
+- `OtpResetRequest` DTO
+- OTP browser flow from `AuthRecoveryPages.tsx`
+- `PasswordResetToken.otpCode` column (dead field removed)
+- `19__otp_password_recovery.sql` migration is inert (column still exists on deployed databases)
 
 ### Feature C: How To Use Page
 
@@ -89,21 +89,9 @@ The repository already contains:
 
 ## Deferred Scope
 
-The following remains explicitly out of V17 closure scope and belongs to Vinfinite unless a later tracked decision says otherwise:
-
-- assistant conversation threading
-- chat-like assistant UI
-- automatic scope detection beyond the current deterministic scope selection model
-- richer assistant context chaining through parent interactions
-- provider-backed or tool-authorized assistant runtime work
-
-Current assistant truth:
-
-- deterministic
-- read-plus-draft only
-- non-mutating
-- audit-backed
-- flat interaction history scoped to the authenticated actor
+- AI Assistant (deterministic read-plus-draft) — removed from codebase; deferred indefinitely
+- assistant conversation threading, chat-like UI, model-backed runtime — all deferred indefinitely
+- SMTP/email delivery provider — removed; Firebase Auth handles password-reset emails directly
 
 ## Open Closure Work
 

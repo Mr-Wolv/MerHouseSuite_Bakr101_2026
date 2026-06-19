@@ -1,16 +1,32 @@
 param([Parameter(Mandatory = $true)] [hashtable] $Context)
 
-Write-Host "0. Logging in as seeded admin"
+function Get-FirebaseSignInUri {
+    $emulatorHost = $Context.FirebaseEmulatorHost
+    if (-not [string]::IsNullOrWhiteSpace($emulatorHost)) {
+        $emulatorHost = $emulatorHost.TrimEnd('/')
+        return "${emulatorHost}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$($Context.FirebaseApiKey)"
+    }
+    return "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$($Context.FirebaseApiKey)"
+}
+
+Write-Host "0. Authenticating via Firebase Auth as admin"
 $adminEmail = if ([string]::IsNullOrWhiteSpace($Context.AdminEmail)) { "admin@merhouse.local" } else { $Context.AdminEmail }
 $adminPassword = if ([string]::IsNullOrWhiteSpace($Context.AdminPassword)) { "local-owner-password" } else { $Context.AdminPassword }
-$Context.AdminLogin = Invoke-Json -Context $Context -Method Post -Path "/api/v1/auth/login" -Body @{
+
+$signInUri = Get-FirebaseSignInUri
+$firebaseResponse = Invoke-RestMethod -Method Post -Uri $signInUri -ContentType "application/json" -Body (@{
     email = $adminEmail
     password = $adminPassword
-}
-Assert-NotBlank -Value $Context.AdminLogin.accessToken -Message "Admin access token was blank."
-Assert-Equal -Actual $Context.AdminLogin.user.role -Expected "OWNER" -Message "Seeded owner role mismatch."
+    returnSecureToken = $true
+} | ConvertTo-Json)
 
-$Context.AdminHeaders = @{ Authorization = "Bearer $($Context.AdminLogin.accessToken)" }
+$idToken = $firebaseResponse.idToken
+if ([string]::IsNullOrWhiteSpace($idToken)) {
+    throw "Firebase Auth did not return an idToken for admin."
+}
+
+$Context.AdminIdToken = $idToken
+$Context.AdminHeaders = @{ Authorization = "Bearer $idToken" }
 $Context.DefaultHeaders = $Context.AdminHeaders
 
 $Context.AdminMe = Invoke-Json -Context $Context -Method Get -Path "/api/v1/auth/me"

@@ -6,7 +6,7 @@ MerHouse is in a convergence phase, not an architecture phase. Core backend, fro
 
 - critical public identity-lifecycle flows are not yet proven by the hostile browser and API proof lanes that closure depends on
 - V17 scope and status are not described consistently across tracked docs
-- assistant and OTP recovery documentation drift from implementation
+- assistant and OTP recovery documentation have been updated to reflect codebase removal
 - the main system diagram is behind the implementation
 - deployment closure still depends on missing or unproven backup, rollback, Android release, and live proof artifacts
 
@@ -38,14 +38,14 @@ The repository is considered closed only when all of the following are true:
 #### A-01
 
 - **ID:** `A-01`
-- **Description:** Expand the hostile browser proof lane to comprehensively cover all 6 stakeholder roles (OWNER, ADMIN, SUPPORT_ADMIN, AUDITOR, MERCHANT, WAREHOUSE_OPERATOR), all state machine workflows, and all system routes — including but not limited to the closure-critical OTP password recovery, `/how-to-use`, and approve-and-activate flows.
+- **Description:** Expand the hostile browser proof lane to comprehensively cover all 6 stakeholder roles (OWNER, ADMIN, SUPPORT_ADMIN, AUDITOR, MERCHANT, WAREHOUSE_OPERATOR), all state machine workflows, and all system routes — including `/how-to-use` and approve-and-activate flows.
 - **Why it exists:** Deployed proof (Workstream C) is externally blocked by SMTP and live-infrastructure access constraints. Comprehensive local browser proof across every role and route strengthens local verification to the maximum feasible coverage without falsely substituting for deployed-lane artifacts.
-- **Evidence:** `frontend/tests/e2e/full-tour.spec.ts` still drives the old reset-token flow and does not prove `/how-to-use` or approve-and-activate behavior; current UI now uses OTP recovery routes in `frontend/src/pages/AuthRecoveryPages.tsx`. The existing tour already iterates routes per role but does not exercise closure-critical workflow transitions.
-- **Files affected:** `frontend/tests/e2e/full-tour.spec.ts`, `frontend/src/pages/AuthRecoveryPages.tsx`, `frontend/src/pages/HowToUsePage.tsx`, `frontend/src/pages/AdminPages.tsx`, `scripts/proof/web/frontend-full-tour.ps1`, any supporting fixtures under `frontend/tests/e2e/`.
+- **Evidence:** `frontend/tests/e2e/full-tour.spec.ts` still drives the old reset-token flow and does not prove `/how-to-use` or approve-and-activate behavior. The existing tour already iterates routes per role but does not exercise closure-critical workflow transitions.
+- **Files affected:** `frontend/tests/e2e/full-tour.spec.ts`, `frontend/src/pages/HowToUsePage.tsx`, `frontend/src/pages/AdminPages.tsx`, `scripts/proof/web/frontend-full-tour.ps1`, any supporting fixtures under `frontend/tests/e2e/`.
 - **Dependencies:** None.
 - **Acceptance criteria:**
 - The browser tour runs successfully against the current application flow for all 6 authenticated roles plus public.
-- The tour proves request OTP, verify OTP screen entry, reset completion, `/how-to-use`, and approve-and-activate.
+- The tour proves `/how-to-use` and approve-and-activate flows.
 - Every state machine transition visible through the UI is exercised for at least one role that can trigger it.
 - Every authenticated route is visited and its interactive surface recorded for each authorized role.
 - The generated report is accepted by existing report-aware proof gates without manual exceptions.
@@ -54,13 +54,13 @@ The repository is considered closed only when all of the following are true:
 #### A-02
 
 - **ID:** `A-02`
-- **Description:** Expand the API smoke/scenario lane so every controller endpoint is exercised across role boundaries, with particular depth on closure-critical public lifecycle flows (OTP recovery, approve-and-activate) and all state machine transitions.
+- **Description:** Expand the API smoke/scenario lane so every controller endpoint is exercised across role boundaries, with particular depth on approve-and-activate and all state machine transitions.
 - **Why it exists:** Deployed proof (Workstream C) is externally blocked. Comprehensive local API proof across all endpoints and roles provides the strongest feasible runtime verification. The existing scenario suite still proves legacy recovery and older access-request handling, leaving current runtime paths under-proven.
-- **Evidence:** `scripts/api/scenarios/14-auth-recovery-access.ps1` covers reset-token proof and approve/reject behavior but not OTP recovery or approve-and-activate; `scripts/api/scenarios/05-admin-control-plane.ps1` does not prove approve-and-activate. Several controllers (notifications, assistant, service accountability, shipment lifecycle) have scenario coverage but lack role-boundary enforcement checks.
+- **Evidence:** `scripts/api/scenarios/14-auth-recovery-access.ps1` covers reset-token proof and approve/reject behavior but not approve-and-activate; `scripts/api/scenarios/05-admin-control-plane.ps1` does not prove approve-and-activate. Several controllers (notifications, assistant, service accountability, shipment lifecycle) have scenario coverage but lack role-boundary enforcement checks.
 - **Files affected:** `scripts/api/scenarios/14-auth-recovery-access.ps1`, `scripts/api/scenarios/05-admin-control-plane.ps1`, `scripts/quality/api-smoke.ps1`, supporting helpers under `scripts/api/`, potentially new scenario files for under-covered endpoints.
 - **Dependencies:** None.
 - **Acceptance criteria:**
-- API smoke passes against a seeded local stack using `request-otp` and `reset-with-otp`.
+- API smoke passes against a seeded local stack covering approve-and-activate and all controller endpoints.
 - API smoke proves approve-and-activate through the current controller/service behavior.
 - Every public API endpoint has at least one scenario that exercises it with correct role authorization.
 - Role-boundary enforcement is verified: unauthorized roles receive 403 on privileged endpoints.
@@ -72,16 +72,21 @@ The repository is considered closed only when all of the following are true:
 - **ID:** `A-03`
 - **Description:** Add or strengthen focused automated tests for closure-critical public identity flows where proof currently relies too heavily on component or service tests alone.
 - **Why it exists:** Closure depends on a stronger automated contract around OTP recovery and approve-and-activate than component-only or service-only coverage provides.
-- **Evidence:** OTP recovery and approve-and-activate currently have partial service/component coverage but no matching hostile browser and API proof convergence.
-- **Files affected:** `backend/src/test/java/com/merhouse/service/AuthRecoveryServiceTest.java`, `backend/src/test/java/com/merhouse/service/AccessRequestServiceTest.java`, controller/web-layer test files under `backend/src/test/java/com/merhouse/web/`, `frontend/src/pages/AuthRecoveryPages.test.tsx`, `frontend/src/pages/AdminManagement.test.tsx`.
+- **Evidence:** Approve-and-activate currently has partial service/component coverage but no matching hostile browser and API proof convergence.
+- **Files affected:** `backend/src/test/java/com/merhouse/service/AccessRequestServiceTest.java`, controller/web-layer test files under `backend/src/test/java/com/merhouse/web/`, `frontend/src/pages/AdminManagement.test.tsx`.
 - **Dependencies:** `A-01`, `A-02`
 - **Acceptance criteria:**
-- Tests assert the current OTP recovery contract and approve-and-activate contract at the web/service boundaries.
+- Tests assert the approve-and-activate contract at the web/service boundaries.
 - The tests fail if the public workflow regresses while component markup remains superficially correct.
 - No redundant low-value tests are added outside closure-critical behavior.
 - **Priority:** `P1`
 
 #### A-04
+
+- **ID:** `A-04`
+- **Description:** The deterministic assistant was removed from the codebase. No verification slice is needed. This task is superseded.
+- **Status:** Superseded (feature removed).
+- **Priority:** `P1` (removed)
 
 - **ID:** `A-04`
 - **Description:** Add a focused verification slice for the deterministic assistant contract so docs and proof rely on the actual implemented behavior, not implied threading features.
@@ -101,7 +106,7 @@ The repository is considered closed only when all of the following are true:
 - **ID:** `B-01`
 - **Description:** Align CI validation with the updated closure-critical browser and API proof lanes.
 - **Why it exists:** Current workflows pass without proving the strongest public closure claims.
-- **Evidence:** `.github/workflows/merhouse-quality-gate.yml` validates local quality, but current browser/API proof does not cover OTP recovery, `/how-to-use`, and approve-and-activate.
+- **Evidence:** `.github/workflows/merhouse-quality-gate.yml` validates local quality, but current browser/API proof does not cover `/how-to-use` and approve-and-activate.
 - **Files affected:** `.github/workflows/merhouse-quality-gate.yml`, `scripts/quality/check.ps1`, `scripts/quality/frontend-check.ps1`, `scripts/quality/api-smoke.ps1`.
 - **Dependencies:** `A-01`, `A-02`
 - **Acceptance criteria:**
@@ -206,31 +211,17 @@ The repository is considered closed only when all of the following are true:
 - No tracked doc describes both three and four remaining V17 features.
 - **Priority:** `P0`
 
-#### D-02
+#### D-02 (Completed — OTP docs updated)
 
 - **ID:** `D-02`
-- **Description:** Align OTP password recovery documentation with the implemented endpoint and runtime behavior.
-- **Why it exists:** Closure requires documentation to describe the real recovery contract, not a more advanced flow than the code exposes.
-- **Evidence:** `docs/architecture/account-lifecycle.md` describes `verify-otp`, session-token handoff, and admin-audit records that are not present in `AuthController.java` and `AuthRecoveryService.java`.
-- **Files affected:** `docs/architecture/account-lifecycle.md`, any linked quality or operations docs that summarize recovery behavior.
-- **Dependencies:** `A-01`, `A-02`
-- **Acceptance criteria:**
-- Docs describe only the implemented recovery endpoints and states.
-- Any screenshots, flow text, or reviewer guidance matches the browser/API proof after `A-01` and `A-02`.
-- **Priority:** `P0`
+- **Description:** OTP password recovery documentation was aligned — OTP feature has been removed from the codebase. Firebase Auth handles password reset via built-in email templates. `docs/architecture/account-lifecycle.md` has been updated to remove OTP references.
+- **Status:** Completed.
 
-#### D-03
+#### D-03 (Completed — assistant docs updated)
 
 - **ID:** `D-03`
-- **Description:** Align assistant documentation with the current deterministic read-plus-draft implementation.
-- **Why it exists:** Closure requires assistant claims to match the implemented request DTO, service behavior, and UI.
-- **Evidence:** `docs/architecture/agentic-operations-assistance.md` currently overstates threading and contextual behavior compared with `AssistantInteractionRequest.java`, `AssistantService.java`, and `AssistantPage.tsx`.
-- **Files affected:** `docs/architecture/agentic-operations-assistance.md`, related docs index or roadmap references if they imply richer current assistant capability.
-- **Dependencies:** `A-04`
-- **Acceptance criteria:**
-- Docs do not claim `parentInteractionId`, conversation threading, or chat-style behavior unless implemented and tested.
-- The documented assistant contract matches the tested one.
-- **Priority:** `P0`
+- **Description:** Assistant feature documentation was aligned — the deterministic assistant has been removed from the codebase. `docs/architecture/agentic-operations-assistance.md` has been replaced with a removal stub.
+- **Status:** Completed.
 
 #### D-04
 
@@ -253,12 +244,12 @@ The repository is considered closed only when all of the following are true:
 - **ID:** `E-01`
 - **Description:** Update the main system diagram layer to reflect the current migration count and current public identity-lifecycle flows.
 - **Why it exists:** Closure requires the tracked diagram surface to match the implementation and current scope.
-- **Evidence:** `docs/architecture/system-diagrams.html` still reports 18 Flyway migrations and does not reflect OTP recovery, `/how-to-use`, or the one-step approve-and-activate path.
+- **Evidence:** `docs/architecture/system-diagrams.html` still reports 18 Flyway migrations and does not reflect `/how-to-use` or the one-step approve-and-activate path.
 - **Files affected:** `docs/architecture/system-diagrams.html`.
 - **Dependencies:** `D-01`, `D-02`
 - **Acceptance criteria:**
 - Migration count matches the repository.
-- Identity-lifecycle diagrams and labels reflect OTP recovery, `/how-to-use`, and approve-and-activate where those flows are diagrammed.
+- Identity-lifecycle diagrams and labels reflect `/how-to-use` and approve-and-activate where those flows are diagrammed.
 - Diagram text does not preserve superseded onboarding or recovery descriptions.
 - **Priority:** `P0`
 
@@ -343,7 +334,6 @@ The repository is considered closed only when all of the following are true:
 ### P1 - Strongly Recommended Before Closure
 
 - `A-03`
-- `A-04`
 - `E-02`
 
 ### P2 - Defer Until After Closure
@@ -358,7 +348,7 @@ The repository is considered closed only when all of the following are true:
 2. Expand and complete `A-01` and `A-02` with comprehensive all-role, all-route, all-state-machine coverage so local proof is as strong as possible while deployed proof is blocked.
 3. ~~Complete `D-02`, `D-03`, and `E-01` so docs and diagrams converge on the tested implementation.~~ **(Done)**
 4. Complete `B-01` so CI validates the expanded browser and API proof lanes.
-5. Complete `A-03`, `A-04`, and `E-02` for targeted hardening.
+5. Complete `A-03` and `E-02` for targeted hardening.
 6. Complete `C-03` (doc/script alignment portion only) and `F-01` so backup/rollback claims and script inventory are real and auditable.
 7. **When unblocked:** Complete `C-01`, `C-02`, `C-03` (live execution), `C-04`, `B-02`, and `F-02` against the live deployed lane.
 8. Run `F-03` and re-run the closure-critical quality and preflight gates.

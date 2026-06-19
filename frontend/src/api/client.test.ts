@@ -5,26 +5,6 @@ describe('api client', () => {
     vi.restoreAllMocks()
   })
 
-  it('uses proxy-relative API paths by default for the web build', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: vi.fn().mockResolvedValue({ accessToken: 'token' }),
-    })
-    vi.stubGlobal('fetch', fetchMock)
-
-    await api.login('web.user@merhouse.local', 'web-password')
-
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/login', {
-      method: 'POST',
-      headers: expect.any(Headers),
-      body: JSON.stringify({
-        email: 'web.user@merhouse.local',
-        password: 'web-password',
-      }),
-    })
-  })
-
   it('sends authenticated JSON requests for shipment and backorder state changes', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -72,14 +52,6 @@ describe('api client', () => {
     await api.notificationDeliveries('token', 50, 'RECORDED')
     await api.notificationDeliveries('token', 50, 'RECORDED', 1)
     await api.markNotificationRead('token', 'delivery-1')
-    await api.assistantInteractions('token', 10)
-    await api.createAssistantInteraction('token', {
-      scope: 'MERCHANT_OPERATIONS',
-      targetTenantId: null,
-      prompt: 'Summarize my queues',
-    })
-    await api.acceptAssistantSuggestion('token', 'interaction-1', { reason: 'Looks right' })
-    await api.rejectAssistantSuggestion('token', 'interaction-2', { reason: 'Not useful' })
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/notifications/preferences', {
       method: 'GET',
@@ -119,30 +91,6 @@ describe('api client', () => {
       method: 'PATCH',
       headers: expect.any(Headers),
       body: undefined,
-    })
-    expect(fetchMock).toHaveBeenNthCalledWith(8, '/api/v1/assistant/interactions?limit=10', {
-      method: 'GET',
-      headers: expect.any(Headers),
-      body: undefined,
-    })
-    expect(fetchMock).toHaveBeenNthCalledWith(9, '/api/v1/assistant/interactions', {
-      method: 'POST',
-      headers: expect.any(Headers),
-      body: JSON.stringify({
-        scope: 'MERCHANT_OPERATIONS',
-        targetTenantId: null,
-        prompt: 'Summarize my queues',
-      }),
-    })
-    expect(fetchMock).toHaveBeenNthCalledWith(10, '/api/v1/assistant/interactions/interaction-1/accept', {
-      method: 'POST',
-      headers: expect.any(Headers),
-      body: JSON.stringify({ reason: 'Looks right' }),
-    })
-    expect(fetchMock).toHaveBeenNthCalledWith(11, '/api/v1/assistant/interactions/interaction-2/reject', {
-      method: 'POST',
-      headers: expect.any(Headers),
-      body: JSON.stringify({ reason: 'Not useful' }),
     })
   })
 
@@ -298,46 +246,20 @@ describe('api client', () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: vi.fn().mockResolvedValue({ accessToken: 'token' }),
+      json: vi.fn().mockResolvedValue({ id: 'user-1' }),
     })
     vi.stubGlobal('fetch', fetchMock)
 
     try {
       const { api: configuredApi } = await import('./client')
 
-      await configuredApi.login('native.user@merhouse.local', 'native-password')
+      await configuredApi.me('token')
 
-      expect(fetchMock).toHaveBeenCalledWith('http://10.0.2.2:8080/api/v1/auth/login', {
-        method: 'POST',
+      expect(fetchMock).toHaveBeenCalledWith('http://10.0.2.2:8080/api/v1/auth/me', {
+        method: 'GET',
         headers: expect.any(Headers),
-        body: JSON.stringify({
-          email: 'native.user@merhouse.local',
-          password: 'native-password',
-        }),
+        body: undefined,
       })
-    } finally {
-      vi.unstubAllEnvs()
-      vi.resetModules()
-    }
-  })
-
-  it('skips the ngrok free browser warning for configured ngrok API bases', async () => {
-    vi.resetModules()
-    vi.stubEnv('VITE_API_BASE_URL', 'https://poppied-racheal-subuncinal.ngrok-free.dev')
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: vi.fn().mockResolvedValue({ accessToken: 'token' }),
-    })
-    vi.stubGlobal('fetch', fetchMock)
-
-    try {
-      const { api: configuredApi } = await import('./client')
-
-      await configuredApi.login('native.user@merhouse.local', 'native-password')
-
-      const headers = fetchMock.mock.calls[0][1].headers as Headers
-      expect(headers.get('ngrok-skip-browser-warning')).toBe('true')
     } finally {
       vi.unstubAllEnvs()
       vi.resetModules()
