@@ -442,34 +442,25 @@ async function createEmptyStakeholderFixture(request: APIRequestContext) {
 
 async function newAuthedPageForAccount(browser: Browser, account: Account, viewport: keyof typeof viewports) {
   const context = await browser.newContext({ viewport: viewports[viewport] })
-  const token = await firebaseLogin(context.request, account.email, account.password)
-  await context.addInitScript(
-    ({ key, value }) => {
-      try {
-        window.localStorage.setItem(key, value)
-      } catch {
-        // Chromium blocks localStorage on about:blank; the script also runs on the real app origin.
-      }
-    },
-    { key: TOKEN_KEY, value: token },
-  )
   const page = await context.newPage()
+  await page.goto(`${APP_URL}/login`, { waitUntil: 'networkidle' })
+  await page.fill('#login-email', account.email)
+  await page.fill('#login-password', account.password)
+  await page.click('button[type="submit"]')
+  // Wait for Firebase Auth to complete and redirect away from /login
+  await page.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: 15_000 })
   return { context, page }
 }
 
 async function newAuthedContextForAccount(browser: Browser, account: Account, viewport: keyof typeof viewports) {
   const context = await browser.newContext({ viewport: viewports[viewport] })
-  const token = await firebaseLogin(context.request, account.email, account.password)
-  await context.addInitScript(
-    ({ key, value }) => {
-      try {
-        window.localStorage.setItem(key, value)
-      } catch {
-        // Chromium blocks localStorage on about:blank; the script also runs on the real app origin.
-      }
-    },
-    { key: TOKEN_KEY, value: token },
-  )
+  const tempPage = await context.newPage()
+  await tempPage.goto(`${APP_URL}/login`, { waitUntil: 'networkidle' })
+  await tempPage.fill('#login-email', account.email)
+  await tempPage.fill('#login-password', account.password)
+  await tempPage.click('button[type="submit"]')
+  await tempPage.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: 15_000 })
+  await tempPage.close()
   return context
 }
 
