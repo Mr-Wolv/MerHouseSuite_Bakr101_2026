@@ -109,6 +109,11 @@ Invoke-ExpectedHttpFailure -Method Patch -Path "/api/v1/merchant-warehouse/inbou
 }
 Invoke-ExpectedHttpFailure -Method Get -Path "/api/v1/merchant-warehouse/authorized-stock?merchantId=$($Context.Merchant.id)" -Headers $Context.OperatorHeaders -ExpectedStatus 403
 
+$Context.OtherMerchant = Invoke-Json -Context $Context -Method Post -Path "/api/v1/tenants" -Body @{
+    name = "Smoke Other Merchant $($Context.Suffix)"
+    type = "MERCHANT"
+}
+
 $Context.OtherMerchantUser = Invoke-Json -Context $Context -Method Post -Path "/api/v1/admin/users" -Body @{
     tenantId = $Context.OtherMerchant.id
     email = "other-merchant-$($Context.Suffix)@merhouse.local"
