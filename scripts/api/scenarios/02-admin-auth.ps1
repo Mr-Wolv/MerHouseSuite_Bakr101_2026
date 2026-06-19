@@ -70,10 +70,10 @@ Assert-Equal -Actual $me.user.email -Expected $Context.AdminEmail -Message "Curr
 
 Write-Host "  Verifying merchant and operator access (RBAC)..."
 # Verifies merchant cannot create tenants
-$null = Invoke-ExpectedHttpFailure -Context $Context -Method Post -Path "/api/v1/tenants" -Body @{ name = "Test"; type = "MERCHANT" } -ExpectedStatus 403 -Headers $Context.MerchantHeaders
+$null = Invoke-ExpectedHttpFailure -Method Post -Path "/api/v1/tenants" -Body @{ name = "Test"; type = "MERCHANT" } -ExpectedStatus 403 -Headers $Context.MerchantHeaders
 
 # Verifies operator cannot create orders
-$null = Invoke-ExpectedHttpFailure -Context $Context -Method Post -Path "/api/v1/orders" -Body @{
+$null = Invoke-ExpectedHttpFailure -Method Post -Path "/api/v1/orders" -Body @{
     merchantId = $Context.Merchant.id
     customerAddress = "RBAC test, Cairo"
     items = @(@{ inventoryItemId = $Context.Item.id; quantity = 1 })
@@ -92,7 +92,7 @@ $disabledFound = $users | Where-Object { $_.id -eq $disabledUserId }
 Assert-Equal -Actual $disabledFound.enabled -Expected $false -Message "Disabled user should have enabled=false."
 
 Write-Host "  Verifying self-disable is blocked..."
-$null = Invoke-ExpectedHttpFailure -Context $Context -Method Patch -Path "/api/v1/admin/users/$($Context.AdminUserId)/disable" -Body @{ reason = "self-disable attempt" } -ExpectedStatus 409
+$null = Invoke-ExpectedHttpFailure -Method Patch -Path "/api/v1/admin/users/$($Context.AdminUserId)/disable" -Body @{ reason = "self-disable attempt" } -ExpectedStatus 409
 
 Write-Host "  Verifying admin can re-enable the disabled user..."
 $Context.DisabledUser = Invoke-Json -Context $Context -Method Patch -Path "/api/v1/admin/users/$disabledUserId/enable" -Body @{ reason = "Smoke re-enable for RBAC test." }
