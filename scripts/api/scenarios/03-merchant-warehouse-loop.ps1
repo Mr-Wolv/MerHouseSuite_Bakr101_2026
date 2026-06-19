@@ -120,11 +120,14 @@ $Context.OtherMerchantUser = Invoke-Json -Context $Context -Method Post -Path "/
     password = "other-merchant-password"
     role = "MERCHANT"
 }
-$otherMerchantLogin = Invoke-Json -Context $Context -Method Post -Path "/api/v1/auth/login" -Body @{
+# Wait for Firebase Auth user to be available
+Start-Sleep -Seconds 1
+$otherMerchantFirebase = Invoke-RestMethod -Method Post -Uri "$($Context.FirebaseEmulatorHost.TrimEnd('/'))/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$($Context.FirebaseApiKey)" -ContentType "application/json" -Body (@{
     email = $Context.OtherMerchantUser.email
     password = "other-merchant-password"
-}
-$Context.OtherMerchantHeaders = @{ Authorization = "Bearer $($otherMerchantLogin.accessToken)" }
+    returnSecureToken = $true
+} | ConvertTo-Json)
+$Context.OtherMerchantHeaders = @{ Authorization = "Bearer $($otherMerchantFirebase.idToken)" }
 Invoke-ExpectedHttpFailure -Method Get -Path "/api/v1/merchant-warehouse/authorized-stock?merchantId=$($Context.Merchant.id)" -Headers $Context.OtherMerchantHeaders -ExpectedStatus 403
 $otherMerchantInbound = Invoke-Json -Context $Context -Method Get -Path "/api/v1/merchant-warehouse/inbound-stock-requests" -Headers $Context.OtherMerchantHeaders
 $Context.OtherMerchantInboundRows = @($otherMerchantInbound | Where-Object { $_.id -eq $Context.InboundStockRequest.id })
@@ -148,11 +151,14 @@ $Context.WrongOperatorUser = Invoke-Json -Context $Context -Method Post -Path "/
     password = "wrong-operator-password"
     role = "WAREHOUSE_OPERATOR"
 }
-$wrongOperatorLogin = Invoke-Json -Context $Context -Method Post -Path "/api/v1/auth/login" -Body @{
+# Wait for Firebase Auth user to be available
+Start-Sleep -Seconds 1
+$wrongOperatorFirebase = Invoke-RestMethod -Method Post -Uri "$($Context.FirebaseEmulatorHost.TrimEnd('/'))/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$($Context.FirebaseApiKey)" -ContentType "application/json" -Body (@{
     email = $Context.WrongOperatorUser.email
     password = "wrong-operator-password"
-}
-$Context.WrongOperatorHeaders = @{ Authorization = "Bearer $($wrongOperatorLogin.accessToken)" }
+    returnSecureToken = $true
+} | ConvertTo-Json)
+$Context.WrongOperatorHeaders = @{ Authorization = "Bearer $($wrongOperatorFirebase.idToken)" }
 
 Invoke-ExpectedHttpFailure -Method Patch -Path "/api/v1/merchant-warehouse/inbound-stock-requests/$($Context.InboundStockRequest.id)/receive" -Headers $Context.WrongOperatorHeaders -ExpectedStatus 403 -Body @{
     receivedQuantity = 1

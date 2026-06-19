@@ -65,7 +65,7 @@ $Context.V12ConvertedLogin = Invoke-Json -Context $Context -Method Post -Path "/
     email = $Context.V12AccessRequest.requesterEmail
     password = "converted-local-password"
 }
-Assert-Equal -Actual $Context.V12ConvertedLogin.user.id -Expected $Context.V12ConvertedAccessRequest.convertedUserId -Message "V12 converted user could not log in."
+Assert-Equal -Actual $Context.V12ConvertedLogin.id -Expected $Context.V12ConvertedAccessRequest.convertedUserId -Message "V12 converted user could not log in."
 
 Write-Host "12e. Verifying user recovery and role safety controls"
 $Context.V12RecoveredUser = Invoke-Json -Context $Context -Method Patch -Path "/api/v1/admin/users/$($Context.DisabledUser.id)/enable" -Headers $Context.AdminHeaders -Body @{
@@ -81,7 +81,7 @@ $Context.V12PasswordResetUser = Invoke-Json -Context $Context -Method Patch -Pat
     reason = "Smoke proves admin-assisted password reset"
 }
 Assert-Equal -Actual $Context.V12PasswordResetUser.id -Expected $Context.MerchantUser.id -Message "V12 password reset returned the wrong user."
-Invoke-ExpectedHttpFailure -Method Patch -Path "/api/v1/admin/users/$($Context.AdminLogin.user.id)/role" -Headers $Context.AdminHeaders -ExpectedStatus 409 -Body @{
+Invoke-ExpectedHttpFailure -Method Patch -Path "/api/v1/admin/users/$($Context.AdminUserId)/role" -Headers $Context.AdminHeaders -ExpectedStatus 409 -Body @{
     role = "ADMIN"
     reason = "Smoke self-demotion safety check"
 }
@@ -121,16 +121,20 @@ $Context.V12AuditorUser = Invoke-Json -Context $Context -Method Post -Path "/api
     password = "auditor-password"
     role = "AUDITOR"
 }
-$Context.V12SupportAdminLogin = Invoke-Json -Context $Context -Method Post -Path "/api/v1/auth/login" -Body @{
+# Wait for Firebase Auth users to be available
+Start-Sleep -Seconds 1
+$supportFirebase = Invoke-RestMethod -Method Post -Uri "$($Context.FirebaseEmulatorHost.TrimEnd('/'))/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$($Context.FirebaseApiKey)" -ContentType "application/json" -Body (@{
     email = $Context.V12SupportAdminUser.email
     password = "support-admin-password"
-}
-$Context.V12AuditorLogin = Invoke-Json -Context $Context -Method Post -Path "/api/v1/auth/login" -Body @{
+    returnSecureToken = $true
+} | ConvertTo-Json)
+$auditorFirebase = Invoke-RestMethod -Method Post -Uri "$($Context.FirebaseEmulatorHost.TrimEnd('/'))/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$($Context.FirebaseApiKey)" -ContentType "application/json" -Body (@{
     email = $Context.V12AuditorUser.email
     password = "auditor-password"
-}
-$supportHeaders = @{ Authorization = "Bearer $($Context.V12SupportAdminLogin.accessToken)" }
-$auditorHeaders = @{ Authorization = "Bearer $($Context.V12AuditorLogin.accessToken)" }
+    returnSecureToken = $true
+} | ConvertTo-Json)
+$supportHeaders = @{ Authorization = "Bearer $($supportFirebase.idToken)" }
+$auditorHeaders = @{ Authorization = "Bearer $($auditorFirebase.idToken)" }
 
 $supportSummary = Invoke-Json -Context $Context -Method Get -Path "/api/v1/admin/control/summary" -Headers $supportHeaders
 Assert-NotBlank -Value $supportSummary.tenants -Message "Support admin could not read platform summary."
