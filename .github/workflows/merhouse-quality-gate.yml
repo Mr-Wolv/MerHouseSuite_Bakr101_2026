@@ -32,6 +32,8 @@ jobs:
 
       - name: Run backend tests
         working-directory: backend
+        env:
+          FIREBASE_EMULATOR_HOST: "true"
         run: ./mvnw test
 
   frontend:

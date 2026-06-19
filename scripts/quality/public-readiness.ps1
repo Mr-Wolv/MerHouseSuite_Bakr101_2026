@@ -235,6 +235,16 @@ try {
             throw "Sensitive-pattern scan failed while checking pattern: $pattern -- $($_.Exception.Message)"
         }
     }
+    # Known false-positive values that are intentionally committed (local-dev / demo
+    # values that look like tokens but are not real secrets).
+    $falsePositivePatterns = @(
+        'emulator-api-key'   # Fake API key for local Firebase Auth emulator only
+    )
+    $matches = $matches | Where-Object {
+        $line = $_ -replace '^[^:]+:[^:]+:', ''
+        $isFp = $falsePositivePatterns | Where-Object { $line -match [regex]::Escape($_) } | Select-Object -First 1
+        -not $isFp
+    }
     if ($matches.Count -gt 0) {
         $matches | Sort-Object -Unique
         throw "Token-shaped value scan found matches that need review."
