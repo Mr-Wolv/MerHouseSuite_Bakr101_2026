@@ -7,7 +7,6 @@ import { firebaseLogin, createFirebaseUser } from './firebase-auth-helper'
 const APP_URL = process.env.FRONTEND_TOUR_BASE_URL ?? 'http://127.0.0.1:3001'
 const API_URL = process.env.E2E_API_URL ?? (process.env.FRONTEND_TOUR_BASE_URL ? APP_URL : 'http://127.0.0.1:8081')
 const REPORT_PATH = process.env.FRONTEND_TOUR_REPORT ?? '../reports/latest-frontend-full-tour.json'
-const TOKEN_KEY = 'warehouse-console-token'
 const DETAIL_DISCOVERY_HEADING_TIMEOUT_MS = 45_000
 const ROUTE_HEADING_TIMEOUT_MS = 45_000
 const WORKFLOW_ACTION_TIMEOUT_MS = 30_000
