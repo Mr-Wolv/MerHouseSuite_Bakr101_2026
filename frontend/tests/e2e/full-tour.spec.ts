@@ -150,7 +150,6 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
-    '/assistant',
     '/notifications',
     '/account',
   ],
@@ -163,7 +162,6 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
-    '/assistant',
     '/notifications',
     '/account',
   ],
@@ -175,7 +173,6 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
-    '/assistant',
     '/notifications',
     '/account',
   ],
@@ -185,26 +182,25 @@ const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
     '/admin/relationships',
     '/admin/audit',
     '/service-accountability',
-    '/assistant',
     '/notifications',
     '/account',
   ],
-  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/assistant', '/notifications', '/account'],
-  warehouse: ['/warehouse', '/service-accountability', '/assistant', '/notifications', '/account'],
+  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/notifications', '/account'],
+  warehouse: ['/warehouse', '/service-accountability', '/notifications', '/account'],
 }
 
 const deploymentRolePaths: Record<AuthenticatedRole, string[]> = {
-  owner: ['/admin', '/admin/users', '/admin/access-requests', '/admin/outbox', '/admin/audit', '/assistant', '/notifications', '/account'],
+  owner: ['/admin', '/admin/users', '/admin/access-requests', '/admin/outbox', '/admin/audit', '/notifications', '/account'],
   admin: [],
-  supportAdmin: ['/admin/users', '/admin/access-requests', '/admin/outbox', '/assistant', '/account'],
-  auditor: ['/admin/audit', '/admin/outbox', '/assistant', '/account'],
-  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/assistant', '/notifications', '/account'],
-  warehouse: ['/warehouse', '/service-accountability', '/assistant', '/notifications', '/account'],
+  supportAdmin: ['/admin/users', '/admin/access-requests', '/admin/outbox', '/account'],
+  auditor: ['/admin/audit', '/admin/outbox', '/account'],
+  merchant: ['/merchant', '/merchant/inventory', '/merchant/orders', '/service-accountability', '/notifications', '/account'],
+  warehouse: ['/warehouse', '/service-accountability', '/notifications', '/account'],
 }
 
 const deploymentEmptyStakeholderPaths = {
-  merchant: ['/merchant', '/merchant/inventory', '/assistant', '/account'],
-  warehouse: ['/warehouse', '/assistant', '/account'],
+  merchant: ['/merchant', '/merchant/inventory', '/account'],
+  warehouse: ['/warehouse', '/account'],
 } as const
 
 const deploymentRouteRoles = ['owner', 'supportAdmin', 'auditor', 'merchant', 'warehouse'] as const
@@ -947,25 +943,18 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   await expect(auditorPage.getByRole('link', { name: 'Organizations' })).toHaveCount(0)
   await expect(auditorPage.getByRole('link', { name: 'Accounts' })).toHaveCount(0)
   await expect(auditorPage.getByRole('link', { name: 'Access requests' })).toHaveCount(0)
-  await auditorPage.goto(`${APP_URL}/assistant`, { waitUntil: 'networkidle' })
-  await expect(auditorPage.getByRole('heading', { name: 'Operational Review Assistant' })).toBeVisible()
-  const auditorPrompt = `What should I review next for hierarchy ${hierarchy.suffix}?`
-  await auditorPage.getByLabel('Prompt').fill(auditorPrompt)
-  await auditorPage.getByRole('button', { name: 'Run assistant' }).click()
-  const latestAssistantRecord = auditorPage.locator('article').filter({ hasText: auditorPrompt }).first()
-  await expect(latestAssistantRecord).toContainText(/Suggested next step/)
-  await expect(auditorPage.getByRole('button', { name: 'Accept suggestion' })).toHaveCount(0)
-  await expect(auditorPage.getByRole('button', { name: 'Reject suggestion' })).toHaveCount(0)
   await auditorPage.goto(`${APP_URL}/admin/audit`, { waitUntil: 'networkidle' })
-  await auditorPage.getByLabel('Audit filter').selectOption('ASSISTANT')
-  await expect(auditorPage.getByText('ASSISTANT SUGGESTION', { exact: true }).first()).toBeVisible()
+  await expect(auditorPage.getByRole('heading', { name: 'Admin Audit' })).toBeVisible()
+  await expect(auditorPage.getByRole('button', { name: 'Approve' })).toHaveCount(0)
+  await expect(auditorPage.getByRole('button', { name: 'Reject' })).toHaveCount(0)
+  await expect(auditorPage.getByRole('button', { name: 'Convert' })).toHaveCount(0)
   await auditorPage.goto(`${APP_URL}/admin/users`, { waitUntil: 'networkidle' })
   await expect(auditorPage.getByRole('heading', { name: 'Admin Overview' })).toBeVisible()
   await auditorPage.goto(`${APP_URL}/admin/outbox`, { waitUntil: 'networkidle' })
   await expect(auditorPage.getByText('Read-only diagnostics').first()).toBeVisible()
   await expect(auditorPage.getByRole('button', { name: 'Retry' })).toHaveCount(0)
   await expect(auditorPage.getByRole('button', { name: 'Dead-letter' })).toHaveCount(0)
-  records.push({ role: 'auditor', action: 'reviewed assistant audit records without suggestion decision controls' })
+  records.push({ role: 'auditor', action: 'reviewed audit and outbox diagnostics without assistant or mutation controls' })
   await auditorContext.close()
 
   const { context: adminContext, page: adminPage } = await newAuthedPageForAccount(
