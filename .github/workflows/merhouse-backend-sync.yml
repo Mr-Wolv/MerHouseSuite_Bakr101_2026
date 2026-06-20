@@ -13,6 +13,11 @@ on:
         required: false
         default: "false"
         type: boolean
+      code_only:
+        description: "Only sync code (skip env vars)"
+        required: false
+        default: "false"
+        type: boolean
 
 concurrency:
   group: merhouse-backend-sync-${{ github.event.workflow_run.head_sha || github.sha }}
@@ -27,7 +32,6 @@ jobs:
     name: Sync Backend to Hugging Face Space
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    # Only deploy when Quality Gate passes on main, or on manual dispatch
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
@@ -46,7 +50,8 @@ jobs:
       - name: Install dependencies
         run: pip install huggingface_hub requests
 
-      - name: Sync to Hugging Face Space (sync + wait for build)
+      - name: Sync env vars to Hugging Face Space (sync-secrets.py)
+        if: inputs.code_only != 'true'
         env:
           HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
           HF_SPACE_DB_URL: ${{ secrets.HF_SPACE_DB_URL }}
@@ -55,28 +60,56 @@ jobs:
           HF_SPACE_FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
           if [ -z "$HF_TOKEN" ]; then
-            echo "HF_TOKEN not configured. Skipping sync."
+            echo "HF_TOKEN not configured. Skipping env sync."
             exit 0
           fi
           cd deploy/managed/huggingface-backend
-          if [ "${{ inputs.env_only }}" = "true" ]; then
-            echo "=== Env-only sync (skip code upload) ==="
-            python sync-hf-space.py --env-only
-          else
-            python sync-hf-space.py --wipe --wait --timeout 30
-          fi
-          echo 'Sync complete.'
+          python sync-secrets.py --hf-only --quiet
+          echo "Env vars synced."
 
-      - name: Verify API health
+      - name: Sync code to Hugging Face Space (sync-hf-space.py)
+        if: inputs.env_only != 'true'
         env:
           HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
         run: |
           if [ -z "$HF_TOKEN" ]; then
-            echo "HF_TOKEN not configured. Skipping health check."
+            echo "HF_TOKEN not configured. Skipping code sync."
             exit 0
           fi
           cd deploy/managed/huggingface-backend
-          python sync-hf-space.py --health --timeout 10
+          # Upload changed files (default mode uploads without wiping)
+          python sync-hf-space.py
+          echo "Code synced."
+
+      - name: Restart Space to trigger rebuild
+        env:
+          HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "HF_TOKEN not configured. Skipping restart."
+            exit 0
+          fi
+          cd deploy/managed/huggingface-backend
+          python -c "
+import os
+from huggingface_hub import HfApi
+api = HfApi(token=os.environ['HF_TOKEN'])
+api.restart_space(repo_id='M7mdHBkr/merhouse-backend')
+print('Space restarted.')
+"
+          echo "Restart initiated."
+
+      - name: Wait for Space to become healthy
+        env:
+          HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "HF_TOKEN not configured. Skipping health wait."
+            exit 0
+          fi
+          cd deploy/managed/huggingface-backend
+          python sync-hf-space.py --health --timeout 25
+          echo "Health check complete."
 
       - name: Create deployment status
         uses: actions/github-script@v7
