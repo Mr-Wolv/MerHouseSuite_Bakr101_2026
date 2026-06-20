@@ -2,9 +2,10 @@ name: MerHouse Firebase Hosting Deploy
 run-name: MerHouse Firebase Hosting Deploy - ${{ github.event_name }} on ${{ github.ref_name }}
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["MerHouse Quality Gate"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -12,7 +13,7 @@ permissions:
   deployments: write
 
 concurrency:
-  group: merhouse-hosting-${{ github.ref }}
+  group: merhouse-hosting-${{ github.event.workflow_run.head_sha || github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -20,12 +21,19 @@ jobs:
     name: Deploy Frontend to Firebase Hosting
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Only deploy when Quality Gate passes on main, or on manual dispatch
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
     environment:
       name: production-frontend
       url: https://merhouse-354e7.web.app
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Set up Node
         uses: actions/setup-node@v6

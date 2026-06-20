@@ -2,9 +2,6 @@ name: MerHouse Android Release
 run-name: MerHouse Android Release - ${{ inputs.version_name || github.event_name }} on ${{ github.ref_name }}
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       version_code:
@@ -33,9 +30,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ── Unified Android build: signed when secrets exist, unsigned on push ─
-  # Runs on every push to main (like Vercel auto-builds the frontend).
-  # Produces a signed APK + GitHub Release on workflow_dispatch.
+  # ── Manual Android build: signed APK + GitHub Release ──
+  # Triggered only via workflow_dispatch (manual). Produces a signed APK
+  # and publishes a GitHub Release when signing secrets are configured.
   build:
     name: Android Build
     runs-on: ubuntu-latest
@@ -81,8 +78,8 @@ jobs:
           MERHOUSE_ANDROID_KEY_PASSWORD: ${{ secrets.MERHOUSE_ANDROID_KEY_PASSWORD }}
           MERHOUSE_ANDROID_API_BASE_URL: ${{ secrets.MERHOUSE_ANDROID_API_BASE_URL }}
           MERHOUSE_ANDROID_FRONTEND_URL: ${{ secrets.MERHOUSE_ANDROID_FRONTEND_URL }}
-          MERHOUSE_ANDROID_VERSION_CODE: ${{ github.event_name == 'workflow_dispatch' && inputs.version_code || '17' }}
-          MERHOUSE_ANDROID_VERSION_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.version_name || '0.17.0-internal' }}
+          MERHOUSE_ANDROID_VERSION_CODE: ${{ inputs.version_code }}
+          MERHOUSE_ANDROID_VERSION_NAME: ${{ inputs.version_name }}
         run: |
           $hasSigning = -not [string]::IsNullOrWhiteSpace($env:MERHOUSE_ANDROID_KEYSTORE_PATH)
           $hasFrontendUrl = -not [string]::IsNullOrWhiteSpace($env:MERHOUSE_ANDROID_FRONTEND_URL)
@@ -104,9 +101,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.tag || format('android-v{0}', github.run_number) }}"
-          VERSION_NAME="${{ github.event_name == 'workflow_dispatch' && inputs.version_name || format('0.17.0-build.{0}', github.run_number) }}"
-          PRERELEASE="${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || 'true' }}"
+          TAG="${{ inputs.tag }}"
+          VERSION_NAME="${{ inputs.version_name }}"
+          PRERELEASE="${{ inputs.prerelease }}"
           COMMIT_SHA="${{ github.sha }}"
           notes="Signed MerHouse Android APK built from commit ${COMMIT_SHA}. Install only after deployed web/backend proof passes."
 
