@@ -38,7 +38,7 @@ class SecurityConfigTest {
             "ionic://localhost"
         );
         assertThat(configuration.getAllowedMethods()).contains("GET", "POST", "PATCH", "OPTIONS");
-        assertThat(configuration.getAllowedHeaders()).containsExactly("Authorization", "Content-Type");
+        assertThat(configuration.getAllowedHeaders()).containsExactly("Authorization", "Content-Type", "X-Firebase-AppCheck");
         assertThat(configuration.getAllowCredentials()).isFalse();
     }
 

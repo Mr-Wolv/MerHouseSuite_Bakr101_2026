@@ -38,13 +38,13 @@ The `scripts/` directory contains PowerShell helpers for local development, veri
 | `scripts/proof/release/cross-surface-tour-check.ps1` | Compare browser and installed-APK tour reports for clean records, provenance, valid native screenshot evidence, exact normalized role/path set equality, and traceable pass output. |
 | `scripts/proof/release/performance-readiness.ps1` | Check local deployment-shaped performance readiness through frontend bundle budgets, paired browser/installed-APK report provenance and timing when reports are supplied, and optional API smoke timing. |
 | `scripts/proof/release/load-smoke.ps1` | Run a small concurrent health-check smoke against a deployed or local API target and write a JSON proof report. |
-| `scripts/quality/v17-production-readiness.ps1` | Run V17 preflight proof across script parsing, managed Hugging Face/Vercel deployment shape, Android release shape, deployed-evidence attachment rules, cutover-readiness fixtures, markdown, public-readiness, performance readiness, and optional deployed load smoke or signed Android release proof. |
+| `scripts/quality/v17-production-readiness.ps1` | Run V17 preflight proof across script parsing, managed Hugging Face/Firebase Hosting deployment shape, Android release shape, deployed-evidence attachment rules, cutover-readiness fixtures, markdown, public-readiness, performance readiness, and optional deployed load smoke or signed Android release proof. |
 | `scripts/proof/lib/tour-report-lib.ps1` | Shared helper for reading, normalizing, and validating browser/native tour report records, including required role/path identity. |
 | `scripts/proof/lib/url-guard-lib.ps1` | Shared helper for validating and normalizing non-blank absolute `http` or `https` local setup, native build, frontend proxy, OpenAPI docs, tour, smoke, performance, deployment, and report-provenance URLs. |
 | `scripts/proof/web/frontend-ui-input-tour.ps1` | Run typed public-auth UI input proof against a running web target. |
 | `scripts/quality/public-readiness.ps1` | Check the repository tree for local-only folders, unsafe runtime files, signed Android artifacts, no Actions artifact publishing, CI naming, and Compose config while excluding generated dependency/build/report folders. |
 | `scripts/quality/deployment-readiness.ps1` | Run the V16.2 deployment-ready local certification gate with local/mock proof and optional timed API smoke. |
-| `scripts/deploy/huggingface-vercel-check.ps1` | Validate the selected no-card V17 Hugging Face Docker Space backend and Vercel frontend deployment configuration shape. |
+| `scripts/quality/v17-production-readiness.ps1` | Validate the selected no-card V17 Hugging Face Docker Space backend and Firebase Hosting frontend deployment configuration shape as part of V17 preflight proof. |
 | `scripts/deploy/huggingface-space-sync.ps1` | Prepare or upload the self-contained Hugging Face Docker Space source from the tracked backend and an ignored private env file. |
 | `scripts/maintenance/clean-reports.ps1` | Trim old local reports, logs, and screenshots. |
 | `scripts/maintenance/syntax-check.ps1` | Parse all repository PowerShell scripts for syntax errors and report any failures with file, line, and message. |
@@ -263,7 +263,7 @@ Run the V17 deployment preflight before a staging or production rollout:
 .\scripts\quality\v17-production-readiness.ps1
 ```
 
-The default preflight parses PowerShell scripts, validates the selected Hugging Face/Vercel deployment shape, checks the Android release Gradle/manifest shape, proves deployed-evidence attachment rules, exercises the cutover-readiness validator with complete and incomplete fixtures, checks markdown, checks public-facing repository boundaries, and rebuilds the frontend for performance budgets. It intentionally skips live load smoke and signed Android release proof until a real HTTPS target and external signing secrets exist. When a staging or production target is reachable, include those proof slices:
+The default preflight parses PowerShell scripts, validates the selected Hugging Face/Firebase Hosting deployment shape, checks the Android release Gradle/manifest shape, proves deployed-evidence attachment rules, exercises the cutover-readiness validator with complete and incomplete fixtures, checks markdown, checks public-facing repository boundaries, and rebuilds the frontend for performance budgets. It intentionally skips live load smoke and signed Android release proof until a real HTTPS target and external signing secrets exist. When a staging or production target is reachable, include those proof slices:
 
 ```powershell
 .\scripts\quality\v17-production-readiness.ps1 `

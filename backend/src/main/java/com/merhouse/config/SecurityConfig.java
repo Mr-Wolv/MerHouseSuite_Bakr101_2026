@@ -1,6 +1,7 @@
 package com.merhouse.config;
 
 import com.merhouse.security.FirebaseTokenFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final FirebaseTokenFilter firebaseTokenFilter;
+
+    @Value("${merhouse.firebase.app-check.enabled:false}")
+    private boolean appCheckEnabled;
+
+    private static final String APP_CHECK_HEADER = "X-Firebase-AppCheck";
 
     public SecurityConfig(FirebaseTokenFilter firebaseTokenFilter) {
         this.firebaseTokenFilter = firebaseTokenFilter;
@@ -52,6 +58,33 @@ public class SecurityConfig {
             // Firebase Admin SDK. Custom JWT authentication has been removed.
             .addFilterBefore(firebaseTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
+        // When App Check is enabled, add a request validation that checks
+        // the X-Firebase-AppCheck header is present on all requests.
+        if (appCheckEnabled) {
+            builder = builder.addFilterBefore(
+                (request, response, chain) -> {
+                    var httpRequest = (jakarta.servlet.http.HttpServletRequest) request;
+                    var httpResponse = (jakarta.servlet.http.HttpServletResponse) response;
+                    String path = httpRequest.getRequestURI();
+                    // Skip App Check for public endpoints
+                    if (path.startsWith("/api/v1/health")
+                        || path.startsWith("/actuator/health")
+                        || path.startsWith("/swagger-ui")
+                        || path.startsWith("/v3/api-docs")) {
+                        chain.doFilter(request, response);
+                        return;
+                    }
+                    String appCheckToken = httpRequest.getHeader(APP_CHECK_HEADER);
+                    if (appCheckToken == null || appCheckToken.isBlank()) {
+                        httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing App Check token.");
+                        return;
+                    }
+                    chain.doFilter(request, response);
+                },
+                FirebaseTokenFilter.class
+            );
+        }
+
         return builder.build();
     }
 
@@ -68,8 +101,8 @@ public class SecurityConfig {
             HttpMethod.DELETE.name(),
             HttpMethod.OPTIONS.name()
         ));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Firebase-AppCheck"));
+        configuration.setExposedHeaders(List.of("Authorization", "X-Firebase-AppCheck"));
         configuration.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -14,6 +14,7 @@ public class UserPrincipal implements UserDetails {
     private final UUID tenantId;
     private final String email;
     private final String passwordHash;
+    private final String firebaseUid;
     private final UserRole role;
     private final boolean enabled;
 
@@ -23,20 +24,22 @@ public class UserPrincipal implements UserDetails {
             user.getTenant().getId(),
             user.getEmail(),
             user.getPasswordHash(),
+            user.getFirebaseUid(),
             user.getRole(),
             user.isEnabled()
         );
     }
 
     public UserPrincipal(UUID id, UUID tenantId, String email, UserRole role, boolean enabled) {
-        this(id, tenantId, email, "", role, enabled);
+        this(id, tenantId, email, "", null, role, enabled);
     }
 
-    private UserPrincipal(UUID id, UUID tenantId, String email, String passwordHash, UserRole role, boolean enabled) {
+    private UserPrincipal(UUID id, UUID tenantId, String email, String passwordHash, String firebaseUid, UserRole role, boolean enabled) {
         this.id = id;
         this.tenantId = tenantId;
         this.email = email;
         this.passwordHash = passwordHash;
+        this.firebaseUid = firebaseUid;
         this.role = role;
         this.enabled = enabled;
     }
@@ -47,6 +50,10 @@ public class UserPrincipal implements UserDetails {
 
     public UUID tenantId() {
         return tenantId;
+    }
+
+    public String firebaseUid() {
+        return firebaseUid;
     }
 
     public UserRole role() {

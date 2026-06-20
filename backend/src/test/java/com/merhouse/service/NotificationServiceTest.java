@@ -22,6 +22,7 @@ import com.merhouse.entity.NotificationTopic;
 import com.merhouse.entity.Tenant;
 
 import com.merhouse.repository.AppUserRepository;
+import com.merhouse.repository.FcmTokenRepository;
 import com.merhouse.repository.NotificationDeliveryRepository;
 import com.merhouse.repository.NotificationPreferenceRepository;
 import java.time.Clock;
@@ -40,11 +41,15 @@ class NotificationServiceTest {
     private final NotificationPreferenceRepository preferenceRepository = mock(NotificationPreferenceRepository.class);
     private final NotificationDeliveryRepository deliveryRepository = mock(NotificationDeliveryRepository.class);
     private final AppUserRepository userRepository = mock(AppUserRepository.class);
+    private final FcmTokenRepository fcmTokenRepository = mock(FcmTokenRepository.class);
+    private final FirebaseCloudMessagingService fcmService = mock(FirebaseCloudMessagingService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-05-29T12:00:00Z"), ZoneOffset.UTC);
     private final NotificationService service = new NotificationService(
         preferenceRepository,
         deliveryRepository,
         userRepository,
+        fcmTokenRepository,
+        fcmService,
         clock
     );
 

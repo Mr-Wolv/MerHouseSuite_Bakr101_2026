@@ -17,6 +17,9 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
     Optional<AppUser> findByEmailIgnoreCase(String email);
 
     @EntityGraph(attributePaths = "tenant")
+    Optional<AppUser> findByFirebaseUid(String firebaseUid);
+
+    @EntityGraph(attributePaths = "tenant")
     Optional<AppUser> findWithTenantById(UUID id);
 
     boolean existsByEmailIgnoreCase(String email);

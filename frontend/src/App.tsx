@@ -13,6 +13,9 @@ import {
   AdminUsersPage,
 } from './pages/AdminPages'
 import { ForgotPasswordPage, RequestAccessPage, ResetPasswordPage } from './pages/AuthRecoveryPages'
+import { EmailSignInCompletePage } from './pages/EmailSignInCompletePage'
+import { EmailVerifyPage } from './pages/EmailVerifyPage'
+import { PasswordlessSignInPage } from './pages/PasswordlessSignInPage'
 import { AccountPage } from './pages/AccountPage'
 import { HomeRedirect } from './pages/HomeRedirect'
 import { HowToUsePage } from './pages/HowToUsePage'
@@ -33,8 +36,11 @@ import { WarehousePage } from './pages/WarehousePage'
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  { path: '/passwordless-sign-in', element: <PasswordlessSignInPage /> },
+  { path: '/sign-in/complete', element: <EmailSignInCompletePage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
+  { path: '/verify-email', element: <EmailVerifyPage /> },
   { path: '/request-access', element: <RequestAccessPage /> },
   { path: '/how-to-use', element: <HowToUsePage /> },
   {

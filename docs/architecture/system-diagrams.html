@@ -180,7 +180,7 @@
         <span class="pill">6 roles across 3 tenant contexts</span>
         <span class="pill">Spring Boot 4 API + React/Vite console</span>
         <span class="pill">Shared shell for web and Android</span>
-        <span class="pill">V17 lane: Neon, Hugging Face, Vercel, GitHub Release APK</span>
+        <span class="pill">V17 lane: Neon, Hugging Face, Firebase Hosting, GitHub Release APK</span>
       </div>
     </header>
 
@@ -230,7 +230,7 @@
           <ul>
             <li>Neon PostgreSQL for managed V17 data</li>
             <li>Hugging Face Docker Space for the Spring backend</li>
-            <li>Vercel for the React frontend</li>
+            <li>Firebase Hosting for the React frontend</li>
             <li>GitHub Actions for CI/CD quality gates and release workflows</li>
             <li>GitHub Releases for signed Android APK distribution</li>
             <li>Docker Compose for local PostgreSQL + backend + nginx frontend</li>
@@ -293,7 +293,7 @@
         </article>
         <article class="story" style="--accent: var(--proof)">
           <h3>Story: The Same Product Ships To Web And Android</h3>
-          <div class="story-row"><b>Actor</b><span>Operator deploys the React web app via Vercel, deploys the Spring backend to Hugging Face, and builds a signed Android APK against the deployed backend URL.</span></div>
+          <div class="story-row"><b>Actor</b><span>Operator deploys the React web app via Firebase Hosting, deploys the Spring backend to Hugging Face, and builds a signed Android APK against the deployed backend URL.</span></div>
           <div class="story-row"><b>Tension</b><span>Scripts can pass while the real browser or installed app feels broken, slow, or misconfigured.</span></div>
           <div class="story-row"><b>Work</b><span>Live browser review leads, supporting proof records follow, and Android wraps the same Capacitor frontend shell instead of creating a second product.</span></div>
           <div class="story-row"><b>Done</b><span>V17 proof shows deployed web and visible installed Android behavior before release evidence is attached to a cutover package.</span></div>
@@ -365,7 +365,7 @@
           <h3>Web, Android, And Release Proof</h3>
           <p>The React product shell is shared by desktop web, narrow web, and Android packaging via Capacitor. The V17 release lane deploys the same product.</p>
           <ul>
-            <li>web runtime deployed through Vercel</li>
+            <li>web runtime deployed through Firebase Hosting</li>
             <li>backend runtime packaged for Hugging Face Docker Space</li>
             <li>data in Neon PostgreSQL for the managed lane</li>
             <li>signed Android APK delivery through GitHub Releases after live proof</li>
@@ -890,7 +890,7 @@
           <ul>
             <li>Neon PostgreSQL for managed data</li>
             <li>Hugging Face Docker Space for the Spring backend</li>
-            <li>Vercel for the React frontend</li>
+            <li>Firebase Hosting for the React frontend</li>
             <li>GitHub Actions for CI/CD quality gates (<code>merhouse-quality-gate.yml</code>) and Android release (<code>merhouse-android-release.yml</code>)</li>
             <li>GitHub Releases for signed internal APK distribution</li>
             <li>SMTP email delivery when <code>MERHOUSE_EMAIL_ENABLED=true</code> with provider credentials externalized</li>

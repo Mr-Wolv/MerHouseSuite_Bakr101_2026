@@ -1,3 +1,9 @@
+/**
+ * MerHouse service worker — offline shell caching.
+ *
+ * FCM push notification support was deferred to a future implementation
+ * (see VInfinite roadmap). The SW remains lean for offline-first caching.
+ */
 const CACHE_NAME = 'merhouse-shell-v1'
 const SHELL_ASSETS = ['/', '/manifest.webmanifest', '/app-icon.svg', '/favicon.svg']
 

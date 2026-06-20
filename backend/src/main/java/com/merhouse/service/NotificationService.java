@@ -13,6 +13,7 @@ import com.merhouse.entity.NotificationProviderStatus;
 import com.merhouse.entity.NotificationTopic;
 import com.merhouse.exception.ResourceNotFoundException;
 import com.merhouse.repository.AppUserRepository;
+import com.merhouse.repository.FcmTokenRepository;
 import com.merhouse.repository.NotificationDeliveryRepository;
 import com.merhouse.repository.NotificationPreferenceRepository;
 import java.time.Clock;
@@ -39,17 +40,23 @@ public class NotificationService {
     private final NotificationPreferenceRepository preferenceRepository;
     private final NotificationDeliveryRepository deliveryRepository;
     private final AppUserRepository userRepository;
+    private final FcmTokenRepository fcmTokenRepository;
+    private final FirebaseCloudMessagingService fcmService;
     private final Clock clock;
 
     public NotificationService(
         NotificationPreferenceRepository preferenceRepository,
         NotificationDeliveryRepository deliveryRepository,
         AppUserRepository userRepository,
+        FcmTokenRepository fcmTokenRepository,
+        FirebaseCloudMessagingService fcmService,
         Clock clock
     ) {
         this.preferenceRepository = preferenceRepository;
         this.deliveryRepository = deliveryRepository;
         this.userRepository = userRepository;
+        this.fcmTokenRepository = fcmTokenRepository;
+        this.fcmService = fcmService;
         this.clock = clock;
     }
 
@@ -191,7 +198,26 @@ public class NotificationService {
         delivery.setSourceType(sourceType);
         delivery.setSourceId(sourceId);
         delivery.setPrototypeLocal(true);
-        return deliveryRepository.save(delivery);
+        final NotificationDelivery saved = deliveryRepository.save(delivery);
+
+        // Attempt to send via FCM push when the user has a registered token.
+        if (enabled) {
+            fcmTokenRepository.findByUserId(recipient.getId())
+                .ifPresent(fcmToken -> {
+                    boolean sent = fcmService.sendNotification(
+                        fcmToken.getFcmToken(),
+                        title,
+                        body
+                    );
+                    if (sent) {
+                        saved.setProviderStatus(NotificationProviderStatus.SENT);
+                        saved.setDeliveryStage(NotificationDeliveryStage.PROVIDER_SENT);
+                        deliveryRepository.save(saved);
+                    }
+                });
+        }
+
+        return saved;
     }
 
     private String notificationRoute(NotificationDelivery delivery) {

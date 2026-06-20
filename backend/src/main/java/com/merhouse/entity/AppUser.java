@@ -32,6 +32,9 @@ public class AppUser {
     @Column(nullable = false, length = 255)
     private String passwordHash;
 
+    @Column(length = 128, unique = true)
+    private String firebaseUid;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 48)
     private UserRole role;
@@ -69,6 +72,14 @@ public class AppUser {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getFirebaseUid() {
+        return firebaseUid;
+    }
+
+    public void setFirebaseUid(String firebaseUid) {
+        this.firebaseUid = firebaseUid;
     }
 
     public UserRole getRole() {

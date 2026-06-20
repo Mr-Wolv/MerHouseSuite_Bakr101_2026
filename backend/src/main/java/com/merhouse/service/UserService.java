@@ -59,6 +59,12 @@ public class UserService {
         Tenant tenant = tenantService.getRequired(request.tenantId());
         validateTenantRole(tenant, request.role());
 
+        // Enforce single-owner invariant: only one OWNER may exist system-wide.
+        // Uses countByRoleIn to count ALL owners regardless of enabled status.
+        if (request.role() == UserRole.OWNER && userRepository.countByRoleIn(Set.of(UserRole.OWNER)) > 0) {
+            throw new DomainConflictException("An owner account already exists. Only one owner is permitted.");
+        }
+
         AppUser user = new AppUser();
         user.setTenant(tenant);
         user.setEmail(email);
@@ -67,31 +73,42 @@ public class UserService {
         user.setEnabled(true);
         AppUser saved = userRepository.save(user);
 
-        // Create Firebase Auth user when Firebase is enabled.
+        // Create Firebase Auth user when Firebase is enabled and save the uid.
         // Wrapped in try-catch so a Firebase failure never prevents the DB user
         // from being created (matches DevAdminSeeder pattern).
-        createFirebaseUserIfAvailable(email, request.password());
+        String firebaseUid = createFirebaseUserIfAvailable(email, request.password());
+        if (firebaseUid != null) {
+            saved.setFirebaseUid(firebaseUid);
+            userRepository.save(saved);
+        }
 
         return saved;
     }
 
-    private void createFirebaseUserIfAvailable(String email, String password) {
+    /**
+     * Creates a Firebase Auth user if Firebase is available.
+     * Returns the Firebase uid, or null if creation was skipped or failed.
+     */
+    private String createFirebaseUserIfAvailable(String email, String password) {
         FirebaseAuth firebaseAuth = firebaseAuthProvider.getIfAvailable();
-        if (firebaseAuth == null) return;
+        if (firebaseAuth == null) return null;
         try {
             try {
-                firebaseAuth.getUserByEmail(email);
-                log.debug("Firebase Auth user already exists for {} — skipping creation.", email);
+                UserRecord existing = firebaseAuth.getUserByEmail(email);
+                log.debug("Firebase Auth user already exists for {} with uid: {} — skipping creation.", email, existing.getUid());
+                return existing.getUid();
             } catch (FirebaseAuthException e) {
                 UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
                     .setEmail(email)
                     .setPassword(password)
                     .setEmailVerified(true);
-                firebaseAuth.createUser(createRequest);
-                log.info("Created Firebase Auth user for: {}", email);
+                UserRecord created = firebaseAuth.createUser(createRequest);
+                log.info("Created Firebase Auth user for {} with uid: {}", email, created.getUid());
+                return created.getUid();
             }
         } catch (Exception ex) {
-            log.warn("Firebase Auth user creation failed for {}: {} — DB user was still created.", email, ex.getMessage());
+            log.warn("Firebase Auth user creation/uid-fetch failed for {}: {} — DB user was still created.", email, ex.getMessage());
+            return null;
         }
     }
 
@@ -146,6 +163,13 @@ public class UserService {
         if (role.isPlatformAdmin() && !actor.getRole().canManageAdmins()) {
             throw new DomainConflictException("Only an owner can assign platform admin roles.");
         }
+
+        // Enforce single-owner invariant: prevent creating a second owner via role change.
+        // Uses countByRoleIn to count ALL owners regardless of enabled status.
+        if (role == UserRole.OWNER && userRepository.countByRoleIn(Set.of(UserRole.OWNER)) > 0) {
+            throw new DomainConflictException("An owner account already exists. Only one owner is permitted.");
+        }
+
         if (user.getRole() == UserRole.OWNER && user.isEnabled()
             && role != UserRole.OWNER
             && userRepository.countByRoleAndEnabled(UserRole.OWNER, true) <= 1) {

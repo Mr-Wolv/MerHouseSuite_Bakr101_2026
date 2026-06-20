@@ -24,7 +24,7 @@ npm run dev
 
 The Vite dev server proxies `/api` to `http://localhost:8080`. The backend default CORS origins include the documented local dev and tour origins, `http://localhost:5173` and `http://127.0.0.1:5173`, so browser sign-in behaves the same through Vite as it does through the Docker nginx frontend.
 
-The local Docker Compose image builds the React app from `frontend/frontend-compose.Dockerfile` and serves it through nginx. In Docker Compose, nginx proxies API and OpenAPI requests to the backend service. The managed web deployment is Vercel, not this local nginx image.
+The local Docker Compose image builds the React app from `frontend/frontend-compose.Dockerfile` and serves it through nginx. In Docker Compose, nginx proxies API and OpenAPI requests to the backend service. The managed web deployment uses Firebase Hosting, not this local nginx image.
 
 ## Mobile Runtime
 

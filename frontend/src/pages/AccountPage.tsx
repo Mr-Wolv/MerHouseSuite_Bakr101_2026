@@ -8,13 +8,16 @@ import { StatusBadge } from '../components/StatusBadge'
 import { formatDateTime } from '../components/format'
 
 export function AccountPage() {
-  const { token, user } = useAuth()
+  const { token, user, emailVerified, sendEmailVerification, refreshEmailVerified } = useAuth()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [verifyingEmail, setVerifyingEmail] = useState(false)
+  const [emailVerificationMessage, setEmailVerificationMessage] = useState('')
+  const [emailVerificationError, setEmailVerificationError] = useState('')
 
   if (!user || !token) return null
   const authToken = token
@@ -41,6 +44,31 @@ export function AccountPage() {
     }
   }
 
+  async function handleSendVerification() {
+    setEmailVerificationError('')
+    setEmailVerificationMessage('')
+    setVerifyingEmail(true)
+    try {
+      await sendEmailVerification()
+      setEmailVerificationMessage('Verification email sent. Check your inbox and click the link to verify your email.')
+    } catch (caught) {
+      setEmailVerificationError(caught instanceof Error ? caught.message : 'Unable to send verification email.')
+    } finally {
+      setVerifyingEmail(false)
+    }
+  }
+
+  async function handleRefreshVerified() {
+    setEmailVerificationError('')
+    setEmailVerificationMessage('')
+    const verified = await refreshEmailVerified()
+    if (verified) {
+      setEmailVerificationMessage('Email verification confirmed.')
+    } else {
+      setEmailVerificationError('Email is not yet verified. Check your inbox and click the verification link.')
+    }
+  }
+
   return (
     <div className="stacked-page">
       <section className="page-hero compact-hero">
@@ -62,6 +90,7 @@ export function AccountPage() {
             <div><dt>Email</dt><dd>{user.email}</dd></div>
             <div><dt>Role</dt><dd><StatusBadge value={user.role} /></dd></div>
             <div><dt>Status</dt><dd><StatusBadge value={user.enabled ? 'ENABLED' : 'DISABLED'} /></dd></div>
+            <div><dt>Email verified</dt><dd><StatusBadge value={emailVerified ? 'VERIFIED' : 'UNVERIFIED'} /></dd></div>
             <div><dt>Tenant</dt><dd>{user.tenantId}</dd></div>
             <div><dt>Created</dt><dd>{formatDateTime(user.createdAt)}</dd></div>
           </dl>
@@ -89,6 +118,32 @@ export function AccountPage() {
               <appIcons.service size={16} aria-hidden="true" />
               Service review
             </Link>
+          </div>
+        </article>
+
+        <article className="queue-card">
+          <div className="card-heading">
+            <appIcons.recovery size={18} aria-hidden="true" />
+            <h2>Email Verification</h2>
+          </div>
+          <p className="muted-copy">
+            {emailVerified
+              ? 'Your email address has been verified. You can use passwordless sign-in and receive account notifications.'
+              : 'Verify your email to use passwordless sign-in links and receive account notifications.'}
+          </p>
+          {emailVerificationError ? <div className="inline-error" role="alert">{emailVerificationError}</div> : null}
+          {emailVerificationMessage ? <div className="inline-success" role="status">{emailVerificationMessage}</div> : null}
+          <div className="button-row">
+            {!emailVerified ? (
+              <button className="primary-button fit-button" type="button" disabled={verifyingEmail} onClick={() => void handleSendVerification()}>
+                <appIcons.recovery size={16} aria-hidden="true" />
+                {verifyingEmail ? 'Sending...' : 'Send verification email'}
+              </button>
+            ) : null}
+            <button className="secondary-button fit-button" type="button" onClick={() => void handleRefreshVerified()}>
+              <appIcons.help size={16} aria-hidden="true" />
+              Check verification status
+            </button>
           </div>
         </article>
       </section>

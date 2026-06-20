@@ -112,6 +112,15 @@ async function resolveToken(explicitToken?: string | null): Promise<string | nul
   return null
 }
 
+async function resolveAppCheckToken(): Promise<string | null> {
+  try {
+    const { getAppCheckToken } = await import('../lib/firebase')
+    return getAppCheckToken()
+  } catch {
+    return null
+  }
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers()
   headers.set('Accept', 'application/json')
@@ -123,6 +132,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const resolvedToken = await resolveToken(options.token)
   if (resolvedToken) {
     headers.set('Authorization', `Bearer ${resolvedToken}`)
+  }
+
+  // Attach App Check token when available. The backend validates this
+  // header is present when merhouse.firebase.app-check.enabled=true.
+  const appCheckToken = await resolveAppCheckToken()
+  if (appCheckToken) {
+    headers.set('X-Firebase-AppCheck', appCheckToken)
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -696,5 +712,20 @@ export const api = {
   },
   merchantWarehouseRelationshipDetail(token: string, relationshipId: string) {
     return request<MerchantWarehouseRelationshipDetail>(`/api/v1/operational-details/relationships/${relationshipId}`, { token })
+  },
+
+  // ───── FCM Push Notification Token Registration ─────
+  registerFcmToken(token: string, fcmToken: string) {
+    return request<{ message: string }>('/api/v1/notifications/fcm-tokens', {
+      method: 'POST',
+      token,
+      body: { fcmToken },
+    })
+  },
+  unregisterFcmToken(token: string) {
+    return request<{ message: string }>('/api/v1/notifications/fcm-tokens', {
+      method: 'DELETE',
+      token,
+    })
   },
 }

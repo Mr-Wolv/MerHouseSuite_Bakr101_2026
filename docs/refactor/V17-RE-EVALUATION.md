@@ -21,7 +21,7 @@ For the ordered closure checklist, use [`Closure_Plan.md`](./Closure_Plan.md). F
 
 | Item | Status | Repository-visible evidence |
 | --- | --- | --- |
-| Deployment lane | Confirmed live | Managed deployment docs, CI workflows, and deployed-proof scripts are present for Neon PostgreSQL, Hugging Face Docker Space, Vercel, GitHub Actions, and GitHub Release APK distribution. |
+| Deployment lane | Confirmed live | Managed deployment docs, CI workflows, and deployed-proof scripts are present for Neon PostgreSQL, Hugging Face Docker Space, Firebase Hosting, GitHub Actions, and GitHub Release APK distribution. |
 | Feature A: Access Request & Approve-and-Activate | Implemented | `AccessRequestService.java`, `AccessRequestController.java`, `AdminPages.tsx`, related backend/frontend tests. |
 | Feature B: OTP Password Recovery | Removed | OTP flow was removed — Firebase Auth handles password reset via built-in email templates. `AuthRecoveryService` now uses only the token-based flow synced with Firebase. |
 | Feature C: How To Use Page | Implemented | `HowToUsePage.tsx`, `App.tsx`, `AppLayout.tsx`, `LoginPage.tsx`, related frontend tests. |

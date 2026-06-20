@@ -7,7 +7,7 @@ This roadmap is the project planning and quality source of truth. It should stay
 
 ## Current Status
 
-MerHouse is a fulfillment coordination system for merchants, warehouse providers, and platform operators. V16.2 local certification is complete, and V17 production activation has moved into a private deployed footprint on Neon PostgreSQL, a Hugging Face Docker Space backend, Vercel frontend hosting, GitHub Actions quality/release workflows, and GitHub Release APK distribution. The repository must now describe both truths clearly: local Docker Compose remains the reproducible developer path, while deployed V17 targets are the active private release path until sanitized proof and an intentional cutover decision make a production/public claim appropriate.
+MerHouse is a fulfillment coordination system for merchants, warehouse providers, and platform operators. V16.2 local certification is complete, and V17 production activation has moved into a private deployed footprint on Neon PostgreSQL, a Hugging Face Docker Space backend, Firebase Hosting frontend, GitHub Actions quality/release workflows, and GitHub Release APK distribution. The repository must now describe both truths clearly: local Docker Compose remains the reproducible developer path, while deployed V17 targets are the active private release path until sanitized proof and an intentional cutover decision make a production/public claim appropriate.
 
 The repository is intended to be public-readable. Keep source, docs, scripts, CI, compose files, and root guidance useful to a developer who just cloned the project. Runtime values belong in environment variables, ignored local files, explicit external files, or templates.
 
@@ -86,7 +86,7 @@ Acceptance bar:
 
 ### V17: Portfolio Completion (Deployment Confirmed Live)
 
-> **Status update:** As of 2026-06-14, deployment is **confirmed live** on Neon PostgreSQL, Hugging Face Docker Space backend, Vercel frontend, GitHub Actions CI/CD, and GitHub Release APK distribution. The original deployment infrastructure work is complete (Tier 1), and the three portfolio features are implemented in the current codebase. V17 now means closing the remaining convergence work: proof execution, documentation and diagram alignment, script-inventory validation, and deployed evidence packaging. See [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) and [`Closure_Plan.md`](../refactor/Closure_Plan.md) for the active closure scope.
+> **Status update:** As of 2026-06-14, deployment is **confirmed live** on Neon PostgreSQL, Hugging Face Docker Space backend, Firebase Hosting frontend, GitHub Actions CI/CD, and GitHub Release APK distribution. The original deployment infrastructure work is complete (Tier 1), and the three portfolio features are implemented in the current codebase. V17 now means closing the remaining convergence work: proof execution, documentation and diagram alignment, script-inventory validation, and deployed evidence packaging. See [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) and [`Closure_Plan.md`](../refactor/Closure_Plan.md) for the active closure scope.
 >
 > The re-evaluation classifies the remaining V17 closure work into completed implementation, deferred Vinfinite scope, and execution/documentation closure work against the live stack.
 
@@ -112,7 +112,7 @@ Deployment infrastructure (Tier 1 — already complete, not new work):
 
 - production deployment architecture recorded in [Production deployment activation](../operations/production-deployment-activation.md)
 - external service activation recorded in [V17 external service activation](../operations/v17-service-activation.md)
-- deployment configuration infrastructure (Hugging Face Docker Space, Vercel frontend, Neon PostgreSQL)
+- deployment configuration infrastructure (Hugging Face Docker Space, Firebase Hosting frontend, Neon PostgreSQL)
 - CI/CD quality and release workflows (GitHub Actions)
 - professional product proof scripts (performance, load, monitoring, deployed browser, mobile)
 - signed Android release workflow and proof harnesses
@@ -155,7 +155,7 @@ These are useful future ideas, not blockers for local readiness:
 - payments, banking, tax, accounting, and marketplace workflows
 - realtime infrastructure beyond current polling
 - provider-edge hardening for public backend reachability, including managed WAF/CDN rules, abuse detection, bot/rate controls beyond app-level throttles, and monitoring focused on intentionally public endpoints such as health, login, recovery, and access requests
-- VPS/Compose, Oracle Cloud Always Free, Cloud Run, or sponsored professional hosting lanes if the current Neon + Hugging Face + Vercel path becomes unacceptable or a later operations budget changes the hosting decision
+- VPS/Compose, Oracle Cloud Always Free, Cloud Run, or sponsored professional hosting lanes if the current Neon + Hugging Face + Firebase Hosting path becomes unacceptable or a later operations budget changes the hosting decision
 - deeper test-suite expansion that favors unhappy paths, permission denials, invalid state transitions, deployment-mode failures, and stakeholder edge cases over additional happy-path repetition
 - provider-backed AI assistant runtime
 - AI Assistant Completion: conversation threading (parentInteractionId), contextual awareness from real metrics, chat-like conversation UI, workflow guidance content, scope auto-detection from prompts

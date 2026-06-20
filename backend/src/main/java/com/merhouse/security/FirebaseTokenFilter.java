@@ -3,6 +3,7 @@ package com.merhouse.security;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
+import com.merhouse.entity.AppUser;
 import com.merhouse.repository.AppUserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,8 +22,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * and sets the Spring Security authentication context.
  *
  * <p>Firebase Auth owns credential verification; this filter verifies the ID
- * token signature and extracts custom claims. Custom JWT authentication has
- * been removed — Firebase is the only authentication path.
+ * token signature and extracts the Firebase {@code uid}. The uid is mapped
+ * to the local {@code AppUser} entity through the {@code firebase_uid} column
+ * in the database. When no {@code firebase_uid} match is found, the filter
+ * falls back to email-based lookup for backwards compatibility with users
+ * created before Firebase uid tracking was added.
+ *
+ * <p>Custom JWT authentication has been removed — Firebase is the only
+ * authentication path.
  */
 @Component
 public class FirebaseTokenFilter extends OncePerRequestFilter {
@@ -45,15 +52,15 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
             try {
                 FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
 
-                // Look up the user in our database to get tenant and role info.
-                // The Firebase UID is stored as the user's external ID or we map
-                // by email. For now we match by email since existing users don't
-                // have Firebase UIDs yet.
-                String email = decodedToken.getEmail();
-                if (email != null) {
-                    userRepository.findByEmailIgnoreCase(email)
-                        .filter(user -> user.isEnabled())
-                        .ifPresent(user -> {
+                // Primary lookup by Firebase UID (the recommended path for
+                // users created after firebase_uid tracking was added).
+                String uid = decodedToken.getUid();
+                boolean found = false;
+
+                if (uid != null) {
+                    found = userRepository.findByFirebaseUid(uid)
+                        .filter(AppUser::isEnabled)
+                        .map(user -> {
                             UserPrincipal principal = new UserPrincipal(user);
                             UsernamePasswordAuthenticationToken authentication =
                                 new UsernamePasswordAuthenticationToken(
@@ -62,7 +69,38 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
                                     principal.getAuthorities()
                                 );
                             SecurityContextHolder.getContext().setAuthentication(authentication);
-                        });
+                            return true;
+                        })
+                        .orElse(false);
+                }
+
+                // Fallback: look up by email for backwards compatibility with
+                // users created before firebase_uid tracking was added.
+                // When the user is found by email and has no firebase_uid yet,
+                // save the uid lazily so future lookups use the fast path.
+                if (!found) {
+                    String email = decodedToken.getEmail();
+                    if (email != null) {
+                        userRepository.findByEmailIgnoreCase(email)
+                            .filter(AppUser::isEnabled)
+                            .ifPresent(user -> {
+                                // Lazy backfill: save the Firebase uid for
+                                // users who existed before the firebase_uid
+                                // column was added.
+                                if (user.getFirebaseUid() == null && uid != null) {
+                                    user.setFirebaseUid(uid);
+                                    userRepository.save(user);
+                                }
+                                UserPrincipal principal = new UserPrincipal(user);
+                                UsernamePasswordAuthenticationToken authentication =
+                                    new UsernamePasswordAuthenticationToken(
+                                        principal,
+                                        null,
+                                        principal.getAuthorities()
+                                    );
+                                SecurityContextHolder.getContext().setAuthentication(authentication);
+                            });
+                    }
                 }
             } catch (FirebaseAuthException e) {
                 log.debug("Firebase token verification failed: {}", e.getMessage());

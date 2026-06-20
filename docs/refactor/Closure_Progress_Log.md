@@ -100,7 +100,7 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
 - **Task:** `C-01` — Deployed V17 evidence package
   **Blocked since:** `2026-06-16T18:00:00+03:00`
   **Blocker:** SMTP credentials and deployed HTTPS URLs are not available in the proof execution environment.
-  **Unblocking condition:** Configure Brevo SMTP credentials and provide deployed Hugging Face/Vercel URLs for proof scripts.
+  **Unblocking condition:** Configure Brevo SMTP credentials and provide deployed Hugging Face/Firebase Hosting URLs for proof scripts.
   **Impact:** Also blocks F-02 (attachment chain validation).
 
 - **Task:** `C-02` — Signed Android release proof

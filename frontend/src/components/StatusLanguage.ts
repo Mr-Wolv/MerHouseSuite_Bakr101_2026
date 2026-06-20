@@ -44,6 +44,8 @@ const statusExplanations: Record<string, string> = {
   SKIPPED_BY_PREFERENCE: 'Skipped because this user disabled that notification channel.',
   SUBMITTED: 'Submitted and waiting for partner processing.',
   SUSPENDED: 'Temporarily blocked from daily work.',
+  UNVERIFIED: 'Email address has not been verified yet.',
+  VERIFIED: 'Email address has been confirmed as owned by the user.',
 }
 
 export function statusLabel(value: string) {

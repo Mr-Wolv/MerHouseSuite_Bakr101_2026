@@ -1151,7 +1151,7 @@ Do the 9 "Must do" tasks (7 code/infra + 2 script). Deploy V17. Let production e
 
 ### CI Workflow Alignment
 
-Quality gate runs: backend tests, frontend tests, API smoke (includes rate limiting + health), seed-demo, frontend-full-tour, v17-production-readiness, public-readiness, HF/Vercel check, performance-readiness, mobile-shell-check, markdown-check.
+Quality gate runs: backend tests, frontend tests, API smoke (includes rate limiting + health), seed-demo, frontend-full-tour, v17-production-readiness, public-readiness, HF/Firebase Hosting check, performance-readiness, mobile-shell-check, markdown-check.
 
 **Gaps closed:**
 - `public-readiness.ps1` no longer depends on `rg` (ripgrep) â€” uses PowerShell-native `Select-String`
