@@ -7,6 +7,12 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      env_only:
+        description: "Only sync env vars (skip code upload)"
+        required: false
+        default: "false"
+        type: boolean
 
 concurrency:
   group: merhouse-backend-sync-${{ github.event.workflow_run.head_sha || github.sha }}
@@ -53,7 +59,12 @@ jobs:
             exit 0
           fi
           cd deploy/managed/huggingface-backend
-          python sync-hf-space.py --wipe --wait --timeout 30
+          if [ "${{ inputs.env_only }}" = "true" ]; then
+            echo "=== Env-only sync (skip code upload) ==="
+            python sync-hf-space.py --env-only
+          else
+            python sync-hf-space.py --wipe --wait --timeout 30
+          fi
           echo 'Sync complete.'
 
       - name: Verify API health
