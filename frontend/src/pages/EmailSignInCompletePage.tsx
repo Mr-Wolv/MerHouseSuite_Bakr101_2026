@@ -30,7 +30,7 @@ export function EmailSignInCompletePage() {
   const hasValidLink = useMemo(() => isMagicSignInLink(), [])
 
   const savedEmail = getEmailForSignIn()
-  const [storedEmail, setStoredEmail] = useState<string | null>(savedEmail ?? null)
+  const [storedEmail] = useState<string | null>(savedEmail ?? null)
   const [email, setEmail] = useState(savedEmail ?? '')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
