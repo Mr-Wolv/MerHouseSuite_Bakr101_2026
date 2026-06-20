@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { appIcons } from '../components/AppIcons'
@@ -29,19 +29,11 @@ export function EmailSignInCompletePage() {
   const navigate = useNavigate()
   const hasValidLink = useMemo(() => isMagicSignInLink(), [])
 
-  const [storedEmail, setStoredEmail] = useState<string | null>(null)
-  const [email, setEmail] = useState('')
+  const savedEmail = getEmailForSignIn()
+  const [storedEmail, setStoredEmail] = useState<string | null>(savedEmail ?? null)
+  const [email, setEmail] = useState(savedEmail ?? '')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-
-  // Recover the email from localStorage on mount
-  useEffect(() => {
-    const saved = getEmailForSignIn()
-    if (saved) {
-      setStoredEmail(saved)
-      setEmail(saved)
-    }
-  }, [])
 
   // If already signed in, redirect
   if (user) {
