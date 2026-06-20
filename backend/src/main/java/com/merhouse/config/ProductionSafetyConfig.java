@@ -26,8 +26,7 @@ public class ProductionSafetyConfig {
         @Value("${merhouse.public.frontend-url:}") String publicFrontendUrl,
         @Value("${merhouse.cors.allowed-origins:}") String corsAllowedOrigins,
         @Value("${spring.datasource.password:}") String databasePassword,
-        @Value("${springdoc.api-docs.enabled:true}") boolean apiDocsEnabled,
-        @Value("${springdoc.swagger-ui.enabled:true}") boolean swaggerUiEnabled
+        @Value("${merhouse.swagger.enabled:false}") boolean swaggerEnabled
     ) {
         return arguments -> validate(
             publicDeployment,
@@ -41,8 +40,8 @@ public class ProductionSafetyConfig {
             publicFrontendUrl,
             corsAllowedOrigins,
             databasePassword,
-            apiDocsEnabled,
-            swaggerUiEnabled
+            swaggerEnabled,
+            swaggerEnabled
         );
     }
 
