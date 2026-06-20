@@ -77,8 +77,8 @@ jobs:
             exit 0
           fi
           cd deploy/managed/huggingface-backend
-          # Upload changed files (default mode uploads without wiping)
-          python sync-hf-space.py
+          # Upload-only: changed files + stale cleanup via delete_patterns (no destructive wipe)
+          python sync-hf-space.py --upload-only
           echo "Code synced."
 
       - name: Restart Space to trigger rebuild

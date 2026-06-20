@@ -5,6 +5,7 @@ MerHouse -- Hugging Face Space Sync & Reset Script
 Usage:
     python sync-hf-space.py                         # Full sync: wipe remote, upload fresh, sync env vars
     python sync-hf-space.py --wipe                   # Full reset: wipe, upload, sync env, restart + wait
+    python sync-hf-space.py --upload-only            # Quick sync: upload changed files, stale cleanup, no wipe
     python sync-hf-space.py --env-only               # Only sync environment variables
     python sync-hf-space.py --status                 # Check Space build status
     python sync-hf-space.py --health                 # Poll health endpoint until ready (exits 0/1)
@@ -54,6 +55,10 @@ SPACE_VARIABLES = {
 SPACE_SECRETS = {
     "FIREBASE_SERVICE_ACCOUNT_JSON": FIREBASE_SA_JSON,
 }
+
+STALE_CLEANUP_PATTERNS = [
+    "backend/src/**",
+]
 
 UPLOAD_IGNORE = [
     "target/**", ".gradle/**", "build/**",
@@ -124,15 +129,24 @@ def wipe_remote():
     return total
 
 
-def upload_backend_source():
-    """Upload backend source to the Space (no delete_patterns needed after wipe)."""
-    upload_folder(
+def upload_backend_source(stale_cleanup=False):
+    """Upload backend source to the Space.
+
+    Args:
+        stale_cleanup: If True, use delete_patterns to remove stale files
+                       from the remote that don't exist locally.
+                       Skips full wipe but still cleans up.
+    """
+    kwargs = dict(
         repo_id=SPACE, repo_type="space",
         folder_path=str(BACKEND_DIR), path_in_repo="backend",
         token=HF_TOKEN,
         commit_message="Upload backend source",
         ignore_patterns=UPLOAD_IGNORE,
     )
+    if stale_cleanup:
+        kwargs["delete_patterns"] = STALE_CLEANUP_PATTERNS
+    upload_folder(**kwargs)
     print("Backend source uploaded.")
 
 
@@ -274,11 +288,30 @@ def cmd_full_sync(do_restart=False, do_wait=False):
     print("\n[OK] Full sync complete.")
 
 
+def cmd_upload_only():
+    """Quick sync: upload changed files only, no wipe.
+
+    Uses delete_patterns to clean stale files that exist
+    remotely but not locally -- non-destructive, fast.
+    Skips env var sync (handled separately by sync-secrets.py).
+    """
+    print("=== Quick Sync: upload only (no wipe) ===")
+    print("\n1) Uploading backend source with stale cleanup...")
+    upload_backend_source(stale_cleanup=True)
+    print("\n2) Uploading Dockerfile and README...")
+    upload_dockerfile_and_readme()
+    print("\n[OK] Quick sync complete. Restart the Space to apply.")
+
+
 # -- Main ------------------------------------------------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sync/reset MerHouse Hugging Face Space")
     parser.add_argument("--wipe", action="store_true",
         help="Full reset: wipe, upload, sync env, restart, wait")
+    parser.add_argument("--upload-only", action="store_true",
+        help="Quick sync: upload changed files + stale cleanup, no wipe, no env sync")
+    parser.add_argument("--quick-sync", action="store_true",
+        help="Alias for --upload-only")
     parser.add_argument("--env-only", action="store_true",
         help="Only sync environment variables")
     parser.add_argument("--status", action="store_true",
@@ -296,6 +329,8 @@ if __name__ == "__main__":
     elif args.health:
         ok = wait_for_space(timeout_minutes=args.timeout)
         sys.exit(0 if ok else 1)
+    elif args.upload_only or args.quick_sync:
+        cmd_upload_only()
     elif args.env_only:
         sync_env_vars()
     elif args.wipe:
