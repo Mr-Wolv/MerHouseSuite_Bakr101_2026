@@ -25,7 +25,7 @@ SPACE = os.environ.get("HF_SPACE_REPO_ID", "M7mdHBkr/merhouse-backend")
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 if not HF_TOKEN:
     print("ERROR: HF_TOKEN environment variable is not set.", file=sys.stderr)
-    print("Set it via: export HF_TOKEN='your_token'", file=sys.stderr)
+    print("Set it via environment (e.g. shell export) before running.", file=sys.stderr)
     sys.exit(1)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
