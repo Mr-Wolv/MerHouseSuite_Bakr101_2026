@@ -28,19 +28,11 @@ if not HF_TOKEN:
     print("Set it via: export HF_TOKEN='your_token'", file=sys.stderr)
     sys.exit(1)
 
-# Project root: script is at deploy/managed/huggingface-backend/sync-hf-space.py
-# Need to go up 4 levels to reach project root
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
 DEPLOY_DIR = PROJECT_ROOT / "deploy" / "managed" / "huggingface-backend"
 
 # ── Environment Variables (MUST be set via env vars for security) ──
-# These are read from environment variables to avoid leaking credentials in Git.
-# Set them before running:
-#   export HF_SPACE_DB_URL='jdbc:postgresql://...'
-#   export HF_SPACE_DB_USERNAME='user'
-#   export HF_SPACE_DB_PASSWORD='password'
-# If not set, --env-only and --wipe will warn and skip credential sync.
 DB_URL = os.environ.get("HF_SPACE_DB_URL", "")
 DB_USERNAME = os.environ.get("HF_SPACE_DB_USERNAME", "")
 DB_PASSWORD = os.environ.get("HF_SPACE_DB_PASSWORD", "")
@@ -61,20 +53,10 @@ SPACE_SECRETS = {
     "SPRING_DATASOURCE_PASSWORD": DB_PASSWORD,
 }
 
-
-# ── Stale files known to be removed from source but lingering on HF Space ──
+# ── Stale files outside backend/src/ (not covered by delete_patterns) ──
+# Files under backend/src/ are handled automatically by upload_folder's
+# delete_patterns=["backend/src/**"]. Only list root-level stale files here.
 STALE_FILES = [
-    "backend/src/main/java/com/merhouse/config/MailConfig.java",
-    "backend/src/main/java/com/merhouse/service/EmailDeliveryService.java",
-    "backend/src/main/java/com/merhouse/service/SmtpHealthMonitor.java",
-    "backend/src/main/java/com/merhouse/service/EmailDeliveryResult.java",
-    "backend/src/main/java/com/merhouse/service/AssistantDraft.java",
-    "backend/src/main/java/com/merhouse/service/AssistantRuntime.java",
-    "backend/src/main/java/com/merhouse/service/AssistantRuntimeRequest.java",
-    "backend/src/main/java/com/merhouse/service/AssistantService.java",
-    "backend/src/main/java/com/merhouse/service/DeterministicAssistantRuntime.java",
-    "backend/src/test/java/com/merhouse/service/EmailDeliveryServiceTest.java",
-    "backend/src/test/java/com/merhouse/service/AssistantServiceTest.java",
     "backend/Dockerfile",
 ]
 
@@ -101,7 +83,7 @@ def check_status():
 
 
 def delete_stale_files():
-    """Delete specific known-stale files from the Space."""
+    """Delete known-stale root-level files from the Space."""
     api_obj = api()
     deleted = 0
     for path_in_repo in STALE_FILES:
@@ -114,13 +96,13 @@ def delete_stale_files():
             deleted += 1
             print(f"  Deleted: {path_in_repo}")
         except Exception:
-            pass  # Already deleted or doesn't exist
+            pass
     print(f"Stale files cleaned: {deleted} deleted.")
     return deleted
 
 
 def upload_backend_source():
-    """Upload the full backend source directory with delete_patterns to catch any other stale files."""
+    """Upload backend source — delete_patterns removes stale src/ files."""
     upload_folder(
         repo_id=SPACE, repo_type="space",
         folder_path=str(BACKEND_DIR), path_in_repo="backend",
@@ -129,7 +111,7 @@ def upload_backend_source():
         ignore_patterns=["target/**", ".gradle/**", "build/**", "*.log", "*.tmp", "backend-compose.Dockerfile"],
         delete_patterns=["backend/src/**"],
     )
-    print("Backend source uploaded.")
+    print("Backend source uploaded (stale src/ files cleaned via delete_patterns).")
 
 
 def upload_dockerfile_and_readme():
@@ -146,10 +128,7 @@ def upload_dockerfile_and_readme():
 
 
 def sync_env_vars():
-    """Sync environment variables and secrets to Space settings via raw REST API.
-    Validates that required DB credentials are non-empty before syncing.
-    """
-    # Validate required credentials
+    """Sync env vars to Space settings. Validates DB credentials before syncing."""
     missing = []
     if not DB_URL:
         missing.append("HF_SPACE_DB_URL")
@@ -158,15 +137,15 @@ def sync_env_vars():
     if not DB_PASSWORD:
         missing.append("HF_SPACE_DB_PASSWORD")
     if missing:
-        print(f"WARNING: Skipping env var sync. Missing required env vars: {', '.join(missing)}")
-        print("  Set them before running or use --env-only with proper credentials.")
+        print(f"WARNING: Skipping env var sync. Missing: {', '.join(missing)}")
+        print("  Set env vars or use --env-only with proper credentials.")
         return
 
     headers = {"Authorization": f"Bearer {HF_TOKEN}", "Content-Type": "application/json"}
     base = f"https://huggingface.co/api/spaces/{SPACE}"
     import requests
 
-    # ── Variables ──
+    # Variables
     try:
         resp = requests.get(f"{base}/variables", headers=headers, timeout=10)
         if resp.status_code == 200:
@@ -186,7 +165,7 @@ def sync_env_vars():
         except Exception as e:
             print(f"  Variable {key}: {e}")
 
-    # ── Secrets ──
+    # Secrets
     try:
         resp = requests.get(f"{base}/secrets", headers=headers, timeout=10)
         if resp.status_code == 200:
@@ -260,53 +239,38 @@ def cmd_wipe():
     print("=== WIPE: Full Space reset ===")
     print("\n1) Deleting stale files...")
     delete_stale_files()
-
     print("\n2) Uploading backend source...")
     upload_backend_source()
-
     print("\n3) Uploading Dockerfile & README...")
     upload_dockerfile_and_readme()
-
     print("\n4) Syncing environment variables...")
     sync_env_vars()
-
     print("\n5) Restarting Space...")
     restart_space()
     print("\n✅ Wipe complete. Build initiated.")
 
 
 def cmd_quick_sync():
-    """Comprehensive sync: clean stale files, upload changes, sync env vars.
-    Does NOT restart the Space — CI/CD handles restart separately."""
+    """Quick sync: clean stale files, upload changes, sync env vars."""
     print("=== Quick Sync ===")
     print("\n1) Cleaning stale files...")
     delete_stale_files()
-
     print("\n2) Uploading backend source...")
     upload_backend_source()
-
     print("\n3) Uploading Dockerfile & README...")
     upload_dockerfile_and_readme()
-
     print("\n4) Syncing environment variables...")
     sync_env_vars()
-
     print("\n✅ Quick sync complete.")
 
 
 # ── Main ───────────────────────────────────────────────────────
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Sync/reset MerHouse Hugging Face Space"
-    )
-    parser.add_argument("--wipe", action="store_true",
-        help="Full wipe: clean, upload, sync env, restart")
-    parser.add_argument("--env-only", action="store_true",
-        help="Only sync environment variables")
-    parser.add_argument("--status", action="store_true",
-        help="Check Space build status")
-    parser.add_argument("--wait", action="store_true",
-        help="Wait for Space to become ready after sync")
+    parser = argparse.ArgumentParser(description="Sync/reset MerHouse Hugging Face Space")
+    parser.add_argument("--wipe", action="store_true", help="Full wipe: clean, upload, sync env, restart")
+    parser.add_argument("--env-only", action="store_true", help="Only sync environment variables")
+    parser.add_argument("--status", action="store_true", help="Check Space build status")
+    parser.add_argument("--wait", action="store_true", help="Wait for Space to become ready after sync")
     args = parser.parse_args()
 
     if args.status:

@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: pip install huggingface_hub requests
 
-      - name: Sync to Hugging Face Space
+      - name: Sync to Hugging Face Space (sync + wait for build)
         env:
           HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
           HF_SPACE_DB_URL: ${{ secrets.HF_SPACE_DB_URL }}
@@ -52,25 +52,8 @@ jobs:
             exit 0
           fi
           cd deploy/managed/huggingface-backend
-          python sync-hf-space.py
+          python sync-hf-space.py --wipe --wait
           echo 'Sync complete.'
-
-      - name: Restart Space to trigger rebuild
-        if: success()
-        env:
-          HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
-        run: |
-          if [ -z "$HF_TOKEN" ]; then
-            echo "HF_TOKEN not configured. Skipping restart."
-            exit 0
-          fi
-          python -c "
-          import os
-          from huggingface_hub import HfApi
-          api = HfApi(token=os.environ['HF_TOKEN'])
-          api.restart_space(repo_id='M7mdHBkr/merhouse-backend')
-          print('Space restarted.')
-          "
 
       - name: Create deployment status
         uses: actions/github-script@v7
