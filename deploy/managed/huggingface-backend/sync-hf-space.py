@@ -232,15 +232,16 @@ def wait_for_space(timeout_minutes=30):
 
         try:
             runtime = api().get_space_runtime(repo_id=SPACE)
-            if runtime.stage == "RUNNING":
-                try:
-                    resp = req.get(f"{host}/api/v1/health", timeout=10)
-                    if resp.status_code == 200:
-                        print(f"\n[OK] BACKEND IS UP after {elapsed}s!")
-                        print(f"     Health: {resp.text[:200]}")
-                        return True
-                except Exception:
-                    pass
+            # Always try health check regardless of stage -- HF sometimes
+            # reports APP_STARTING while the app is already responding.
+            try:
+                resp = req.get(f"{host}/api/v1/health", timeout=10)
+                if resp.status_code == 200:
+                    print(f"\n[OK] BACKEND IS UP after {elapsed}s!")
+                    print(f"     Health: {resp.text[:200]}")
+                    return True
+            except Exception:
+                pass
             print(f"  [{elapsed}s] Stage={runtime.stage}, Hardware={runtime.hardware}")
         except Exception as e:
             print(f"  [{elapsed}s] Status check: {e}")
