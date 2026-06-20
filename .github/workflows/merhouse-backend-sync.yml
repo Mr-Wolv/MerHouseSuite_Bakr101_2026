@@ -90,13 +90,7 @@ jobs:
             exit 0
           fi
           cd deploy/managed/huggingface-backend
-          python -c "
-import os
-from huggingface_hub import HfApi
-api = HfApi(token=os.environ['HF_TOKEN'])
-api.restart_space(repo_id='M7mdHBkr/merhouse-backend')
-print('Space restarted.')
-"
+          python -c "import os; from huggingface_hub import HfApi; api = HfApi(token=os.environ['HF_TOKEN']); api.restart_space(repo_id='M7mdHBkr/merhouse-backend'); print('Space restarted.')"
           echo "Restart initiated."
 
       - name: Wait for Space to become healthy
