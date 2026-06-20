@@ -37,113 +37,39 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install huggingface_hub
-        run: pip install huggingface_hub
+      - name: Install dependencies
+        run: pip install huggingface_hub requests
 
-      - name: Sync backend source to Hugging Face Space
+      - name: Sync to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
-          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID }}
+          HF_SPACE_DB_URL: ${{ secrets.HF_SPACE_DB_URL }}
+          HF_SPACE_DB_USERNAME: ${{ secrets.HF_SPACE_DB_USERNAME }}
+          HF_SPACE_DB_PASSWORD: ${{ secrets.HF_SPACE_DB_PASSWORD }}
         run: |
-          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE_REPO_ID" ]; then
-            echo "HF_SPACE_TOKEN or HF_SPACE_REPO_ID not configured. Skipping sync."
+          if [ -z "$HF_TOKEN" ]; then
+            echo "HF_TOKEN not configured. Skipping sync."
+            exit 0
+          fi
+          cd deploy/managed/huggingface-backend
+          python sync-hf-space.py
+          echo 'Sync complete.'
+
+      - name: Restart Space to trigger rebuild
+        if: success()
+        env:
+          HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "HF_TOKEN not configured. Skipping restart."
             exit 0
           fi
           python -c "
           import os
-          from huggingface_hub import upload_folder
-          repo_id = os.environ['HF_SPACE_REPO_ID']
-          folder_path = 'backend'
-          token = os.environ['HF_TOKEN']
-          upload_folder(
-              repo_id=repo_id,
-              repo_type='space',
-              folder_path=folder_path,
-              path_in_repo='backend',
-              token=token,
-              commit_message='Sync MerHouse backend from commit ${{ github.sha }}',
-              ignore_patterns=[
-                  'target/**',
-                  '.gradle/**',
-                  'build/**',
-                  '*.log',
-                  '*.tmp',
-              ],
-          )
-          print('Backend source synced to Hugging Face Space.')
-          "
-
-      - name: Sync Space Dockerfile and README
-        env:
-          HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
-          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID }}
-        run: |
-          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE_REPO_ID" ]; then
-            echo "HF_SPACE_TOKEN or HF_SPACE_REPO_ID not configured. Skipping sync."
-            exit 0
-          fi
-          python -c "
-          import os
-          from huggingface_hub import upload_file
-          repo_id = os.environ['HF_SPACE_REPO_ID']
-          token = os.environ['HF_TOKEN']
-          upload_file(
-              repo_id=repo_id,
-              repo_type='space',
-              path_or_fileobj='deploy/managed/huggingface-backend/Dockerfile',
-              path_in_repo='Dockerfile',
-              token=token,
-          )
-          print('Dockerfile synced.')
-          upload_file(
-              repo_id=repo_id,
-              repo_type='space',
-              path_or_fileobj='deploy/managed/huggingface-backend/space-readme-template.md',
-              path_in_repo='README.md',
-              token=token,
-          )
-          print('Space README synced.')
-          "
-
-      - name: Sync environment variables to Space Settings
-        env:
-          HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
-          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID }}
-          HF_SPACE_VARS: ${{ secrets.HF_SPACE_VARS }}
-        run: |
-          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE_REPO_ID" ] || [ -z "$HF_SPACE_VARS" ]; then
-            echo "HF_SPACE_VARS not configured. Skipping env sync."
-            exit 0
-          fi
-          python -c "
-          import os, json
           from huggingface_hub import HfApi
-          repo_id = os.environ['HF_SPACE_REPO_ID']
-          token = os.environ['HF_TOKEN']
-          vars_json = os.environ.get('HF_SPACE_VARS', '{}')
-          api = HfApi(token=token)
-          payload = json.loads(vars_json)
-          try:
-              existing_secrets = {s.key for s in api.list_secrets(repo_id=repo_id)}
-              for key in payload.get('secrets', {}):
-                  if key in existing_secrets:
-                      api.delete_space_secret(repo_id=repo_id, key=key)
-              for key, value in payload.get('secrets', {}).items():
-                  api.add_space_secret(repo_id=repo_id, key=key, value=value)
-                  print('  secret set: %s' % key)
-          except Exception as e:
-              print('  warning syncing secrets: %s' % e)
-          try:
-              existing_vars = {v.key for v in api.list_variables(repo_id=repo_id)}
-              for key in payload.get('variables', {}):
-                  if key in existing_vars:
-                      api.delete_space_variable(repo_id=repo_id, key=key)
-              for key, value in payload.get('variables', {}).items():
-                  api.add_space_variable(repo_id=repo_id, key=key, value=value)
-                  print('  variable set: %s' % key)
-          except Exception as e:
-              print('  warning syncing variables: %s' % e)
-          print('Environment variables synced to Space Settings.')
+          api = HfApi(token=os.environ['HF_TOKEN'])
+          api.restart_space(repo_id='M7mdHBkr/merhouse-backend')
+          print('Space restarted.')
           "
 
       - name: Create deployment status
