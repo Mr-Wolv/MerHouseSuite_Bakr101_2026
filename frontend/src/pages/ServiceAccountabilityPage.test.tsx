@@ -49,6 +49,9 @@ const merchantAuth: AuthState = {
     enabled: true,
     createdAt: '2026-05-17T00:00:00Z',
   },
+  emailVerified: false,
+  sendEmailVerification: vi.fn(),
+  refreshEmailVerified: vi.fn(),
   login: vi.fn(),
   logout: vi.fn(),
 }

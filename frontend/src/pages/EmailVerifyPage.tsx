@@ -5,8 +5,6 @@ import { PublicAuthPanel } from '../components/PublicAuthPanel'
 import {
   applyEmailVerificationCode,
   friendlyAuthError,
-  isEmailVerificationLink,
-  refreshEmailVerified,
 } from '../lib/firebase-auth'
 import { useAuth } from '../auth/useAuth'
 
