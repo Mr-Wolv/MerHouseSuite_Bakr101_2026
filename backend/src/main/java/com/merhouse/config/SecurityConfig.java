@@ -48,6 +48,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/health", "/api/v1/health/**").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/api/v1/auth/login").permitAll()
+                .requestMatchers("/api/v1/auth/signup").permitAll()
+                .requestMatchers("/api/v1/auth/recovery-key/**").permitAll()
                 .requestMatchers("/api/v1/auth/password-reset/**").permitAll()
                 .requestMatchers("/api/v1/auth/recovery/**").permitAll()
                 .requestMatchers("/api/v1/access-requests").permitAll()

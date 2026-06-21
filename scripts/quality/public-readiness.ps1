@@ -239,6 +239,7 @@ try {
     # values that look like tokens but are not real secrets).
     $falsePositivePatterns = @(
         'emulator-api-key'   # Fake API key for local Firebase Auth emulator only
+        'hf_your_token'      # Placeholder used in local deployment documentation
     )
     $matches = $matches | Where-Object {
         $line = $_ -replace '^[^:]+:[^:]+:', ''

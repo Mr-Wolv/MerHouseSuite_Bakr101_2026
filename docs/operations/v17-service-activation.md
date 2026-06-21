@@ -13,7 +13,7 @@ V16.2 kept account recovery, access-request conversion, notifications, and assis
 | Service | Current V16.2 behavior | V17 target |
 | --- | --- | --- |
 | Password recovery | Local one-time reset-token proof with generic public responses and optional development token echo. Firebase Auth handles password-reset email delivery via built-in email templates. | Firebase Auth built-in email templates for password reset; token hashing, expiry, replay protection, rate limits, audit records in place. |
-| Request access | Public request form plus platform review, approval, rejection, and local account-ready delivery history. | Local in-app notification on approval/conversion. Users can use Firebase forgot-password to set their own password. |
+| Sign up | Direct registration creates tenant + user immediately. No admin approval flow. | Account is active on creation. Firebase Auth handles login. |
 | Notifications | Recipient-scoped in-app records, delivery history, preferences, and app-shell alert counts. | In-app records only (no SMTP provider connected). Android OS push, lock-screen, and notification-tray delivery are not part of the current target. |
 | Agent | Removed from codebase. | Deferred to Vinfinite. |
 

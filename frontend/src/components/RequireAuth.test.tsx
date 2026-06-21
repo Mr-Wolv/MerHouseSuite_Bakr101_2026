@@ -18,10 +18,7 @@ function baseAuthState(overrides: Partial<AuthState> = {}): AuthState {
     token: null,
     user: null,
     loading: false,
-    emailVerified: false,
-    sendEmailVerification: vi.fn(),
-    refreshEmailVerified: vi.fn(),
-    login: vi.fn(),
+          login: vi.fn(),
     logout: vi.fn(),
     ...overrides,
   }

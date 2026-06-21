@@ -36,7 +36,7 @@ describe('HowToUsePage', () => {
     // Check footer links for unauthenticated users
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login')
     expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute('href', '/forgot-password')
-    expect(screen.getByRole('link', { name: 'Request access' })).toHaveAttribute('href', '/request-access')
+    expect(screen.getByRole('link', { name: 'Sign up' })).toHaveAttribute('href', '/sign-up')
   })
 
   it('shows authenticated footer with back link for signed-in users', () => {

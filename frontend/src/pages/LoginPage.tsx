@@ -52,9 +52,8 @@ export function LoginPage() {
       ]}
       footer={(
         <>
-          <Link to="/passwordless-sign-in">Send sign-in link</Link>
           <Link to="/forgot-password">Forgot password?</Link>
-          <Link to="/request-access">Request access</Link>
+          <Link to="/sign-up">Sign up</Link>
           <Link to="/how-to-use">How to use</Link>
         </>
       )}

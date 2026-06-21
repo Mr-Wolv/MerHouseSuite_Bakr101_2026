@@ -153,7 +153,7 @@ export function HowToUsePage() {
             <>
               <Link to="/login">Sign in</Link>
               <Link to="/forgot-password">Forgot password?</Link>
-              <Link to="/request-access">Request access</Link>
+              <Link to="/sign-up">Sign up</Link>
             </>
           )}
         </nav>

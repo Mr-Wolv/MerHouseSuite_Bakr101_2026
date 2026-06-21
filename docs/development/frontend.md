@@ -107,7 +107,7 @@ Routes are defined in `frontend/src/App.tsx`.
 | `/login` | Login |
 | `/forgot-password` | Password reset request |
 | `/reset-password` | Password reset confirmation |
-| `/request-access` | Merchant or warehouse access request |
+| `/sign-up` | Direct account registration (email + password) |
 | `/admin` | Platform overview |
 | `/admin/tenants` | Tenant management |
 | `/admin/users` | User management |

@@ -216,7 +216,7 @@ $requiredNativePairs = @(
     [pscustomobject]@{ role = "PUBLIC"; path = "/login" },
     [pscustomobject]@{ role = "PUBLIC"; path = "/forgot-password" },
     [pscustomobject]@{ role = "PUBLIC"; path = "/reset-password" },
-    [pscustomobject]@{ role = "PUBLIC"; path = "/request-access" },
+    [pscustomobject]@{ role = "PUBLIC"; path = "/sign-up" },
     [pscustomobject]@{ role = "OWNER"; path = "/admin" },
     [pscustomobject]@{ role = "OWNER"; path = "/admin/users" },
     [pscustomobject]@{ role = "ADMIN"; path = "/admin" },

@@ -933,15 +933,10 @@ export function AdminTenantsPage() {
 }
 
 export function AdminAccessRequestsPage() {
-  const { token, user: currentUser } = useAuth()
+  const { token } = useAuth()
   const [requests, setRequests] = useState<AccessRequest[]>([])
-  const [reviewNote, setReviewNote] = useState('')
-  const [temporaryPassword, setTemporaryPassword] = useState('')
-  const [conversionReason, setConversionReason] = useState('Approved onboarding conversion')
   const [loading, setLoading] = useState(true)
-  const [actionId, setActionId] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const canMutatePlatform = currentUser?.role === 'OWNER' || currentUser?.role === 'ADMIN'
 
   useEffect(() => {
     if (!token) return
@@ -953,62 +948,12 @@ export function AdminAccessRequestsPage() {
       .finally(() => setLoading(false))
   }, [token])
 
-  async function reviewAccessRequest(id: string, action: 'approve' | 'reject' | 'approve-and-activate') {
-    if (!token) return
-    setError('')
-    setActionId(id)
-    try {
-      let next: AccessRequest
-      if (action === 'approve-and-activate') {
-        next = await api.approveAndActivateAccessRequest(token, id, { reviewNote })
-      } else if (action === 'approve') {
-        next = await api.approveAccessRequest(token, id, { reviewNote })
-      } else {
-        next = await api.rejectAccessRequest(token, id, { reviewNote })
-      }
-      setRequests((current) => current.map((request) => (request.id === next.id ? next : request)))
-      setReviewNote('')
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to review access request.')
-    } finally {
-      setActionId(null)
-    }
-  }
-
-  async function convertAccessRequest(request: AccessRequest) {
-    if (!token) return
-    setError('')
-    const trimmedConversionReason = conversionReason.trim()
-    if (temporaryPassword.length < 8) {
-      setError('Temporary setup password must be at least 8 characters.')
-      return
-    }
-    if (!trimmedConversionReason) {
-      setError('Conversion reason is required.')
-      return
-    }
-    setActionId(request.id)
-    try {
-      const next = await api.convertAccessRequest(token, request.id, {
-        tenantName: request.organizationName,
-        temporaryPassword,
-        reason: trimmedConversionReason,
-      })
-      setRequests((current) => current.map((row) => (row.id === next.id ? next : row)))
-      setTemporaryPassword('')
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to convert access request.')
-    } finally {
-      setActionId(null)
-    }
-  }
-
   if (loading) {
     return (
       <div className="page-stack">
-        <PageHeading title="Access Requests" subtitle="Review public merchant and warehouse onboarding requests." />
-        <AdminGuidancePanel title="Onboarding review controls">
-          Use "Approve & activate" to create the tenant account and send an activation email in one step. "Approve only" records approval without provisioning. Conversion creates the tenant account only after an approved request has a temporary setup password.
+        <PageHeading title="Access Requests" subtitle="Historical public onboarding requests (direct registration replaced the request-review flow)." />
+        <AdminGuidancePanel title="Read-only historical review">
+          New users now register directly through the public sign-up page. Existing access requests are preserved for audit and historical reference only.
         </AdminGuidancePanel>
         <LoadingState label="Loading access requests" />
       </div>
@@ -1024,9 +969,9 @@ export function AdminAccessRequestsPage() {
 
   return (
     <div className="page-stack">
-      <PageHeading title="Access Requests" subtitle="Review public merchant and warehouse onboarding requests." />
-      <AdminGuidancePanel title="Onboarding review controls">
-        Use "Approve & activate" to create the tenant account and send an activation email in one step. "Approve only" records approval without provisioning. Conversion creates the tenant account only after an approved request has a temporary setup password.
+      <PageHeading title="Access Requests" subtitle="Historical public onboarding requests (direct registration replaced the request-review flow)." />
+      <AdminGuidancePanel title="Read-only historical review">
+        New users now register directly through the public sign-up page. Existing access requests are preserved for audit and historical reference only.
       </AdminGuidancePanel>
       <div className="status-row" aria-label="Access request status narration">
         <div className="status-count">
@@ -1045,25 +990,8 @@ export function AdminAccessRequestsPage() {
           <StatusBadge value="CONVERTED" />
           <strong>{accessCounts.converted}</strong>
         </div>
-        <span className="status-narration">Pending requests need review; approved requests still need conversion before the account is ready.</span>
+        <span className="status-narration">These are historical records. New users register directly via the sign-up page.</span>
       </div>
-      <form aria-label="Review note form" className="panel-form">
-        <h2>Review And Conversion Context</h2>
-        <div className="form-grid">
-          <label className="span-two-field" htmlFor="admin-access-review-note">
-            <span>Note applied to the next review action</span>
-            <textarea id="admin-access-review-note" value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} maxLength={1000} />
-          </label>
-          <label htmlFor="admin-access-conversion-reason">
-            <span>Conversion reason</span>
-            <input id="admin-access-conversion-reason" value={conversionReason} onChange={(event) => setConversionReason(event.target.value)} maxLength={1000} />
-          </label>
-          <label htmlFor="admin-access-temporary-password">
-            <span>Temporary setup password</span>
-            <input id="admin-access-temporary-password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} minLength={8} type="password" />
-          </label>
-        </div>
-      </form>
       {error ? <div className="inline-error">{error}</div> : null}
       <section className="table-section">
         <h2>Requests</h2>
@@ -1079,94 +1007,29 @@ export function AdminAccessRequestsPage() {
                   <th>Converted</th>
                   <th>Review trail</th>
                   <th>Note</th>
-                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {requests.map((request) => {
-                  const pending = request.status === 'PENDING'
-                  const approved = request.status === 'APPROVED'
-                  const rejected = request.status === 'REJECTED'
-                  const converted = Boolean(request.convertedAt)
-                  const passwordReady = temporaryPassword.length >= 8
-                  const reasonReady = conversionReason.trim().length > 0
-                  const conversionReady = approved && !converted && passwordReady && reasonReady
-                  return (
-                    <tr key={request.id}>
-                      <td>{request.organizationName}</td>
-                      <td>{request.requesterEmail}</td>
-                      <td><StatusBadge value={request.requestedRole} /></td>
-                      <td><StatusBadge value={request.status} /></td>
-                      <td>{request.convertedAt ? `Tenant ${shortId(request.convertedTenantId ?? '')}` : 'Not converted'}</td>
-                      <td className="timeline-cell">
-                        <span><span>Requested</span><TimestampCell value={request.createdAt} /></span>
-                        {request.reviewedAt ? <span><span>Reviewed</span><TimestampCell value={request.reviewedAt} /></span> : <span><span>Reviewed</span>Pending</span>}
-                        {request.convertedAt ? <span><span>Converted</span><TimestampCell value={request.convertedAt} /></span> : null}
-                      </td>
-                      <td className="note-cell">{request.reviewNote ?? request.notes ?? 'No notes'}</td>
-                      <td>
-                        {canMutatePlatform ? (
-                          <div className="action-row compact-actions">
-                            {pending ? (
-                              <>
-                                <button
-                                  className="table-button primary-button"
-                                  type="button"
-                                  disabled={actionId === request.id}
-                                  onClick={() => void reviewAccessRequest(request.id, 'approve-and-activate')}
-                                >
-                                  Approve & activate
-                                </button>
-                                <button
-                                  className="table-button"
-                                  type="button"
-                                  disabled={actionId === request.id}
-                                  onClick={() => void reviewAccessRequest(request.id, 'approve')}
-                                >
-                                  Approve only
-                                </button>
-                                <button
-                                  className="table-button destructive-button"
-                                  type="button"
-                                  disabled={actionId === request.id}
-                                  onClick={() => void reviewAccessRequest(request.id, 'reject')}
-                                >
-                                  Reject
-                                </button>
-                              </>
-                            ) : null}
-                            {approved && !converted ? (
-                              <>
-                                <span className="data-chip">Approval recorded</span>
-                                {conversionReady ? (
-                                  <button
-                                    className="table-button"
-                                    type="button"
-                                    disabled={actionId === request.id}
-                                    onClick={() => void convertAccessRequest(request)}
-                                  >
-                                    Convert
-                                  </button>
-                                ) : (
-                                  <span className="data-chip warning-chip">{passwordReady ? 'Enter conversion reason' : 'Enter setup password'}</span>
-                                )}
-                              </>
-                            ) : null}
-                            {rejected ? <span className="data-chip warning-chip">Rejected request</span> : null}
-                            {converted ? <span className="data-chip">Account created</span> : null}
-                          </div>
-                        ) : (
-                          <span className="data-chip">Review and escalate</span>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
+                {requests.map((request) => (
+                  <tr key={request.id}>
+                    <td>{request.organizationName}</td>
+                    <td>{request.requesterEmail}</td>
+                    <td><StatusBadge value={request.requestedRole} /></td>
+                    <td><StatusBadge value={request.status} /></td>
+                    <td>{request.convertedAt ? `Tenant ${shortId(request.convertedTenantId ?? '')}` : 'Not converted'}</td>
+                    <td className="timeline-cell">
+                      <span><span>Requested</span><TimestampCell value={request.createdAt} /></span>
+                      {request.reviewedAt ? <span><span>Reviewed</span><TimestampCell value={request.reviewedAt} /></span> : <span><span>Reviewed</span>Pending</span>}
+                      {request.convertedAt ? <span><span>Converted</span><TimestampCell value={request.convertedAt} /></span> : null}
+                    </td>
+                    <td className="note-cell">{request.reviewNote ?? request.notes ?? 'No notes'}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <EmptyState label="No access requests yet" guidance="New merchant and warehouse onboarding requests will land here. When one arrives, review notes, approve or reject it, then convert approved requests with a setup password." />
+          <EmptyState label="No access requests yet" guidance="Access requests were the previous onboarding method. New users register directly through the public sign-up page." />
         )}
       </section>
     </div>

@@ -8,19 +8,45 @@ import { StatusBadge } from '../components/StatusBadge'
 import { formatDateTime } from '../components/format'
 
 export function AccountPage() {
-  const { token, user, emailVerified, sendEmailVerification, refreshEmailVerified } = useAuth()
+  const { token, user } = useAuth()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [verifyingEmail, setVerifyingEmail] = useState(false)
-  const [emailVerificationMessage, setEmailVerificationMessage] = useState('')
-  const [emailVerificationError, setEmailVerificationError] = useState('')
+  const [newRecoveryKey, setNewRecoveryKey] = useState('')
+  const [recoveryCopied, setRecoveryCopied] = useState(false)
+  const [recoveryGenerating, setRecoveryGenerating] = useState(false)
+  const [recoveryError, setRecoveryError] = useState('')
 
   if (!user || !token) return null
   const authToken = token
+
+  async function handleGenerateRecoveryKey() {
+    setRecoveryError('')
+    setNewRecoveryKey('')
+    setRecoveryGenerating(true)
+    try {
+      const response = await api.regenerateRecoveryKey(authToken)
+      setNewRecoveryKey(response.message)
+      setRecoveryCopied(false)
+    } catch (caught) {
+      setRecoveryError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to generate recovery key.')
+    } finally {
+      setRecoveryGenerating(false)
+    }
+  }
+
+  async function handleCopyRecoveryKey() {
+    try {
+      await navigator.clipboard.writeText(newRecoveryKey)
+      setRecoveryCopied(true)
+      setTimeout(() => setRecoveryCopied(false), 2000)
+    } catch {
+      // Fallback: manual copy
+    }
+  }
 
   async function handlePasswordChange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -41,31 +67,6 @@ export function AccountPage() {
       setError(caught instanceof ApiError ? caught.details[0] ?? caught.message : 'Unable to change password.')
     } finally {
       setSubmitting(false)
-    }
-  }
-
-  async function handleSendVerification() {
-    setEmailVerificationError('')
-    setEmailVerificationMessage('')
-    setVerifyingEmail(true)
-    try {
-      await sendEmailVerification()
-      setEmailVerificationMessage('Verification email sent. Check your inbox and click the link to verify your email.')
-    } catch (caught) {
-      setEmailVerificationError(caught instanceof Error ? caught.message : 'Unable to send verification email.')
-    } finally {
-      setVerifyingEmail(false)
-    }
-  }
-
-  async function handleRefreshVerified() {
-    setEmailVerificationError('')
-    setEmailVerificationMessage('')
-    const verified = await refreshEmailVerified()
-    if (verified) {
-      setEmailVerificationMessage('Email verification confirmed.')
-    } else {
-      setEmailVerificationError('Email is not yet verified. Check your inbox and click the verification link.')
     }
   }
 
@@ -90,7 +91,6 @@ export function AccountPage() {
             <div><dt>Email</dt><dd>{user.email}</dd></div>
             <div><dt>Role</dt><dd><StatusBadge value={user.role} /></dd></div>
             <div><dt>Status</dt><dd><StatusBadge value={user.enabled ? 'ENABLED' : 'DISABLED'} /></dd></div>
-            <div><dt>Email verified</dt><dd><StatusBadge value={emailVerified ? 'VERIFIED' : 'UNVERIFIED'} /></dd></div>
             <div><dt>Tenant</dt><dd>{user.tenantId}</dd></div>
             <div><dt>Created</dt><dd>{formatDateTime(user.createdAt)}</dd></div>
           </dl>
@@ -124,26 +124,43 @@ export function AccountPage() {
         <article className="queue-card">
           <div className="card-heading">
             <appIcons.recovery size={18} aria-hidden="true" />
-            <h2>Email Verification</h2>
+            <h2>Recovery Key</h2>
           </div>
           <p className="muted-copy">
-            {emailVerified
-              ? 'Your email address has been verified. You can use passwordless sign-in and receive account notifications.'
-              : 'Verify your email to use passwordless sign-in links and receive account notifications.'}
+            Generate a recovery key to reset your password without email. Save it somewhere safe — once generated, it will not be shown again.
           </p>
-          {emailVerificationError ? <div className="inline-error" role="alert">{emailVerificationError}</div> : null}
-          {emailVerificationMessage ? <div className="inline-success" role="status">{emailVerificationMessage}</div> : null}
+          {newRecoveryKey ? (
+            <div className="recovery-key-display">
+              <div className="recovery-key-box">
+                <code className="recovery-key-value">{newRecoveryKey}</code>
+                <button className="table-button" type="button" onClick={handleCopyRecoveryKey}>
+                  {recoveryCopied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {recoveryError ? <div className="inline-error" role="alert">{recoveryError}</div> : null}
           <div className="button-row">
-            {!emailVerified ? (
-              <button className="primary-button fit-button" type="button" disabled={verifyingEmail} onClick={() => void handleSendVerification()}>
-                <appIcons.recovery size={16} aria-hidden="true" />
-                {verifyingEmail ? 'Sending...' : 'Send verification email'}
-              </button>
-            ) : null}
-            <button className="secondary-button fit-button" type="button" onClick={() => void handleRefreshVerified()}>
-              <appIcons.help size={16} aria-hidden="true" />
-              Check verification status
+            <button className="secondary-button fit-button" type="button" onClick={handleGenerateRecoveryKey} disabled={recoveryGenerating}>
+              <appIcons.recovery size={16} aria-hidden="true" />
+              {recoveryGenerating ? 'Generating...' : newRecoveryKey ? 'Generate new key' : 'Generate recovery key'}
             </button>
+          </div>
+        </article>
+
+        <article className="queue-card">
+          <div className="card-heading">
+            <appIcons.alerts size={18} aria-hidden="true" />
+            <h2>Account Notifications</h2>
+          </div>
+          <p className="muted-copy">
+            Account lifecycle events are recorded as in-app notifications. Check your notification center for account updates and alerts.
+          </p>
+          <div className="button-row">
+            <Link className="secondary-button fit-button" to="/notifications">
+              <appIcons.alerts size={16} aria-hidden="true" />
+              View notifications
+            </Link>
           </div>
         </article>
       </section>

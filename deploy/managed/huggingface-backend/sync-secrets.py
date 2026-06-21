@@ -1,31 +1,25 @@
 #!/usr/bin/env python3
 """
-MerHouse -- Secrets Sync: local .secrets/ -> Hugging Face Space + GitHub Secrets
+MerHouse -- Secrets Sync: local .secrets/ -> Hugging Face Space
 
 Usage:
-    python sync-secrets.py                          # Sync to both HF Space and GitHub Secrets
-    python sync-secrets.py --hf-only                # Sync only to Hugging Face Space
-    python sync-secrets.py --github-only            # Sync only to GitHub Secrets (requires gh CLI)
+    python sync-secrets.py                          # Sync to Hugging Face Space
     python sync-secrets.py --validate               # Validate all secrets are present without syncing
     python sync-secrets.py --show-config            # Show what would be synced (redacts secrets)
 
-Source of truth: .secrets/deploy/managed/huggingface.env
-Or fallback: individual env vars (HF_TOKEN, HF_SPACE_DB_URL, etc.)
+Source of truth: .secrets/deploy/managed/huggingface.env (single source of truth)
 
 Secret categorization:
   - SECRETS (sensitive, hidden in UI): SPRING_DATASOURCE_PASSWORD, HF_TOKEN, FIREBASE_SERVICE_ACCOUNT_JSON
   - VARIABLES (visible app config): URLs, usernames, project IDs, feature flags
 
 Requirements:
-  - HF_TOKEN env var (for Hugging Face API auth)
-  - gh CLI installed and authenticated (for GitHub Secrets sync)
   - huggingface_hub and requests packages
 """
 
 import os
 import sys
 import argparse
-import subprocess
 from pathlib import Path
 from huggingface_hub import HfApi
 
@@ -41,17 +35,7 @@ SECRET_KEYS = {
     "FIREBASE_SERVICE_ACCOUNT_JSON",
 }
 
-# Env var name (from .secrets file) -> GitHub secret name
-ENV_TO_GITHUB_SECRET = {
-    "HF_TOKEN": "HF_SPACE_TOKEN",
-    "SPRING_DATASOURCE_URL": "HF_SPACE_DB_URL",
-    "SPRING_DATASOURCE_USERNAME": "HF_SPACE_DB_USERNAME",
-    "SPRING_DATASOURCE_PASSWORD": "HF_SPACE_DB_PASSWORD",
-    "FIREBASE_SERVICE_ACCOUNT_JSON": "FIREBASE_SERVICE_ACCOUNT_JSON",
-}
 
-# GitHub repository
-GITHUB_REPO = os.environ.get("GITHUB_REPOSITORY", "Mr-Wolv/MerHouseSuite_Bakr101_2026")
 
 
 # -- Helpers ---------------------------------------------------------------
@@ -88,66 +72,30 @@ def load_from_env_file(filepath: Path) -> dict:
 
 def load_secrets() -> dict:
     """
-    Load secrets from the .secrets env file.
-    Falls back to individual environment variables.
-    Returns a dict of all resolved key-value pairs.
+    Load secrets ONLY from the .secrets env file. No env var overrides.
+
+    The .secrets file is the single source of truth. In CI/CD, write
+    a temporary .secrets file instead of relying on env var overrides.
     """
     secrets = {}
-
-    # First, try the .secrets file
     file_values = load_from_env_file(SECRETS_FILE)
     if file_values:
         msg(f"  Source: {SECRETS_FILE}")
         secrets.update(file_values)
-
-    # Environment variables override file values (for CI/CD)
-    env_override_keys = [
-        "HF_TOKEN",
-        "HF_SPACE_REPO_ID",
-        "HF_SPACE_DB_URL",
-        "HF_SPACE_DB_USERNAME",
-        "HF_SPACE_DB_PASSWORD",
-        "HF_SPACE_FIREBASE_SA_JSON",
-        "SPRING_DATASOURCE_URL",
-        "SPRING_DATASOURCE_USERNAME",
-        "SPRING_DATASOURCE_PASSWORD",
-        "FIREBASE_SERVICE_ACCOUNT_JSON",
-        "FIREBASE_PROJECT_ID",
-        "MERHOUSE_PUBLIC_FRONTEND_URL",
-        "MERHOUSE_CORS_ALLOWED_ORIGINS",
-        "MERHOUSE_DEPLOYMENT_PUBLIC",
-        "MERHOUSE_AUTH_SEED_ADMIN_ENABLED",
-        "MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN",
-        "MERHOUSE_SWAGGER_ENABLED",
-    ]
-
-    for key in env_override_keys:
-        val = os.environ.get(key)
-        if val:
-            # Map CI/CD env var names to application-level env var names
-            mapped_key = key
-            if key == "HF_SPACE_DB_URL":
-                mapped_key = "SPRING_DATASOURCE_URL"
-            elif key == "HF_SPACE_DB_USERNAME":
-                mapped_key = "SPRING_DATASOURCE_USERNAME"
-            elif key == "HF_SPACE_DB_PASSWORD":
-                mapped_key = "SPRING_DATASOURCE_PASSWORD"
-            elif key == "HF_SPACE_FIREBASE_SA_JSON":
-                mapped_key = "FIREBASE_SERVICE_ACCOUNT_JSON"
-            secrets[mapped_key] = val
-
+    else:
+        msg(f"  [WARN] No secrets found in {SECRETS_FILE}")
     return secrets
 
 
 # -- Hugging Face Space Sync -----------------------------------------------
 def get_hf_config(secrets: dict) -> tuple:
-    """Extract HF configuration from secrets dict."""
-    hf_token = secrets.get("HF_TOKEN") or os.environ.get("HF_TOKEN", "")
+    """Extract HF configuration from secrets dict. .secrets file only."""
+    hf_token = secrets.get("HF_TOKEN", "")
     space_id = secrets.get("HF_SPACE_REPO_ID", "M7mdHBkr/merhouse-backend")
     return hf_token, space_id
 
 
-def sync_hf_space(secrets: dict, dry_run: bool = False) -> bool:
+def sync_hf_space(secrets: dict) -> bool:
     """Sync env vars to Hugging Face Space with proper categorization."""
     hf_token, space_id = get_hf_config(secrets)
     errors: list[str] = []
@@ -176,18 +124,6 @@ def sync_hf_space(secrets: dict, dry_run: bool = False) -> bool:
         "SPRING_DATASOURCE_PASSWORD": secrets.get("SPRING_DATASOURCE_PASSWORD", ""),
         "FIREBASE_SERVICE_ACCOUNT_JSON": secrets.get("FIREBASE_SERVICE_ACCOUNT_JSON", ""),
     }
-
-    if dry_run:
-        msg("  [DRY RUN] Would sync:")
-        msg("    Variables:")
-        for k, v in space_variables.items():
-            display = v[:50] + "..." if len(v) > 50 else v
-            msg(f"      {k}={display}")
-        msg("    Secrets (hidden):")
-        for k in space_secrets:
-            has_val = "[SET]" if space_secrets.get(k) else "[MISSING]"
-            msg(f"      {k} {has_val}")
-        return not errors
 
     api = HfApi(token=hf_token)
 
@@ -255,76 +191,7 @@ def sync_hf_space(secrets: dict, dry_run: bool = False) -> bool:
     return True
 
 
-# -- GitHub Secrets Sync ----------------------------------------------------
-def sync_github_secrets(secrets: dict, dry_run: bool = False, repo: str = GITHUB_REPO) -> bool:
-    """Sync secrets to GitHub repository secrets using gh CLI."""
-    errors: list[str] = []
 
-    try:
-        subprocess.run(["gh", "--version"], capture_output=True, check=True)
-    except (subprocess.FileNotFoundError, subprocess.CalledProcessError):
-        msg("  [ERROR] gh CLI not available - cannot sync to GitHub Secrets.")
-        return False
-
-    try:
-        result = subprocess.run(
-            ["gh", "auth", "status"],
-            capture_output=True, text=True, check=False
-        )
-        if result.returncode != 0:
-            msg("  [ERROR] gh CLI not authenticated. Run: gh auth login")
-            return False
-    except Exception as e:
-        msg(f"  [ERROR] gh CLI check failed: {e}")
-        return False
-
-    msg(f"  GitHub repository: {repo}")
-
-    for env_key, gh_secret_name in ENV_TO_GITHUB_SECRET.items():
-        value = secrets.get(env_key, "")
-
-        # Also check CI/CD env var names
-        if not value:
-            alt_map = {
-                "HF_TOKEN": "HF_TOKEN",
-                "SPRING_DATASOURCE_URL": "HF_SPACE_DB_URL",
-                "SPRING_DATASOURCE_USERNAME": "HF_SPACE_DB_USERNAME",
-                "SPRING_DATASOURCE_PASSWORD": "HF_SPACE_DB_PASSWORD",
-                "FIREBASE_SERVICE_ACCOUNT_JSON": "HF_SPACE_FIREBASE_SA_JSON",
-            }
-            alt_key = alt_map.get(env_key)
-            if alt_key:
-                value = secrets.get(alt_key, "")
-
-        if not value:
-            errors.append(f"no value available for {gh_secret_name}")
-            msg(f"    [ERR] {gh_secret_name}: no value available for {env_key}")
-            continue
-
-        if dry_run:
-            msg(f"    [DRY RUN] Would set {gh_secret_name}")
-            continue
-
-        try:
-            result = subprocess.run(
-                ["gh", "secret", "set", gh_secret_name, "--repo", repo, "--body", value],
-                capture_output=True, text=True, check=False
-            )
-            if result.returncode == 0:
-                msg(f"    [OK] {gh_secret_name}")
-            else:
-                errors.append(f"set {gh_secret_name}: {result.stderr.strip()}")
-                msg(f"    [ERR] {gh_secret_name}: {result.stderr.strip()}")
-        except Exception as e:
-            errors.append(f"set {gh_secret_name}: {e}")
-            msg(f"    [ERR] {gh_secret_name}: {e}")
-
-    if errors:
-        msg(f"  [ERROR] GitHub Secrets sync failed with {len(errors)} error(s).")
-        return False
-
-    msg("  [OK] GitHub Secrets synced.")
-    return True
 
 
 # -- Validation -------------------------------------------------------------
@@ -345,18 +212,6 @@ def validate_secrets(secrets: dict, require_hf_token: bool = True) -> bool:
     all_ok = True
     for key, description in required:
         value = secrets.get(key, "")
-        if not value:
-            alt_map = {
-                "HF_TOKEN": "HF_TOKEN",
-                "SPRING_DATASOURCE_URL": "HF_SPACE_DB_URL",
-                "SPRING_DATASOURCE_USERNAME": "HF_SPACE_DB_USERNAME",
-                "SPRING_DATASOURCE_PASSWORD": "HF_SPACE_DB_PASSWORD",
-            }
-            alt_key = alt_map.get(key)
-            if alt_key:
-                value = os.environ.get(alt_key, "")
-            elif key == "FIREBASE_SERVICE_ACCOUNT_JSON":
-                value = os.environ.get("HF_SPACE_FIREBASE_SA_JSON", "")
 
         if value:
             display = value[:50] + "..." if len(value) > 50 else value
@@ -389,11 +244,7 @@ def show_config(secrets: dict):
         status = "[SET]" if val else "[MISSING]"
         msg(f"    {key:45s} {status}")
 
-    msg("\n  GitHub Secrets to sync:")
-    for env_key, gh_name in sorted(ENV_TO_GITHUB_SECRET.items()):
-        val = secrets.get(env_key, "")
-        status = "[SET]" if val else "[MISSING]"
-        msg(f"    {gh_name:40s} <- {env_key}  ({status})")
+
 
 
 # -- Main -------------------------------------------------------------------
@@ -403,14 +254,10 @@ def main():
     )
     parser.add_argument("--hf-only", action="store_true",
                         help="Sync only to Hugging Face Space")
-    parser.add_argument("--github-only", action="store_true",
-                        help="Sync only to GitHub Secrets")
     parser.add_argument("--validate", action="store_true",
                         help="Validate secrets without syncing")
     parser.add_argument("--show-config", action="store_true",
                         help="Show configuration without syncing")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Show what would be done without making changes")
     parser.add_argument("--quiet", "-q", action="store_true",
                         help="Suppress non-error output")
     args = parser.parse_args()
@@ -438,31 +285,17 @@ def main():
         ok = validate_secrets(secrets)
         sys.exit(0 if ok else 1)
 
-    # Sync modes
-    sync_hf = args.hf_only or (not args.github_only)
-    sync_gh = args.github_only or (not args.hf_only)
-    require_hf_token = args.validate or sync_hf
-
-    # Always validate first
+    # Always validate before sync
     if not args.quiet:
         msg("  Validating secrets...\n")
-    ok = validate_secrets(secrets, require_hf_token=require_hf_token)
+    ok = validate_secrets(secrets, require_hf_token=True)
     if not ok:
-        if args.dry_run:
-            msg("  [WARN] Dry run completed with missing secrets.\n")
-        else:
-            msg("  [ERROR] Required secrets are missing. Refusing to sync.\n")
-            sys.exit(1)
+        msg("  [ERROR] Required secrets are missing. Refusing to sync.\n")
+        sys.exit(1)
 
-    if sync_hf:
-        msg("  -- Syncing to Hugging Face Space --")
-        if not sync_hf_space(secrets, dry_run=args.dry_run):
-            sys.exit(1)
-
-    if sync_gh:
-        msg("\n  -- Syncing to GitHub Secrets --")
-        if not sync_github_secrets(secrets, dry_run=args.dry_run):
-            sys.exit(1)
+    msg("  -- Syncing to Hugging Face Space --")
+    if not sync_hf_space(secrets):
+        sys.exit(1)
 
     msg("\n  === Done ===")
 

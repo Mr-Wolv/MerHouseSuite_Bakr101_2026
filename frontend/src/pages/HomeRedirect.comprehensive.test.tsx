@@ -8,9 +8,6 @@ import { HomeRedirect } from './HomeRedirect'
 const baseAuthState = {
   token: 'token',
   loading: false,
-  emailVerified: false,
-  sendEmailVerification: vi.fn(),
-  refreshEmailVerified: vi.fn(),
   login: vi.fn(),
   logout: vi.fn(),
 }

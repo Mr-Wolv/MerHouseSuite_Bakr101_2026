@@ -10,9 +10,8 @@ Usage:
     python sync-hf-space.py --status                 # Check Space build status
     python sync-hf-space.py --health                 # Poll health endpoint until ready (exits 0/1)
 
-Requires HF_TOKEN environment variable.
-Optional: HF_SPACE_DB_URL, HF_SPACE_DB_USERNAME, HF_SPACE_DB_PASSWORD for env sync.
-"""
+Secrets source: .secrets/deploy/managed/huggingface.env (single source of truth).
+No env var overrides. In CI/CD, write a temporary .secrets file."""
 
 import os
 import sys
@@ -21,39 +20,70 @@ import argparse
 from pathlib import Path
 from huggingface_hub import HfApi, upload_folder, upload_file, CommitOperationDelete
 
-# -- Configuration --------------------------------------------------------
-SPACE = os.environ.get("HF_SPACE_REPO_ID", "M7mdHBkr/merhouse-backend")
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
-if not HF_TOKEN:
-    print("ERROR: HF_TOKEN environment variable is not set.", file=sys.stderr)
-    print("Set it via environment (e.g. shell export) before running.", file=sys.stderr)
-    sys.exit(1)
-
+# -- Paths -----------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+SECRETS_FILE = PROJECT_ROOT / ".secrets" / "deploy" / "managed" / "huggingface.env"
 BACKEND_DIR = PROJECT_ROOT / "backend"
 DEPLOY_DIR = PROJECT_ROOT / "deploy" / "managed" / "huggingface-backend"
 
-# -- Environment Variables (MUST be set via env vars for security) ---------
-DB_URL = os.environ.get("HF_SPACE_DB_URL", "")
-DB_USERNAME = os.environ.get("HF_SPACE_DB_USERNAME", "")
-DB_PASSWORD = os.environ.get("HF_SPACE_DB_PASSWORD", "")
-FIREBASE_SA_JSON = os.environ.get("HF_SPACE_FIREBASE_SA_JSON", "")
+
+# -- Secret Loader ---------------------------------------------------------
+def load_env_file(filepath: Path) -> dict:
+    """Parse a .env file and return key-value pairs."""
+    values = {}
+    if not filepath.exists():
+        return values
+    with open(filepath, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, _, val = line.partition("=")
+                key = key.strip()
+                val = val.strip().strip('"').strip("'")
+                if key:
+                    values[key] = val
+    return values
+
+
+def load_secrets() -> dict:
+    """Load secrets ONLY from .secrets file. No env var overrides.
+
+    The .secrets file is the single source of truth. If you need to
+    inject values in CI/CD, write a temporary .secrets file.
+    """
+    secrets = load_env_file(SECRETS_FILE)
+    if not secrets:
+        print(f"  [WARN] No secrets found in {SECRETS_FILE}")
+    return secrets
+
+
+# -- Configuration (loaded from secrets + env) -----------------------------
+SECRETS = load_secrets()
+
+SPACE = SECRETS.get("HF_SPACE_REPO_ID", "M7mdHBkr/merhouse-backend")
+HF_TOKEN = SECRETS.get("HF_TOKEN", "")
+if not HF_TOKEN:
+    print("ERROR: HF_TOKEN not found in .secrets/deploy/managed/huggingface.env", file=sys.stderr)
+    print("       Ensure this file exists with HF_TOKEN=<your-token>", file=sys.stderr)
+    sys.exit(1)
 
 SPACE_VARIABLES = {
-    "SPRING_DATASOURCE_USERNAME": DB_USERNAME,
-    "SPRING_DATASOURCE_PASSWORD": DB_PASSWORD,
-    "SPRING_DATASOURCE_URL": DB_URL,
-    "MERHOUSE_DEPLOYMENT_PUBLIC": "true",
-    "MERHOUSE_PUBLIC_FRONTEND_URL": "https://merhouse-354e7.web.app",
-    "MERHOUSE_CORS_ALLOWED_ORIGINS": "https://merhouse-354e7.web.app,capacitor://localhost,ionic://localhost",
-    "MERHOUSE_AUTH_SEED_ADMIN_ENABLED": "false",
-    "MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN": "false",
-    "MERHOUSE_SWAGGER_ENABLED": "false",
-    "FIREBASE_PROJECT_ID": "merhouse-354e7",
+    "SPRING_DATASOURCE_URL": SECRETS.get("SPRING_DATASOURCE_URL", ""),
+    "SPRING_DATASOURCE_USERNAME": SECRETS.get("SPRING_DATASOURCE_USERNAME", ""),
+    "MERHOUSE_DEPLOYMENT_PUBLIC": SECRETS.get("MERHOUSE_DEPLOYMENT_PUBLIC", "true"),
+    "MERHOUSE_PUBLIC_FRONTEND_URL": SECRETS.get("MERHOUSE_PUBLIC_FRONTEND_URL", "https://merhouse-354e7.web.app"),
+    "MERHOUSE_CORS_ALLOWED_ORIGINS": SECRETS.get("MERHOUSE_CORS_ALLOWED_ORIGINS", "https://merhouse-354e7.web.app,capacitor://localhost,ionic://localhost"),
+    "MERHOUSE_AUTH_SEED_ADMIN_ENABLED": SECRETS.get("MERHOUSE_AUTH_SEED_ADMIN_ENABLED", "false"),
+    "MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN": SECRETS.get("MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN", "false"),
+    "MERHOUSE_SWAGGER_ENABLED": SECRETS.get("MERHOUSE_SWAGGER_ENABLED", "false"),
+    "FIREBASE_PROJECT_ID": SECRETS.get("FIREBASE_PROJECT_ID", "merhouse-354e7"),
 }
 
 SPACE_SECRETS = {
-    "FIREBASE_SERVICE_ACCOUNT_JSON": FIREBASE_SA_JSON,
+    "SPRING_DATASOURCE_PASSWORD": SECRETS.get("SPRING_DATASOURCE_PASSWORD", ""),
+    "FIREBASE_SERVICE_ACCOUNT_JSON": SECRETS.get("FIREBASE_SERVICE_ACCOUNT_JSON", ""),
 }
 
 STALE_CLEANUP_PATTERNS = [
@@ -164,22 +194,18 @@ def upload_dockerfile_and_readme():
 
 
 def sync_env_vars():
-    """Sync env vars to Space settings. Validates DB credentials before syncing."""
-    missing = []
-    if not DB_URL:
-        missing.append("HF_SPACE_DB_URL")
-    if not DB_USERNAME:
-        missing.append("HF_SPACE_DB_USERNAME")
-    if not DB_PASSWORD:
-        missing.append("HF_SPACE_DB_PASSWORD")
-    if missing:
-        print(f"WARNING: Skipping env var sync. Missing: {', '.join(missing)}")
-        print("  Set env vars or use --env-only with proper credentials.")
-        return
-
+    """Sync env vars to Space settings. Loads from .secrets file and env vars."""
     api_obj = api()
 
-    # Variables -- use huggingface_hub library for reliable CRUD
+    # Log any empty values but proceed anyway (secrets like DB password may be set directly on HF)
+    empty_vars = [k for k, v in SPACE_VARIABLES.items() if not v]
+    empty_sec = [k for k, v in SPACE_SECRETS.items() if not v]
+    if empty_vars:
+        print(f"  Warning: empty variables: {', '.join(empty_vars)}")
+    if empty_sec:
+        print(f"  Warning: empty secrets: {', '.join(empty_sec)}")
+
+    # Variables
     try:
         existing = api_obj.get_space_variables(repo_id=SPACE)
         for key in list(existing.keys()):
@@ -192,13 +218,16 @@ def sync_env_vars():
         print(f"  Warning clearing variables: {e}")
 
     for key, value in SPACE_VARIABLES.items():
+        if not value:
+            print(f"  Skipping {key} (empty)")
+            continue
         try:
             api_obj.add_space_variable(repo_id=SPACE, key=key, value=value)
             print(f"  Variable: {key}")
         except Exception as e:
             print(f"  Variable {key}: {e}")
 
-    # Secrets -- use huggingface_hub library for reliable CRUD
+    # Secrets
     try:
         existing = api_obj.get_space_secrets(repo_id=SPACE)
         for key in list(existing.keys()):
@@ -211,6 +240,9 @@ def sync_env_vars():
         print(f"  Warning clearing secrets: {e}")
 
     for key, value in SPACE_SECRETS.items():
+        if not value:
+            print(f"  Skipping {key} (empty)")
+            continue
         try:
             api_obj.add_space_secret(repo_id=SPACE, key=key, value=value)
             print(f"  Secret: {key}")

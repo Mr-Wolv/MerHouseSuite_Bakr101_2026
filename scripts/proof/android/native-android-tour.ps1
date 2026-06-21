@@ -717,7 +717,7 @@ $expectedByRoute = @{
     "/login" = "Operations Console"
     "/forgot-password" = "Password Recovery"
     "/reset-password" = "Set New Password"
-    "/request-access" = "Request Access"
+    "/sign-up" = "Sign Up"
     "/admin" = "Admin Overview"
     "/admin/tenants" = "Tenants"
     "/admin/users" = "Users"
@@ -736,7 +736,7 @@ $expectedByRoute = @{
 }
 
 $rolePaths = @{
-    PUBLIC = @("/login", "/forgot-password", "/reset-password", "/request-access")
+    PUBLIC = @("/login", "/forgot-password", "/reset-password", "/sign-up")
     OWNER = @("/admin", "/admin/tenants", "/admin/users", "/admin/access-requests", "/admin/outbox", "/admin/relationships", "/admin/audit", "/service-accountability", "/assistant", "/notifications", "/account")
     ADMIN = @("/admin", "/admin/tenants", "/admin/users", "/admin/access-requests", "/admin/outbox", "/admin/relationships", "/admin/audit", "/service-accountability", "/assistant", "/notifications", "/account")
     SUPPORT = @("/admin", "/admin/users", "/admin/access-requests", "/admin/outbox", "/admin/relationships", "/admin/audit", "/service-accountability", "/assistant", "/notifications", "/account")

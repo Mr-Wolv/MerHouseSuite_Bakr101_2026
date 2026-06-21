@@ -60,9 +60,6 @@ const authState: AuthState = {
     enabled: true,
     createdAt: '2026-05-17T00:00:00Z',
   },
-  emailVerified: false,
-  sendEmailVerification: vi.fn(),
-  refreshEmailVerified: vi.fn(),
   login: vi.fn(),
   logout: vi.fn(),
 }
@@ -515,7 +512,7 @@ describe('Admin relationship governance', () => {
   })
 })
 
-describe('Admin access request management', () => {
+describe('Admin access request management (read-only)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     apiMock.accessRequests.mockResolvedValue([
@@ -532,69 +529,24 @@ describe('Admin access request management', () => {
         createdAt: '2026-05-18T00:00:00Z',
       },
     ])
-    apiMock.approveAccessRequest.mockResolvedValue({
-      id: 'request-1',
-      organizationName: 'New Merchant',
-      requesterEmail: 'owner@new.test',
-      requestedRole: 'MERCHANT',
-      notes: 'Ready to onboard',
-      status: 'APPROVED',
-      reviewedByUserId: 'admin-id',
-      reviewNote: 'Looks good',
-      reviewedAt: '2026-05-18T00:10:00Z',
-      createdAt: '2026-05-18T00:00:00Z',
-    })
   })
 
-  it('loads and approves a pending access request', async () => {
-    const user = userEvent.setup()
+  it('loads and displays access requests in read-only mode', async () => {
     renderWithAuth(<AdminAccessRequestsPage />)
 
     expect(await screen.findByText('owner@new.test')).toBeInTheDocument()
-    expect(screen.getByLabelText('Onboarding review controls')).toHaveTextContent('Approve & activate')
-    expect(screen.getByLabelText('Access request status narration')).toHaveTextContent('approved requests still need conversion')
-    await user.type(screen.getByLabelText('Note applied to the next review action'), 'Looks good')
-    await user.click(screen.getByRole('button', { name: 'Approve only' }))
-
-    expect(apiMock.approveAccessRequest).toHaveBeenCalledWith('admin-token', 'request-1', {
-      reviewNote: 'Looks good',
-    })
-    const row = await screen.findByRole('row', { name: /owner@new\.test/i })
-    expect(within(row).getByText('APPROVED')).toBeInTheDocument()
-    expect(within(row).getByText('Reviewed')).toBeInTheDocument()
+    expect(screen.getByLabelText('Read-only historical review')).toHaveTextContent('register directly through the public sign-up page')
+    expect(screen.getByLabelText('Access request status narration')).toHaveTextContent('historical records')
+    expect(screen.queryByRole('button', { name: 'Approve only' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Approve & activate' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Convert' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Note applied to the next review action')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Temporary setup password')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Conversion reason')).not.toBeInTheDocument()
   })
 
-  it('approves and activates a pending access request in one step', async () => {
-    const user = userEvent.setup()
-    apiMock.approveAndActivateAccessRequest.mockResolvedValue({
-      id: 'request-1',
-      organizationName: 'New Merchant',
-      requesterEmail: 'owner@new.test',
-      requestedRole: 'MERCHANT',
-      notes: 'Ready to onboard',
-      status: 'APPROVED',
-      reviewedByUserId: 'admin-id',
-      reviewNote: 'Activated',
-      reviewedAt: '2026-05-18T00:10:00Z',
-      convertedAt: '2026-05-18T00:10:00Z',
-      convertedTenantId: 'tenant-1',
-      convertedUserId: 'user-1',
-      createdAt: '2026-05-18T00:00:00Z',
-    })
-    renderWithAuth(<AdminAccessRequestsPage />)
-
-    const pendingRow = await screen.findByRole('row', { name: /owner@new\.test/i })
-    await user.type(screen.getByLabelText('Note applied to the next review action'), 'Activated')
-    await user.click(within(pendingRow).getByRole('button', { name: 'Approve & activate' }))
-
-    expect(apiMock.approveAndActivateAccessRequest).toHaveBeenCalledWith('admin-token', 'request-1', {
-      reviewNote: 'Activated',
-    })
-    expect(within(pendingRow).getByText('APPROVED')).toBeInTheDocument()
-    expect(within(pendingRow).getByText('Account created')).toHaveClass('data-chip')
-  })
-
-  it('shows access requests to support admins as review and escalation work', async () => {
+  it('shows a read-only view for all roles without mutation controls', async () => {
     renderWithAuth(<AdminAccessRequestsPage />, {
       ...authState,
       user: {
@@ -604,16 +556,11 @@ describe('Admin access request management', () => {
     })
 
     expect(await screen.findByText('owner@new.test')).toBeInTheDocument()
-    expect(screen.getByText('Review and escalate')).toHaveClass('data-chip')
-    expect(screen.queryByRole('button', { name: 'Approve only' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Approve & activate' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Convert' })).not.toBeInTheDocument()
-    expect(apiMock.approveAccessRequest).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Note applied to the next review action')).not.toBeInTheDocument()
   })
 
-  it('renders only currently available owner actions instead of repeated disabled controls', async () => {
-    const user = userEvent.setup()
+  it('displays status counts for all request states', async () => {
     apiMock.accessRequests.mockResolvedValue([
       {
         id: 'request-pending',
@@ -670,85 +617,16 @@ describe('Admin access request management', () => {
 
     renderWithAuth(<AdminAccessRequestsPage />)
 
-    const pendingRow = await screen.findByRole('row', { name: /pending@new\.test/i })
-    expect(within(pendingRow).getByRole('button', { name: 'Approve & activate' })).toBeEnabled()
-    expect(within(pendingRow).getByRole('button', { name: 'Approve only' })).toBeEnabled()
-    expect(within(pendingRow).getByRole('button', { name: 'Reject' })).toBeEnabled()
-    expect(within(pendingRow).queryByRole('button', { name: 'Convert' })).not.toBeInTheDocument()
+    expect(await screen.findByText('pending@new.test')).toBeInTheDocument()
+    expect(screen.getByText('approved@new.test')).toBeInTheDocument()
+    expect(screen.getByText('rejected@new.test')).toBeInTheDocument()
+    expect(screen.getByText('converted@new.test')).toBeInTheDocument()
 
-    const approvedRow = screen.getByRole('row', { name: /approved@new\.test/i })
-    expect(within(approvedRow).getByText('Approval recorded')).toHaveClass('data-chip')
-    expect(within(approvedRow).getByText('Enter setup password')).toHaveClass('data-chip')
-    expect(within(approvedRow).queryByRole('button', { name: 'Convert' })).not.toBeInTheDocument()
-
-    await user.type(screen.getByLabelText('Temporary setup password'), 'ready-password')
-    expect(within(approvedRow).queryByText('Enter setup password')).not.toBeInTheDocument()
-    expect(within(approvedRow).getByRole('button', { name: 'Convert' })).toBeEnabled()
-    expect(within(approvedRow).queryByRole('button', { name: 'Approve only' })).not.toBeInTheDocument()
-    expect(within(approvedRow).queryByRole('button', { name: 'Approve & activate' })).not.toBeInTheDocument()
-    expect(within(approvedRow).queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
-
-    const rejectedRow = screen.getByRole('row', { name: /rejected@new\.test/i })
-    expect(within(rejectedRow).getByText('Rejected request')).toHaveClass('data-chip')
-    expect(within(rejectedRow).queryByRole('button')).not.toBeInTheDocument()
-
-    const convertedRow = screen.getByRole('row', { name: /converted@new\.test/i })
-    expect(within(convertedRow).getByText('Account created')).toHaveClass('data-chip')
-    expect(within(convertedRow).queryByRole('button')).not.toBeInTheDocument()
-  })
-
-  it('requires conversion reason before converting an approved access request', async () => {
-    const user = userEvent.setup()
-    apiMock.accessRequests.mockResolvedValue([
-      {
-        id: 'request-approved',
-        organizationName: 'Approved Merchant',
-        requesterEmail: 'approved@new.test',
-        requestedRole: 'MERCHANT',
-        notes: 'Ready',
-        status: 'APPROVED',
-        reviewedByUserId: 'admin-id',
-        reviewNote: 'Approved',
-        reviewedAt: '2026-05-18T00:10:00Z',
-        convertedTenantId: null,
-        convertedUserId: null,
-        convertedAt: null,
-        createdAt: '2026-05-18T00:00:00Z',
-      },
-    ])
-    apiMock.convertAccessRequest.mockResolvedValue({
-      id: 'request-approved',
-      organizationName: 'Approved Merchant',
-      requesterEmail: 'approved@new.test',
-      requestedRole: 'MERCHANT',
-      notes: 'Ready',
-      status: 'APPROVED',
-      reviewedByUserId: 'admin-id',
-      reviewNote: 'Approved',
-      reviewedAt: '2026-05-18T00:10:00Z',
-      convertedTenantId: 'tenant-1',
-      convertedUserId: 'user-1',
-      convertedAt: '2026-05-18T00:20:00Z',
-      createdAt: '2026-05-18T00:00:00Z',
-    })
-
-    renderWithAuth(<AdminAccessRequestsPage />)
-
-    const row = await screen.findByRole('row', { name: /approved@new\.test/i })
-    await user.type(screen.getByLabelText('Temporary setup password'), 'ready-password')
-    await user.clear(screen.getByLabelText('Conversion reason'))
-    expect(within(row).getByText('Enter conversion reason')).toHaveClass('warning-chip')
-    expect(within(row).queryByRole('button', { name: 'Convert' })).not.toBeInTheDocument()
-    expect(apiMock.convertAccessRequest).not.toHaveBeenCalled()
-
-    await user.type(screen.getByLabelText('Conversion reason'), '  Ready to provision  ')
-    await user.click(within(row).getByRole('button', { name: 'Convert' }))
-
-    expect(apiMock.convertAccessRequest).toHaveBeenCalledWith('admin-token', 'request-approved', {
-      tenantName: 'Approved Merchant',
-      temporaryPassword: 'ready-password',
-      reason: 'Ready to provision',
-    })
+    // Status badges appear in both the count row and the table — verify at least one
+    const statusRow = screen.getByLabelText('Access request status narration')
+    expect(within(statusRow).getByText('PENDING')).toBeInTheDocument()
+    expect(within(statusRow).getByText('APPROVED')).toBeInTheDocument()
+    expect(within(statusRow).getByText('REJECTED')).toBeInTheDocument()
   })
 
   it('renders injection-shaped access request text without creating executable elements', async () => {
@@ -774,6 +652,11 @@ describe('Admin access request management', () => {
     expect(within(row).getByText("' OR '1'='1 <script>alert(1)</script>")).toBeInTheDocument()
     expect(container.querySelector('img[src="x"]')).toBeNull()
     expect(row.querySelector('script')).toBeNull()
+  })
+
+  it('keeps the summary overview link to access-requests page for historical review', async () => {
+    renderWithAuth(<AdminOverviewPage />)
+    expect(await screen.findByRole('link', { name: /Review requests/i })).toBeInTheDocument()
   })
 })
 

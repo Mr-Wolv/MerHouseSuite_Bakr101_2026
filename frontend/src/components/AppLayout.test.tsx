@@ -29,9 +29,6 @@ const baseAuthState: AuthState = {
     ...baseUser,
     role: 'AUDITOR',
   },
-  emailVerified: false,
-  sendEmailVerification: vi.fn(),
-  refreshEmailVerified: vi.fn(),
   login: vi.fn(),
   logout: vi.fn(),
 }

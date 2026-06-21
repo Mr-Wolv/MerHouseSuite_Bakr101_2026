@@ -47,7 +47,7 @@ describe('LoginPage', () => {
     render(<LoginPage />, { wrapper: MemoryRouter })
 
     expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute('href', '/forgot-password')
-    expect(screen.getByRole('link', { name: 'Request access' })).toHaveAttribute('href', '/request-access')
+    expect(screen.getByRole('link', { name: 'Sign up' })).toHaveAttribute('href', '/sign-up')
     expect(screen.getByRole('link', { name: 'How to use' })).toHaveAttribute('href', '/how-to-use')
   })
 })

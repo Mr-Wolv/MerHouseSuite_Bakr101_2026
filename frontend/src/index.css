@@ -452,6 +452,78 @@ select:focus-visible,
   text-underline-offset: 3px;
 }
 
+/* Recovery key UI */
+.recovery-key-display {
+  display: grid;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--warning) 36%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warning) 6%, var(--surface));
+  padding: 14px;
+}
+
+.warning-text {
+  color: var(--warning);
+  font-size: 14px;
+}
+
+.recovery-key-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.recovery-key-value {
+  display: block;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  user-select: all;
+}
+
+.recovery-key-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.recovery-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+
+.tab-button {
+  flex: 1;
+  min-height: 38px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 0 12px;
+  transition: background 120ms, color 120ms;
+}
+
+.tab-button.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.tab-button:not(.active):hover {
+  background: color-mix(in srgb, var(--surface-muted) 70%, var(--surface));
+}
+
 .app-shell {
   min-height: 100vh;
   display: grid;
