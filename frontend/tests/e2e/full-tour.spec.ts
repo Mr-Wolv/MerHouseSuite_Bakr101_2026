@@ -139,7 +139,7 @@ const baseAccounts: Record<'owner' | 'supportAdmin' | 'auditor' | 'merchant' | '
   },
 }
 
-const publicPaths = ['/login', '/forgot-password', '/reset-password', '/request-access', '/how-to-use']
+const publicPaths = ['/login', '/forgot-password', '/reset-password', '/sign-up', '/request-access', '/how-to-use']
 const rolePaths: Record<Exclude<Role, 'public'>, string[]> = {
   owner: [
     '/admin',
@@ -719,6 +719,17 @@ test('public auth UI input tour accepts typed happy and unhappy paths', async ({
   await expect(page.getByRole('alert')).toBeVisible({ timeout: ROUTE_HEADING_TIMEOUT_MS })
   records.push({ route: '/reset-password', action: 'visited without oobCode and saw invalid-link alert' })
 
+  const signUpEmail = `ui-signup.${Date.now()}@merhouse.local`
+  await page.goto(`${APP_URL}/sign-up`, { waitUntil: 'domcontentloaded' })
+  await waitForAppSettled(page, 'sign up input')
+  await page.getByLabel('Organization').fill(`UI Signup Merchant ${Date.now()}`)
+  await page.getByLabel('Email').fill(signUpEmail)
+  await page.getByLabel('Password').fill('signup-test-password-123')
+  await page.getByLabel('Role').selectOption('MERCHANT')
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page.getByRole('alert')).toBeVisible({ timeout: WORKFLOW_ACTION_TIMEOUT_MS })
+  records.push({ route: '/sign-up', action: 'typed sign-up form and saw recovery key display' })
+
   const accessEmail = `ui-input.${Date.now()}@merhouse.local`
   await page.goto(`${APP_URL}/request-access`, { waitUntil: 'domcontentloaded' })
   await waitForAppSettled(page, 'request access input')
@@ -738,7 +749,7 @@ test('public auth UI input tour accepts typed happy and unhappy paths', async ({
 
   writeActionReport(
     'ui-input',
-    'Public auth UI input proof records typed happy and unhappy paths through login, recovery, reset, and access-request forms.',
+    'Public auth UI input proof records typed happy and unhappy paths through login, sign-up, recovery, reset, and access-request forms.',
     records,
   )
   progress(`ui input tour completed ${records.length} action records`)
@@ -925,12 +936,12 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
 
   await supportPage.goto(`${APP_URL}/admin/access-requests`, { waitUntil: 'networkidle' })
   await expect(supportPage.getByRole('heading', { name: 'Access Requests' })).toBeVisible()
+  await expect(supportPage.getByText('Read-only historical review')).toBeVisible()
   await expect(supportPage.getByText(`Hierarchy Access ${hierarchy.suffix}`)).toBeVisible()
-  await expect(supportPage.getByText('Review and escalate').first()).toBeVisible()
   await expect(supportPage.getByRole('button', { name: 'Approve' })).toHaveCount(0)
   await expect(supportPage.getByRole('button', { name: 'Reject' })).toHaveCount(0)
   await expect(supportPage.getByRole('button', { name: 'Convert' })).toHaveCount(0)
-  records.push({ role: 'supportAdmin', action: 'viewed access queue without approval power' })
+  records.push({ role: 'supportAdmin', action: 'viewed read-only historical access requests without approval power' })
   await supportContext.close()
 
   const { context: auditorContext, page: auditorPage } = await newAuthedPageForAccount(
@@ -963,18 +974,18 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
     'desktop',
   )
   await adminPage.goto(`${APP_URL}/admin/access-requests`, { waitUntil: 'networkidle' })
+  await expect(adminPage.getByRole('heading', { name: 'Access Requests' })).toBeVisible()
+  await expect(adminPage.getByText('Read-only historical review')).toBeVisible()
   const requestRow = adminPage.locator('tr').filter({ hasText: submitted.id as string }).or(
     adminPage.locator('tr').filter({ hasText: `hierarchy-access.${hierarchy.suffix}@merhouse.local` }),
   ).first()
   await expect(requestRow).toBeVisible()
-  const approveButton = requestRow.getByRole('button', { name: 'Approve & activate' })
-  await expect(approveButton).toBeVisible()
-  await approveButton.click()
-  await expect(requestRow).toContainText('APPROVED')
+  await expect(requestRow.locator('.status-badge.status-pending')).toBeVisible()
+  await expect(adminPage.getByRole('button', { name: 'Approve & activate' })).toHaveCount(0)
   await adminPage.goto(`${APP_URL}/admin/tenants`, { waitUntil: 'networkidle' })
   await expect(adminPage.locator('h1').filter({ hasText: 'Tenants' })).toBeVisible()
   await expect(adminPage.getByRole('button', { name: 'Create tenant' })).toBeEnabled()
-  records.push({ role: 'admin', action: 'approved access request and retained tenant governance controls' })
+  records.push({ role: 'admin', action: 'reviewed read-only historical access requests and retained tenant governance controls' })
   await adminContext.close()
 
   const { context: ownerContext, page: ownerPage } = await newAuthedPageForAccount(browser, hierarchy.accounts.owner, 'desktop')
