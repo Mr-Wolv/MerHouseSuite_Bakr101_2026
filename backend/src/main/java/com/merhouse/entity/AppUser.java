@@ -42,6 +42,9 @@ public class AppUser {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Column(length = 128)
+    private String recoveryKeyHash;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -96,6 +99,14 @@ public class AppUser {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getRecoveryKeyHash() {
+        return recoveryKeyHash;
+    }
+
+    public void setRecoveryKeyHash(String recoveryKeyHash) {
+        this.recoveryKeyHash = recoveryKeyHash;
     }
 
     public Instant getCreatedAt() {

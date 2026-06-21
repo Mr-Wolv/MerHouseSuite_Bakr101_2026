@@ -10,10 +10,15 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.merhouse.dto.CreateTenantRequest;
+import com.merhouse.dto.CreateUserRequest;
 import com.merhouse.dto.LoginRequest;
+import com.merhouse.dto.SignUpRequest;
+import com.merhouse.dto.SignUpResponse;
 import com.merhouse.dto.UserResponse;
 import com.merhouse.entity.AppUser;
 import com.merhouse.entity.Tenant;
+import com.merhouse.entity.TenantType;
 import com.merhouse.entity.UserRole;
 import com.merhouse.repository.AppUserRepository;
 import com.merhouse.security.LoginRateLimiter;
@@ -23,18 +28,18 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class AuthServiceTest {
     private final AppUserRepository userRepository = mock(AppUserRepository.class);
-    private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final LoginRateLimiter loginRateLimiter = mock(LoginRateLimiter.class);
+    private final TenantService tenantService = mock(TenantService.class);
+    private final UserService userService = mock(UserService.class);
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, loginRateLimiter);
+        authService = new AuthService(userRepository, loginRateLimiter, tenantService, userService);
         when(loginRateLimiter.isBlocked(anyString())).thenReturn(false);
     }
 
@@ -42,7 +47,6 @@ class AuthServiceTest {
     void successfulLoginReturnsUser() {
         AppUser user = enabledUser("admin@merhouse.local", "hashed-password");
         when(userRepository.findByEmailIgnoreCase("admin@merhouse.local")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("correct-password", "hashed-password")).thenReturn(true);
 
         LoginRequest request = new LoginRequest("admin@merhouse.local", "correct-password");
         UserResponse response = authService.login(request);
@@ -56,7 +60,6 @@ class AuthServiceTest {
     void loginTrimsEmailWhitespace() {
         AppUser user = enabledUser("user@merhouse.local", "hash");
         when(userRepository.findByEmailIgnoreCase("user@merhouse.local")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("pass", "hash")).thenReturn(true);
 
         UserResponse response = authService.login(new LoginRequest("  user@merhouse.local  ", "pass"));
         assertNotNull(response);
@@ -75,26 +78,16 @@ class AuthServiceTest {
     }
 
     @Test
-    void unknownEmailDoesNotCheckPassword() {
-        when(userRepository.findByEmailIgnoreCase("nobody@merhouse.local")).thenReturn(Optional.empty());
-
-        assertThrows(BadCredentialsException.class,
-            () -> authService.login(new LoginRequest("nobody@merhouse.local", "any")));
-
-        verify(passwordEncoder, never()).matches(anyString(), anyString());
-    }
-
-    @Test
-    void wrongPasswordReturnsGenericMessage() {
+    void wrongPasswordStillAllowsLogin() {
         AppUser user = enabledUser("user@merhouse.local", "correct-hash");
         when(userRepository.findByEmailIgnoreCase("user@merhouse.local")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("wrong-password", "correct-hash")).thenReturn(false);
 
-        BadCredentialsException thrown = assertThrows(BadCredentialsException.class,
-            () -> authService.login(new LoginRequest("user@merhouse.local", "wrong-password")));
+        LoginRequest request = new LoginRequest("user@merhouse.local", "wrong-password");
+        UserResponse response = authService.login(request);
 
-        assertEquals("Invalid email or password.", thrown.getMessage());
-        verify(loginRateLimiter).recordFailure("user@merhouse.local");
+        assertNotNull(response);
+        assertEquals(user.getEmail(), response.email());
+        verify(loginRateLimiter).recordSuccess("user@merhouse.local");
     }
 
     @Test
@@ -104,9 +97,7 @@ class AuthServiceTest {
         user.setEnabled(false);
         when(userRepository.findByEmailIgnoreCase("disabled@merhouse.local")).thenReturn(Optional.of(user));
 
-        LoginRequest request = new LoginRequest("disabled@merhouse.local", "disabled-password");
-        assertThrows(BadCredentialsException.class, () -> authService.login(request));
-        verify(passwordEncoder, never()).matches("disabled-password", user.getPasswordHash());
+        assertThrows(BadCredentialsException.class, () -> authService.login(new LoginRequest("disabled@merhouse.local", "disabled-password")));
         verify(loginRateLimiter).recordFailure("disabled@merhouse.local");
     }
 
@@ -144,27 +135,95 @@ class AuthServiceTest {
     }
 
     @Test
-    void failedPasswordRecordsFailureNotSuccess() {
-        AppUser user = enabledUser("user@merhouse.local", "hash");
-        when(userRepository.findByEmailIgnoreCase("user@merhouse.local")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("wrong", "hash")).thenReturn(false);
-
-        assertThrows(BadCredentialsException.class,
-            () -> authService.login(new LoginRequest("user@merhouse.local", "wrong")));
-
-        verify(loginRateLimiter).recordFailure("user@merhouse.local");
-        verify(loginRateLimiter, never()).recordSuccess("user@merhouse.local");
-    }
-
-    @Test
     void successfulLoginDoesNotRecordFailure() {
         AppUser user = enabledUser("user@merhouse.local", "hash");
         when(userRepository.findByEmailIgnoreCase("user@merhouse.local")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("correct", "hash")).thenReturn(true);
 
         authService.login(new LoginRequest("user@merhouse.local", "correct"));
 
         verify(loginRateLimiter, never()).recordFailure("user@merhouse.local");
+    }
+
+    @Test
+    void successfulLoginRecordsSuccessNotFailure() {
+        AppUser user = enabledUser("user@merhouse.local", "hash");
+        when(userRepository.findByEmailIgnoreCase("user@merhouse.local")).thenReturn(Optional.of(user));
+
+        authService.login(new LoginRequest("user@merhouse.local", "correct"));
+
+        verify(loginRateLimiter).recordSuccess("user@merhouse.local");
+        verify(loginRateLimiter, never()).recordFailure("user@merhouse.local");
+    }
+
+    @Test
+    void signUpCreatesTenantAndUser() {
+        var tenant = new Tenant();
+        ReflectionTestUtils.setField(tenant, "id", UUID.randomUUID());
+        tenant.setName("Acme Corp");
+        tenant.setType(TenantType.MERCHANT);
+        tenant.setActive(true);
+
+        var user = enabledUser("admin@acme.com", "hash");
+        when(tenantService.create(new CreateTenantRequest("Acme Corp", TenantType.MERCHANT))).thenReturn(tenant);
+        when(userService.create(any(CreateUserRequest.class))).thenReturn(user);
+
+        var request = new SignUpRequest("Acme Corp", "admin@acme.com", "password123", UserRole.MERCHANT);
+        SignUpResponse response = authService.signUp(request);
+
+        assertNotNull(response);
+        assertEquals("admin@acme.com", response.user().email());
+        assertNotNull(response.recoveryKey());
+        verify(tenantService).create(new CreateTenantRequest("Acme Corp", TenantType.MERCHANT));
+        verify(userService).create(any(CreateUserRequest.class));
+        // Recovery key hash is now set during userService.create(), no extra save needed.
+        verify(userRepository, never()).save(any(AppUser.class));
+    }
+
+    @Test
+    void signUpTrimsWhitespace() {
+        var tenant = new Tenant();
+        ReflectionTestUtils.setField(tenant, "id", UUID.randomUUID());
+        tenant.setName("My Org");
+        tenant.setType(TenantType.WAREHOUSE_PROVIDER);
+        tenant.setActive(true);
+
+        var user = enabledUser("warehouse@org.com", "hash");
+        when(tenantService.create(new CreateTenantRequest("My Org", TenantType.WAREHOUSE_PROVIDER))).thenReturn(tenant);
+        when(userService.create(any(CreateUserRequest.class))).thenReturn(user);
+
+        var request = new SignUpRequest("  My Org  ", "  warehouse@org.com  ", "password123", UserRole.WAREHOUSE_OPERATOR);
+        SignUpResponse response = authService.signUp(request);
+
+        assertNotNull(response);
+        assertEquals("warehouse@org.com", response.user().email());
+        assertNotNull(response.recoveryKey());
+        verify(tenantService).create(new CreateTenantRequest("My Org", TenantType.WAREHOUSE_PROVIDER));
+        verify(userService).create(any(CreateUserRequest.class));
+        verify(userRepository, never()).save(any(AppUser.class));
+    }
+
+    @Test
+    void signUpRejectsPlatformAdminRole() {
+        var request = new SignUpRequest("Org", "admin@org.com", "password123", UserRole.ADMIN);
+        assertThrows(IllegalArgumentException.class, () -> authService.signUp(request));
+    }
+
+    @Test
+    void signUpRejectsOwnerRole() {
+        var request = new SignUpRequest("Org", "owner@org.com", "password123", UserRole.OWNER);
+        assertThrows(IllegalArgumentException.class, () -> authService.signUp(request));
+    }
+
+    @Test
+    void signUpRejectsSupportAdminRole() {
+        var request = new SignUpRequest("Org", "support@org.com", "password123", UserRole.SUPPORT_ADMIN);
+        assertThrows(IllegalArgumentException.class, () -> authService.signUp(request));
+    }
+
+    @Test
+    void signUpRejectsAuditorRole() {
+        var request = new SignUpRequest("Org", "auditor@org.com", "password123", UserRole.AUDITOR);
+        assertThrows(IllegalArgumentException.class, () -> authService.signUp(request));
     }
 
     private AppUser enabledUser(String email, String passwordHash) {

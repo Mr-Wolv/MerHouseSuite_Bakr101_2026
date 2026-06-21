@@ -15,12 +15,15 @@ import static org.mockito.Mockito.when;
 
 import com.merhouse.dto.PasswordResetConfirmRequest;
 import com.merhouse.dto.PasswordResetRequest;
+import com.merhouse.dto.RecoveryKeyRequest;
+import com.merhouse.dto.RecoveryKeyResetResponse;
 import com.merhouse.entity.AppUser;
 import com.merhouse.entity.NotificationTopic;
 import com.merhouse.entity.PasswordResetToken;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.repository.AppUserRepository;
 import com.merhouse.repository.PasswordResetTokenRepository;
+import com.merhouse.util.TokenUtils;
 import com.google.firebase.auth.FirebaseAuth;
 import java.time.Clock;
 import java.time.Instant;
@@ -208,6 +211,69 @@ class AuthRecoveryServiceTest {
         assertEquals("NNMoAJsSP7uw3JPxiz5t4ez3saV4PDPf9__hkm8J6UM", hashCaptor.getValue());
         verify(tokenRepository).save(token);
         verify(userRepository).save(user);
+    }
+
+    @Test
+    void resetWithRecoveryKeyUpdatesPasswordAndGeneratesNewKey() {
+        String rawRecoveryKey = "AB12-CD34-EF56-GH78";
+        String storedHash = TokenUtils.hashToken(rawRecoveryKey);
+        AppUser user = new AppUser();
+        user.setEnabled(true);
+        user.setEmail("user@merhouse.local");
+        user.setRecoveryKeyHash(storedHash);
+        when(userRepository.findByEmailIgnoreCase("user@merhouse.local")).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode("new-password")).thenReturn("encoded-new-password");
+
+        RecoveryKeyResetResponse response = service.resetWithRecoveryKey(
+            new RecoveryKeyRequest("user@merhouse.local", rawRecoveryKey, "new-password")
+        );
+
+        assertEquals("Password has been reset using recovery key.", response.message());
+        assertNotNull(response.recoveryKey());
+        // The new recovery key should be a valid 19-char formatted key.
+        assertEquals(19, response.recoveryKey().length());
+        assertEquals("encoded-new-password", user.getPasswordHash());
+        // The recovery key hash should be updated (not null).
+        assertNotNull(user.getRecoveryKeyHash());
+        // The new hash should correspond to the returned raw key.
+        assertEquals(TokenUtils.hashToken(response.recoveryKey()), user.getRecoveryKeyHash());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void resetWithRecoveryKeyRejectsInvalidKey() {
+        AppUser user = new AppUser();
+        user.setEnabled(true);
+        user.setRecoveryKeyHash("some-other-hash");
+        when(userRepository.findByEmailIgnoreCase("user@merhouse.local")).thenReturn(Optional.of(user));
+
+        assertThrows(DomainConflictException.class, () ->
+            service.resetWithRecoveryKey(new RecoveryKeyRequest("user@merhouse.local", "XX99-YY88-ZZ77-WW66", "new-password"))
+        );
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void resetWithRecoveryKeyRejectsUnknownEmail() {
+        when(userRepository.findByEmailIgnoreCase("unknown@merhouse.local")).thenReturn(Optional.empty());
+
+        assertThrows(DomainConflictException.class, () ->
+            service.resetWithRecoveryKey(new RecoveryKeyRequest("unknown@merhouse.local", "AB12-CD34-EF56-GH78", "new-password"))
+        );
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void resetWithRecoveryKeyRejectsDisabledUser() {
+        AppUser user = new AppUser();
+        user.setEnabled(false);
+        user.setRecoveryKeyHash(TokenUtils.hashToken("AB12-CD34-EF56-GH78"));
+        when(userRepository.findByEmailIgnoreCase("disabled@merhouse.local")).thenReturn(Optional.of(user));
+
+        assertThrows(DomainConflictException.class, () ->
+            service.resetWithRecoveryKey(new RecoveryKeyRequest("disabled@merhouse.local", "AB12-CD34-EF56-GH78", "new-password"))
+        );
+        verify(userRepository, never()).save(any());
     }
 
 }

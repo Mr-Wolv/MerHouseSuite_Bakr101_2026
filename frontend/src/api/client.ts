@@ -74,9 +74,11 @@ import type {
   Warehouse,
   WarehouseInventory,
   WarehouseProviderOption,
+  PasswordResetRequestResponse,
   ReceiveInboundStockPayload,
   RejectInboundStockPayload,
   FulfillmentAllocationDetail,
+  SignUpResponse,
 } from './types'
 
 
@@ -712,6 +714,43 @@ export const api = {
   },
   merchantWarehouseRelationshipDetail(token: string, relationshipId: string) {
     return request<MerchantWarehouseRelationshipDetail>(`/api/v1/operational-details/relationships/${relationshipId}`, { token })
+  },
+
+
+  // ───── Password Reset (Backend tokens for in-app recovery) ─────
+  requestPasswordReset(email: string) {
+    return request<PasswordResetRequestResponse>('/api/v1/auth/password-reset/request', {
+      method: 'POST',
+      body: { email },
+    })
+  },
+  confirmPasswordReset(token: string, newPassword: string) {
+    return request<{ message: string }>('/api/v1/auth/password-reset/confirm', {
+      method: 'POST',
+      body: { token, newPassword },
+    })
+  },
+
+  // ───── Public Sign-Up ─────
+  signUp(body: { organizationName: string; email: string; password: string; requestedRole: string }) {
+    return request<SignUpResponse>('/api/v1/auth/signup', {
+      method: 'POST',
+      body,
+    })
+  },
+
+  // ───── Recovery Key ─────
+  resetWithRecoveryKey(email: string, recoveryKey: string, newPassword: string) {
+    return request<{ message: string; recoveryKey: string }>('/api/v1/auth/recovery-key/reset', {
+      method: 'POST',
+      body: { email, recoveryKey, newPassword },
+    })
+  },
+  regenerateRecoveryKey(token: string) {
+    return request<{ message: string }>('/api/v1/auth/recovery-key/regenerate', {
+      method: 'POST',
+      token,
+    })
   },
 
   // ───── FCM Push Notification Token Registration ─────

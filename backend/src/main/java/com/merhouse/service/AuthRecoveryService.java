@@ -4,23 +4,21 @@ import com.merhouse.dto.MessageResponse;
 import com.merhouse.dto.PasswordResetConfirmRequest;
 import com.merhouse.dto.PasswordResetRequest;
 import com.merhouse.dto.PasswordResetRequestResponse;
+import com.merhouse.dto.RecoveryKeyRequest;
+import com.merhouse.dto.RecoveryKeyResetResponse;
 import com.merhouse.entity.AppUser;
 import com.merhouse.entity.NotificationTopic;
 import com.merhouse.entity.PasswordResetToken;
 import com.merhouse.exception.DomainConflictException;
 import com.merhouse.repository.AppUserRepository;
 import com.merhouse.repository.PasswordResetTokenRepository;
+import com.merhouse.util.TokenUtils;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.UserRecord;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -45,7 +43,6 @@ public class AuthRecoveryService {
     private final String publicFrontendUrl;
     private final int resetRequestLimit;
     private final Duration resetRequestWindow;
-    private final SecureRandom secureRandom = new SecureRandom();
     private final ObjectProvider<FirebaseAuth> firebaseAuthProvider;
 
     public AuthRecoveryService(
@@ -78,14 +75,38 @@ public class AuthRecoveryService {
         return userRepository.findByEmailIgnoreCase(email)
             .filter(AppUser::isEnabled)
             .filter(this::canCreateResetToken)
-            .map(user -> createResetResponse(user, createRawToken()))
+            .map(user -> createResetResponse(user, TokenUtils.createRawToken()))
             .orElse(new PasswordResetRequestResponse(GENERIC_RESET_MESSAGE, null, null));
+    }
+
+    @Transactional
+    public RecoveryKeyResetResponse resetWithRecoveryKey(RecoveryKeyRequest request) {
+        AppUser user = userRepository.findByEmailIgnoreCase(request.email())
+            .orElseThrow(() -> new DomainConflictException("Invalid recovery key or email."));
+
+        if (!user.isEnabled()) {
+            throw new DomainConflictException("Invalid recovery key or email.");
+        }
+
+        String hash = TokenUtils.hashToken(request.recoveryKey());
+        if (!hash.equals(user.getRecoveryKeyHash())) {
+            throw new DomainConflictException("Invalid recovery key or email.");
+        }
+
+        // Update password and generate a new recovery key (same flow as sign-up).
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        String newRecoveryKey = TokenUtils.createRecoveryKey();
+        user.setRecoveryKeyHash(TokenUtils.hashToken(newRecoveryKey));
+        userRepository.save(user);
+        updateFirebaseAuthPasswordIfAvailable(user.getEmail(), request.newPassword());
+
+        return new RecoveryKeyResetResponse("Password has been reset using recovery key.", newRecoveryKey);
     }
 
     @Transactional
     public MessageResponse confirmReset(PasswordResetConfirmRequest request) {
         Instant now = clock.instant();
-        PasswordResetToken token = tokenRepository.findByTokenHash(hashToken(normalizeToken(request.token())))
+        PasswordResetToken token = tokenRepository.findByTokenHash(TokenUtils.hashToken(normalizeToken(request.token())))
             .orElseThrow(() -> new DomainConflictException("Reset token is invalid or expired."));
         if (token.getUsedAt() != null || !token.getExpiresAt().isAfter(now) || !token.getUser().isEnabled()) {
             throw new DomainConflictException("Reset token is invalid or expired.");
@@ -104,7 +125,7 @@ public class AuthRecoveryService {
     private PasswordResetRequestResponse createResetResponse(AppUser user, String rawToken) {
         PasswordResetToken token = new PasswordResetToken();
         token.setUser(user);
-        token.setTokenHash(hashToken(rawToken));
+        token.setTokenHash(TokenUtils.hashToken(rawToken));
         token.setExpiresAt(clock.instant().plus(RESET_TOKEN_TTL));
         tokenRepository.save(token);
         notificationService.recordForUser(
@@ -125,28 +146,12 @@ public class AuthRecoveryService {
         );
     }
 
-    private String createRawToken() {
-        byte[] bytes = new byte[32];
-        secureRandom.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
     private boolean canCreateResetToken(AppUser user) {
         long recentTokens = tokenRepository.countByUserIdAndCreatedAtAfter(
             user.getId(),
             clock.instant().minus(resetRequestWindow)
         );
         return recentTokens < resetRequestLimit;
-    }
-
-    private String hashToken(String token) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is required for password reset tokens.", exception);
-        }
     }
 
     private String normalizeEmail(String email) {

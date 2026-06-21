@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { ForgotPasswordPage, RequestAccessPage, ResetPasswordPage } from './AuthRecoveryPages'
+import { ForgotPasswordPage, SignUpPage, ResetPasswordPage } from './AuthRecoveryPages'
 
 const firebaseAuthMock = vi.hoisted(() => ({
   sendFirebasePasswordReset: vi.fn(),
@@ -15,21 +15,27 @@ const firebaseAuthMock = vi.hoisted(() => ({
   }),
 }))
 
-const apiMock = vi.hoisted(() => ({
-  submitAccessRequest: vi.fn(),
-}))
-
-vi.mock('../api/client', () => ({
-  ApiError: class ApiError extends Error {
+const ApiErrorMock = vi.hoisted(() => {
+  return class extends Error {
     status: number
     details: string[]
-
     constructor(status: number, message: string, details: string[] = []) {
       super(message)
       this.status = status
       this.details = details
     }
-  },
+  }
+})
+
+const apiMock = vi.hoisted(() => ({
+  requestPasswordReset: vi.fn().mockResolvedValue({ message: '', resetToken: null, resetPath: null }),
+  confirmPasswordReset: vi.fn(),
+  signUp: vi.fn(),
+  resetWithRecoveryKey: vi.fn(),
+}))
+
+vi.mock('../api/client', () => ({
+  ApiError: ApiErrorMock,
   api: apiMock,
 }))
 
@@ -54,7 +60,7 @@ describe('auth recovery pages', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       /if an enabled account exists for that email, a password reset link has been sent/i,
     )
-    expect(screen.getByText(/does not reveal whether an email exists/i)).toBeInTheDocument()
+    expect(screen.getByText(/reset without email/i)).toBeInTheDocument()
   })
 
   it('shows a friendly error when Firebase reset fails', async () => {
@@ -136,46 +142,97 @@ describe('auth recovery pages', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('This reset link is invalid or has expired.')
   })
 
-  it('trims copied public access request fields before submitting', async () => {
+  it('creates an account and shows the created email and recovery key', async () => {
     const user = userEvent.setup()
-    apiMock.submitAccessRequest.mockResolvedValue({
-      id: 'request-1',
-      organizationName: 'Acme',
-      requesterEmail: 'owner@acme.test',
-      requestedRole: 'MERCHANT',
-      notes: 'Please onboard',
-      status: 'PENDING',
-      reviewedByUserId: null,
-      reviewNote: null,
-      reviewedAt: null,
-      createdAt: '2026-05-18T00:00:00Z',
+    apiMock.signUp.mockResolvedValue({
+      user: {
+        id: 'user-1',
+        tenantId: 'tenant-1',
+        email: 'owner@acme.test',
+        role: 'MERCHANT',
+        enabled: true,
+        createdAt: '2026-05-18T00:00:00Z',
+      },
+      recoveryKey: 'AB12-CD34-EF56-GH78',
     })
 
-    render(<RequestAccessPage />, { wrapper: MemoryRouter })
+    render(<SignUpPage />, { wrapper: MemoryRouter })
 
     await user.type(screen.getByLabelText('Organization'), ' Acme ')
     await user.type(screen.getByLabelText('Email'), ' owner@acme.test ')
-    await user.type(screen.getByLabelText('Notes'), ' Please onboard ')
-    await user.click(screen.getByRole('button', { name: 'Submit request' }))
+    await user.type(screen.getByLabelText('Password'), ' password123 ')
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
 
-    expect(apiMock.submitAccessRequest).toHaveBeenCalledWith({
+    expect(apiMock.signUp).toHaveBeenCalledWith({
       organizationName: 'Acme',
-      requesterEmail: 'owner@acme.test',
+      email: 'owner@acme.test',
+      password: ' password123 ',
       requestedRole: 'MERCHANT',
-      notes: 'Please onboard',
     })
-    expect(screen.getByText(/avoid secrets, keys, or production credentials/i)).toBeInTheDocument()
-    expect(await screen.findByRole('status')).toHaveTextContent('Access request pending for owner@acme.test.')
+    expect(await screen.findByRole('status')).toHaveTextContent('Account created for owner@acme.test.')
+    expect(screen.getByTestId('recovery-key-value')).toHaveTextContent('AB12-CD34-EF56-GH78')
+  })
+
+  it('shows an error when sign-up fails', async () => {
+    const user = userEvent.setup()
+    apiMock.signUp.mockRejectedValue(new ApiErrorMock(409, 'Conflict', ['User already exists with email: owner@acme.test']))
+
+    render(<SignUpPage />, { wrapper: MemoryRouter })
+
+    await user.type(screen.getByLabelText('Organization'), 'Acme')
+    await user.type(screen.getByLabelText('Email'), 'owner@acme.test')
+    await user.type(screen.getByLabelText('Password'), 'password123')
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('User already exists with email: owner@acme.test')
+  })
+
+  it('resets password with recovery key and shows the new recovery key', async () => {
+    const user = userEvent.setup()
+    apiMock.resetWithRecoveryKey.mockResolvedValue({
+      message: 'Password has been reset using recovery key.',
+      recoveryKey: 'ZZ99-YY88-XX77-WW66',
+    })
+
+    render(<ForgotPasswordPage />, { wrapper: MemoryRouter })
+
+    // Switch to recovery key tab
+    await user.click(screen.getByRole('button', { name: 'Recovery key' }))
+
+    await user.type(screen.getByLabelText('Email'), 'user@merhouse.local')
+    await user.type(screen.getByLabelText('Recovery key'), 'AB12-CD34-EF56-GH78')
+    await user.type(screen.getByLabelText('New password'), 'new-password-123')
+    await user.click(screen.getByRole('button', { name: 'Reset with recovery key' }))
+
+    expect(apiMock.resetWithRecoveryKey).toHaveBeenCalledWith('user@merhouse.local', 'AB12-CD34-EF56-GH78', 'new-password-123')
+    expect(await screen.findByRole('status')).toHaveTextContent(/password has been reset using recovery key/i)
+    expect(screen.getByTestId('recovery-key-value')).toHaveTextContent('ZZ99-YY88-XX77-WW66')
+  })
+
+  it('shows error when recovery key reset fails', async () => {
+    const user = userEvent.setup()
+    apiMock.resetWithRecoveryKey.mockRejectedValue(new ApiErrorMock(409, 'Conflict', ['Invalid recovery key or email.']))
+
+    render(<ForgotPasswordPage />, { wrapper: MemoryRouter })
+
+    await user.click(screen.getByRole('button', { name: 'Recovery key' }))
+
+    await user.type(screen.getByLabelText('Email'), 'user@merhouse.local')
+    await user.type(screen.getByLabelText('Recovery key'), 'XX99-YY88-ZZ77-WW66')
+    await user.type(screen.getByLabelText('New password'), 'new-password-123')
+    await user.click(screen.getByRole('button', { name: 'Reset with recovery key' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid recovery key or email.')
   })
 })
 
 describe('login secondary actions', () => {
-  it('keeps recovery links visible from the public panel', () => {
-    render(<RequestAccessPage />, { wrapper: MemoryRouter })
+  it('keeps sign-up panel visible from the public panel', () => {
+    render(<SignUpPage />, { wrapper: MemoryRouter })
 
     const panel = screen.getByRole('main')
     expect(within(panel).getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument()
-    expect(within(panel).getByLabelText('Public account workflow guardrails')).toHaveTextContent('Account readiness')
-    expect(within(panel).getByRole('link', { name: 'Back to sign in' })).toHaveAttribute('href', '/login')
+    expect(within(panel).getByLabelText('Public account workflow guardrails')).toHaveTextContent('Direct registration')
+    expect(within(panel).getByRole('link', { name: 'Already have an account? Sign in' })).toHaveAttribute('href', '/login')
   })
 })

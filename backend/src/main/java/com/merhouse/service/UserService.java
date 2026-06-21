@@ -71,6 +71,9 @@ public class UserService {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRole(request.role());
         user.setEnabled(true);
+        if (request.recoveryKeyHash() != null) {
+            user.setRecoveryKeyHash(request.recoveryKeyHash());
+        }
         AppUser saved = userRepository.save(user);
 
         // Create Firebase Auth user when Firebase is enabled and save the uid.
@@ -177,6 +180,11 @@ public class UserService {
         }
         validateTenantRole(user.getTenant(), role);
         user.setRole(role);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public AppUser save(AppUser user) {
         return userRepository.save(user);
     }
 

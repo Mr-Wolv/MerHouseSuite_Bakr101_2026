@@ -455,6 +455,11 @@ export type AdminResetPasswordPayload = {
   reason: string
 }
 
+export type SignUpResponse = {
+  user: User
+  recoveryKey: string
+}
+
 export type PasswordResetRequestResponse = {
   message: string
   resetToken: string | null

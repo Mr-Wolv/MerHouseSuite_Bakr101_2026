@@ -6,7 +6,11 @@ import com.merhouse.dto.MessageResponse;
 import com.merhouse.dto.PasswordResetConfirmRequest;
 import com.merhouse.dto.PasswordResetRequest;
 import com.merhouse.dto.PasswordResetRequestResponse;
+import com.merhouse.dto.RecoveryKeyRequest;
+import com.merhouse.dto.RecoveryKeyResetResponse;
 import com.merhouse.dto.SelfPasswordChangeRequest;
+import com.merhouse.dto.SignUpRequest;
+import com.merhouse.dto.SignUpResponse;
 import com.merhouse.dto.UserResponse;
 import com.merhouse.entity.AppUser;
 import com.merhouse.security.UserPrincipal;
@@ -15,6 +19,7 @@ import com.merhouse.service.AuthService;
 import com.merhouse.service.CurrentUserService;
 import com.merhouse.service.AdminAuditService;
 import com.merhouse.service.UserService;
+import com.merhouse.util.TokenUtils;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -49,6 +54,26 @@ public class AuthController {
     @PostMapping("/login")
     public UserResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/signup")
+    public SignUpResponse signUp(@Valid @RequestBody SignUpRequest request) {
+        return authService.signUp(request);
+    }
+
+    @PostMapping("/recovery-key/reset")
+    public RecoveryKeyResetResponse resetWithRecoveryKey(@Valid @RequestBody RecoveryKeyRequest request) {
+        return authRecoveryService.resetWithRecoveryKey(request);
+    }
+
+    @PostMapping("/recovery-key/regenerate")
+    public MessageResponse regenerateRecoveryKey() {
+        UserPrincipal principal = currentUserService.required();
+        AppUser user = userService.getRequired(principal.id());
+        String newKey = TokenUtils.createRecoveryKey();
+        user.setRecoveryKeyHash(TokenUtils.hashToken(newKey));
+        userService.save(user);
+        return new MessageResponse(newKey);
     }
 
     @PostMapping("/password-reset/request")
