@@ -147,13 +147,14 @@ def get_hf_config(secrets: dict) -> tuple:
     return hf_token, space_id
 
 
-def sync_hf_space(secrets: dict, dry_run: bool = False):
+def sync_hf_space(secrets: dict, dry_run: bool = False) -> bool:
     """Sync env vars to Hugging Face Space with proper categorization."""
     hf_token, space_id = get_hf_config(secrets)
+    errors: list[str] = []
 
     if not hf_token:
-        msg("  [SKIP] HF_TOKEN not available - cannot sync to Hugging Face Space.")
-        return
+        msg("  [ERROR] HF_TOKEN not available - cannot sync to Hugging Face Space.")
+        return False
 
     msg(f"\n  Hugging Face Space: {space_id}")
 
@@ -186,7 +187,7 @@ def sync_hf_space(secrets: dict, dry_run: bool = False):
         for k in space_secrets:
             has_val = "[SET]" if space_secrets.get(k) else "[MISSING]"
             msg(f"      {k} {has_val}")
-        return
+        return not errors
 
     api = HfApi(token=hf_token)
 
@@ -200,18 +201,22 @@ def sync_hf_space(secrets: dict, dry_run: bool = False):
                     api.delete_space_variable(repo_id=space_id, key=key)
                     msg(f"    Removed variable: {key}")
                 except Exception as e:
-                    msg(f"    Warning removing {key}: {e}")
+                    errors.append(f"remove variable {key}: {e}")
+                    msg(f"    [ERR] remove variable {key}: {e}")
     except Exception as e:
-        msg(f"    Warning listing variables: {e}")
+        errors.append(f"list variables: {e}")
+        msg(f"    [ERR] listing variables: {e}")
 
     for key, value in space_variables.items():
         if not value:
-            msg(f"    [SKIP] {key}: empty value")
+            errors.append(f"empty variable {key}")
+            msg(f"    [ERR] {key}: empty value")
             continue
         try:
             api.add_space_variable(repo_id=space_id, key=key, value=value)
             msg(f"    [OK] {key}")
         except Exception as e:
+            errors.append(f"set variable {key}: {e}")
             msg(f"    [ERR] {key}: {e}")
 
     # -- Sync Secrets --
@@ -224,31 +229,42 @@ def sync_hf_space(secrets: dict, dry_run: bool = False):
                     api.delete_space_secret(repo_id=space_id, key=key)
                     msg(f"    Removed secret: {key}")
                 except Exception as e:
-                    msg(f"    Warning removing {key}: {e}")
+                    errors.append(f"remove secret {key}: {e}")
+                    msg(f"    [ERR] remove secret {key}: {e}")
     except Exception as e:
-        msg(f"    Warning listing secrets: {e}")
+        errors.append(f"list secrets: {e}")
+        msg(f"    [ERR] listing secrets: {e}")
 
     for key, value in space_secrets.items():
         if not value:
-            msg(f"    [SKIP] {key}: empty value")
+            errors.append(f"empty secret {key}")
+            msg(f"    [ERR] {key}: empty value")
             continue
         try:
             api.add_space_secret(repo_id=space_id, key=key, value=value)
             msg(f"    [OK] {key}")
         except Exception as e:
+            errors.append(f"set secret {key}: {e}")
             msg(f"    [ERR] {key}: {e}")
 
+    if errors:
+        msg(f"  [ERROR] Hugging Face Space sync failed with {len(errors)} error(s).")
+        return False
+
     msg("  [OK] Hugging Face Space env vars synced.")
+    return True
 
 
 # -- GitHub Secrets Sync ----------------------------------------------------
-def sync_github_secrets(secrets: dict, dry_run: bool = False, repo: str = GITHUB_REPO):
+def sync_github_secrets(secrets: dict, dry_run: bool = False, repo: str = GITHUB_REPO) -> bool:
     """Sync secrets to GitHub repository secrets using gh CLI."""
+    errors: list[str] = []
+
     try:
         subprocess.run(["gh", "--version"], capture_output=True, check=True)
     except (subprocess.FileNotFoundError, subprocess.CalledProcessError):
-        msg("  [SKIP] gh CLI not available - cannot sync to GitHub Secrets.")
-        return
+        msg("  [ERROR] gh CLI not available - cannot sync to GitHub Secrets.")
+        return False
 
     try:
         result = subprocess.run(
@@ -256,11 +272,11 @@ def sync_github_secrets(secrets: dict, dry_run: bool = False, repo: str = GITHUB
             capture_output=True, text=True, check=False
         )
         if result.returncode != 0:
-            msg("  [SKIP] gh CLI not authenticated. Run: gh auth login")
-            return
-    except Exception:
-        msg("  [SKIP] gh CLI check failed.")
-        return
+            msg("  [ERROR] gh CLI not authenticated. Run: gh auth login")
+            return False
+    except Exception as e:
+        msg(f"  [ERROR] gh CLI check failed: {e}")
+        return False
 
     msg(f"  GitHub repository: {repo}")
 
@@ -281,7 +297,8 @@ def sync_github_secrets(secrets: dict, dry_run: bool = False, repo: str = GITHUB
                 value = secrets.get(alt_key, "")
 
         if not value:
-            msg(f"    [SKIP] {gh_secret_name}: no value available for {env_key}")
+            errors.append(f"no value available for {gh_secret_name}")
+            msg(f"    [ERR] {gh_secret_name}: no value available for {env_key}")
             continue
 
         if dry_run:
@@ -296,18 +313,24 @@ def sync_github_secrets(secrets: dict, dry_run: bool = False, repo: str = GITHUB
             if result.returncode == 0:
                 msg(f"    [OK] {gh_secret_name}")
             else:
+                errors.append(f"set {gh_secret_name}: {result.stderr.strip()}")
                 msg(f"    [ERR] {gh_secret_name}: {result.stderr.strip()}")
         except Exception as e:
+            errors.append(f"set {gh_secret_name}: {e}")
             msg(f"    [ERR] {gh_secret_name}: {e}")
 
+    if errors:
+        msg(f"  [ERROR] GitHub Secrets sync failed with {len(errors)} error(s).")
+        return False
+
     msg("  [OK] GitHub Secrets synced.")
+    return True
 
 
 # -- Validation -------------------------------------------------------------
-def validate_secrets(secrets: dict) -> bool:
+def validate_secrets(secrets: dict, require_hf_token: bool = True) -> bool:
     """Validate that all required secrets are available."""
     required = [
-        ("HF_TOKEN", "HF Token for Hugging Face API"),
         ("SPRING_DATASOURCE_URL", "Database JDBC URL"),
         ("SPRING_DATASOURCE_USERNAME", "Database username"),
         ("SPRING_DATASOURCE_PASSWORD", "Database password"),
@@ -316,6 +339,8 @@ def validate_secrets(secrets: dict) -> bool:
         ("MERHOUSE_PUBLIC_FRONTEND_URL", "Public frontend URL"),
         ("MERHOUSE_CORS_ALLOWED_ORIGINS", "CORS allowed origins"),
     ]
+    if require_hf_token:
+        required.insert(0, ("HF_TOKEN", "HF Token for Hugging Face API"))
 
     all_ok = True
     for key, description in required:
@@ -416,21 +441,28 @@ def main():
     # Sync modes
     sync_hf = args.hf_only or (not args.github_only)
     sync_gh = args.github_only or (not args.hf_only)
+    require_hf_token = args.validate or sync_hf
 
     # Always validate first
     if not args.quiet:
         msg("  Validating secrets...\n")
-    ok = validate_secrets(secrets)
-    if not ok and not args.dry_run:
-        msg("  [WARN] Continuing despite missing secrets. Set --dry-run to preview without syncing.\n")
+    ok = validate_secrets(secrets, require_hf_token=require_hf_token)
+    if not ok:
+        if args.dry_run:
+            msg("  [WARN] Dry run completed with missing secrets.\n")
+        else:
+            msg("  [ERROR] Required secrets are missing. Refusing to sync.\n")
+            sys.exit(1)
 
     if sync_hf:
         msg("  -- Syncing to Hugging Face Space --")
-        sync_hf_space(secrets, dry_run=args.dry_run)
+        if not sync_hf_space(secrets, dry_run=args.dry_run):
+            sys.exit(1)
 
     if sync_gh:
         msg("\n  -- Syncing to GitHub Secrets --")
-        sync_github_secrets(secrets, dry_run=args.dry_run)
+        if not sync_github_secrets(secrets, dry_run=args.dry_run):
+            sys.exit(1)
 
     msg("\n  === Done ===")
 

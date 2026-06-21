@@ -15,15 +15,25 @@ if (-not (Test-Path -LiteralPath $mvnw)) {
 
 Push-Location $backendRoot
 try {
-    if ($SkipTests) {
-        Write-Host "Compiling backend without tests..."
-        .\mvnw.cmd -DskipTests package
-    } else {
-        Write-Host "Running backend tests..."
-        .\mvnw.cmd test
-    }
-    if ($LASTEXITCODE -ne 0) {
-        throw "Backend check failed."
+    $previousFirebaseEmulatorHost = [Environment]::GetEnvironmentVariable("FIREBASE_EMULATOR_HOST", "Process")
+    [Environment]::SetEnvironmentVariable("FIREBASE_EMULATOR_HOST", "true", "Process")
+    try {
+        if ($SkipTests) {
+            Write-Host "Compiling backend without tests..."
+            .\mvnw.cmd -DskipTests package
+        } else {
+            Write-Host "Running backend tests..."
+            .\mvnw.cmd test
+        }
+        if ($LASTEXITCODE -ne 0) {
+            throw "Backend check failed."
+        }
+    } finally {
+        if ($null -eq $previousFirebaseEmulatorHost) {
+            [Environment]::SetEnvironmentVariable("FIREBASE_EMULATOR_HOST", $null, "Process")
+        } else {
+            [Environment]::SetEnvironmentVariable("FIREBASE_EMULATOR_HOST", $previousFirebaseEmulatorHost, "Process")
+        }
     }
 } finally {
     Pop-Location

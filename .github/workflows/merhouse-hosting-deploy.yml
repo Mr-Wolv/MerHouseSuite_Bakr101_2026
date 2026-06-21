@@ -21,14 +21,13 @@ jobs:
     name: Deploy Frontend to Firebase Hosting
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Only deploy when Quality Gate passes on main, or on manual dispatch
+    environment:
+      name: production-frontend
+      url: https://merhouse-354e7.web.app
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push')
-    environment:
-      name: production-frontend
-      url: https://merhouse-354e7.web.app
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -46,6 +45,30 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Verify Firebase build secrets
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_API_BASE_URL: ${{ secrets.MERHOUSE_PUBLIC_BACKEND_URL }}
+        run: |
+          for key in \
+            VITE_FIREBASE_API_KEY \
+            VITE_FIREBASE_AUTH_DOMAIN \
+            VITE_FIREBASE_PROJECT_ID \
+            VITE_FIREBASE_STORAGE_BUCKET \
+            VITE_FIREBASE_MESSAGING_SENDER_ID \
+            VITE_FIREBASE_APP_ID \
+            VITE_API_BASE_URL; do
+            if [ -z "${!key}" ]; then
+              echo "Missing required Firebase build secret: $key"
+              exit 1
+            fi
+          done
+
       - name: Build frontend with production Firebase config
         working-directory: frontend
         env:
@@ -55,6 +78,7 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_API_BASE_URL: ${{ secrets.MERHOUSE_PUBLIC_BACKEND_URL }}
           VITE_FIREBASE_EMULATOR_HOST: ""
         run: npm run build
 

@@ -32,6 +32,7 @@ jobs:
     name: Sync Backend to Hugging Face Space
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    environment: production-backend
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
@@ -50,57 +51,134 @@ jobs:
       - name: Install dependencies
         run: pip install huggingface_hub requests
 
-      - name: Sync env vars to Hugging Face Space (sync-secrets.py)
+      - name: Validate HF backend secrets
         if: inputs.code_only != 'true'
         env:
           HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID || 'M7mdHBkr/merhouse-backend' }}
           HF_SPACE_DB_URL: ${{ secrets.HF_SPACE_DB_URL }}
           HF_SPACE_DB_USERNAME: ${{ secrets.HF_SPACE_DB_USERNAME }}
           HF_SPACE_DB_PASSWORD: ${{ secrets.HF_SPACE_DB_PASSWORD }}
           HF_SPACE_FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          MERHOUSE_PUBLIC_FRONTEND_URL: ${{ secrets.MERHOUSE_PUBLIC_FRONTEND_URL }}
+          MERHOUSE_CORS_ALLOWED_ORIGINS: ${{ secrets.MERHOUSE_CORS_ALLOWED_ORIGINS }}
+          MERHOUSE_DEPLOYMENT_PUBLIC: "true"
+          MERHOUSE_AUTH_SEED_ADMIN_ENABLED: "false"
+          MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN: "false"
+          MERHOUSE_SWAGGER_ENABLED: "false"
         run: |
-          if [ -z "$HF_TOKEN" ]; then
-            echo "HF_TOKEN not configured. Skipping env sync."
-            exit 0
-          fi
+          cd deploy/managed/huggingface-backend
+          python sync-secrets.py --validate --quiet
+
+      - name: Sync env vars to Hugging Face Space (sync-secrets.py)
+        if: inputs.code_only != 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID || 'M7mdHBkr/merhouse-backend' }}
+          HF_SPACE_DB_URL: ${{ secrets.HF_SPACE_DB_URL }}
+          HF_SPACE_DB_USERNAME: ${{ secrets.HF_SPACE_DB_USERNAME }}
+          HF_SPACE_DB_PASSWORD: ${{ secrets.HF_SPACE_DB_PASSWORD }}
+          HF_SPACE_FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          MERHOUSE_PUBLIC_FRONTEND_URL: ${{ secrets.MERHOUSE_PUBLIC_FRONTEND_URL }}
+          MERHOUSE_CORS_ALLOWED_ORIGINS: ${{ secrets.MERHOUSE_CORS_ALLOWED_ORIGINS }}
+          MERHOUSE_DEPLOYMENT_PUBLIC: "true"
+          MERHOUSE_AUTH_SEED_ADMIN_ENABLED: "false"
+          MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN: "false"
+          MERHOUSE_SWAGGER_ENABLED: "false"
+        run: |
           cd deploy/managed/huggingface-backend
           python sync-secrets.py --hf-only --quiet
           echo "Env vars synced."
+
+      - name: Verify HF Space config keys
+        if: inputs.code_only != 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID || 'M7mdHBkr/merhouse-backend' }}
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          space = os.environ["HF_SPACE_REPO_ID"]
+          expected_vars = {
+              "SPRING_DATASOURCE_URL",
+              "SPRING_DATASOURCE_USERNAME",
+              "MERHOUSE_DEPLOYMENT_PUBLIC",
+              "MERHOUSE_PUBLIC_FRONTEND_URL",
+              "MERHOUSE_CORS_ALLOWED_ORIGINS",
+              "MERHOUSE_AUTH_SEED_ADMIN_ENABLED",
+              "MERHOUSE_AUTH_RECOVERY_EXPOSE_RESET_TOKEN",
+              "MERHOUSE_SWAGGER_ENABLED",
+              "FIREBASE_PROJECT_ID",
+          }
+          expected_secrets = {
+              "SPRING_DATASOURCE_PASSWORD",
+              "FIREBASE_SERVICE_ACCOUNT_JSON",
+          }
+          vars = set(api.get_space_variables(repo_id=space).keys())
+          secrets = set(api.get_space_secrets(repo_id=space).keys())
+          missing_vars = sorted(expected_vars - vars)
+          missing_secrets = sorted(expected_secrets - secrets)
+          if missing_vars or missing_secrets:
+              raise SystemExit(f"missing HF Space config: vars={missing_vars} secrets={missing_secrets}")
+          print("hf_space_config_keys=ok")
+          PY
 
       - name: Sync code to Hugging Face Space (sync-hf-space.py)
         if: inputs.env_only != 'true'
         env:
           HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID || 'M7mdHBkr/merhouse-backend' }}
         run: |
-          if [ -z "$HF_TOKEN" ]; then
-            echo "HF_TOKEN not configured. Skipping code sync."
-            exit 0
-          fi
           cd deploy/managed/huggingface-backend
-          # Upload-only: changed files + stale cleanup via delete_patterns (no destructive wipe)
           python sync-hf-space.py --upload-only
           echo "Code synced."
+
+      - name: Verify HF Space source files
+        if: inputs.env_only != 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID || 'M7mdHBkr/merhouse-backend' }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          from huggingface_hub import HfApi
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          space = os.environ["HF_SPACE_REPO_ID"]
+          remote = set(api.list_repo_files(repo_id=space, repo_type="space"))
+          expected = {"Dockerfile", "README.md"}
+          for path in Path("backend").rglob("*"):
+              if not path.is_file():
+                  continue
+              if set(path.parts) & {"target", "build", ".gradle"}:
+                  continue
+              if path.name.endswith((".log", ".tmp")):
+                  continue
+              expected.add("backend/" + path.relative_to("backend").as_posix())
+          missing = sorted(expected - remote)
+          if missing:
+              raise SystemExit("missing HF Space source files: " + ", ".join(missing[:20]))
+          print(f"hf_space_source_files=ok count={len(expected)}")
+          PY
 
       - name: Restart Space to trigger rebuild
         env:
           HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID || 'M7mdHBkr/merhouse-backend' }}
         run: |
-          if [ -z "$HF_TOKEN" ]; then
-            echo "HF_TOKEN not configured. Skipping restart."
-            exit 0
-          fi
           cd deploy/managed/huggingface-backend
-          python -c "import os; from huggingface_hub import HfApi; api = HfApi(token=os.environ['HF_TOKEN']); api.restart_space(repo_id='M7mdHBkr/merhouse-backend'); print('Space restarted.')"
+          python -c "import os; from huggingface_hub import HfApi; api = HfApi(token=os.environ['HF_TOKEN']); api.restart_space(repo_id=os.environ['HF_SPACE_REPO_ID']); print('Space restarted.')"
           echo "Restart initiated."
 
       - name: Wait for Space to become healthy
         env:
           HF_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID || 'M7mdHBkr/merhouse-backend' }}
         run: |
-          if [ -z "$HF_TOKEN" ]; then
-            echo "HF_TOKEN not configured. Skipping health wait."
-            exit 0
-          fi
           cd deploy/managed/huggingface-backend
           python sync-hf-space.py --health --timeout 25
           echo "Health check complete."
@@ -108,7 +186,7 @@ jobs:
       - name: Create deployment status
         uses: actions/github-script@v7
         env:
-          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID }}
+          HF_SPACE_REPO_ID: ${{ secrets.HF_SPACE_REPO_ID || 'M7mdHBkr/merhouse-backend' }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         with:
           script: |
