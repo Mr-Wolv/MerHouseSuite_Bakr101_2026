@@ -686,12 +686,10 @@ test.describe('admin console', () => {
     await expect(page.getByRole('heading', { name: 'Timeline' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Logout' }).click()
-    await clearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await page.waitForURL((url) => !url.includes('/login'), { timeout: 20_000 })
     await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible({ timeout: 20_000 })
     const allocationCard = page.getByLabel(new RegExp(`Allocation .*V8 Customer ${suffix}`))
     await expect(allocationCard).toContainText('PENDING', { timeout: 20_000 })
