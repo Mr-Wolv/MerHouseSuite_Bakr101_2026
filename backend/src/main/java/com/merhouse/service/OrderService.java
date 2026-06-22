@@ -134,22 +134,21 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<OrderResponse> findAll(UUID merchantId) {
+        List<CustomerOrder> orders;
         if (!currentUserService.isAdmin()) {
             UUID currentTenantId = currentUserService.required().tenantId();
             if (merchantId != null && !merchantId.equals(currentTenantId)) {
                 currentUserService.requireAdminOrTenant(merchantId);
             }
-            return orderRepository.findByMerchantId(currentTenantId).stream()
-                .map(order -> get(order.getId()))
-                .toList();
+            orders = orderRepository.findAllWithDetailsByMerchantId(currentTenantId);
+        } else if (merchantId != null) {
+            orders = orderRepository.findAllWithDetailsByMerchantIdOrderByCreatedAtDesc(merchantId);
+        } else {
+            orders = orderRepository.findAll();
         }
 
-        List<CustomerOrder> orders = merchantId == null
-            ? orderRepository.findAll()
-            : orderRepository.findByMerchantId(merchantId);
-
         return orders.stream()
-            .map(order -> get(order.getId()))
+            .map(OrderResponse::from)
             .toList();
     }
 

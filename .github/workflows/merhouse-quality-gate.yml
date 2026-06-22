@@ -180,14 +180,12 @@ jobs:
 
       - name: Run V17 deployment preflight
         shell: pwsh
-        run: |
-          # huggingface-vercel-check.ps1 was removed — Vercel deprecated in favor of Firebase Hosting
-          ./scripts/quality/v17-production-readiness.ps1
+        run: ./scripts/quality/v17-production-readiness.ps1
 
   integration-proof:
     name: Integration Proof
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 55
     needs:
       - backend
       - frontend
@@ -310,6 +308,25 @@ jobs:
       - name: Run frontend full tour
         shell: pwsh
         run: ./scripts/proof/web/frontend-full-tour.ps1 -BaseUrl "http://localhost:3001" -ApiUrl "http://localhost:3001" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD -MerchantPassword $env:CI_REVIEW_PASSWORD -WarehousePassword $env:CI_REVIEW_PASSWORD -SupportAdminPassword $env:CI_REVIEW_PASSWORD -AuditorPassword $env:CI_REVIEW_PASSWORD -OutputPath "reports/ci-frontend-full-tour.json"
+
+      - name: Run Playwright E2E tests
+        shell: pwsh
+        working-directory: frontend
+        env:
+          FRONTEND_TOUR_BASE_URL: "http://localhost:3001"
+          E2E_API_URL: "http://localhost:8080"
+          E2E_FIREBASE_EMULATOR: "http://localhost:9099"
+          FRONTEND_TOUR_ADMIN_EMAIL: ${{ env.CI_ADMIN_EMAIL }}
+          FRONTEND_TOUR_ADMIN_PASSWORD: ${{ env.CI_ADMIN_PASSWORD }}
+          FRONTEND_TOUR_SUPPORT_ADMIN_EMAIL: "review.support@merhouse.local"
+          FRONTEND_TOUR_SUPPORT_ADMIN_PASSWORD: ${{ env.CI_REVIEW_PASSWORD }}
+          FRONTEND_TOUR_AUDITOR_EMAIL: "review.auditor@merhouse.local"
+          FRONTEND_TOUR_AUDITOR_PASSWORD: ${{ env.CI_REVIEW_PASSWORD }}
+          FRONTEND_TOUR_MERCHANT_EMAIL: "review.merchant@merhouse.local"
+          FRONTEND_TOUR_MERCHANT_PASSWORD: ${{ env.CI_REVIEW_PASSWORD }}
+          FRONTEND_TOUR_WAREHOUSE_EMAIL: "review.operator@merhouse.local"
+          FRONTEND_TOUR_WAREHOUSE_PASSWORD: ${{ env.CI_REVIEW_PASSWORD }}
+        run: npx playwright test --reporter=list tests/e2e/full-tour.spec.ts tests/e2e/admin-console.spec.ts tests/e2e/qc-integration.spec.ts
 
       - name: Print Docker Compose logs
         if: failure()

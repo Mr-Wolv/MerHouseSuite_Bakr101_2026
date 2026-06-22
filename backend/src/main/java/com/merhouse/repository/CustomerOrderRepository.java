@@ -24,4 +24,44 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, UU
         "backorders.inventoryItem"
     })
     Optional<CustomerOrder> findWithDetailsById(UUID id);
+
+    @EntityGraph(attributePaths = {
+        "merchant",
+        "items",
+        "items.inventoryItem",
+        "allocations",
+        "allocations.items",
+        "allocations.items.inventoryItem",
+        "allocations.warehouse",
+        "backorders",
+        "backorders.inventoryItem"
+    })
+    List<CustomerOrder> findAllWithDetailsByMerchantId(UUID merchantId);
+
+    @EntityGraph(attributePaths = {
+        "merchant",
+        "items",
+        "items.inventoryItem",
+        "allocations",
+        "allocations.items",
+        "allocations.items.inventoryItem",
+        "allocations.warehouse",
+        "backorders",
+        "backorders.inventoryItem"
+    })
+    List<CustomerOrder> findAllWithDetailsByMerchantIdOrderByCreatedAtDesc(UUID merchantId);
+
+    @Override
+    @EntityGraph(attributePaths = {
+        "merchant",
+        "items",
+        "items.inventoryItem",
+        "allocations",
+        "allocations.items",
+        "allocations.items.inventoryItem",
+        "allocations.warehouse",
+        "backorders",
+        "backorders.inventoryItem"
+    })
+    List<CustomerOrder> findAll();
 }

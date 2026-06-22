@@ -127,10 +127,6 @@ export function HowToUsePage() {
                 <dd>Agreements, proposals, SLA review, service statements, disputes, and claims.</dd>
               </div>
               <div>
-                <dt>Assistant</dt>
-                <dd>AI-powered operational summaries and review-only suggestions.</dd>
-              </div>
-              <div>
                 <dt>Alerts</dt>
                 <dd>Notification inbox for account events, operational handoffs, and delivery updates.</dd>
               </div>
