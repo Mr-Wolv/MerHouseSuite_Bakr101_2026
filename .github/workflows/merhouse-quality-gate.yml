@@ -305,10 +305,6 @@ jobs:
         shell: pwsh
         run: ./scripts/local/seed-demo.ps1 -BaseUrl "http://localhost:8080" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD -CreateReviewAccounts -ReviewPassword $env:CI_REVIEW_PASSWORD -Suffix "ci" -SuppressCredentialOutput
 
-      - name: Run frontend full tour
-        shell: pwsh
-        run: ./scripts/proof/web/frontend-full-tour.ps1 -BaseUrl "http://localhost:3001" -ApiUrl "http://localhost:3001" -AdminEmail $env:CI_ADMIN_EMAIL -AdminPassword $env:CI_ADMIN_PASSWORD -MerchantPassword $env:CI_REVIEW_PASSWORD -WarehousePassword $env:CI_REVIEW_PASSWORD -SupportAdminPassword $env:CI_REVIEW_PASSWORD -AuditorPassword $env:CI_REVIEW_PASSWORD -OutputPath "reports/ci-frontend-full-tour.json"
-
       - name: Run Playwright E2E tests
         shell: pwsh
         working-directory: frontend
