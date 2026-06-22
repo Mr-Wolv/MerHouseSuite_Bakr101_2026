@@ -265,7 +265,7 @@ describe('WarehousePage', () => {
 
     expect(await screen.findByText('Warehouse Console')).toBeInTheDocument()
     expect(screen.getByText("Start with today's work")).toBeInTheDocument()
-    expect(screen.getByLabelText('Warehouse setup path')).toHaveTextContent('2/4 ready')
+    expect(await screen.findByLabelText('Warehouse setup path')).toHaveTextContent('3/4 ready')
     expect(screen.getByText('Daily work')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Pick, pack, and ship first' })).toBeInTheDocument()
     expect(screen.getByText('Start with active allocations, then move to receiving and records after the queue is under control.')).toBeInTheDocument()
