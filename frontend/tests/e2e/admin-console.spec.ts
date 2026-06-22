@@ -691,7 +691,6 @@ test.describe('admin console', () => {
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await page.waitForLoadState('networkidle')
     const allocationCard = page.getByLabel(new RegExp(`Allocation .*V8 Customer ${suffix}`))
     await expect(allocationCard).toContainText('PENDING', { timeout: 20_000 })
     await allocationCard.locator('a').first().click()
