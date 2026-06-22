@@ -621,6 +621,7 @@ test.describe('admin console', () => {
     await expect(page.getByRole('row', { name: /Daily V8 receiving/ })).toContainText('REQUESTED')
 
     await page.getByRole('button', { name: 'Logout' }).click()
+    await clearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
@@ -631,6 +632,7 @@ test.describe('admin console', () => {
     await expect(relationshipRow).toContainText('ACTIVE')
 
     await page.getByRole('button', { name: 'Logout' }).click()
+    await clearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(merchantEmail)
     await page.getByLabel('Password').fill(merchantPassword)
@@ -646,6 +648,7 @@ test.describe('admin console', () => {
     await expect(page.getByRole('row', { name: new RegExp(`ASN-${suffix}`) })).toContainText('SUBMITTED')
 
     await page.getByRole('button', { name: 'Logout' }).click()
+    await clearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
