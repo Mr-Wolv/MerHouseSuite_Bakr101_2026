@@ -5,6 +5,8 @@ import { mkdirSync } from 'node:fs'
 const API_URL = process.env.E2E_API_URL ?? 'http://127.0.0.1:8081'
 const FIREBASE_EMULATOR = (process.env.E2E_FIREBASE_EMULATOR ?? 'http://127.0.0.1:9099').replace(/\/+$/, '')
 const FIREBASE_API_KEY = process.env.E2E_FIREBASE_API_KEY ?? 'emulator-api-key'
+const ADMIN_EMAIL = process.env.FRONTEND_TOUR_ADMIN_EMAIL ?? 'admin@merhouse.local'
+const ADMIN_PASSWORD = process.env.FRONTEND_TOUR_ADMIN_PASSWORD ?? 'local-owner-password'
 
 /** Authenticate via Firebase Auth REST API and return an ID token for backend APIs. */
 async function firebaseLogin(request: APIRequestContext, email: string, password: string): Promise<string> {
@@ -137,8 +139,8 @@ test.describe('admin console', () => {
     await clearAuthState(page)
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/')
-    await page.getByLabel('Email').fill('admin@merhouse.local')
-    await page.getByLabel('Password').fill('local-owner-password')
+    await page.getByLabel('Email').fill(ADMIN_EMAIL)
+    await page.getByLabel('Password').fill(ADMIN_PASSWORD)
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible({ timeout: 20_000 })
 
@@ -164,8 +166,8 @@ test.describe('admin console', () => {
 
     await clearAuthState(page)
     await page.goto('/')
-    await page.getByLabel('Email').fill('admin@merhouse.local')
-    await page.getByLabel('Password').fill('local-owner-password')
+    await page.getByLabel('Email').fill(ADMIN_EMAIL)
+    await page.getByLabel('Password').fill(ADMIN_PASSWORD)
     await page.getByRole('button', { name: 'Sign in' }).click()
 
     await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible({ timeout: 20_000 })
@@ -208,7 +210,7 @@ test.describe('admin console', () => {
       dialogSeen = true
       await dialog.dismiss()
     })
-    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
+    const adminToken = await firebaseLogin(request, ADMIN_EMAIL, ADMIN_PASSWORD)
     const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E Recovery Merchant ${suffix}`,
       type: 'MERCHANT',
@@ -243,8 +245,8 @@ test.describe('admin console', () => {
 
     await clearAuthState(page)
     await page.goto('/login')
-    await page.getByLabel('Email').fill('admin@merhouse.local')
-    await page.getByLabel('Password').fill('local-owner-password')
+    await page.getByLabel('Email').fill(ADMIN_EMAIL)
+    await page.getByLabel('Password').fill(ADMIN_PASSWORD)
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible({ timeout: 20_000 })
     await page.goto('/admin/access-requests')
@@ -262,8 +264,8 @@ test.describe('admin console', () => {
   test('can inspect and refresh outbox health', async ({ page }) => {
     await clearAuthState(page)
     await page.goto('/')
-    await page.getByLabel('Email').fill('admin@merhouse.local')
-    await page.getByLabel('Password').fill('local-owner-password')
+    await page.getByLabel('Email').fill(ADMIN_EMAIL)
+    await page.getByLabel('Password').fill(ADMIN_PASSWORD)
     await page.getByRole('button', { name: 'Sign in' }).click()
 
     await page.getByRole('link', { name: 'Outbox' }).click()
@@ -281,7 +283,7 @@ test.describe('admin console', () => {
     const merchantEmail = `e2e-merchant-${suffix}@merhouse.local`
     const merchantPassword = 'merchant-password'
     const sku = `E2E-SKU-${suffix}`
-    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
+    const adminToken = await firebaseLogin(request, ADMIN_EMAIL, ADMIN_PASSWORD)
     const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: tenantName,
       type: 'MERCHANT',
@@ -326,7 +328,7 @@ test.describe('admin console', () => {
   test('warehouse operator can fulfill and deliver an allocation', async ({ page, request }) => {
     test.setTimeout(120_000)
     const suffix = Date.now().toString(36)
-    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
+    const adminToken = await firebaseLogin(request, ADMIN_EMAIL, ADMIN_PASSWORD)
     const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E Operator Merchant ${suffix}`,
       type: 'MERCHANT',
@@ -433,7 +435,7 @@ test.describe('admin console', () => {
     const suffix = Date.now().toString(36)
     const oldPassword = 'account-old-password'
     const newPassword = 'account-new-password'
-    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
+    const adminToken = await firebaseLogin(request, ADMIN_EMAIL, ADMIN_PASSWORD)
     const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E Account Merchant ${suffix}`,
       type: 'MERCHANT',
@@ -476,7 +478,7 @@ test.describe('admin console', () => {
 
   test('warehouse operator can fail and return in-transit shipments', async ({ page, request }) => {
     const suffix = Date.now().toString(36)
-    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
+    const adminToken = await firebaseLogin(request, ADMIN_EMAIL, ADMIN_PASSWORD)
     const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E Shipment Merchant ${suffix}`,
       type: 'MERCHANT',
@@ -563,7 +565,7 @@ test.describe('admin console', () => {
   test('merchant and warehouse complete the V8 operating loop through the UI', async ({ page, request }) => {
     test.setTimeout(120_000)
     const suffix = Date.now().toString(36)
-    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
+    const adminToken = await firebaseLogin(request, ADMIN_EMAIL, ADMIN_PASSWORD)
     const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E V8 Merchant ${suffix}`,
       type: 'MERCHANT',
@@ -694,7 +696,7 @@ test.describe('admin console', () => {
   test('shows V11 service accountability records and import validation', async ({ page, request }) => {
     mkdirSync('../reports/v11', { recursive: true })
     const suffix = Date.now().toString(36)
-    const adminToken = await firebaseLogin(request, 'admin@merhouse.local', 'local-owner-password')
+    const adminToken = await firebaseLogin(request, ADMIN_EMAIL, ADMIN_PASSWORD)
     const merchant = await api<{ id: string }>(request, 'post', '/api/v1/tenants', adminToken, {
       name: `E2E V11 Merchant ${suffix}`,
       type: 'MERCHANT',
