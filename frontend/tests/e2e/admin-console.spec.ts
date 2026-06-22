@@ -691,10 +691,7 @@ test.describe('admin console', () => {
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    // Wait for the redirect away from /login (confirms auth completed and token persisted)
-    await page.waitForFunction(() => !window.location.pathname.includes('/login'), { timeout: 20_000 })
-    // Navigate to root for a clean SPA load with fresh auth state
-    await page.goto('/', { timeout: 15_000 })
+    await page.waitForURL((url) => !url.includes('/login'), { timeout: 20_000 })
     await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible({ timeout: 20_000 })
     const allocationCard = page.getByLabel(new RegExp(`Allocation .*V8 Customer ${suffix}`))
     await expect(allocationCard).toContainText('PENDING', { timeout: 20_000 })
