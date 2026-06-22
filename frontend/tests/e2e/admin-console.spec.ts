@@ -691,8 +691,6 @@ test.describe('admin console', () => {
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    // Navigate explicitly to ensure the page has fully loaded before looking for the allocation card.
-    await page.goto('/')
     await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible({ timeout: 20_000 })
     const allocationCard = page.getByLabel(new RegExp(`Allocation .*V8 Customer ${suffix}`))
     await expect(allocationCard).toContainText('PENDING', { timeout: 20_000 })
