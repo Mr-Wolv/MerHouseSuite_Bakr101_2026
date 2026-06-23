@@ -469,6 +469,7 @@ test.describe('admin console', () => {
     // (which goes through Firebase) succeeds with the new password.
     await updateFirebasePassword(request, userEmail, oldPassword, newPassword)
     await page.getByRole('button', { name: 'Logout' }).click()
+    await clearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(userEmail)
     await page.getByLabel('Password').fill(newPassword)
@@ -843,6 +844,7 @@ test.describe('admin console', () => {
     await expectNotificationTitle(page, 'Service review requested')
     await expect(page.locator('.data-chip', { hasText: 'ServiceClaim' }).first()).toBeVisible()
     await page.getByRole('button', { name: 'Logout' }).click()
+    await clearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(warehouseEmail)
     await page.getByLabel('Password').fill('operator-password')
