@@ -483,7 +483,7 @@ test.describe('admin console', () => {
     // (which goes through Firebase) succeeds with the new password.
     await updateFirebasePassword(request, userEmail, oldPassword, newPassword)
     await page.getByRole('button', { name: 'Logout' }).click()
-    await page.waitForTimeout(2000)
+    await clearAuthState(page)
     await page.goto('/login')
     await page.waitForURL('**/login', { timeout: 15_000 })
     await page.getByLabel('Email').fill(userEmail)
@@ -707,7 +707,7 @@ test.describe('admin console', () => {
     await expect(page.getByRole('heading', { name: 'Timeline' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Logout' }).click()
-    await page.waitForTimeout(2000)
+    await clearAuthState(page)
     await page.goto('/login')
     await page.waitForURL('**/login', { timeout: 15_000 })
     await page.getByLabel('Email').fill(operatorEmail)
@@ -867,6 +867,7 @@ test.describe('admin console', () => {
     await expectNotificationTitle(page, 'Service review requested')
     await expect(page.locator('.data-chip', { hasText: 'ServiceClaim' }).first()).toBeVisible()
     await page.getByRole('button', { name: 'Logout' }).click()
+    await clearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(warehouseEmail)
     await page.getByLabel('Password').fill('operator-password')
