@@ -469,6 +469,7 @@ test.describe('admin console', () => {
     // (which goes through Firebase) succeeds with the new password.
     await updateFirebasePassword(request, userEmail, oldPassword, newPassword)
     await page.getByRole('button', { name: 'Logout' }).click()
+    await page.waitForTimeout(1500)
     await page.goto('/login')
     await page.getByLabel('Email').fill(userEmail)
     await page.getByLabel('Password').fill(newPassword)
@@ -686,6 +687,7 @@ test.describe('admin console', () => {
     await expect(page.getByRole('heading', { name: 'Timeline' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Logout' }).click()
+    await page.waitForTimeout(1500)
     await page.goto('/login')
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
