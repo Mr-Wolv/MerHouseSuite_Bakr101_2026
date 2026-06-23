@@ -1177,7 +1177,7 @@ test.describe('10. Exception handling', () => {
 
     const h1 = page.locator('h1').first()
     const alert = page.locator('[role="alert"]').first()
-    await expect(h1.or(alert).or(page.locator('main').first()).or(page.locator('nav').first())).toBeVisible({ timeout: 15_000 })
+    await expect(h1.or(alert).or(page.locator('main').first()).or(page.locator('nav').first()).first()).toBeVisible({ timeout: 15_000 })
     await context.close()
   })
 
