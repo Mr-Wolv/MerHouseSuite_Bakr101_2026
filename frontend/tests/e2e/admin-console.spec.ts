@@ -86,6 +86,20 @@ async function clickUntilVisibleState(button: () => Locator, visibleState: () =>
   throw lastError
 }
 
+async function waitForAppSettled(page: Page, label: string, timeout = 20_000) {
+  await expect(page.locator('h1').first(), `${label} h1 should render`).toBeVisible({ timeout })
+  await page.waitForFunction(
+    () => {
+      const text = document.body?.innerText ?? ''
+      const loadingRe = new RegExp('(?:^|\\n)\\s*Loading(?:\\s+[A-Za-z ]+)?\\s*(?:\\n|$)')
+      const restoringRe = new RegExp('(?:^|\\n)\\s*Restoring session\\s*(?:\\n|$)')
+      return !loadingRe.test(text) && !restoringRe.test(text)
+    },
+    undefined,
+    { timeout },
+  )
+}
+
 /** Clear persisted Firebase Auth state (IndexedDB + localStorage) before a UI login. */
 async function clearAuthState(page: Page) {
   await page.evaluate(() => {
@@ -476,6 +490,7 @@ test.describe('admin console', () => {
     await page.getByLabel('Password').fill(newPassword)
     await clickFreshButton(() => page.getByRole('button', { name: 'Sign in' }))
     await page.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: 30_000 })
+    await waitForAppSettled(page, 'post-login-password-change', 20_000)
     await expect(page.getByRole('heading', { name: 'Merchant Overview' })).toBeVisible({ timeout: 20_000 })
   })
 
@@ -631,6 +646,7 @@ test.describe('admin console', () => {
     await page.getByLabel('Password').fill(operatorPassword)
     await clickFreshButton(() => page.getByRole('button', { name: 'Sign in' }))
     await page.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: 30_000 })
+    await waitForAppSettled(page, 'post-login-v8-operator', 20_000)
     await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible({ timeout: 20_000 })
     const relationshipRow = page.getByRole('row', { name: /Daily V8 receiving/ })
     await relationshipRow.getByRole('button', { name: 'Activate' }).click()
@@ -698,6 +714,7 @@ test.describe('admin console', () => {
     await page.getByLabel('Password').fill(operatorPassword)
     await clickFreshButton(() => page.getByRole('button', { name: 'Sign in' }))
     await page.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: 30_000 })
+    await waitForAppSettled(page, 'post-login-v8-operator-2', 20_000)
     await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible({ timeout: 20_000 })
     const allocationCard = page.getByLabel(new RegExp(`Allocation .*V8 Customer ${suffix}`))
     await expect(allocationCard).toContainText('PENDING', { timeout: 20_000 })
