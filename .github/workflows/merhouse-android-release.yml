@@ -31,10 +31,10 @@ concurrency:
 
 jobs:
   # ── Manual Android build: signed APK + GitHub Release ──
-  # Triggered only via workflow_dispatch (manual). Produces a signed APK
-  # and publishes a GitHub Release when signing secrets are configured.
+  # Triggered only via workflow_dispatch (manual). Requires deployed HTTPS
+  # target URLs and signing material from GitHub Actions secrets.
   build:
-    name: Android Build
+    name: Signed Android Release
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -58,9 +58,51 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Validate release inputs and secrets
+        shell: pwsh
+        env:
+          MERHOUSE_ANDROID_KEYSTORE_BASE64: ${{ secrets.MERHOUSE_ANDROID_KEYSTORE_BASE64 }}
+          MERHOUSE_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.MERHOUSE_ANDROID_KEYSTORE_PASSWORD }}
+          MERHOUSE_ANDROID_KEY_ALIAS: ${{ secrets.MERHOUSE_ANDROID_KEY_ALIAS }}
+          MERHOUSE_ANDROID_KEY_PASSWORD: ${{ secrets.MERHOUSE_ANDROID_KEY_PASSWORD }}
+          MERHOUSE_ANDROID_API_BASE_URL: ${{ secrets.MERHOUSE_ANDROID_API_BASE_URL }}
+          MERHOUSE_ANDROID_FRONTEND_URL: ${{ secrets.MERHOUSE_ANDROID_FRONTEND_URL }}
+          MERHOUSE_ANDROID_VERSION_CODE: ${{ inputs.version_code }}
+          MERHOUSE_ANDROID_VERSION_NAME: ${{ inputs.version_name }}
+        run: |
+          $missing = @()
+          foreach ($name in @(
+            "MERHOUSE_ANDROID_KEYSTORE_BASE64",
+            "MERHOUSE_ANDROID_KEYSTORE_PASSWORD",
+            "MERHOUSE_ANDROID_KEY_ALIAS",
+            "MERHOUSE_ANDROID_KEY_PASSWORD",
+            "MERHOUSE_ANDROID_API_BASE_URL",
+            "MERHOUSE_ANDROID_FRONTEND_URL",
+            "MERHOUSE_ANDROID_VERSION_CODE",
+            "MERHOUSE_ANDROID_VERSION_NAME"
+          )) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              $missing += $name
+            }
+          }
+          if ($missing.Count -gt 0) {
+            throw "Missing required signed Android release inputs/secrets: $($missing -join ', ')"
+          }
+          if ($env:MERHOUSE_ANDROID_VERSION_CODE -notmatch '^[1-9][0-9]*$') {
+            throw "version_code must be a positive integer."
+          }
+          foreach ($entry in @(
+            @{ Name = "MERHOUSE_ANDROID_API_BASE_URL"; Value = $env:MERHOUSE_ANDROID_API_BASE_URL },
+            @{ Name = "MERHOUSE_ANDROID_FRONTEND_URL"; Value = $env:MERHOUSE_ANDROID_FRONTEND_URL }
+          )) {
+            $uri = $null
+            if (-not [System.Uri]::TryCreate($entry.Value, [System.UriKind]::Absolute, [ref]$uri) -or $uri.Scheme -ne "https") {
+              throw "$($entry.Name) must be an absolute https URL."
+            }
+          }
+
       - name: Decode signing keystore
         id: keystore
-        if: env.MERHOUSE_ANDROID_KEYSTORE_BASE64 != ''
         shell: bash
         env:
           MERHOUSE_ANDROID_KEYSTORE_BASE64: ${{ secrets.MERHOUSE_ANDROID_KEYSTORE_BASE64 }}
@@ -81,22 +123,13 @@ jobs:
           MERHOUSE_ANDROID_VERSION_CODE: ${{ inputs.version_code }}
           MERHOUSE_ANDROID_VERSION_NAME: ${{ inputs.version_name }}
         run: |
-          $hasSigning = -not [string]::IsNullOrWhiteSpace($env:MERHOUSE_ANDROID_KEYSTORE_PATH)
-          $hasFrontendUrl = -not [string]::IsNullOrWhiteSpace($env:MERHOUSE_ANDROID_FRONTEND_URL)
-          if ($hasSigning -and $hasFrontendUrl) {
-            Write-Host "Building signed APK with deployed URLs."
-            ./scripts/proof/android/native-android-release-check.ps1 `
-              -ApiBaseUrl "$env:MERHOUSE_ANDROID_API_BASE_URL" `
-              -FrontendUrl "$env:MERHOUSE_ANDROID_FRONTEND_URL" `
-              -OutputPath "reports/v17-android-release-$env:MERHOUSE_ANDROID_VERSION_NAME.json"
-          } else {
-            Write-Host "Building unsigned debug APK (signing secrets not configured)."
-            $fallbackApiUrl = if ($env:MERHOUSE_ANDROID_API_BASE_URL) { $env:MERHOUSE_ANDROID_API_BASE_URL } else { "http://10.0.2.2:8080" }
-            ./scripts/proof/android/native-mobile-check.ps1 -Assemble -ApiBaseUrl $fallbackApiUrl
-          }
+          Write-Host "Building signed APK with deployed URLs."
+          ./scripts/proof/android/native-android-release-check.ps1 `
+            -ApiBaseUrl "$env:MERHOUSE_ANDROID_API_BASE_URL" `
+            -FrontendUrl "$env:MERHOUSE_ANDROID_FRONTEND_URL" `
+            -OutputPath "reports/v17-android-release-$env:MERHOUSE_ANDROID_VERSION_NAME.json"
 
       - name: Publish GitHub Release
-        if: steps.keystore.outputs.path != ''
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

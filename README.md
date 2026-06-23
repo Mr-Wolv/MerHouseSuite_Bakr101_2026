@@ -205,7 +205,7 @@ V17 deployment preflight before staging or production rollout:
 .\scripts\quality\v17-production-readiness.ps1
 ```
 
-The default preflight parses scripts, validates the managed Hugging Face deployment shape, checks Android release configuration, proves deployed-evidence attachment rules, exercises the cutover-readiness guard with fixtures, runs markdown/public-readiness checks, and rebuilds the frontend for performance budgets. It does not contact real providers, publish CI artifacts, or build a signed APK unless explicit target URLs and signing values are supplied.
+The default preflight parses scripts, checks deployed HTTPS evidence guards, proves deployed-evidence attachment rules, exercises the cutover-readiness guard with fixtures, runs markdown/public-readiness checks, and rebuilds the frontend for performance budgets. It does not contact real providers, publish CI artifacts, or check/build Android release proof unless explicit target URLs and signing values are supplied.
 
 When a staging target plus Android signing and version inputs are available, add deployed smoke and signed internal release proof:
 
@@ -286,7 +286,7 @@ Production activation is now the private V17 deployment lane and must finish rep
 The tracked activation checklist lives in [Production deployment activation](docs/operations/production-deployment-activation.md).
 Service-specific activation notes for email recovery, account invitations, email notifications, and real agentic work live in [V17 external service activation](docs/operations/v17-service-activation.md).
 
-V17 private deployment work uses the selected Neon + Hugging Face Spaces + Firebase Hosting + GitHub Release lane. It includes deployment scripts under `scripts/deploy/`, deployed proof wrappers, alert-routing and manual live-walkthrough proof helpers, load-smoke proof, Android release-shape proof, and signed Android release checks with private release manifests. Keep detailed deployment values, provider credentials, Android keystores, proof logs, and non-APK proof artifacts private until the deployment is proven and intentionally published.
+V17 private deployment work uses the selected Neon + Hugging Face Spaces + Firebase Hosting + GitHub Release lane. It includes deployment scripts under `scripts/deploy/`, deployed proof wrappers, alert-routing and manual live-walkthrough proof helpers, load-smoke proof, and signed Android release checks with private release manifests. Keep detailed deployment values, provider credentials, Android keystores, proof logs, and non-APK proof artifacts private until the deployment is proven and intentionally published.
 
 Deployment lanes are tracked in the activation doc: current V17 uses Neon PostgreSQL plus Hugging Face Docker Space backend plus Firebase Hosting frontend plus GitHub Release APK distribution. VPS/Compose hosting and machine-hosted tunnel deployment are not current progress lanes.
 

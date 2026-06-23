@@ -169,7 +169,7 @@ If the Android app is part of the release claim, assemble the native shell again
 .\scripts\proof\android\native-android-release-check.ps1 -ApiBaseUrl "https://<staging-api-origin>" -FrontendUrl "https://<staging-frontend-origin>" -OutputPath ".\reports\v17-android-release.json"
 ```
 
-The default V17 preflight runs the Android release-shape check without needing signing secrets. That check also rejects Google/Firebase provider hooks while native OS push remains out of V17 scope. The signed release check requires external keystore and version environment variables, then writes a sanitized Android release manifest with commit SHA, API URL, artifact kind/path, SHA-256, byte size, version code, version name, cleartext policy, and external-keystore signing boundary. The broad V17 readiness path builds an APK rather than an AAB so the installed Android walkthrough can match the signed release fingerprint. Keep the manifest with deployment evidence; keep keystores outside Git.
+Android release proof is not part of the default V17 preflight or quality gate. The signed release check requires external keystore and version environment variables, then writes a sanitized Android release manifest with commit SHA, API URL, artifact kind/path, SHA-256, byte size, version code, version name, cleartext policy, and external-keystore signing boundary. The release proof path builds an APK rather than an AAB so the installed Android walkthrough can match the signed release fingerprint. Keep the manifest with deployment evidence; keep keystores outside Git.
 
 ## Production Cutover Proof
 

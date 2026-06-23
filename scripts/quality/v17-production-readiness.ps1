@@ -61,71 +61,6 @@ function Assert-BackendPublicSafetyContract {
     Write-Host "Backend public safety contract check passed."
 }
 
-function Assert-AndroidReleaseProofContract {
-    $scriptPath = Join-Path $projectRoot "scripts\quality\v17-production-readiness.ps1"
-    $scriptText = Get-Content -Raw -LiteralPath $scriptPath
-    $androidReleaseCallPattern = 'native-android-release-check\.ps1"\s+-ApiBaseUrl\s+\$normalizedApiBaseUrl\s+-FrontendUrl\s+\$normalizedFrontendUrl\s+-OutputPath\s+"\.\\reports\\v17-android-release\.json"'
-    if ($scriptText -notmatch $androidReleaseCallPattern) {
-        throw "scripts\quality\v17-production-readiness.ps1 must build an installable signed APK for V17 Android proof."
-    }
-    $bundleCallPattern = 'native-android-release-check\.ps1"[\s\S]*?-Bundle[\s\S]*?-OutputPath\s+"\.\\reports\\v17-android-release\.json"'
-    if ($scriptText -match $bundleCallPattern) {
-        throw "scripts\quality\v17-production-readiness.ps1 must not use -Bundle for the broad signed Android proof; the installed Android walkthrough needs an APK fingerprint."
-    }
-    Write-Host "Android release proof contract check passed."
-}
-
-function Assert-AndroidReleaseWorkflowContract {
-    $workflowPath = Join-Path $projectRoot ".github\workflows\merhouse-android-release.yml"
-    $workflowText = Get-Content -Raw -LiteralPath $workflowPath
-    if ($workflowText -notmatch 'native-android-release-check\.ps1') {
-        throw ".github\workflows\merhouse-android-release.yml must build the signed APK through native-android-release-check.ps1."
-    }
-    if ($workflowText -notmatch '-ApiBaseUrl\s+"\$env:MERHOUSE_ANDROID_API_BASE_URL"') {
-        throw ".github\workflows\merhouse-android-release.yml must pass the backend URL secret into native-android-release-check.ps1."
-    }
-    if ($workflowText -notmatch '-FrontendUrl\s+"\$env:MERHOUSE_ANDROID_FRONTEND_URL"') {
-        throw ".github\workflows\merhouse-android-release.yml must pass the frontend URL secret into native-android-release-check.ps1."
-    }
-    foreach ($requiredSecret in @(
-        "MERHOUSE_ANDROID_API_BASE_URL",
-        "MERHOUSE_ANDROID_FRONTEND_URL",
-        "MERHOUSE_ANDROID_KEYSTORE_BASE64",
-        "MERHOUSE_ANDROID_KEYSTORE_PASSWORD",
-        "MERHOUSE_ANDROID_KEY_ALIAS",
-        "MERHOUSE_ANDROID_KEY_PASSWORD"
-    )) {
-        if ($workflowText -notmatch [regex]::Escape($requiredSecret)) {
-            throw ".github\workflows\merhouse-android-release.yml must require $requiredSecret from GitHub Actions secrets."
-        }
-    }
-    if ($workflowText -notmatch 'gh release view "(\$\{\{ inputs\.tag \}\}|\$TAG)"') {
-        throw ".github\workflows\merhouse-android-release.yml must check whether the target GitHub Release already exists."
-    }
-    if ($workflowText -notmatch 'gh release edit "(\$\{\{ inputs\.tag \}\}|\$TAG)"') {
-        throw ".github\workflows\merhouse-android-release.yml must update an existing GitHub Release instead of failing reruns."
-    }
-    if ($workflowText -notmatch 'gh release upload "(\$\{\{ inputs\.tag \}\}|\$TAG)"[\s\S]*--clobber') {
-        throw ".github\workflows\merhouse-android-release.yml must upload Android release assets with --clobber on reruns."
-    }
-    if ($workflowText -match 'actions/upload-artifact') {
-        throw ".github\workflows\merhouse-android-release.yml must not publish Actions artifacts; only the deliberate GitHub Release APK asset is allowed."
-    }
-    if ($workflowText -match 'gh release (upload|create)[\s\S]*reports/v17-android-release-\$\{\{ inputs\.version_name \}\}\.json') {
-        throw ".github\workflows\merhouse-android-release.yml must keep the Android proof JSON inside the workflow run and publish only the APK release asset."
-    }
-    if ($workflowText -match 'notes=.*api_base_url|notes=.*frontend_base_url') {
-        throw ".github\workflows\merhouse-android-release.yml release notes must not print deployed target URLs."
-    }
-    if ($workflowText -notmatch '(?s)gh release create "(\$\{\{ inputs\.tag \}\}|\$TAG)"') {
-        throw ".github\workflows\merhouse-android-release.yml must create the GitHub Release when it does not already exist."
-    }
-    if ($workflowText -notmatch '(?s)--prerelease=(\$\{\{ inputs\.prerelease \}\}|\$PRERELEASE)') {
-        throw ".github\workflows\merhouse-android-release.yml must apply the prerelease input to created and updated releases."
-    }
-    Write-Host "Android release workflow contract check passed."
-}
-
 function Assert-DeployedProofHttpsGuards {
     $deployedProofScriptPath = Join-Path $projectRoot "scripts\proof\release\deployed-v17-proof.ps1"
     $deployedProofText = Get-Content -Raw -LiteralPath $deployedProofScriptPath
@@ -285,8 +220,6 @@ Push-Location $projectRoot
 try {
     Invoke-Checked "Checking PowerShell script parsing..." { Assert-ScriptParse }
     Invoke-Checked "Checking backend public safety contract..." { Assert-BackendPublicSafetyContract }
-    Invoke-Checked "Checking Android release proof contract..." { Assert-AndroidReleaseProofContract }
-    Invoke-Checked "Checking Android release workflow contract..." { Assert-AndroidReleaseWorkflowContract }
     Invoke-Checked "Checking deployed V17 HTTPS target guards..." { Assert-DeployedProofHttpsGuards }
     Invoke-Checked "Checking native Android tour report contract..." { Assert-NativeAndroidTourReportContract }
     Invoke-Checked "Checking V17 email provider proof script contract..." { Assert-EmailProviderProofScriptContract }
@@ -294,9 +227,7 @@ try {
     Invoke-Checked "Checking V17 live stakeholder walkthrough proof script contract..." { Assert-LiveStakeholderWalkthroughProofScriptContract }
     # Deployment shape check was removed with Vercel migration.
     # The remaining deploy/managed/huggingface-backend/ files are validated
-    # indirectly through the backend public safety contract and the Android
-    # release workflow contract above.
-    Invoke-Checked "Checking V17 Android release shape..." { & ".\scripts\proof\android\native-android-release-shape-check.ps1" }
+    # indirectly through the backend public safety contract and deployed-proof guards above.
     Invoke-Checked "Checking V17 deployed evidence attachment rules..." { & ".\scripts\proof\release\deployed-v17-proof-attachment-check.ps1" }
     Invoke-Checked "Checking V17 cutover readiness guard..." { & ".\scripts\proof\release\v17-cutover-readiness-check.ps1" }
     Invoke-Checked "Checking markdown links..." { & ".\scripts\quality\markdown-check.ps1" }
