@@ -686,6 +686,7 @@ test.describe('admin console', () => {
     await expect(page.getByRole('heading', { name: 'Timeline' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Logout' }).click()
+    await clearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
