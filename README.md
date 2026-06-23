@@ -14,7 +14,7 @@ It models the operating relationship between a brand or merchant and a warehouse
 
 MerHouse is public-readable as source code, local product proof, and sanitized deployment automation. The current repository proves a local Docker Compose runtime, backend and frontend tests, browser route proof, native Android debug-APK proof, cross-surface parity checks, performance-readiness checks, and a recorded local live browser/installed-APK walkthrough.
 
-V17 activation now uses a **confirmed live** private deployed footprint: Neon PostgreSQL, a Hugging Face Docker Space backend, a Firebase Hosting React/Vite frontend, GitHub Actions quality/release workflows, GitHub Release APK distribution, signed Android release proof, and deployment preflight checks. The deployment infrastructure is complete and verified by CI. The three V17 portfolio features are Access Request & Approve-and-Activate and the How To Use Page. The remaining V17 work is closure convergence: proof execution, documentation/diagram synchronization, script inventory validation, and deployed evidence collection. See [`V17-RE-EVALUATION.md`](docs/refactor/V17-RE-EVALUATION.md) and [`Closure_Plan.md`](docs/refactor/Closure_Plan.md) for the current closure scope.
+V17 activation now uses a **confirmed live** private deployed footprint: Neon PostgreSQL, a Hugging Face Docker Space backend, a Firebase Hosting React/Vite frontend, GitHub Actions quality/release workflows, GitHub Release APK distribution, signed Android release proof, and deployment preflight checks. The deployment infrastructure is complete and verified by CI. The three V17 portfolio features are Access Request & Approve-and-Activate, Password Recovery (via Firebase Auth), and the How To Use Page. The remaining V17 work is closure convergence: proof execution, documentation/diagram synchronization, script inventory validation, and deployed evidence collection. See [`V17-RE-EVALUATION.md`](docs/refactor/V17-RE-EVALUATION.md) and [`Closure_Plan.md`](docs/refactor/Closure_Plan.md) for the current closure scope.
 
 Routine CI is pass/fail only and intentionally publishes no GitHub Actions artifacts. The only intended public binary distribution lane is a deliberate GitHub Release APK asset.
 
@@ -268,7 +268,6 @@ The backend reads configuration from environment variables. `.env.example` conta
 | `MERHOUSE_DEPLOYMENT_PUBLIC` | Enables stricter startup validation for public deployment-shaped environments |
 | `MERHOUSE_PUBLIC_FRONTEND_URL` | Public HTTPS frontend origin used for provider-backed account/recovery email links; public startup validation rejects HTTP or placeholder origins |
 | `MERHOUSE_CORS_ALLOWED_ORIGINS` | Browser/native origins accepted by the backend; public startup validation rejects wildcard CORS and requires the public frontend origin |
-| `MERHOUSE_FRONTEND_PUBLIC_API_URL` | Optional frontend container build-time API URL; leave blank for same-origin reverse-proxy deployments |
 
 ## Local Development And Runtime Boundaries
 

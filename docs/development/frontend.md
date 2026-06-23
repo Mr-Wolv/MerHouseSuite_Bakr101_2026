@@ -108,6 +108,8 @@ Routes are defined in `frontend/src/App.tsx`.
 | `/forgot-password` | Password reset request |
 | `/reset-password` | Password reset confirmation |
 | `/sign-up` | Direct account registration (email + password) |
+| `/request-access` | Submit and track access requests for platform review |
+| `/how-to-use` | Platform roles, onboarding guidance, and navigation overview |
 | `/admin` | Platform overview |
 | `/admin/tenants` | Tenant management |
 | `/admin/users` | User management |
@@ -120,7 +122,6 @@ Routes are defined in `frontend/src/App.tsx`.
 | `/merchant/orders` | Order creation, allocation, cancellation, contacts, imports, and shipment-facing work |
 | `/warehouse` | Warehouse inventory, receiving, fulfillment, shipments, and exceptions |
 | `/service-accountability` | At-risk SLA work, disputes, claims, reviews, service agreements, statements, and import history |
-| `/assistant` | Deterministic local scoped assistant summaries, suggestions, refusals, and interaction history |
 | `/notifications` | Action inbox, notification delivery history, and authenticated notification preferences |
 | `/account` | Signed-in account context and self-service password change |
 | `/orders/:orderId` | Order detail |

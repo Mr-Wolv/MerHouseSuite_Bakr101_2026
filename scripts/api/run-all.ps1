@@ -82,7 +82,6 @@ if ($FirebaseEmulatorHost) {
 . (Join-Path $apiRoot "scenarios\13-outbox-processing.ps1") -Context $context
 . (Join-Path $apiRoot "scenarios\14-auth-recovery-access.ps1") -Context $context
 . (Join-Path $apiRoot "scenarios\15-api-boundary-assurance.ps1") -Context $context
-. (Join-Path $apiRoot "scenarios\16-assistant-operations.ps1") -Context $context
 . (Join-Path $apiRoot "scenarios\17-login-rate-limit.ps1") -Context $context
 . (Join-Path $apiRoot "scenarios\18-health-endpoint.ps1") -Context $context
 

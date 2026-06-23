@@ -33,8 +33,7 @@ const expectedEvidence = [
   '../reports/v15-warehouse-polish/warehouse-live-check.json',
   '../reports/v15-warehouse-polish/warehouse-detail-live-check.json',
   '../reports/v15-service-accountability-polish/service-accountability-live-check.json',
-  '../reports/v15-assistant-polish/assistant-live-check.json',
-  '../reports/v15-assistant-polish/assistant-auditor-live-check.json',
+
   '../reports/v15-notifications-polish/notifications-live-check.json',
   '../reports/v15-relationship-detail-polish/relationship-detail-live-check.json',
   '../reports/v15-public-auth-polish/public-auth-live-check.json',

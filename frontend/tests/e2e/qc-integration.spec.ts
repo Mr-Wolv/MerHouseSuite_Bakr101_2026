@@ -1174,14 +1174,10 @@ test.describe('10. Exception handling', () => {
 
     await page.route('**/api/**', (route) => route.abort('connectionrefused'))
     await page.goto(`${APP_URL}/admin/users`)
-    await page.waitForTimeout(5000)
 
-    const hasH1 = await page.locator('h1').count() > 0
-    const hasAlert = await page.locator('[role="alert"]').count() > 0
-    const hasMain = await page.locator('main').count() > 0
-    const hasNav = await page.locator('nav').count() > 0
-    const hasLink = await page.locator('a').count() > 0
-    expect(hasH1 || hasAlert || hasMain || hasNav || hasLink).toBeTruthy()
+    const h1 = page.locator('h1').first()
+    const alert = page.locator('[role="alert"]').first()
+    await expect(h1.or(alert).or(page.locator('main').first()).or(page.locator('nav').first())).toBeVisible({ timeout: 15_000 })
     await context.close()
   })
 
@@ -1196,9 +1192,7 @@ test.describe('10. Exception handling', () => {
       route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'Internal Server Error' }) }),
     )
     await page.goto(`${APP_URL}/admin/tenants`)
-    await page.waitForTimeout(3000)
-    const heading = await page.locator('h1').first().textContent()
-    expect(heading).toBeTruthy()
+    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15_000 })
     await context.close()
   })
 
@@ -1210,10 +1204,9 @@ test.describe('10. Exception handling', () => {
     await expect(page.getByRole('heading', { name: 'Admin Overview' })).toBeVisible({ timeout: 20_000 })
 
     await page.goto(`${APP_URL}/nonexistent-route-12345`)
-    await page.waitForTimeout(3000)
-    const hasNotFound = await page.getByText(/not found|404|page not/i).isVisible({ timeout: 5_000 }).catch(() => false)
-    const hasHeading = await page.locator('h1').first().isVisible()
-    expect(hasNotFound || hasHeading).toBeTruthy()
+    await expect(
+      page.getByText(/not found|404|page not/i).or(page.locator('h1').first())
+    ).toBeVisible({ timeout: 15_000 })
     await context.close()
   })
 
@@ -1249,10 +1242,10 @@ test.describe('10. Exception handling', () => {
 
     await page.getByRole('button', { name: 'Logout' }).click()
     // After logout, we should see the public console or be redirected to login
-    await page.waitForTimeout(3000)
-    const url = page.url()
-    const isLoggedOut = url.includes('/login') || url.endsWith('/')
-    expect(isLoggedOut).toBeTruthy()
+    await expect(async () => {
+      const url = page.url()
+      expect(url.includes('/login') || url.endsWith('/')).toBeTruthy()
+    }).toPass({ timeout: 15_000 })
 
     const unexpectedErrors = consoleErrors.filter((e) => !/Failed to load resource/.test(e))
     expect(unexpectedErrors).toEqual([])

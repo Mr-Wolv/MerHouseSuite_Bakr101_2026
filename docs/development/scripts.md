@@ -412,7 +412,7 @@ The API smoke wrapper and lower-level scenario runner both validate and normaliz
 
 The API docs helper validates `-BaseUrl` the same way before checking or opening Swagger/OpenAPI URLs.
 
-The API smoke suite includes the V14 assistant scenario. That scenario checks platform, merchant, and auditor assistant endpoints; assistant audit events; current-user history scoping; role and tenant refusals; read-only auditor behavior; and a smoke-scale concurrent assistant summary run.
+The API smoke suite covers platform, merchant, and auditor operational flows with role-boundary enforcement, read-only auditor behavior, and concurrent summary checks.
 
 ## Script Families
 

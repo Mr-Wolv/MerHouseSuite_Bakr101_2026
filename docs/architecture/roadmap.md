@@ -2,7 +2,7 @@
 
 This roadmap is the project planning and quality source of truth. It should stay short enough for a new maintainer to read before changing code, docs, scripts, CI, database migrations, or repository shape.
 
-> **V17 Scope Update:** [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) is an additional source of truth for V17 work. It records that deployment infrastructure is confirmed complete (Tier 1), the three V17 portfolio features are implemented in the current codebase (Access Request & Approve-and-Activate, OTP Password Recovery, How To Use Page), and the remaining V17 work is closure convergence plus execution of the deployed proof harness. AI Assistant Completion is deferred to Vinfinite. When the roadmap and re-evaluation disagree, the re-evaluation takes precedence for V17-specific scope decisions, while the roadmap retains authority over QC rules, repository rules, and the Change Quality Rule.
+> **V17 Scope Update:** [`V17-RE-EVALUATION.md`](../refactor/V17-RE-EVALUATION.md) is an additional source of truth for V17 work. It records that deployment infrastructure is confirmed complete (Tier 1), the three V17 portfolio features are implemented in the current codebase (Access Request & Approve-and-Activate, Password Recovery via Firebase Auth, How To Use Page), and the remaining V17 work is closure convergence plus execution of the deployed proof harness. AI Assistant Completion is deferred to Vinfinite. When the roadmap and re-evaluation disagree, the re-evaluation takes precedence for V17-specific scope decisions, while the roadmap retains authority over QC rules, repository rules, and the Change Quality Rule.
 >
 
 ## Current Status
@@ -58,7 +58,7 @@ Operating ledger: [Cross-surface V&V convergence](../quality/cross-surface-conve
 Scope:
 
 - Android native live tour through the installed debug APK, using public auth routes, seeded active owner, merchant, warehouse, support-admin, and auditor accounts, a generated admin account, generated empty merchant and warehouse accounts, and operational detail routes discovered from the APK.
-- Web browser live tour through public auth, authenticated role workspaces, account settings, notifications, service accountability, assistant, platform governance, and operational detail routes.
+- Web browser live tour through public auth, authenticated role workspaces, account settings, notifications, service accountability, platform governance, and operational detail routes.
 - Real-world usage review for empty-state stakeholders, active stakeholders, role handoffs, attention-first work, local-only provider boundaries, and route-level clarity.
 - Documentation, tests, scripts, CI, and system diagrams updated from code and proof results, especially `docs/architecture/system-diagrams.html`.
 
@@ -100,8 +100,8 @@ Implemented V17 portfolio scope:
 
 Remaining V17 closure work:
 
-- closure-critical browser and API proof updated for OTP recovery, `/how-to-use`, and approve-and-activate
-- docs, diagrams, and script inventory aligned with the implemented OTP, access-request, assistant, and deployment behavior
+- closure-critical browser and API proof updated for password recovery, `/how-to-use`, and approve-and-activate
+- docs, diagrams, and script inventory aligned with the implemented password recovery, access-request, and deployment behavior
 - deployed evidence package completed for monitoring, browser proof, load smoke, backup/restore, rollback, Android release, provider proof, and live walkthrough proof
 
 Deferred to Vinfinite (Tier 4):

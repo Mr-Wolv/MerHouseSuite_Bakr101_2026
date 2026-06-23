@@ -730,21 +730,20 @@ $expectedByRoute = @{
     "/merchant/orders" = "Orders"
     "/warehouse" = "Warehouse Console"
     "/service-accountability" = "Service Accountability"
-    "/assistant" = "Operational Review Assistant"
     "/notifications" = "Notifications"
     "/account" = "Your MerHouse account"
 }
 
 $rolePaths = @{
     PUBLIC = @("/login", "/forgot-password", "/reset-password", "/sign-up")
-    OWNER = @("/admin", "/admin/tenants", "/admin/users", "/admin/access-requests", "/admin/outbox", "/admin/relationships", "/admin/audit", "/service-accountability", "/assistant", "/notifications", "/account")
-    ADMIN = @("/admin", "/admin/tenants", "/admin/users", "/admin/access-requests", "/admin/outbox", "/admin/relationships", "/admin/audit", "/service-accountability", "/assistant", "/notifications", "/account")
-    SUPPORT = @("/admin", "/admin/users", "/admin/access-requests", "/admin/outbox", "/admin/relationships", "/admin/audit", "/service-accountability", "/assistant", "/notifications", "/account")
-    AUDITOR = @("/admin", "/admin/outbox", "/admin/relationships", "/admin/audit", "/service-accountability", "/assistant", "/notifications", "/account")
-    MERCHANT_ACTIVE = @("/merchant", "/merchant/inventory", "/merchant/orders", "/service-accountability", "/assistant", "/notifications", "/account")
-    MERCHANT_EMPTY = @("/merchant", "/merchant/inventory", "/merchant/orders", "/service-accountability", "/assistant", "/notifications", "/account")
-    WAREHOUSE_ACTIVE = @("/warehouse", "/service-accountability", "/assistant", "/notifications", "/account")
-    WAREHOUSE_EMPTY = @("/warehouse", "/service-accountability", "/assistant", "/notifications", "/account")
+    OWNER = @("/admin", "/admin/tenants", "/admin/users", "/admin/access-requests", "/admin/outbox", "/admin/relationships", "/admin/audit", "/service-accountability", "/notifications", "/account")
+    ADMIN = @("/admin", "/admin/tenants", "/admin/users", "/admin/access-requests", "/admin/outbox", "/admin/relationships", "/admin/audit", "/service-accountability", "/notifications", "/account")
+    SUPPORT = @("/admin", "/admin/users", "/admin/access-requests", "/admin/outbox", "/admin/relationships", "/admin/audit", "/service-accountability", "/notifications", "/account")
+    AUDITOR = @("/admin", "/admin/outbox", "/admin/relationships", "/admin/audit", "/service-accountability", "/notifications", "/account")
+    MERCHANT_ACTIVE = @("/merchant", "/merchant/inventory", "/merchant/orders", "/service-accountability", "/notifications", "/account")
+    MERCHANT_EMPTY = @("/merchant", "/merchant/inventory", "/merchant/orders", "/service-accountability", "/notifications", "/account")
+    WAREHOUSE_ACTIVE = @("/warehouse", "/service-accountability", "/notifications", "/account")
+    WAREHOUSE_EMPTY = @("/warehouse", "/service-accountability", "/notifications", "/account")
 }
 
 $platformRelationships = @(Invoke-ApiJson -Method GET -Path "/api/v1/merchant-warehouse/relationships" -Token $ownerToken)

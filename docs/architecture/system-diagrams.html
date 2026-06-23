@@ -172,10 +172,10 @@
     <header>
       <h1>MerHouse System Architecture, Workflows, And UML Diagrams</h1>
       <p class="lede">
-        A comprehensive architecture view of the MerHouse fulfillment coordination system. Covers domain model, state machines, operating workflows, identity governance, notification delivery, frontend routing, and deployment infrastructure. Aligned with the current codebase, 19 Flyway migrations, and documented architecture.
+        A comprehensive architecture view of the MerHouse fulfillment coordination system. Covers domain model, state machines, operating workflows, identity governance, notification delivery, frontend routing, and deployment infrastructure. Aligned with the current codebase, 23 Flyway migrations, and documented architecture.
       </p>
       <div class="meta" aria-label="system scope">
-        <span class="pill">19 Flyway migrations</span>
+        <span class="pill">23 Flyway migrations</span>
         <span class="pill">37 persistent tables</span>
         <span class="pill">6 roles across 3 tenant contexts</span>
         <span class="pill">Spring Boot 4 API + React/Vite console</span>
@@ -199,7 +199,7 @@
             <li>Spring Boot 4 with tenant-aware auth, BCrypt passwords, JWT sessions</li>
             <li>18 REST controllers under <code>/api/v1</code></li>
             <li>44+ service classes for domain logic, allocation, outbox, notifications</li>
-            <li>Flyway-managed PostgreSQL schema with 19 incremental migrations</li>
+            <li>Flyway-managed PostgreSQL schema with 23 incremental migrations</li>
             <li>Transactional outbox with scheduled drain processor and carrier dispatch</li>
             
           </ul>
@@ -681,7 +681,7 @@
     <section>
       <h2>State Machines</h2>
       <p class="lede">
-        These are the states operators actually see and reason about, matching the database CHECK constraints and service-layer transitions across all 19 migrations.
+        These are the states operators actually see and reason about, matching the database CHECK constraints and service-layer transitions across all 23 migrations.
       </p>
       <div class="state-grid">
         <article class="state" style="--accent: var(--platform)">

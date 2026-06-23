@@ -27,8 +27,10 @@ describe('HowToUsePage', () => {
     expect(merchantElements.length).toBeGreaterThan(0)
     const warehouseOperatorElements = screen.getAllByText(/Warehouse Operator/i)
     expect(warehouseOperatorElements.length).toBeGreaterThan(0)
-    const ownerAdminElements = screen.getAllByText(/Owner \/ Admin/i)
-    expect(ownerAdminElements.length).toBeGreaterThan(0)
+    const ownerElements = screen.getAllByText(/^Owner$/i)
+    expect(ownerElements.length).toBeGreaterThan(0)
+    const adminElements = screen.getAllByText(/^Admin$/i)
+    expect(adminElements.length).toBeGreaterThan(0)
     
     // Check getting started section
     expect(screen.getByRole('heading', { name: /Getting Started/i })).toBeInTheDocument()

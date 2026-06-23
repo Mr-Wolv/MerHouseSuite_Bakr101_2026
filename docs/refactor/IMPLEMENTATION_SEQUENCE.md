@@ -1,6 +1,6 @@
 # MerHouse Implementation Sequence
 
-> **Status:** SUPERSEDED by [`V17-RE-EVALUATION.md`](./V17-RE-EVALUATION.md) and the follow-up [`Closure_Plan.md`](./Closure_Plan.md). This document remains as the historical audit foundation that informed the V17 re-evaluation. For current V17 scope and task ordering, refer to those documents: deployment infrastructure is complete, the three portfolio features in active scope are implemented (Access Request, OTP Recovery, How To Use), AI Assistant Completion is deferred to Vinfinite, and the remaining work is closure convergence plus deployed proof execution.
+> **Status:** SUPERSEDED by [`V17-RE-EVALUATION.md`](./V17-RE-EVALUATION.md) and the follow-up [`Closure_Plan.md`](./Closure_Plan.md). This document remains as the historical audit foundation that informed the V17 re-evaluation. For current V17 scope and task ordering, refer to those documents: deployment infrastructure is complete, the three portfolio features in active scope are implemented (Access Request, Password Recovery via Firebase Auth, How To Use), AI Assistant Completion is deferred to Vinfinite, and the remaining work is closure convergence plus deployed proof execution.
 >
 > **Purpose:** Single source of truth for all V17 deployment work. This document consolidates findings from a comprehensive codebase audit, PowerShell script evaluation, and re-evaluation of all tasks against the V17 refactoring rule to identify the safest path to successful V17 deployment.
 >

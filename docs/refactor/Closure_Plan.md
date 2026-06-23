@@ -6,7 +6,7 @@ MerHouse is in a convergence phase, not an architecture phase. Core backend, fro
 
 - critical public identity-lifecycle flows are not yet proven by the hostile browser and API proof lanes that closure depends on
 - V17 scope and status are not described consistently across tracked docs
-- assistant and OTP recovery documentation have been updated to reflect codebase removal
+- assistant documentation has been updated to reflect codebase removal; OTP recovery flow was removed in favor of Firebase Auth built-in email templates
 - the main system diagram is behind the implementation
 - deployment closure still depends on missing or unproven backup, rollback, Android release, and live proof artifacts
 
@@ -71,7 +71,7 @@ The repository is considered closed only when all of the following are true:
 
 - **ID:** `A-03`
 - **Description:** Add or strengthen focused automated tests for closure-critical public identity flows where proof currently relies too heavily on component or service tests alone.
-- **Why it exists:** Closure depends on a stronger automated contract around OTP recovery and approve-and-activate than component-only or service-only coverage provides.
+- **Why it exists:** Closure depends on a stronger automated contract around password recovery and approve-and-activate than component-only or service-only coverage provides.
 - **Evidence:** Approve-and-activate currently has partial service/component coverage but no matching hostile browser and API proof convergence.
 - **Files affected:** `backend/src/test/java/com/merhouse/service/AccessRequestServiceTest.java`, controller/web-layer test files under `backend/src/test/java/com/merhouse/web/`, `frontend/src/pages/AdminManagement.test.tsx`.
 - **Dependencies:** `A-01`, `A-02`

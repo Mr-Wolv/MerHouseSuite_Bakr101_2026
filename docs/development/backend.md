@@ -35,7 +35,6 @@ Important environment variables:
 | `SPRING_DATASOURCE_URL` | JDBC URL |
 | `SPRING_DATASOURCE_USERNAME` | Database user |
 | `SPRING_DATASOURCE_PASSWORD` | Database password |
-| `FIREBASE_AUTH_ENABLED` | Must be `true` (default). Firebase Auth is the only authentication path. |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Production service-account JSON for Firebase Admin SDK. |
 | `FIREBASE_PROJECT_ID` | Firebase project ID. |
 | `FIREBASE_EMULATOR_HOST` | Firebase Auth emulator host for local development. |

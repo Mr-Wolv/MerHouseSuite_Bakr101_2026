@@ -965,7 +965,7 @@ test('admin hierarchy tour proves role-specific actions and denials', async ({ b
   await expect(auditorPage.getByText('Read-only diagnostics').first()).toBeVisible()
   await expect(auditorPage.getByRole('button', { name: 'Retry' })).toHaveCount(0)
   await expect(auditorPage.getByRole('button', { name: 'Dead-letter' })).toHaveCount(0)
-  records.push({ role: 'auditor', action: 'reviewed audit and outbox diagnostics without assistant or mutation controls' })
+  records.push({ role: 'auditor', action: 'reviewed audit and outbox diagnostics without mutation controls' })
   await auditorContext.close()
 
   const { context: adminContext, page: adminPage } = await newAuthedPageForAccount(

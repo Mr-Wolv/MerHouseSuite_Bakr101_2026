@@ -109,7 +109,7 @@ function Assert-NativeStakeholderPathCoverage {
     foreach ($state in @("active", "empty")) {
         foreach ($role in @("MERCHANT", "WAREHOUSE")) {
             $exactRole = "${role}_$($state.ToUpperInvariant())"
-            foreach ($path in @("/service-accountability", "/assistant", "/notifications", "/account")) {
+            foreach ($path in @("/service-accountability", "/notifications", "/account")) {
                 $requiredPairs += [pscustomobject]@{ role = $exactRole; state = $state; path = $path }
             }
         }
@@ -155,7 +155,7 @@ function Assert-WebStakeholderPathCoverage {
 
     foreach ($state in @("active", "empty")) {
         foreach ($role in @("merchant", "warehouse")) {
-            foreach ($path in @("/service-accountability", "/assistant", "/notifications", "/account")) {
+            foreach ($path in @("/service-accountability", "/notifications", "/account")) {
                 $requiredPairs += [pscustomobject]@{ role = $role; state = $state; path = $path }
             }
         }
@@ -236,7 +236,7 @@ $requiredNativePairs = @(
 )
 
 foreach ($role in @("OWNER", "ADMIN", "SUPPORT", "AUDITOR", "MERCHANT_ACTIVE", "MERCHANT_EMPTY", "WAREHOUSE_ACTIVE", "WAREHOUSE_EMPTY")) {
-    foreach ($path in @("/service-accountability", "/assistant", "/notifications", "/account")) {
+    foreach ($path in @("/service-accountability", "/notifications", "/account")) {
         $requiredNativePairs += [pscustomobject]@{ role = $role; path = $path }
     }
 }

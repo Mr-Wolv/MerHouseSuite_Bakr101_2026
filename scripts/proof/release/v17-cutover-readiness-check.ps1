@@ -123,7 +123,7 @@ $wrongTargetMonitoringEvidence |
 $loadSmokeRecords = @(1..200 | ForEach-Object { @{ ok = $true; ms = 25 } })
 @{ schema = "merhouse.load-smoke.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); baseUrl = "https://api.example.com"; concurrentUsers = 25; requestsPerUser = 8; totalRequests = 200; budgets = @{ maxAverageMs = 750; maxFailureCount = 0 }; result = @{ passed = $true; failures = 0; averageMs = 25; maxMs = 25 }; records = $loadSmokeRecords } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.loadSmoke -Encoding utf8
-@{ appUrl = "https://app.example.com"; apiUrl = "https://api.example.com"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); checkedRoutes = @("/admin", "/assistant") } |
+@{ appUrl = "https://app.example.com"; apiUrl = "https://api.example.com"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); checkedRoutes = @("/admin", "/notifications") } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.browserTour -Encoding utf8
 @{ schema = "merhouse.load-smoke.v1"; checkedAt = (Get-Date).ToUniversalTime().ToString("o"); baseUrl = "https://wrong-api.example.com"; concurrentUsers = 1; requestsPerUser = 1; totalRequests = 200; budgets = @{ maxAverageMs = 750; maxFailureCount = 0 }; result = @{ passed = $false; failures = 1; averageMs = 900; maxMs = 900 }; records = @(@{ ok = $true; ms = 25 }) } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $artifactPaths.invalidLoadSmoke -Encoding utf8

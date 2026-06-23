@@ -17,7 +17,7 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
 | `A-01` | In Progress | 2026-06-16T18:00:00+03:00 | Scope expanded to cover all 6 roles, all state machine workflows, and all routes (not just 3 closure-critical flows). Deployed proof is blocked; comprehensive local browser proof is the strongest feasible verification. |
 | `A-02` | In Progress | 2026-06-16T18:00:00+03:00 | Scope expanded to cover every controller endpoint across role boundaries plus role-boundary enforcement checks. |
 | `A-03` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
-| `A-04` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
+| `A-04` | Superseded | 2026-06-19T00:00:00+03:00 | Feature removed; task superseded. |
 | `B-01` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
 | `B-02` | Blocked | 2026-06-16T18:00:00+03:00 | Depends on C-02 and C-03 which are externally blocked. |
 | `C-01` | Blocked | 2026-06-16T18:00:00+03:00 | Externally blocked: requires SMTP credentials and deployed HTTPS URLs outside Git. |
@@ -26,7 +26,7 @@ This file is the durable closure register for `docs/refactor/Closure_Plan.md`.
 | `C-04` | Blocked | 2026-06-16T18:00:00+03:00 | Externally blocked: requires SMTP provider (Brevo) credentials and operator for live walkthrough. |
 | `D-02` | Updated | 2026-06-19T00:00:00+03:00 | OTP password recovery feature was removed from the codebase. `docs/architecture/account-lifecycle.md` updated to remove all OTP references, EmailDeliveryService references, and SMTP email delivery references. Firebase Auth handles password reset via built-in email templates. |
 | `D-03` | Updated | 2026-06-19T00:00:00+03:00 | Assistant feature (deterministic read-plus-draft) was removed from the codebase. `docs/architecture/agentic-operations-assistance.md` replaced with a removal stub. All references to assistant across docs, README, and roadmap have been scrubbed. |
-| `E-01` | Closed | 2026-06-16T12:00:00+03:00 | Updated `system-diagrams.html` migration count from 18 to 19; added OTP recovery and approve-and-activate references to the identity lifecycle, AccessRequest UML card, and PasswordResetToken card. |
+| `E-01` | Closed | 2026-06-16T12:00:00+03:00 | Updated `system-diagrams.html` migration count to 23 (corrected from earlier 19 update); added approve-and-activate references to the identity lifecycle, AccessRequest UML card, and PasswordResetToken card. OTP references removed as the OTP flow was removed from the codebase. |
 | `E-02` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
 | `F-01` | Pending | 2026-06-14T14:18:41.6039323+03:00 | Not started. |
 | `F-02` | Blocked | 2026-06-16T18:00:00+03:00 | Depends on C-01, C-02, C-03, C-04 which are externally blocked. |

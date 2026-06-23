@@ -31,11 +31,23 @@ export function HowToUsePage() {
         <article className="how-to-use-content">
           <section aria-labelledby="roles-heading">
             <h2 id="roles-heading">Platform Roles</h2>
-            <p>MerHouse serves five roles, each with specific responsibilities:</p>
+            <p>MerHouse serves six roles, each with specific responsibilities:</p>
             <dl className="role-list">
               <div>
-                <dt>Owner / Admin</dt>
+                <dt>Owner</dt>
+                <dd>Full platform governance: manage tenants, users, access requests, relationships, audit trails, outbox health, and admin accounts.</dd>
+              </div>
+              <div>
+                <dt>Admin</dt>
                 <dd>Platform governance: manage tenants, users, access requests, relationships, audit trails, and outbox health.</dd>
+              </div>
+              <div>
+                <dt>Support Admin</dt>
+                <dd>User account support and read-only operational review across the platform.</dd>
+              </div>
+              <div>
+                <dt>Auditor</dt>
+                <dd>Read-only access to governance records, service accountability, and audit evidence.</dd>
               </div>
               <div>
                 <dt>Merchant</dt>
@@ -45,25 +57,26 @@ export function HowToUsePage() {
                 <dt>Warehouse Operator</dt>
                 <dd>Receiving inbound stock, pick/pack/ship operations, exception reporting, and service evidence.</dd>
               </div>
-              <div>
-                <dt>Support Admin</dt>
-                <dd>User account recovery support and read-only operational review across the platform.</dd>
-              </div>
-              <div>
-                <dt>Auditor</dt>
-                <dd>Read-only access to governance records, service accountability, audit evidence, and assistant interactions.</dd>
-              </div>
             </dl>
           </section>
 
           <section aria-labelledby="onboarding-heading">
             <h2 id="onboarding-heading">Getting Started</h2>
+            <p>There are two ways to get a merchant or warehouse account:</p>
+            <h3>Option A: Sign Up directly</h3>
             <ol className="step-list">
-              <li><strong>Submit an access request</strong> from the login page using your email address.</li>
-              <li><strong>Wait for approval</strong> — a platform admin reviews and approves your request.</li>
-              <li><strong>Receive activation email</strong> with a temporary password.</li>
+              <li><strong>Go to Sign Up</strong> and create an account with your organization name, email, and password.</li>
+              <li><strong>Save your recovery key</strong> — it is shown once and can reset your password without email.</li>
+              <li><strong>Sign in</strong> and start using the platform immediately.</li>
+            </ol>
+            <h3>Option B: Request Access</h3>
+            <ol className="step-list">
+              <li><strong>Submit an access request</strong> from the Request Access page with your organization and email.</li>
+              <li><strong>Wait for admin review</strong> — a platform admin approves and activates your account.</li>
+              <li><strong>Get your credentials</strong> — the admin provides your temporary password separately.</li>
               <li><strong>Sign in</strong> and change your password from Account settings.</li>
             </ol>
+            <p>If you lose access to your email, use the <strong>Recovery Key</strong> tab on the Forgot Password page to reset your password instantly.</p>
           </section>
 
           <section aria-labelledby="order-workflow-heading">
@@ -112,31 +125,31 @@ export function HowToUsePage() {
               </div>
               <div>
                 <dt>Stock / Inventory</dt>
-                <dd>Manage inventory items, quantities, and stock levels.</dd>
+                <dd>Manage inventory items, quantities, and stock levels (Merchant).</dd>
               </div>
               <div>
                 <dt>Orders</dt>
-                <dd>View and create customer orders, track allocation and fulfillment status.</dd>
+                <dd>View and create customer orders, track allocation and fulfillment status (Merchant).</dd>
               </div>
               <div>
-                <dt>Work Queue</dt>
-                <dd>Warehouse operators see pending inbound and outbound work.</dd>
+                <dt>Warehouse Console</dt>
+                <dd>Receiving, pick/pack/ship queue, shipments, exceptions, and inventory adjustment (Warehouse Operator).</dd>
               </div>
               <div>
-                <dt>Service Review</dt>
-                <dd>Agreements, proposals, SLA review, service statements, disputes, and claims.</dd>
+                <dt>Service Accountability</dt>
+                <dd>Agreements, rate cards, SLA review, service statements, disputes, claims, and reviews (all roles).</dd>
               </div>
               <div>
                 <dt>Alerts</dt>
-                <dd>Notification inbox for account events, operational handoffs, and delivery updates.</dd>
+                <dd>Notification inbox for account events, operational handoffs, and delivery updates (all roles).</dd>
               </div>
               <div>
                 <dt>Account</dt>
-                <dd>View account context and change your password.</dd>
+                <dd>View account context and change your password (all roles).</dd>
               </div>
               <div>
-                <dt>Admin</dt>
-                <dd>Platform governance: organizations, users, access requests, relationships, outbox, and audit.</dd>
+                <dt>Admin Overview</dt>
+                <dd>Platform governance: tenants, users, access requests, relationships, outbox, and audit (Owner, Admin, Support Admin, Auditor).</dd>
               </div>
             </dl>
           </section>

@@ -37,7 +37,6 @@ The backend reads authentication settings from environment variables:
 
 | Variable | Purpose |
 | --- | --- |
-| `FIREBASE_AUTH_ENABLED` | Must be `true` (default). Firebase Auth is the only authentication path. |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Production service-account JSON for Firebase Admin SDK. |
 | `FIREBASE_PROJECT_ID` | Firebase project ID. |
 | `FIREBASE_EMULATOR_HOST` | Firebase Auth emulator host for local development. |

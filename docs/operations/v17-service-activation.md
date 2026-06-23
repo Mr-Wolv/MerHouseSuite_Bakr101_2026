@@ -2,11 +2,11 @@
 
 This note records the external-service layer MerHouse activates during the private V17 deployed lane. Private V17 deployment exists, but this is not a public production claim until sanitized service proof and cutover evidence are complete.
 
-V17 should finish as a simple deployed release before adding more product surface. Email is the real external service target for the first deployment. Android OS notifications, push providers, and autonomous agent mutations are out of scope. The agent is the only deliberate v1 prototype: it can draft and explain next steps from authorized context, but it cannot perform operational work until a later tool-authorization release is designed, tested, audited, and proven.
+V17 should finish as a simple deployed release before adding more product surface. Email is the real external service target for the first deployment. Android OS notifications, push providers, and autonomous agent mutations are out of scope. A future AI assistant could be designed as a backend-mediated prototype that reads authorized context and suggests next steps, but it cannot perform operational work until a later tool-authorization release is designed, tested, audited, and proven.
 
-> **Deployment status update:** The private V17 deployment is **confirmed live** on Neon PostgreSQL, Hugging Face Docker Space, and GitHub Actions CI/CD. The current portfolio features are Access Request & Approve-and-Activate and the How To Use Page. OTP Password Recovery was removed (Firebase Auth handles password reset). AI Assistant Completion is deferred to Vinfinite.
+> **Deployment status update:** The private V17 deployment is **confirmed live** on Neon PostgreSQL, Hugging Face Docker Space, and GitHub Actions CI/CD. The three V17 portfolio features are implemented: Access Request & Approve-and-Activate, Password Recovery (via Firebase Auth), and the How To Use Page. The OTP-specific password recovery flow was removed; Firebase Auth handles password-reset email delivery via built-in email templates. AI Assistant Completion is deferred to Vinfinite.
 
-V16.2 kept account recovery, access-request conversion, notifications, and assistant behavior local and auditable. V17 extends those boundaries with real external services only after staging proof, provider credentials, secrets handling, monitoring, and rollback are ready.
+V16.2 kept account recovery, access-request conversion, and notifications local and auditable. V17 extends those boundaries with real external services only after staging proof, provider credentials, secrets handling, monitoring, and rollback are ready. The AI Assistant (deterministic read-plus-draft) was removed from the codebase and deferred to Vinfinite.
 
 ## Service Targets
 
@@ -61,28 +61,15 @@ Native Android OS notifications, lock-screen alerts, notification-tray delivery,
 
 ## Agentic Work Direction
 
-Any future real MerHouse agent must remain backend-mediated. The V17 v1 boundary is read-plus-draft only: the runtime may summarize approved context, propose review plans, and record scoped metadata, but it cannot call mutation tools or change operational records. A later provider-backed or tool-enabled agent can plan and call tools only through approved backend APIs; it must not connect directly to the database, bypass role/tenant authorization, or silently mutate operational records.
+The deterministic read-plus-draft AI Assistant was removed from the codebase and is deferred to Vinfinite. Any future real MerHouse agent must remain backend-mediated. A later provider-backed or tool-enabled agent can plan and call tools only through approved backend APIs; it must not connect directly to the database, bypass role/tenant authorization, or silently mutate operational records.
 
-For V17 completion, do not block deployment on model-backed reasoning. Ship the deterministic/read-plus-draft boundary, keep it visibly non-mutating, and let post-deployment CI/CD and live bug reports drive the next agent slice.
-
-Required shape:
+Required shape for a future agent:
 
 ```text
 user -> frontend -> backend -> agent service/model runtime
                            -> backend-approved tool APIs
                            -> audit/database
 ```
-
-Current V17 v1 slice:
-
-- read authorized operational context for one role and tenant
-- propose a concrete plan with cited source records
-- record runtime metadata including `agentMode`, optional `agentModelName`, `agenticWork=read-plus-draft`, `mutationPolicy`, and refusal path
-- fall back to deterministic triage or an unavailable state when the model/runtime is unavailable
-
-V17 v1 records `agentMode`, `agentModelName`, `agenticWork=read-plus-draft`, and `mutationPolicy` metadata on assistant interactions. This is the first bounded runtime seam; operational mutation remains out of scope until a later explicit tool-authorization slice.
-
-Current V17 deployment safety accepts only `MERHOUSE_AGENT_MODE=deterministic` and a timeout from 1 to 60 seconds. Any non-deterministic mode must be rejected by startup validation and managed deployment-shape proof until a provider/runtime adapter, unavailable-state behavior, authorization tests, audit proof, and live staging proof exist.
 
 ## V17 Proof Bar
 
@@ -97,10 +84,9 @@ Do not call these services activated until proof exists for:
 - recipient scoping and tenant boundaries
 - provider failure, retry, skipped-by-preference, and bounce/error handling
 - concurrent delivery and duplicate-submit proof for high-traffic account and notification paths
-- read-plus-draft agent authorization, refusal, audit, deterministic fallback metadata, and no-mutation behavior
-- model/provider unavailable behavior before any non-deterministic or tool-enabled agent mode is allowed
+- agent authorization, audit, and no-mutation behavior (when an agent is implemented)
 - browser proof and API smoke against the staging target
 - load/performance proof against production-shaped seeded data and expected first-release user volume
 - updated diagrams, roadmap, README, scripts, and affected tests
 
-Until that proof exists against deployed staging or production targets, MerHouse remains privately deployed with default in-app delivery records, opt-in SMTP attempt plumbing, and deterministic read-plus-draft assistant behavior.
+Until that proof exists against deployed staging or production targets, MerHouse remains privately deployed with default in-app delivery records and opt-in SMTP attempt plumbing. The deterministic read-plus-draft assistant prototype was removed from the codebase and is deferred to Vinfinite.

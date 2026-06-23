@@ -207,13 +207,6 @@ test('fresh accounts see guided first-run empty states', async ({ browser, reque
   records.push(await inspectEmptyState(
     merchantPage,
     'merchant',
-    '/assistant',
-    'Start with a scoped summary',
-    screenshotDir,
-  ))
-  records.push(await inspectEmptyState(
-    merchantPage,
-    'merchant',
     '/notifications',
     'will appear here',
     screenshotDir,
@@ -233,13 +226,6 @@ test('fresh accounts see guided first-run empty states', async ({ browser, reque
     'warehouse',
     '/service-accountability',
     'Create or activate a partner relationship',
-    screenshotDir,
-  ))
-  records.push(await inspectEmptyState(
-    warehousePage,
-    'warehouse',
-    '/assistant',
-    'Start with a scoped summary',
     screenshotDir,
   ))
   records.push(await inspectEmptyState(

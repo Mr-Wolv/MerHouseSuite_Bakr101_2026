@@ -265,6 +265,7 @@ describe('WarehousePage', () => {
 
     expect(await screen.findByText('Warehouse Console')).toBeInTheDocument()
     expect(screen.getByText("Start with today's work")).toBeInTheDocument()
+    expect(await screen.findByText('Merchant Item')).toBeInTheDocument()
     expect(await screen.findByLabelText('Warehouse setup path')).toHaveTextContent('3/4 ready')
     expect(screen.getByText('Daily work')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Pick, pack, and ship first' })).toBeInTheDocument()
@@ -280,7 +281,6 @@ describe('WarehousePage', () => {
     expect(queueCard).toBeInTheDocument()
     expect(within(queueCard).getByText('Pick sheet needed')).toBeInTheDocument()
     expect(within(queueCard).getByText('Scan pending')).toBeInTheDocument()
-    expect(await screen.findByText('Merchant Item')).toBeInTheDocument()
     const inventoryRow = screen.getByRole('row', { name: /SKU-1 Merchant Item 10 2 8/i })
     expect(within(inventoryRow).getByText('10')).toHaveClass('quantity-cell', 'quantity-ready')
     expect(within(inventoryRow).getByText('2')).toHaveClass('quantity-cell', 'quantity-pending')

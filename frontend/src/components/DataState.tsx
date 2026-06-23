@@ -76,7 +76,6 @@ function EmptyStateGlyph({ label, guidance = '' }: { label: string; guidance?: s
   const text = `${label} ${guidance}`.toLowerCase()
   if (text.includes('unavailable') || text.includes('not found')) return <appIcons.notFound size={20} />
   if (text.includes('alert') || text.includes('notification')) return <appIcons.alertsActive size={20} />
-  if (text.includes('assistant')) return <appIcons.assistant size={20} />
   if (text.includes('inventory') || text.includes('stock') || text.includes('sku')) return <appIcons.inventory size={20} />
   if (text.includes('order') || text.includes('backorder')) return <appIcons.orders size={20} />
   if (text.includes('warehouse') || text.includes('fulfillment') || text.includes('allocation')) return <appIcons.warehouseWork size={20} />
