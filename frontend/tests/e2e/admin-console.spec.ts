@@ -473,7 +473,7 @@ test.describe('admin console', () => {
     await page.goto('/login')
     await page.getByLabel('Email').fill(userEmail)
     await page.getByLabel('Password').fill(newPassword)
-    await page.getByRole('button', { name: 'Sign in' }).click()
+    await clickFreshButton(() => page.getByRole('button', { name: 'Sign in' }))
     await expect(page.getByRole('heading', { name: 'Merchant Overview' })).toBeVisible({ timeout: 20_000 })
   })
 
@@ -657,7 +657,7 @@ test.describe('admin console', () => {
     const inboundRow = () => page.getByRole('row', { name: new RegExp(`${sku} - V8 E2E Item`) })
     await clickFreshButton(() => inboundRow().getByRole('button', { name: 'Approve' }))
     await expect(inboundRow()).toContainText('APPROVED', { timeout: 20_000 })
-    await page.reload({ waitUntil: 'networkidle' })
+    await page.reload()
     await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible()
     await expect(inboundRow()).toContainText('APPROVED', { timeout: 20_000 })
     await clickFreshButton(() => inboundRow().getByRole('button', { name: 'Start receiving' }))
