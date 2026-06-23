@@ -117,6 +117,26 @@ async function clearAuthState(page: Page) {
   })
 }
 
+async function logoutAndClearAuthState(page: Page) {
+  await page.getByRole('button', { name: 'Logout' }).click()
+  await expect(page.getByRole('heading', { name: 'Operations Console' })).toBeVisible({ timeout: 20_000 })
+  await page.waitForURL('**/login', { timeout: 20_000 })
+  await clearAuthState(page)
+}
+
+async function signInAndOpenRoute(page: Page, email: string, password: string, path: string, heading: string, label: string) {
+  await page.goto('/login')
+  await page.waitForURL('**/login', { timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'Operations Console' })).toBeVisible({ timeout: 20_000 })
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await clickFreshButton(() => page.getByRole('button', { name: 'Sign in' }))
+  await expect(page.getByRole('link', { name: `Account settings for ${email}` })).toBeVisible({ timeout: 30_000 })
+  await page.goto(path)
+  await expect(page.getByRole('heading', { name: heading })).toBeVisible({ timeout: 30_000 })
+  await waitForAppSettled(page, label, 20_000)
+}
+
 /**
  * Update a Firebase Auth user's password by signing in with the old password
  * to get an ID token, then calling the accounts:update endpoint.
@@ -482,16 +502,8 @@ test.describe('admin console', () => {
     // Also update the Firebase Auth user's password so the next UI login
     // (which goes through Firebase) succeeds with the new password.
     await updateFirebasePassword(request, userEmail, oldPassword, newPassword)
-    await page.getByRole('button', { name: 'Logout' }).click()
-    await clearAuthState(page)
-    await page.goto('/login')
-    await page.waitForURL('**/login', { timeout: 15_000 })
-    await page.getByLabel('Email').fill(userEmail)
-    await page.getByLabel('Password').fill(newPassword)
-    await clickFreshButton(() => page.getByRole('button', { name: 'Sign in' }))
-    await page.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: 30_000 })
-    await waitForAppSettled(page, 'post-login-password-change', 20_000)
-    await expect(page.getByRole('heading', { name: 'Merchant Overview' })).toBeVisible({ timeout: 20_000 })
+    await logoutAndClearAuthState(page)
+    await signInAndOpenRoute(page, userEmail, newPassword, '/merchant', 'Merchant Overview', 'post-login-password-change')
   })
 
   test('warehouse operator can fail and return in-transit shipments', async ({ page, request }) => {
@@ -638,22 +650,13 @@ test.describe('admin console', () => {
     await relationshipForm.getByRole('button', { name: 'Request service' }).click()
     await expect(page.getByRole('row', { name: /Daily V8 receiving/ })).toContainText('REQUESTED')
 
-    await page.getByRole('button', { name: 'Logout' }).click()
-    await clearAuthState(page)
-    await page.goto('/login')
-    await page.waitForURL('**/login', { timeout: 15_000 })
-    await page.getByLabel('Email').fill(operatorEmail)
-    await page.getByLabel('Password').fill(operatorPassword)
-    await clickFreshButton(() => page.getByRole('button', { name: 'Sign in' }))
-    await page.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: 30_000 })
-    await waitForAppSettled(page, 'post-login-v8-operator', 20_000)
-    await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible({ timeout: 20_000 })
+    await logoutAndClearAuthState(page)
+    await signInAndOpenRoute(page, operatorEmail, operatorPassword, '/warehouse', 'Warehouse Console', 'post-login-v8-operator')
     const relationshipRow = page.getByRole('row', { name: /Daily V8 receiving/ })
     await relationshipRow.getByRole('button', { name: 'Activate' }).click()
     await expect(relationshipRow).toContainText('ACTIVE')
 
-    await page.getByRole('button', { name: 'Logout' }).click()
-    await clearAuthState(page)
+    await logoutAndClearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(merchantEmail)
     await page.getByLabel('Password').fill(merchantPassword)
@@ -668,8 +671,7 @@ test.describe('admin console', () => {
     await inboundForm.getByRole('button', { name: 'Submit inbound' }).click()
     await expect(page.getByRole('row', { name: new RegExp(`ASN-${suffix}`) })).toContainText('SUBMITTED')
 
-    await page.getByRole('button', { name: 'Logout' }).click()
-    await clearAuthState(page)
+    await logoutAndClearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(operatorEmail)
     await page.getByLabel('Password').fill(operatorPassword)
@@ -687,8 +689,7 @@ test.describe('admin console', () => {
     await expect(inboundRow().getByText('No warehouse action')).toBeVisible()
     await expect(inboundRow()).toContainText('RECEIVED', { timeout: 20_000 })
 
-    await page.getByRole('button', { name: 'Logout' }).click()
-    await clearAuthState(page)
+    await logoutAndClearAuthState(page)
     await page.goto('/login')
     await page.getByLabel('Email').fill(merchantEmail)
     await page.getByLabel('Password').fill(merchantPassword)
@@ -706,16 +707,8 @@ test.describe('admin console', () => {
     await expect(page.getByRole('heading', { name: 'Order Detail' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Timeline' })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Logout' }).click()
-    await clearAuthState(page)
-    await page.goto('/login')
-    await page.waitForURL('**/login', { timeout: 15_000 })
-    await page.getByLabel('Email').fill(operatorEmail)
-    await page.getByLabel('Password').fill(operatorPassword)
-    await clickFreshButton(() => page.getByRole('button', { name: 'Sign in' }))
-    await page.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: 30_000 })
-    await waitForAppSettled(page, 'post-login-v8-operator-2', 20_000)
-    await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible({ timeout: 20_000 })
+    await logoutAndClearAuthState(page)
+    await signInAndOpenRoute(page, operatorEmail, operatorPassword, '/warehouse', 'Warehouse Console', 'post-login-v8-operator-2')
     const allocationCard = page.getByLabel(new RegExp(`Allocation .*V8 Customer ${suffix}`))
     await expect(allocationCard).toContainText('PENDING', { timeout: 20_000 })
     await allocationCard.locator('a').first().click()
@@ -866,13 +859,8 @@ test.describe('admin console', () => {
     await expectNotificationTitle(page, 'Service claim opened')
     await expectNotificationTitle(page, 'Service review requested')
     await expect(page.locator('.data-chip', { hasText: 'ServiceClaim' }).first()).toBeVisible()
-    await page.getByRole('button', { name: 'Logout' }).click()
-    await clearAuthState(page)
-    await page.goto('/login')
-    await page.getByLabel('Email').fill(warehouseEmail)
-    await page.getByLabel('Password').fill('operator-password')
-    await clickFreshButton(() => page.getByRole('button', { name: 'Sign in' }))
-    await expect(page.getByRole('heading', { name: 'Warehouse Console' })).toBeVisible({ timeout: 20_000 })
+    await logoutAndClearAuthState(page)
+    await signInAndOpenRoute(page, warehouseEmail, 'operator-password', '/warehouse', 'Warehouse Console', 'post-login-v11-warehouse')
     await page.goto('/notifications')
     await expectNotificationTitle(page, 'Service agreement proposed')
     await expectNotificationTitle(page, 'Service dispute opened')
